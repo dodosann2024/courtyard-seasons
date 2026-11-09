@@ -4784,7 +4784,7 @@ function XbuildKR(){const G=new fe;G.visible=!1;Jt.add(G);const Q=XQ,U={sea:[]},
  /* ---------- stone wall (돌담) ring = fence ---------- */
 
   /* shared hanok roof builder: concave loft, spline eave, stacked ridge */
-  const krTile=()=>{const t=giwa.clone();t.needsUpdate=!0;t.wrapS=t.wrapT=1e3;t.anisotropy=8;return t};
+  const krTile=()=>{if(krTile.t)return krTile.t;const t=ze(512,128,(c,w,h)=>{c.fillStyle="#6e7278";c.fillRect(0,0,w,h);const n=4,rh=h/n;for(let i=0;i<n;i++){const y=i*rh;c.fillStyle="#2c3034";c.fillRect(0,y,w,rh*.16);c.fillStyle=i%2?"#7a7e84":"#62666c";c.fillRect(0,y+rh*.18,w,rh*.7);c.fillStyle="rgba(255,255,255,.1)";c.fillRect(0,y+rh*.18,w,rh*.1)}});t.wrapS=t.wrapT=1e3;t.anisotropy=16;t.generateMipmaps=!0;t.minFilter=1008;t.magFilter=1006;t.needsUpdate=!0;krTile.t=t;return t};
   const krFlip=g=>{g.computeVertexNormals();const nm=g.attributes.normal;let sy=0;for(let k=0;k<nm.count;k+=4)sy+=nm.getY(k);if(sy<0){const ix=g.index.array;for(let k=0;k<ix.length;k+=3){const a=ix[k];ix[k]=ix[k+1];ix[k+1]=a}g.computeVertexNormals()}};
   const krSweep=(pts,prof)=>{const n=pts.length,m=prof.length,xyz=[],C=[],I=[],tg=[];for(let k=0;k<n;k++){const a=pts[Math.max(0,k-1)],b=pts[Math.min(n-1,k+1)],t=b.clone().sub(a);tg.push((t.lengthSq()<1e-10?t.set(1,0,0):t).normalize())}
     let Sd=new P();for(let k=0;k<n;k++){const t=tg[k];if(!k){Sd.crossVectors(Math.abs(t.y)<.82?new P(0,1,0):new P(1,0,0),t).normalize()}else{const ax=tg[k-1].clone().cross(t),sl=ax.length();if(sl>1e-5)Sd.applyAxisAngle(ax.multiplyScalar(1/sl),Math.asin(Math.min(1,sl)))}
@@ -4795,7 +4795,7 @@ function XbuildKR(){const G=new fe;G.visible=!1;Jt.add(G);const Q=XQ,U={sea:[]},
   const krProf=s=>[[-.15*s,-.12*s,0],[-.11*s,-.02*s,0],[-.07*s,.045*s,0],[-.04*s,.085*s,0],[-.018*s,.112*s,0],[0,.132*s,0],[.018*s,.112*s,0],[.04*s,.085*s,0],[.07*s,.045*s,0],[.11*s,-.02*s,0],[.15*s,-.12*s,0]];const krMortar=s=>[[-.028*s,.112*s,1],[-.01*s,.118*s,1],[.01*s,.118*s,1],[.028*s,.112*s,1]];const krCap=s=>[[-.055*s,.01*s,0],[-.032*s,.05*s,0],[-.014*s,.09*s,0],[0,.118*s,0],[.014*s,.09*s,0],[.032*s,.05*s,0],[.055*s,.01*s,0]];
   const krRidge=(pts,sc)=>[krSweep(pts,krProf(sc)),krSweep(pts,krMortar(sc))];
   const krLoft=(eave,ridgeOf,nv,pw)=>{const nu=eave.length-1,xyz=[],UV=[],I=[],acc=[0];for(let i=1;i<=nu;i++)acc.push(acc[i-1]+eave[i].distanceTo(eave[i-1]));
-    for(let i=0;i<=nu;i++){const E=eave[i],R=ridgeOf(i),col=[];for(let j=0;j<=nv;j++){const u=j/nv,k=u+Math.sin(Math.PI*u)*.09;col.push(new P(R.x+(E.x-R.x)*u,R.y+(E.y-R.y)*k,R.z+(E.z-R.z)*u))}let sl=0;for(let j=0;j<=nv;j++){if(j)sl+=col[j].distanceTo(col[j-1]);xyz.push(col[j].x,col[j].y,col[j].z);UV.push(acc[i]/.32,sl/.26)}}
+    for(let i=0;i<=nu;i++){const E=eave[i],R=ridgeOf(i),col=[];for(let j=0;j<=nv;j++){const u=j/nv,k=u+Math.sin(Math.PI*u)*.09;col.push(new P(R.x+(E.x-R.x)*u,R.y+(E.y-R.y)*k,R.z+(E.z-R.z)*u))}let sl=0;for(let j=0;j<=nv;j++){if(j)sl+=col[j].distanceTo(col[j-1]);xyz.push(col[j].x,col[j].y,col[j].z);UV.push(acc[i]/1.1,sl/.52)}}
     for(let i=0;i<nu;i++)for(let j=0;j<nv;j++){const a=i*(nv+1)+j,b=a+nv+1;I.push(a,a+1,b,b,a+1,b+1)}
     const g=new ge;g.setAttribute("position",new Gt(new Float32Array(xyz),3));g.setAttribute("uv",new Gt(new Float32Array(UV),2));g.setIndex(I);krFlip(g);return g};
   const krFascia=(pts,drop)=>{const xyz=[],I=[];for(const q of pts)xyz.push(q.x,q.y-.035,q.z,q.x,q.y-drop,q.z);for(let i=0;i<pts.length-1;i++){const a=i*2;I.push(a,a+1,a+2,a+1,a+3,a+2)}const g=new ge;g.setAttribute("position",new Gt(new Float32Array(xyz),3));g.setIndex(I);g.computeVertexNormals();return g};
@@ -4806,21 +4806,22 @@ function XbuildKR(){const G=new fe;G.visible=!1;Jt.add(G);const Q=XQ,U={sea:[]},
   const gG=new fe;gG.position.set(Math.cos(Pn)*8.5,0,Math.sin(Pn)*8.5);gG.rotation.y=-Pn+Math.PI/2;G.add(gG);const gw=1.5;for(const s of[-1,1]){const p=new j(new ue(.09,.1,2.3,12),M.wood);p.position.set(s*gw/2,1.15,0);p.castShadow=!0;gG.add(p);const pad=new j(new ue(.17,.2,.14,10),M.stone);pad.position.set(s*gw/2,.07,0);gG.add(pad);const dr=new j(new we(.7,1.85,.05),M.wood2),oa=1.15;dr.position.set(s*gw/2-s*.36*Math.cos(oa),1.05,-.36*Math.sin(oa));dr.rotation.y=-s*oa;dr.castShadow=!0;gG.add(dr);for(const yy of[.5,1.6]){const bb=new j(new we(.66,.06,.03),M.wood);bb.position.copy(dr.position);bb.position.y=yy;bb.rotation.y=dr.rotation.y;bb.translateZ(-.03);gG.add(bb)}const pw=new j(new we(.7,1.32,.66),Xmat({map:stoneT,roughness:.95}));pw.position.set(s*1.17,.66,0);pw.castShadow=pw.receiveShadow=!0;gG.add(pw);const pc=new j(new we(.8,.08,.76),Xmat({color:"#6f747b",roughness:.7}));pc.position.set(s*1.17,1.36,0);gG.add(pc);const pr=new j(new ue(.05,.05,.8,8),M.ridge);pr.rotation.z=Math.PI/2;pr.position.set(s*1.17,1.43,0);gG.add(pr)}
   for(const[y,h]of[[2.3,.22],[2.06,.16]]){const b=new j(new we(gw+.5,h,.2),M.dan);b.position.y=y;gG.add(b)}
   /* gate: gable roof, concave slopes, eave low in the middle */
-  {const bY=2.46,halfX=1.14,halfZ=.66,lift=.1,ridgeH=.44,endUp=.028,pw=.82,N=24,nv=8,roof=new fe;roof.position.y=bY;gG.add(roof);gG.name="hanokGate";
+  {const bY=2.38,halfX=1.14,halfZ=.66,lift=.08,ridgeH=.4,endUp=.02,pw=.82,N=24,nv=8,roof=new fe;roof.position.y=bY;gG.add(roof);gG.name="hanokGate";
    const tm=Xmat({map:krTile(),color:"#6e737a",roughness:.74},{snow:1}),fm=Xmat({color:"#5c6168",roughness:.8},{snow:1}),rd=Xmat({color:"#3c4046",roughness:.62},{snow:1}),rw=Xmat({color:"#f3f0e8",roughness:.8},{snow:1}),dk=Xmat({color:"#3a3e44",roughness:.6},{snow:1});
    const eave=sz=>{const p=[];for(let i=0;i<=N;i++){const t=i/N*2-1,a=Math.abs(t);p.push(new P(t*halfX,lift*Math.pow(a,1.5),sz*halfZ))}return p};
    const rAt=x=>new P(Math.max(-halfX,Math.min(halfX,x)),ridgeH+endUp*Math.pow(Math.min(1,Math.abs(x)/halfX),1.6),0);
    for(const sz of[1,-1]){const e=eave(sz);const m=new j(krLoft(e,i=>rAt(e[i].x),nv,pw),tm);m.userData.krTile=1;m.castShadow=m.receiveShadow=!0;roof.add(m);const f=new j(krFascia(e,.05),fm);f.userData.krSkip=1;roof.add(f)}
    const xEnd=halfX-.06;const rp=[];for(let k=0;k<=20;k++){const x=-xEnd+2*xEnd*k/20;rp.push(rAt(x).add(new P(0,-.012,0)))}{const sc=.7;const a=krSweep(rp,krCap(sc)),b=krSweep(rp,krMortar(sc));const A=new j(a,rd),B=new j(b,rw);A.userData.krRidge=B.userData.krRidge=1;roof.add(A,B)}
-   const ends=new ue(.03,.03,.022,8),ea=[];
-   for(const sz of[1,-1])for(let i=0;i<=N;i+=2){const t=i/N*2-1,a=Math.abs(t),x=t*halfX,y=lift*Math.pow(a,1.5),z=sz*halfZ;ea.push(new ee().compose(new P(x,y,z+sz*.012),new me().setFromUnitVectors(new P(0,1,0),new P(0,.15,sz).normalize()),new P(1,1,1)))}
-   const em=Xinst(ends,dk,ea);em.userData.krSkip=1;roof.add(em);
+   const ends=new ue(.034,.034,.012,16);ends.rotateX(Math.PI/2);const ea=[],ecap=Xmat({color:"#72767c",roughness:.7},{snow:1});
+   for(const sz of[1,-1])for(let i=1;i<N;i+=2){const t=i/N*2-1,a=Math.abs(t),x=t*halfX,y=lift*Math.pow(a,1.5);ea.push(new ee().compose(new P(x,y+.05,sz*halfZ),new me().setFromEuler(new Oe(0,sz>0?0:Math.PI,0)),new P(1,1,1)))}
+   const em=Xinst(ends,ecap,ea,null,!1);em.userData.krSkip=1;roof.add(em);
    const sm=Xmat({color:"#7a5c46",roughness:.9,emissive:new ie("#3a2a20"),emissiveIntensity:.4,side:be},{snow:1});
-   for(const sz of[1,-1]){const e=[];for(let i=0;i<=16;i++){const t=i/16*2-1,a=Math.abs(t);e.push(new P(t*(halfX-.12),lift*Math.pow(a,1.5)-.07,sz*(halfZ-.1)))}roof.add(new j(krLoft(e,i=>new P(e[i].x,ridgeH-.06,0),6,pw),sm))}
-   const rg=new ue(.013,.015,.11,5);const arr=[];
-   const yS=(a,z)=>{const ze=halfZ-.1,s=Math.min(1,Math.max(0,z/ze)),ye=lift*Math.pow(a,1.5)-.07,yr=ridgeH-.06;return yr+(ye-yr)*(s+Math.sin(Math.PI*s)*.09)};
-   for(const sz of[1,-1])for(let i=2;i<N-1;i+=3){const t=i/N*2-1,a=Math.abs(t),x=t*(halfX-.08),z0=halfZ-.24,z1=halfZ-.09,y0=yS(a,z0)-.014,y1=yS(a,z1)-.014;const dir=new P(0,y1-y0,sz*(z1-z0)).normalize();arr.push(new ee().compose(new P(x,(y0+y1)/2,sz*(z0+z1)/2),new me().setFromUnitVectors(new P(0,1,0),dir),new P(1,1,1)))}
-   const ra=Xinst(rg,M.wood,arr);ra.castShadow=!1;roof.add(ra)}
+   for(const sz of[1,-1]){const e=[];for(let i=0;i<=16;i++){const t=i/16*2-1,a=Math.abs(t);e.push(new P(t*(halfX-.05),lift*Math.pow(a,1.5)-.028,sz*(halfZ-.035)))}roof.add(new j(krLoft(e,i=>new P(e[i].x,ridgeH-.05,0),6,pw),sm))}
+   const rg=new ue(.012,.014,.1,5);const arr=[];
+   const yS=(a,z)=>{const ze=halfZ-.035,s=Math.min(1,Math.max(0,z/ze)),ye=lift*Math.pow(a,1.5)-.028,yr=ridgeH-.05;return yr+(ye-yr)*(s+Math.sin(Math.PI*s)*.09)};
+   for(const sz of[1,-1])for(let i=3;i<N-2;i+=3){const t=i/N*2-1;if(Math.abs(t)>.72)continue;const a=Math.abs(t),x=t*(halfX-.16),z0=halfZ-.2,z1=halfZ-.08,y0=yS(a,z0)-.012,y1=yS(a,z1)-.012;const dir=new P(0,y1-y0,sz*(z1-z0)).normalize();arr.push(new ee().compose(new P(x,(y0+y1)/2,sz*(z0+z1)/2),new me().setFromUnitVectors(new P(0,1,0),dir),new P(1,1,1)))}
+   const ra=Xinst(rg,M.wood,arr);ra.castShadow=!1;roof.add(ra);
+   const sof=bY+ridgeH-.05,beamTop=2.41,purY=sof-.07;const pur=new j(new we(1.85,.05,.1),M.wood2);pur.position.set(0,purY,0);gG.add(pur);const bh=Math.max(.04,purY-.025-beamTop);for(const x of[-.72,-.24,.24,.72]){const br=new j(new we(.1,bh,.1),M.wood);br.position.set(x,beamTop+bh/2,0);gG.add(br)}}
   FNC.push(w,cap,rg,gG,...ecs)}
  /* ---------- hanok ---------- */
  {const H=new fe;H.position.set(.3,0,-4.15);H.rotation.y=.06;G.add(H);U.hanok=H;const W=6.0,D=3.0,BH=.55,CH=2.25,FY=BH+.42;
@@ -4856,7 +4857,7 @@ function XbuildKR(){const G=new fe;G.visible=!1;Jt.add(G);const Q=XQ,U={sea:[]},
     const L=new ms(16758380,0,5,2);L.position.set(L0.x-.25,F+.5,L0.z+.3);IM.add(L);U.krL=L}}
   for(const z of zq){const b=new j(new we(W+.15,.14,.14),M.wood);b.position.set(0,BH+CH-.16,z);H.add(b)}for(const x of xs){const b=new j(new we(.12,.14,D),M.wood);b.position.set(x,BH+CH-.18,0);H.add(b)}
   /* main hall hip roof: concave slopes lofted onto a curved eave */
-  {const y0=BH+CH-.02,halfX=3.68,halfZ=2.02,push=.06,lift=.3,ridgeH=1.4,ridgeHalf=halfX-halfZ,endUp=.12,pw=.8,N=36,nv=14,roof=new fe;roof.position.y=y0;H.add(roof);H.name="hanokHall";
+  {const y0=BH+CH-.02,halfX=3.68,halfZ=2.02,push=.06,lift=.3,ridgeH=1.15,ridgeHalf=2.2,endUp=.1,pw=.8,N=36,nv=14,roof=new fe;roof.position.y=y0;H.add(roof);H.name="hanokHall";
    const tm=Xmat({map:krTile(),color:"#6e737a",roughness:.74},{snow:1}),fm=Xmat({color:"#5c6168",roughness:.8},{snow:1}),rd=Xmat({color:"#3c4046",roughness:.62},{snow:1}),rw=Xmat({color:"#f3f0e8",roughness:.8},{snow:1}),dk=Xmat({color:"#3a3e44",roughness:.6},{snow:1});
    const rY=x=>ridgeH+endUp*Math.pow(Math.min(1,Math.abs(x)/ridgeHalf),2.3);
    const rAt=x=>{const c=Math.max(-ridgeHalf,Math.min(ridgeHalf,x));return new P(c,rY(c),0)};
@@ -4865,21 +4866,24 @@ function XbuildKR(){const G=new fe;G.visible=!1;Jt.add(G);const Q=XQ,U={sea:[]},
    for(const sz of[1,-1]){const e=eFB(sz);const m=new j(krLoft(e,i=>rAt(e[i].x),nv,pw),tm);m.userData.krTile=1;m.castShadow=m.receiveShadow=!0;roof.add(m);roof.add(new j(krFascia(e,.06),fm))}
    for(const sx of[1,-1]){const e=eSD(sx);const Rend=new P(sx*ridgeHalf,rY(sx*ridgeHalf),0);const m=new j(krLoft(e,()=>Rend,nv,pw),tm);m.userData.krTile=1;m.castShadow=m.receiveShadow=!0;roof.add(m);roof.add(new j(krFascia(e,.06),fm))}
    const rp=[];for(let k=0;k<=32;k++){const x=-ridgeHalf+2*ridgeHalf*k/32;rp.push(new P(x,rY(x)-.01,0))}{const [a,b]=krRidge(rp,1);const A=new j(a,rd),B=new j(b,rw);A.userData.krRidge=B.userData.krRidge=1;roof.add(A,B);}
+   const gable=Xmat({color:"#d2cec4",roughness:.95,side:be},{snow:1});
+   for(const sx of[1,-1]){const x=sx*ridgeHalf,top=rY(sx*ridgeHalf),yb=top*.48,zb=.48,g=new ge;g.setAttribute("position",new Gt(new Float32Array([x,top,0,x,yb,zb,x,yb,-zb]),3));g.setIndex([0,1,2,0,2,1]);g.computeVertexNormals();const tri=new j(g,gable);tri.userData.krRidge=1;roof.add(tri)}
    for(const sx of[1,-1])for(const sz of[1,-1]){const E=new P(sx*(halfX+push),lift,sz*(halfZ+push)),R=new P(sx*ridgeHalf,rY(sx*ridgeHalf),0),hp=[];
      for(let k=0;k<=6;k++){const x=sx*(ridgeHalf-.4+.4*k/6);hp.push(new P(x,rY(x)-.01,0))}
      for(let k=1;k<=28;k++){const u=k/28,kk=u+Math.sin(Math.PI*u)*.09;hp.push(new P(R.x+(E.x-R.x)*u,R.y+(E.y-R.y)*kk-.012,R.z+(E.z-R.z)*u))}
      {const [a,b]=krRidge(hp,.86);const A=new j(a,rd),B=new j(b,rw);A.userData.krRidge=B.userData.krRidge=1;roof.add(A,B);}
      const dir=hp[hp.length-1].clone().sub(hp[hp.length-2]).normalize(),cap=new j(new ue(.085,.065,.05,12),dk);cap.userData.krRidge=1;cap.quaternion.copy(new me().setFromUnitVectors(new P(0,1,0),dir));cap.position.copy(hp[hp.length-1]).addScaledVector(dir,.02);roof.add(cap)}
-   const sm=Xmat({color:"#6b5140",roughness:.92,side:be},{snow:1}),iX=halfX-.28,iZ=halfZ-.24,iP=.02;
-   const sFB=sz=>{const p=[];for(let i=0;i<=24;i++){const t=i/24*2-1,a=Math.abs(t),bow=Math.pow(a,1.55);p.push(new P(t*(iX+iP*bow),lift*Math.pow(a,1.42)-.08,sz*(iZ+iP*bow)))}return p};
-   const sSD=sx=>{const p=[];for(let i=0;i<=24;i++){const t=i/24*2-1,a=Math.abs(t),bow=Math.pow(a,1.55);p.push(new P(sx*(iX+iP*bow),lift*Math.pow(a,1.42)-.08,t*(iZ+iP*bow)))}return p};
+   const sm=Xmat({color:"#6b5140",roughness:.92,side:be},{snow:1}),iX=halfX-.05,iZ=halfZ-.03,iP=.015;
+   const sFB=sz=>{const p=[];for(let i=0;i<=24;i++){const t=i/24*2-1,a=Math.abs(t),bow=Math.pow(a,1.55);p.push(new P(t*(iX+iP*bow),lift*Math.pow(a,1.42)-.04,sz*(iZ+iP*bow)))}return p};
+   const sSD=sx=>{const p=[];for(let i=0;i<=24;i++){const t=i/24*2-1,a=Math.abs(t),bow=Math.pow(a,1.55);p.push(new P(sx*(iX+iP*bow),lift*Math.pow(a,1.42)-.04,t*(iZ+iP*bow)))}return p};
    const sR=x=>{const c=Math.max(-(iX-iZ),Math.min(iX-iZ,x));return new P(c,ridgeH-.07,0)};
    for(const sz of[1,-1]){const e=sFB(sz);roof.add(new j(krLoft(e,i=>sR(e[i].x),8,pw),sm))}
    for(const sx of[1,-1]){const e=sSD(sx),Rend=sR(sx*(iX-iZ));roof.add(new j(krLoft(e,()=>Rend,8,pw),sm))}
-   const rg=new ue(.02,.024,.09,5);rg.rotateX(Math.PI/2);const arr=[];
-   const put=(x,y,z,yaw)=>{arr.push(new ee().compose(new P(x,y,z),new me().setFromEuler(new Oe(.12,yaw,0,"YXZ")),new P(1,1,1)))};
-   for(let i=3;i<N-2;i+=4){const t=i/N*2-1;if(Math.abs(t)>.82)continue;const a=Math.abs(t),bow=Math.pow(a,1.55),x=t*(halfX+push*bow)*.94,y=lift*Math.pow(a,1.42)-.09;put(x,y,(halfZ+push*bow)*.86,0);put(x,y,-(halfZ+push*bow)*.86,Math.PI)}
-   for(let i=3;i<N-2;i+=4){const t=i/N*2-1;if(Math.abs(t)>.8)continue;const a=Math.abs(t),bow=Math.pow(a,1.55),z=t*(halfZ+push*bow)*.94,y=lift*Math.pow(a,1.42)-.09;put((halfX+push*bow)*.86,y,z,Math.PI/2);put(-(halfX+push*bow)*.86,y,z,-Math.PI/2)}
+   const rg=new ue(.016,.018,.22,6);rg.rotateX(Math.PI/2);const arr=[];
+   const sy=a=>lift*Math.pow(a,1.42)-.058;
+   const put=(x,y,z,yaw)=>{arr.push(new ee().compose(new P(x,y,z),new me().setFromEuler(new Oe(0,yaw,0,"YXZ")),new P(1,1,1)))};
+   for(let x=-halfX+.5;x<=halfX-.5+1e-4;x+=.36){const a=Math.abs(x/halfX),y=sy(a);put(x,y,halfZ-.14,0);put(x,y,-(halfZ-.14),Math.PI)}
+   for(let z=-halfZ+.55;z<=halfZ-.55+1e-4;z+=.36){const a=Math.abs(z/halfZ),y=sy(a);put(halfX-.16,y,z,Math.PI/2);put(-(halfX-.16),y,z,-Math.PI/2)}
    const ra=Xinst(rg,M.wood,arr);ra.castShadow=!1;roof.add(ra)}}
  /* ---------- jangdokdae 장독대 ---------- */
  {const J=new fe;J.position.set(5.2,0,-1.3);J.rotation.y=-.5;G.add(J);const pl=new j(new we(2.5,.32,1.5),Xmat({map:stoneT,roughness:.95}));pl.position.y=.16;pl.castShadow=pl.receiveShadow=!0;J.add(pl);const top=new j(new we(2.42,.04,1.42),Xmat({color:"#5a564e",roughness:.9},{snow:1}));top.position.y=.33;J.add(top);

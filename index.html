@@ -4810,16 +4810,21 @@ function XbuildKR(){const G=new fe;G.visible=!1;Jt.add(G);const Q=XQ,U={sea:[]},
    const tm=Xmat({map:krTile(),color:"#6e737a",roughness:.74},{snow:1}),fm=Xmat({color:"#5c6168",roughness:.8},{snow:1}),rd=Xmat({color:"#3c4046",roughness:.62},{snow:1}),rw=Xmat({color:"#f3f0e8",roughness:.8},{snow:1}),dk=Xmat({color:"#3a3e44",roughness:.6},{snow:1});
    const eave=sz=>{const p=[];for(let i=0;i<=N;i++){const t=i/N*2-1,a=Math.abs(t);p.push(new P(t*halfX,lift*Math.pow(a,1.5),sz*halfZ))}return p};
    const rAt=x=>new P(Math.max(-halfX,Math.min(halfX,x)),ridgeH+endUp*Math.pow(Math.min(1,Math.abs(x)/halfX),1.6),0);
-   for(const sz of[1,-1]){const e=eave(sz);const m=new j(krLoft(e,i=>rAt(e[i].x),nv,pw),tm);m.userData.krTile=1;m.castShadow=m.receiveShadow=!0;roof.add(m);const f=new j(krFascia(e,.05),fm);f.userData.krSkip=1;roof.add(f)}
+   for(const sz of[1,-1]){const e=eave(sz);const m=new j(krLoft(e,i=>rAt(e[i].x),nv,pw),tm);m.userData.krTile=1;m.castShadow=m.receiveShadow=!0;roof.add(m);const f=new j(krFascia(e,.022),fm);f.userData.krSkip=1;roof.add(f)}
+   const verge=Xmat({color:"#4a3426",roughness:.86,side:be},{snow:1});
+   for(const sx of[-1,1])for(const sz of[1,-1]){const rake=[];for(let k=0;k<=16;k++){const u=k/16,kk=u+Math.sin(Math.PI*u)*.09,yR=ridgeH+endUp,y=yR+(lift-yR)*kk;rake.push(new P(sx*halfX,y,sz*halfZ*u))}
+    const roll=rake.map(q=>q.clone().add(new P(sx*.028,.022,0)));roof.add(new j(Xtube(roll,.04,8,!0),tm));
+    const xyz=[],I=[];rake.forEach(q=>{xyz.push(q.x+sx*.004,q.y-.004,q.z,q.x+sx*.05,q.y-.07,q.z)});for(let i=0;i<rake.length-1;i++){const a=i*2;I.push(a,a+1,a+2,a+1,a+3,a+2,a,a+2,a+1,a+1,a+2,a+3)}
+    const bg=new ge;bg.setAttribute("position",new Gt(new Float32Array(xyz),3));bg.setIndex(I);bg.computeVertexNormals();roof.add(new j(bg,verge))}
    const xEnd=halfX-.06;const rp=[];for(let k=0;k<=20;k++){const x=-xEnd+2*xEnd*k/20;rp.push(rAt(x).add(new P(0,-.012,0)))}{const sc=.7;const a=krSweep(rp,krCap(sc)),b=krSweep(rp,krMortar(sc));const A=new j(a,rd),B=new j(b,rw);A.userData.krRidge=B.userData.krRidge=1;roof.add(A,B)}
-   const ends=new ue(.034,.034,.012,16);ends.rotateX(Math.PI/2);const ea=[],ecap=Xmat({color:"#72767c",roughness:.7},{snow:1});
-   for(const sz of[1,-1])for(let i=1;i<N;i+=2){const t=i/N*2-1,a=Math.abs(t),x=t*halfX,y=lift*Math.pow(a,1.5);ea.push(new ee().compose(new P(x,y+.05,sz*halfZ),new me().setFromEuler(new Oe(0,sz>0?0:Math.PI,0)),new P(1,1,1)))}
+   const ends=new ue(.022,.022,.06,14);ends.rotateX(Math.PI/2);const ea=[],ecap=Xmat({color:"#6e7278",roughness:.68},{snow:1});
+   for(const sz of[1,-1])for(let i=2;i<N-1;i+=2){const t=i/N*2-1,a=Math.abs(t),x=t*halfX,yE=lift*Math.pow(a,1.5),u=.78,kk=u+Math.sin(Math.PI*u)*.09,yR=rAt(x).y,yIn=yR+(yE-yR)*kk,out=new P(0,yE-yIn,sz*(halfZ-halfZ*u)).normalize();const face=new P(x,yE+.016,sz*halfZ),c=face.clone().addScaledVector(out,-.055);ea.push(new ee().compose(c,new me().setFromUnitVectors(new P(0,0,1),out),new P(1,1,1)))}
    const em=Xinst(ends,ecap,ea,null,!1);em.userData.krSkip=1;roof.add(em);
-   const sm=Xmat({color:"#7a5c46",roughness:.9,emissive:new ie("#3a2a20"),emissiveIntensity:.4,side:be},{snow:1});
+   const sm=Xmat({color:"#5a3c28",roughness:.9,emissive:new ie("#3a2416"),emissiveIntensity:.32,side:be},{snow:1});
    for(const sz of[1,-1]){const e=[];for(let i=0;i<=16;i++){const t=i/16*2-1,a=Math.abs(t);e.push(new P(t*(halfX-.05),lift*Math.pow(a,1.5)-.028,sz*(halfZ-.035)))}roof.add(new j(krLoft(e,i=>new P(e[i].x,ridgeH-.05,0),6,pw),sm))}
    const rg=new ue(.012,.014,.1,5);const arr=[];
    const yS=(a,z)=>{const ze=halfZ-.035,s=Math.min(1,Math.max(0,z/ze)),ye=lift*Math.pow(a,1.5)-.028,yr=ridgeH-.05;return yr+(ye-yr)*(s+Math.sin(Math.PI*s)*.09)};
-   for(const sz of[1,-1])for(let i=3;i<N-2;i+=3){const t=i/N*2-1;if(Math.abs(t)>.72)continue;const a=Math.abs(t),x=t*(halfX-.16),z0=halfZ-.2,z1=halfZ-.08,y0=yS(a,z0)-.012,y1=yS(a,z1)-.012;const dir=new P(0,y1-y0,sz*(z1-z0)).normalize();arr.push(new ee().compose(new P(x,(y0+y1)/2,sz*(z0+z1)/2),new me().setFromUnitVectors(new P(0,1,0),dir),new P(1,1,1)))}
+   for(const sz of[1,-1])for(let i=3;i<N-2;i+=3){const t=i/N*2-1;if(Math.abs(t)>.72)continue;const a=Math.abs(t),x=t*(halfX-.16),z0=halfZ-.18,z1=halfZ-.05,y0=yS(a,z0)-.014,y1=yS(a,z1)-.014;const dir=new P(0,y1-y0,sz*(z1-z0)).normalize();arr.push(new ee().compose(new P(x,(y0+y1)/2,sz*(z0+z1)/2),new me().setFromUnitVectors(new P(0,1,0),dir),new P(1,1,1)))}
    const ra=Xinst(rg,M.wood,arr);ra.castShadow=!1;roof.add(ra);
    const sof=bY+ridgeH-.05,beamTop=2.41,purY=sof-.07;const pur=new j(new we(1.85,.05,.1),M.wood2);pur.position.set(0,purY,0);gG.add(pur);const bh=Math.max(.04,purY-.025-beamTop);for(const x of[-.72,-.24,.24,.72]){const br=new j(new we(.1,bh,.1),M.wood);br.position.set(x,beamTop+bh/2,0);gG.add(br)}}
   FNC.push(w,cap,rg,gG,...ecs)}

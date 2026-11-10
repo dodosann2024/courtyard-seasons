@@ -52,14 +52,15 @@ def main():
         written.add(os.path.normpath(path))
         audio[k] = f"assets/audio/{fn}"
 
-    app = rd("app.js")
-    used = set(re.findall(r'"@a:([A-Za-z0-9_$]+)"', app))
-    missing = used - set(audio)
-    assert not missing, missing
-    app = re.sub(r'"@a:([A-Za-z0-9_$]+)"', lambda m: json.dumps(audio[m.group(1)][len("assets/"):]), app)
-    app_rel = emit("", "app", "js", app)
+    def audio_refs(js):
+        used = set(re.findall(r'"@a:([A-Za-z0-9_$]+)"', js))
+        missing = used - set(audio)
+        assert not missing, missing
+        return re.sub(r'"@a:([A-Za-z0-9_$]+)"', lambda m: json.dumps(audio[m.group(1)][len("assets/"):]), js)
+
+    app_rel = emit("", "app", "js", audio_refs(rd("app.js")))
     ui_rel = emit("", "ui", "js", rd("ui.js"))
-    sea_rel = emit("", "sea", "js", rd("sea.js"))
+    sea_rel = emit("", "sea", "js", audio_refs(rd("sea.js")))
     thumbs = {y: emit("thumbs", y, "webp", rd(f"thumbs/{y}.webp", "rb")) for y in YARDS}
 
     css = rd("style.css") + rd("ui.css")

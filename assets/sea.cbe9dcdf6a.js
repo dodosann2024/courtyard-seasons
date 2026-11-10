@@ -862,8 +862,8 @@ const turtM=new T.SM({uniforms:{...AQU,uFd:{value:0}},side:2,
    float rho=length(q/vec2(q.x>0.?.46:.5,.37)),e=(d2-d1)*.5,hid=h1(id*1.37+.2);
    if(rho>.84){float an=atan(q.y,q.x)/6.2832*26.;hid=h1(floor(an)+40.);e=min((.5-abs(fract(an)-.5))*.09,(rho-.84)*.4);cc=q/rho*.92;}
    vec2 rq=q-cc;float strk=.5+.5*sin(atan(rq.y,rq.x)*11.+hid*30.+length(rq)*18.);
-   alb=mix(vec3(.36,.24,.12),vec3(.52,.37,.17),hid);alb=mix(alb,vec3(.36,.35,.17),h1(hid*7.)*.55);alb*=.75+.35*strk;
-   alb*=.72;alb=mix(alb,vec3(.66,.55,.34),smoothstep(.026,.006,e)*.6);alb=mix(alb,vec3(.12,.08,.04),smoothstep(.006,.0015,e));spec=.45;}
+   alb=mix(vec3(.36,.24,.12),vec3(.52,.37,.17),hid);alb=mix(alb,vec3(.3,.3,.13),.25+h1(hid*7.)*.5);alb*=.75+.35*strk;
+   alb*=.55;alb=mix(alb,vec3(.6,.5,.3),smoothstep(.026,.006,e)*.5);alb=mix(alb,vec3(.12,.08,.04),smoothstep(.006,.0015,e));spec=.45;}
   else if(vK<1.5){alb=vec3(.9,.84,.64)*(.93+.07*sin(vL.x*40.)*sin(vL.z*30.));alb=mix(alb,vec3(.62,.54,.38),smoothstep(.03,0.,abs(fract(vL.x*6.)-.5)-.46));}
   else if(vK<3.5){vec3 v=vor(vec2(vL.x*1.1+vL.z*.6,vL.y+vL.z*.8)*(vK>2.5?20.:30.));float e=v.y-v.x,hh=h1(v.z);
    alb=mix(vec3(.27,.18,.09),vec3(.42,.29,.14),hh);alb=mix(alb,vec3(.84,.76,.56),smoothstep(.17,.05,e));if(vK>2.5)alb=mix(alb,vec3(.86,.82,.68),smoothstep(.1,-.35,N.y)*.6);}
@@ -898,12 +898,12 @@ function spawnTurtle(mode){const Q=TUR;for(let tr=0;tr<40;tr++){const a=rnd()*TA
 function turtUpd(dt,E){const Q=TUR,sh=AQU.uTSh.value;if(!Q.on){sh.w=0;return}Q.t+=dt;const t=Q.t,r=Math.hypot(Q.x,Q.z);
  let tr=.07*Math.sin(t*.13+Q.ph);const lim=rWall(Q.y)-1.4;if(r>lim){let d=Math.atan2(-Q.z,-Q.x)-Q.h;d-=Math.round(d/TAU)*TAU;tr+=cl(d,-1,1)*.35*Math.min(1,r-lim)}Q.h+=tr*dt;
  const bm=Q.mode?ss(Q.tb-7,Q.tb-2,t)*(1-ss(Q.tb+4,Q.tb+8,t)):0,hw=hAt(Q.x,Q.z).y,sp=Q.sp*(1-.55*bm);
- const yT=Math.max(floorY(Q.x,Q.z)+.55,Q.yd+.22*Math.sin(t*.12+Q.ph))*(1-bm)+(hw-.15)*bm;const y0=Q.y;Q.y+=(yT-Q.y)*ease(.9,dt);const vy=(Q.y-y0)/Math.max(dt,1e-4);
+ const yT=Math.max(floorY(Q.x,Q.z)+.55,Q.yd+.22*Math.sin(t*.12+Q.ph))*(1-bm)+(hw-.06)*bm;const y0=Q.y;Q.y+=(yT-Q.y)*ease(.9,dt);const vy=(Q.y-y0)/Math.max(dt,1e-4);
  Q.x+=Math.cos(Q.h)*sp*dt;Q.z+=Math.sin(Q.h)*sp*dt;
  /* a slow flying stroke of the front flippers; the rear ones steer */
  Q.ph+=dt*TAU/(3.6+1.8*bm);const fp=Q.ph,amp=1-.45*bm,flap=.72*Math.sin(fp)*amp,yaw=(.32*Math.cos(fp)-.28)*amp,tw=.5*Math.cos(fp)*amp;
  for(const f of Q.FL)f.p.rotation.set(flap*f.s,yaw*f.s,tw);for(const f of Q.RL)f.p.rotation.set(.14*Math.sin(fp+1)*f.s,(.9+tr*3)*f.s,.1);
- const hl=Q.mode?ss(Q.tb-1.2,Q.tb,t)*(1-ss(Q.tb+3,Q.tb+4.5,t)):0;Q.head.rotation.set(0,.12*Math.sin(t*.31),.62*hl+.05*Math.sin(t*.7));
+ const hl=Q.mode?ss(Q.tb-1.2,Q.tb,t)*(1-ss(Q.tb+3,Q.tb+4.5,t)):0;Q.head.rotation.set(0,.12*Math.sin(t*.31),.75*hl+.05*Math.sin(t*.7));
  Q.g.position.set(Q.x,Q.y+.012*Math.sin(fp*2),Q.z);Q.g.rotation.set(-tr*1.2,-Q.h,cl(Math.atan2(vy,sp+.05),-.45,.45)*(1-hl*.6)+.08*hl);Q.g.updateMatrixWorld(true);
  if(hl>.6&&!Q.br){Q.br=1;Q.head.children[1].getWorldPosition(lw);ring(lw.x,lw.z,.4);spot(lw.x,lw.z,.09);for(let i=0;i<3;i++)puff(lw.x,lw.y+.05,lw.z,rr(-.05,.05)+E.wn*.2,rr(.15,.35),rr(-.05,.05),rr(.8,1.3),rr(.08,.13),.16);
   for(let i=0;i<6;i++)emitW(lw.x+rr(-.03,.03),lw.y,lw.z+rr(-.03,.03),rr(-.08,.08),rr(0,.3),rr(-.08,.08),rr(.3,.5),rr(.004,.007),.7);logE("tBreath",lw)}

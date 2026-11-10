@@ -31,13 +31,13 @@ if(uPage>.5){float d=dot(P,uN)-uC;if(d>0.){vec2 b=P-uN*d;float pr=3.14159265*uR;
  if(d<pr){th=d/uR;Q=b+uN*(uR*sin(th));z=uR*(1.-cos(th));}else{th=3.14159265;Q=b-uN*(d-pr);z=2.*uR;}}}
 vUV=aUV;vTh=th;vS=Q/uSize;float w=1.-z/(uSize.y*7.);
 gl_Position=vec4(vec2(vS.x*2.-1.,1.-vS.y*2.),uPage>.5?(.5-z/(4.*uR+1.))*w:.99,w);}`;
-const FS=`precision mediump float;uniform sampler2D uPg,uPgB,uUn,uUnB;uniform vec2 uSize,uN,uBT;uniform float uC,uR,uPage,uUnOn,uFF,uSh;varying vec2 vUV,vS;varying float vTh;
+const FS=`precision highp float;uniform sampler2D uPg,uPgB,uUn,uUnB;uniform vec2 uSize,uN,uBT;uniform float uC,uR,uPage,uUnOn,uFF,uSh;varying vec2 vUV,vS;varying float vTh;
 vec3 bl(sampler2D t,vec2 p){vec3 c=texture2D(t,p).rgb*.2;
 c+=(texture2D(t,p+vec2(uBT.x,0.)).rgb+texture2D(t,p-vec2(uBT.x,0.)).rgb+texture2D(t,p+vec2(0.,uBT.y)).rgb+texture2D(t,p-vec2(0.,uBT.y)).rgb)*.12;
 c+=(texture2D(t,p+uBT*1.6).rgb+texture2D(t,p-uBT*1.6).rgb+texture2D(t,p+vec2(uBT.x,-uBT.y)*1.6).rgb+texture2D(t,p+vec2(-uBT.x,uBT.y)*1.6).rgb)*.08;return c;}
 float hs(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
 void main(){vec2 P=vS*uSize;float dS=dot(P,uN)-uC;
-if(uPage<.5){float sh=dS>0.?uSh*.34*exp(-max(0.,dS-uR*.85)/(uR*.8)):0.;
+if(uPage<.5){float sh=dS>0.?uSh*.46*exp(-max(0.,dS-uR*.8)/(uR*1.1)):0.;
  if(uUnOn>.5){gl_FragColor=vec4(texture2D(uUn,vS).rgb*(1.-sh),1.);}else{gl_FragColor=vec4(0.,0.,0.,sh);}return;}
 vec3 pg=texture2D(uPg,vUV).rgb;
 vec3 be=dS<0.?bl(uPgB,vS):bl(uUnB,vS);
@@ -45,7 +45,7 @@ vec3 fr=mix(be,vec3(.97,.98,1.),.3)+(hs(gl_FragCoord.xy)-.5)*.035;
 float lift=smoothstep(.0,1.8,vTh),sp=exp(-pow((vTh-1.7)/.38,2.));
 bool front=(gl_FrontFacing==(uFF>.5));
 vec3 c=front?mix(pg,fr,lift*.88)*(1.-.16*sin(min(vTh,3.1416))):fr*(.95+.05*cos(vTh));
-c+=sp*.2*step(.001,vTh);
+c+=sp*.22*step(.001,vTh)+step(.001,vTh)*.07*(1.-vS.y)*(1.-vS.x*.5);
 float e=min(min(vUV.x,1.-vUV.x),min(vUV.y,1.-vUV.y));c+=(1.-smoothstep(0.,.005,e))*.38*step(.001,vTh);
 gl_FragColor=vec4(c,1.);}`;
 let G=null;
@@ -83,8 +83,8 @@ function draw(c,R,mode,shf=0){
 }
 /* dir>0: the old page lifts from the right edge and turns leftward, revealing the live new yard.
    dir<0 (history back): the new page turns back in from the left over a still of the old yard. */
-function geom(){const W=innerWidth,H=innerHeight,n=[1,.17],l=Math.hypot(n[0],n[1]);G.nv=[n[0]/l,n[1]/l];const R0=Math.min(W,H)*.13,cMax=W*G.nv[0]+H*G.nv[1]+2;return{R0,c0:cMax,c1:-R0*1.25-6}}
-function frameAt(t,g,mode){const e=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2,R=g.R0*(.8+.4*Math.sin(Math.PI*t));const shf=Math.min(1,t/.12)*(1-Math.max(0,(t-.78)/.22));draw(g.c0+(g.c1-g.c0)*e,R,mode,shf*shf*(3-2*shf))}
+function geom(){const W=innerWidth,H=innerHeight,n=[1,.22],l=Math.hypot(n[0],n[1]);G.nv=[n[0]/l,n[1]/l];const R0=Math.min(W,H)*.17,cMax=W*G.nv[0]+H*G.nv[1]+2;return{R0,c0:cMax,c1:-R0*1.25-6}}
+function frameAt(t,g,mode){const e=.5*(t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2)+.5*(1-Math.pow(1-t,2.4)),R=g.R0*(.75+.45*Math.sin(Math.PI*t));const shf=Math.min(1,t/.12)*(1-Math.max(0,(t-.78)/.22));draw(g.c0+(g.c1-g.c0)*e,R,mode,shf*shf*(3-2*shf))}
 function setTex(oldS,newS,dir){
   if(dir>0){upload(0,oldS.sharp);upload(1,oldS.blur);upload(3,newS.blur);G.bt=[1.2/oldS.blur.width,1.2/oldS.blur.height]}
   else{upload(0,newS.sharp);upload(1,newS.blur);upload(2,oldS.sharp);upload(3,oldS.blur);G.bt=[1.2/newS.blur.width,1.2/newS.blur.height]}
@@ -127,6 +127,7 @@ async function go(y,dir,push){
     pill(0);
     if(G&&!G.fail&&window.__keepTurn)G.last=[oldS,newS];
     await turn(shown?oldS:null,newS,dir,reduce);
+    window.__turnP=1;
   }catch{hideGL();pill(0)}
   busy=false;
   if(pending){const p=pending;pending=null;go(...p)}
@@ -147,6 +148,8 @@ function panels(){
   const on=$("#gy .on");on&&on.scrollIntoView&&on.scrollIntoView({block:"nearest",inline:"center"});
   const sync=()=>document.querySelectorAll("#gy [data-y]").forEach(b=>b.setAttribute("aria-current",b.classList.contains("on")?"page":"false"));
   new MutationObserver(sync).observe($("#gy"),{subtree:true,attributes:true,attributeFilter:["class"]});sync();
+  const rows=[...document.querySelectorAll(".p .rows .g")],ov=()=>rows.forEach(r=>r.classList.toggle("ov",r.scrollWidth-r.clientWidth-r.scrollLeft>4));
+  rows.forEach(r=>r.addEventListener("scroll",ov,{passive:true}));addEventListener("resize",ov);new MutationObserver(ov).observe($("#sub"),{childList:true});ov();
   const wind=$("#wind"),wp=()=>wind&&wind.style.setProperty("--p",(wind.value*100)+"%");wind&&wind.addEventListener("input",wp);wp();
 }
 

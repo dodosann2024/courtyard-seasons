@@ -15,7 +15,7 @@ C.canon=C.url(y);try{const st=history.state;history.replaceState({cy:y,i:st&&typ
 const h=new Date().getHours();if(h<6||h>=19)d.classList.add("ldn");
 C.ld=()=>{const l=document.getElementById("ld");if(!l)return;l.querySelector(".bg").style.backgroundImage="url("+C.root+C.th[y]+")";l.querySelector(".nm").textContent=C.names[y]};
 })();</script>
-<link rel="preload" href="../assets/app.a634cd9d23.js" as="script"><script defer src="../assets/ui.bfabe46cc9.js"></script>
+<link rel="preload" href="../assets/app.a634cd9d23.js" as="script"><script defer src="../assets/ui.ace789515c.js"></script>
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#cfd6dc;font-family:"Songti SC","Noto Serif SC","STSong",serif;color:#2d2a26}
 canvas{display:block}
@@ -103,6 +103,7 @@ button:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
 .p .g>span{flex:0 0 26px;margin:0;text-align:center;font-size:12px;letter-spacing:0;color:rgba(255,255,255,.75)}
 .p .g button{flex:0 0 auto;min-width:44px;min-height:42px;padding:0 15px;border-radius:999px;font-size:15px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
 .p .g button.on{background:rgba(246,231,204,.92);color:#2b2620;border-color:var(--cream);text-shadow:none}
+.p .g.ov{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
 .p .sub{min-height:0}.p .sub:empty{display:none}
 .p #sub{padding-left:33px}.p #sub button{min-height:38px;font-size:14px;padding:0 14px;background:rgba(255,255,255,.08)}
 .p .g2{display:flex;align-items:center;gap:14px}.p .g2 .g{flex:0 0 auto}.p .g2 .gwind{flex:1 1 auto}
@@ -141,7 +142,8 @@ html.ldn #ld{background:#1c2230}html.ldn #ld .bg{filter:blur(26px) brightness(.4
 /* page turn */
 #turn{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;pointer-events:none;display:none}
 #turn.on{display:block}
-#tp{position:fixed;z-index:8;opacity:0;pointer-events:none;transition:opacity .2s}
+#tp{position:fixed;top:calc(max(14px,var(--sa-t)) + 150px);transform:translateX(-50%);z-index:8;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;padding:12px 22px 14px}
+#ld .nm{white-space:nowrap}
 #tp.on{opacity:1}
 @media (prefers-reduced-motion:reduce){.p,#fab,#snd,#sbtn{transition-duration:.01s!important}#ld .bar i,#tp .bar i{animation:none}}
 </style></head><body>

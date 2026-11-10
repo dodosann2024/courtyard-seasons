@@ -13,7 +13,10 @@ C.cur=y;d.dataset.yard=y;
    relative asset URLs further down this document must still resolve against the original one. */
 C.canon=C.url(y);try{const st=history.state;history.replaceState({cy:y,i:st&&typeof st.i=="number"?st.i:0},"")}catch{}
 const h=new Date().getHours();if(h<6||h>=19)d.classList.add("ldn");
-C.ld=()=>{const l=document.getElementById("ld");if(!l)return;l.querySelector(".bg").style.backgroundImage="url("+C.root+C.th[y]+")";l.querySelector(".nm").textContent=C.names[y]};
+C.ld=()=>{const B=document.body;let sp=null,cl=null;try{sp=localStorage.getItem("cySoundPanel");cl=localStorage.getItem("cyCol")}catch{}
+if(innerWidth<=600&&cl!=="1"&&sp!=="0"){sp="0";try{localStorage.setItem("cySoundPanel","0")}catch{}}
+sp==="0"&&B.classList.add("snc");cl==="1"&&B.classList.add("col");
+const l=document.getElementById("ld");if(!l)return;l.querySelector(".bg").style.backgroundImage="url("+C.root+C.th[y]+")";l.querySelector(".nm").textContent=C.names[y]};
 })();</script>
 <link rel="preload" href="assets/app.a634cd9d23.js" as="script"><script defer src="assets/ui.ace789515c.js"></script>
 <style>

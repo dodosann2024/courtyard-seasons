@@ -766,7 +766,7 @@ function foil(sp,secs,K,cT,cB,mot){const M=2*K-2,v=[],t=[],cs=[],te=[],us=[...Ar
 const hsh=(a,b)=>{const x=Math.sin(a*127.1+b*311.7)*43758.5453;return x-Math.floor(x)};
 /* whale (humpback-like): broad flat head, deep body, keeled tail stock, long pale flippers, small dorsal on a hump, wide notched flukes */
 const WLN=2.7,WR=.27,WS=[0,.03,.08,.15,.25,.36,.48,.6,.7,.8,.88,.94,1],wRW=tbl(WS,[.18,.5,.74,.9,1,1,.92,.78,.56,.34,.21,.15,.13]),wRH=tbl(WS,[.12,.34,.56,.78,.92,.96,.92,.84,.74,.64,.56,.44,.28]);
-const wTop=hex("#283137"),wFl=hex("#353f44"),wBel=hex("#7b8588"),wSpot=hex("#b3babb"),wFin=hex("#c9cfcf");
+const wTop=hex("#313b41"),wFl=hex("#353f44"),wBel=hex("#7b8588"),wSpot=hex("#b3babb"),wFin=hex("#c9cfcf");
 const wProf=s=>{const rw=WR*wRW(s),rh=WR*wRH(s),kl=WR*.2*ss(.68,.86,s)*(1-.65*ss(.94,1,s));return[rw,rh,-rh*.14*(1-ss(.05,.25,s)),WR*.11*Math.exp(-Math.pow((s-.64)/.06,2))+kl,kl*.85]};
 /* dark back, paler mottled belly with throat pleats, pale knobs (tubercles) on the head */
 const wCol=(s,sa)=>{const k=ss(.2,-.75,sa)*(1-.35*ss(.7,.9,s)),h=hsh(s*41.3,sa*9.7),c=mix3(mix3(wTop,wFl,ss(.55,.05,sa)),wBel,k);
@@ -1095,8 +1095,8 @@ function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==fals
   /* water sheets off the back wherever it has just broken the surface */
   {whaleF(.4,whale.fr);WSH.cs=(De.position.x-whale.fr.p.x)*whale.fr.b.x+(De.position.z-whale.fr.p.z)*whale.fr.b.z>0?1:-1}
   for(let i=0;i<WSH.n;i++){const s0=.1+i*.1;whaleF(s0,whale.fr);const f=whale.fr,[rw,rh]=wProf(s0);const ty=f.p.y+f.n.y*rh,hw=hAt(f.p.x,f.p.z).y,up=ty>hw+.01;
-   if(up&&!WSH.u[i]){WSH.w[i]=2.2;for(const sg of[1,-1])puff(f.p.x+f.b.x*WR*sg*1.1,hw+.04,f.p.z+f.b.z*WR*sg*1.1,f.b.x*sg*.25,rr(.1,.3),f.b.z*sg*.25,rr(.9,1.4),rr(.22,.36),.22);if(i%2===0)ring(f.p.x,f.p.z,.5)}if(!up&&WSH.u[i]&&i%2)ring(f.p.x,f.p.z,.35);WSH.u[i]=up;if(!up){WSH.w[i]=0;continue}WSH.w[i]=Math.max(0,WSH.w[i]-dt);WSH.a[i]+=dt*(MOB?90:190)*(.55+WSH.w[i]/2.2+(WSH.w[i]>1.5?1.6:0));
-   for(;WSH.a[i]>1;WSH.a[i]--){const sg=rnd()<.7?WSH.cs:-WSH.cs,th=rr(.5,1.5),c=Math.cos(th),sn=Math.sin(th)*sg,bx=f.b.x,bz=f.b.z,ex=f.p.x+f.n.x*rh*c+bx*rw*sn*1.08+f.t.x*rr(-.05,.05),ey=f.p.y+f.n.y*rh*c+.01,ez=f.p.z+f.n.z*rh*c+bz*rw*sn*1.08+f.t.z*rr(-.05,.05);
+   if(up&&!WSH.u[i]){WSH.w[i]=2.2;for(const sg of[1,-1])puff(f.p.x+f.b.x*WR*sg*1.1,hw+.04,f.p.z+f.b.z*WR*sg*1.1,f.b.x*sg*.25,rr(.1,.3),f.b.z*sg*.25,rr(.9,1.4),rr(.22,.36),.22);if(i%2===0)ring(f.p.x,f.p.z,.5)}if(!up&&WSH.u[i]&&i%2)ring(f.p.x,f.p.z,.35);WSH.u[i]=up;if(!up){WSH.w[i]=0;continue}WSH.w[i]=Math.max(0,WSH.w[i]-dt);WSH.a[i]+=dt*(MOB?40:80)*(.55+WSH.w[i]/2.2+(WSH.w[i]>1.5?1.6:0));
+   for(;WSH.a[i]>1;WSH.a[i]--){const sg=rnd()<.7?WSH.cs:-WSH.cs,th=rr(1.15,1.6),c=Math.cos(th),sn=Math.sin(th)*sg,bx=f.b.x,bz=f.b.z,ex=f.p.x+f.n.x*rh*c+bx*rw*sn*1.08+f.t.x*rr(-.05,.05),ey=f.p.y+f.n.y*rh*c+.01,ez=f.p.z+f.n.z*rh*c+bz*rw*sn*1.08+f.t.z*rr(-.05,.05);
     if(ey>hAt(ex,ez).y+.015)emitW(ex,ey,ez,bx*sg*rr(.3,.75),rr(-.1,.2),bz*sg*rr(.3,.75),rr(.35,.6),rr(.008,.016),.85)}}
   /* blowhole a little behind the head */
   whaleF(.1,whale.fr);const bh=whale.fr.p;const hwB=hAt(bh.x,bh.z).y;

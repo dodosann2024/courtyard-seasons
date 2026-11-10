@@ -1,5 +1,5 @@
 (()=>{
-const C=window.CY,Y=["def","jp","cn","kr","eu"],$=s=>document.querySelector(s);
+const C=window.CY,Y=["def","jp","cn","kr","eu","sea"],$=s=>document.querySelector(s);
 const raf=()=>new Promise(r=>requestAnimationFrame(()=>r()));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const narrow=()=>innerWidth<=600;
@@ -120,6 +120,7 @@ async function go(y,dir,push){
     if(cold)pill(1,y);
     await raf();await raf();
     window.__style(y);cur=y;built.add(y);
+    {const w=window.__styleWait&&window.__styleWait(y);if(w)await w}
     if(push){idx++;try{history.pushState({cy:y,i:idx},"",C.url(y))}catch{}}
     document.title=title(y);document.documentElement.dataset.yard=y;
     await raf();await raf();
@@ -134,7 +135,7 @@ async function go(y,dir,push){
 }
 window.__go=(y,dir=1)=>go(y,dir,true);
 document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("[data-y]");if(!b)return;e.stopImmediatePropagation();e.preventDefault();go(b.dataset.y,1,true)},true);
-addEventListener("popstate",e=>{const s=e.state;let y=s&&s.cy;if(!y){const m=location.pathname.match(/\/(jp|cn|kr|eu)\/?(?:index\.html)?$/);y=m?m[1]:"def"}const i=s&&typeof s.i=="number"?s.i:0;const dir=i<idx?-1:1;idx=i;go(y,dir,false)});
+addEventListener("popstate",e=>{const s=e.state;let y=s&&s.cy;if(!y){const m=location.pathname.match(/\/(jp|cn|kr|eu|sea)\/?(?:index\.html)?$/);y=m?m[1]:"def"}const i=s&&typeof s.i=="number"?s.i:0;const dir=i<idx?-1:1;idx=i;go(y,dir,false)});
 addEventListener("keydown",e=>{if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))return;if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight"||e.metaKey||e.ctrlKey||e.altKey)return;const k=Y.indexOf(cur);go(Y[(k+(e.key==="ArrowRight"?1:Y.length-1))%Y.length],e.key==="ArrowRight"?1:-1,true)});
 
 /* ---------- panels on narrow screens: one open at a time ---------- */
@@ -154,9 +155,10 @@ function panels(){
 }
 
 /* ---------- boot ---------- */
-(function wait(){if(!window.__ready){setTimeout(wait,25);return}
-  ready=true;
+(async function wait(){if(!window.__ready){setTimeout(wait,25);return}
   const on=document.querySelector("[data-y].on");if(on&&on.dataset.y!==cur&&window.__style)window.__style(cur);
+  {const w=window.__styleWait&&window.__styleWait(cur);if(w)await w}
+  ready=true;
   built.add(cur);document.title=title(cur);
   try{const s=history.state||{};history.replaceState({cy:cur,i:typeof s.i=="number"?s.i:0},"",C.canon&&cur===C.cur?C.canon:location.href)}catch{}
   panels();
@@ -167,7 +169,7 @@ function panels(){
     idle(()=>{
       if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register(C.root+"sw.js").catch(()=>{});
       const cn=navigator.connection;if(cn&&(cn.saveData||/2g/.test(cn.effectiveType||"")))return;
-      setTimeout(()=>Object.values(C.au||{}).forEach(u=>fetch(C.root+u,{priority:"low"}).catch(()=>{})),2500);
+      setTimeout(()=>[...Object.values(C.au||{}),C.sea].forEach(u=>u&&fetch(C.root+u,{priority:"low"}).catch(()=>{})),2500);
     },{timeout:4000});
   }));
 })();

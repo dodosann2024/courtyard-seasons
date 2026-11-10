@@ -65,7 +65,7 @@ void waves(vec2 x0,out vec3 p,out vec3 n,out float J){float r=length(x0);float a
 /* ---------------- shared lighting uniforms ---------------- */
 const U={uT:{value:0},uFlow:{value:new T.V2()},uDeep:{value:new C3("#1b3638")},uScat:{value:new C3("#4d8a78")},
  uAmb:{value:new C3()},uKey:{value:new C3()},uKeyDir:{value:new V3(0,1,0)},uFogC:{value:new C3()},uFogN:{value:30},uFogF:{value:90},uHaze:{value:.02},
- uRain:{value:0},uDet:{value:1},uWhite:{value:0},uGlit:{value:1},uHI:{value:2},uLanP:{value:new V3()},uLanC:{value:new C3(0,0,0)},uBio:{value:0},uIce:{value:0},
+ uRain:{value:0},uDet:{value:1},uWhite:{value:0},uGlit:{value:1},uHI:{value:2},uLanP:{value:new V3()},uLanC:{value:new C3(0,0,0)},uPatch:{value:new T.V4(0,0,-99,0)},uBio:{value:0},uIce:{value:0},
  uRing:{value:[...Array(16)].map(()=>new T.V4(0,0,-99,0))},uRingOn:{value:0},uSunCol:{value:new C3()},uMoonC:{value:new C3()},tN:{value:tN},tF:{value:tF}};
 const SKY={uTop:jt.top,uBot:jt.bot,uSunDir:jt.sunDir,uSunVis:jt.uSunVis,uMoonDir:jt.moonDir,uMoonVis:jt.uMoonVis,uNight:jt.uNight,uCover:jt.uCover,uDark:jt.uDark,uFlash:jt.flash};
 const FOG=`float fogMix(float d){return clamp(max(smoothstep(uFogN,uFogF,d),1.-exp(-max(d-20.,0.)*uHaze)),0.,1.);}`;
@@ -78,7 +78,7 @@ function seaGeo(nr,na){const pos=[0,0,0],idx=[];for(let j=1;j<=nr;j++){const r=R
 const seaMat=new T.SM({uniforms:{...U,...SKY,uWK,uWA,uWQ,uWP},side:2,
  vertexShader:WGL+`varying vec3 vW,vN;varying float vJ;varying vec2 vX;void main(){vec3 p,n;float J;waves(position.xz,p,n,J);vW=p;vN=n;vJ=J;vX=position.xz;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
  fragmentShader:`uniform sampler2D tN,tF;uniform float uT,uRingOn,uRain,uDet,uWhite,uGlit,uHI,uFogN,uFogF,uHaze,uSunVis,uMoonVis,uNight,uCover,uDark,uFlash,uBio,uIce;
-uniform vec2 uFlow;uniform vec3 uDeep,uScat,uAmb,uKey,uKeyDir,uFogC,uTop,uBot,uSunDir,uSunCol,uMoonDir,uMoonC,uLanP,uLanC;uniform vec4 uRing[16];
+uniform vec4 uPatch;uniform vec2 uFlow;uniform vec3 uDeep,uScat,uAmb,uKey,uKeyDir,uFogC,uTop,uBot,uSunDir,uSunCol,uMoonDir,uMoonC,uLanP,uLanC;uniform vec4 uRing[16];
 varying vec3 vW,vN;varying float vJ;varying vec2 vX;
 float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float specks(vec2 g,float t){float b=0.;for(int k=0;k<2;k++){float sc=k==0?23.:37.;vec2 q=g*sc+float(k)*13.7;vec2 c=floor(q),f=fract(q);float h=hs(c);
@@ -117,6 +117,8 @@ void main(){vec3 E=cameraPosition-vW;float dist=length(E);vec3 V=E/dist;float lo
  vec2 fr=mat2(.951,.309,-.309,.951)*fx;float f1=texture2D(tF,fx*.21).r,f2=texture2D(tF,fr*.57+.31).r,fm=f1*.6+f2*.4;
  float fade=smoothstep(.2,.7,texture2D(tF,fr*.045+.13).g);
  float foam=smoothstep(.92-cap*.62,1.12-cap*.6,fm+(fade-.5)*.25)*smoothstep(.02,.2,cap);
+ /* foam patch left by a fluke slap: spreads, then thins out over several seconds */
+ {float pa=uT-uPatch.z;if(pa>0.&&pa<16.){float d=length(vW.xz-uPatch.xy),r=.2+.95*sqrt(pa*.6);float pf=(1.-smoothstep(r*.5,r,d+(fm-.5)*.8))*exp(-pa*.2)*uPatch.w*mix(1.,.25+.75*smoothstep(0.,r*.85,d),smoothstep(.4,3.5,pa));foam=max(foam,smoothstep(.3,.85,pf*(.2+1.3*fm))*.92);}}
  float ang=atan(vX.y,vX.x)/6.2832;float rl=length(vX),rimF=smoothstep(${R-.42},${R-.02},rl);
  float rs=texture2D(tF,vec2(ang*38.,rl*.9-uT*.35)).g*.6+texture2D(tF,vec2(ang*90.+.3,rl*2.1-uT*.8)).r*.55;
  foam=max(foam,rimF*smoothstep(.45,.85,rs+rimF*.35)*.85+smoothstep(${R-.08},${R-.01},rl)*.35);
@@ -139,7 +141,7 @@ const sea=new T.Mesh(seaGeo(MOB?84:118,MOB?240:320),seaMat);sea.frustumCulled=fa
   void main(){vec3 E=cameraPosition-vW;float d=length(E);vec3 V=E/d;vec3 N=normalize(vNw);float F=pow(1.-abs(dot(N,V)),2.5);float dp=clamp(-vW.y/2.3,0.,1.);
   vec3 c=mix(uScat*.55+uDeep*.7,uDeep*.4,dp)*(uAmb*.9+uKey*.3)*.3183;
   float sh=texture2D(tF,vec2(atan(vW.z,vW.x)/6.2832*16.,vW.y*.07+uT*.012)).g;c+=uScat*(uKey+uAmb)*.03*smoothstep(.45,.8,sh)*(1.-dp);
-  c=mix(c,uBot*.7,F*.45);c=mix(c,uFogC,fogMix(d));gl_FragColor=vec4(c,mix(.55,.88,F)*(.75+.25*dp));
+  c=mix(c,uBot*.7,F*.45);c=mix(c,uFogC,fogMix(d));gl_FragColor=vec4(c*.8,mix(.08,.3,F)*(1.-.7*dp));
   #include <colorspace_fragment>
   }`});
  const lens=new T.Mesh(g,m);lens.renderOrder=1;root.add(lens)}
@@ -154,10 +156,10 @@ const fallU={uFT:{value:0},uFA:{value:1},uWind:Ue.uWind};
   /* one layer of strands: N columns, each with its own width, opacity, wobble and break height;
      past the break a strand falls apart into drops that keep accelerating */
   vec3 strands(float x,float s,float v,float N,float o,out float br){float q=x*N+o;float id=floor(q);float h=h1(id+o),h2=h1(id+o+7.3),h3=h1(id+o+3.9),h4=h1(id+o+11.1);
-   float cx=fract(q+.34*sin(s*4.+h*30.+uFT*.5)*s+.12*sin(s*11.+h4*20.)*s)-.5;float w=mix(.08,.44,h*h);float on=step(.3,h2);
+   float cx=fract(q+.34*sin(s*4.+h*30.+uFT*.5)*s+.12*sin(s*11.+h4*20.)*s)-.5;float w=mix(.08,.44,h*h);float on=step(.45,h2);
    float sb=mix(.16,.78,pow(h3,1.2));float lon=.55+.45*sin(v*(5.+6.*h4)+h*40.);
    float core=1.-smoothstep(w*.35,w,abs(cx));
-   float st=core*smoothstep(-.2,.4,lon)*(1.-smoothstep(sb,sb+.08,s));
+   float s0=.16*h4*h4*h4;float st=core*smoothstep(-.2,.4,lon)*(1.-smoothstep(sb,sb+.08,s))*smoothstep(s0,s0+.05,s);
    float dv=fract(v*(9.+5.*h)+h4*7.);float dc=floor(v*(9.+5.*h)+h4*7.);float dp=step(.45,h1(dc+id*1.7));
    float dr=exp(-pow((dv-.5)/.16,2.))*exp(-pow(cx/(w*.6+.04),2.))*dp*smoothstep(sb-.02,sb+.06,s)*(1.-smoothstep(sb+.12,sb+.34+.2*h,s));
    br=pow(core,3.)*on*smoothstep(.72,1.,sin(v*(1.6+1.8*h4)+h*60.)*.5+.5);return vec3(st*on,dr*on,mix(.35,.9,h2));}
@@ -168,9 +170,10 @@ const fallU={uFT:{value:0},uFA:{value:1},uWind:Ue.uWind};
   float lip=1.-smoothstep(.0,.05,s);
   /* a glassy sheet over the lip that tears open into the strands */
   float tear=texture2D(tF,vec2(x*23.,s*.6-uFT*.05)).g*.6+texture2D(tF,vec2(x*61.+.3,s*1.3-uFT*.11)).b*.4;
-  float sheet=(1.-smoothstep(.0,.06+.12*tear,s))*.75;
-  float strand=max(max(Wd.x*Wd.z*.42,A.x*A.z),max(B.x*B.z*.8,C.x*C.z*.6)),drop=max(max(Wd.y*.6,A.y),max(B.y*.85,C.y*.7));
-  float a=clamp(max(sheet,strand)+drop*.9,0.,1.)*(1.-smoothstep(.7,1.,s));a=max(a,lip*.7);
+  float sm=smoothstep(.3,.7,texture2D(tF,vec2(x*9.,.31)).g*.7+texture2D(tF,vec2(x*23.,.77)).b*.4);
+  float sheet=(1.-smoothstep(.0,.04+.14*tear*sm,s))*.6*(.25+.75*sm);
+  float strand=max(max(Wd.x*Wd.z*.3,A.x*A.z),max(B.x*B.z*.8,C.x*C.z*.6)),drop=max(max(Wd.y*.6,A.y),max(B.y*.85,C.y*.7));
+  float a=clamp(max(sheet,strand)+drop*.9,0.,1.)*(1.-smoothstep(.7,1.,s));a=max(a,lip*(.25+.35*sm));
   float aer=clamp(s*1.6+drop*.5-.05,0.,1.);
   vec3 c=mix(uDeep*.85+uScat*.75,vec3(.88,.93,.97),aer)*(uAmb*.95+uKey*.62)*.3183*1.1;
   /* glints run down the strand cores */
@@ -202,6 +205,30 @@ const CB=[];for(let i=0;i<cbank.n;i++)CB.push({a:i/cbank.n*TAU+rr(-.1,.1),r:rr(R
 const spray=ptSys(MOB?560:1000,tDot);spray.o.renderOrder=6;root.add(spray.o);
 const SP=[];let spN=0;for(let i=0;i<spray.n;i++)SP.push({on:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,age:0,life:1,sz:.04,a:1,lx:0,ly:0,lz:0,loc:0});
 function emit(x,y,z,vx,vy,vz,life,sz,a){const q=SP[spN];spN=(spN+1)%spray.n;q.on=1;q.x=x;q.y=y;q.z=z;q.vx=vx;q.vy=vy;q.vz=vz;q.age=0;q.life=life;q.sz=sz;q.a=a;q.loc=0}
+
+/* whale water: thin streaks stretched along their velocity (motion blur), near-white with a sky tint */
+const wtrU={uWc:{value:new C3(.8,.85,.9)},uAsp:{value:1},uBlur:{value:.05}};
+const streak=(()=>{const n=MOB?420:800,g=new T.BG(),P=new Float32Array(n*12),Vv=new Float32Array(n*12),D=new Float32Array(n*8),Cn=new Float32Array(n*8),I=[];
+ for(let i=0;i<n;i++){[[-1,0],[1,0],[-1,1],[1,1]].forEach((c,k)=>{Cn[(i*4+k)*2]=c[0];Cn[(i*4+k)*2+1]=c[1]});const b=i*4;I.push(b,b+1,b+2,b+1,b+3,b+2)}
+ g.setAttribute("position",new T.BA(P,3));g.setAttribute("aV",new T.BA(Vv,3));g.setAttribute("aD",new T.BA(D,2));g.setAttribute("aC",new T.BA(Cn,2));g.setIndex(I);
+ const m=new T.SM({uniforms:{...wtrU,uFogC:U.uFogC,uFogN:U.uFogN,uFogF:U.uFogF,uHaze:U.uHaze},transparent:true,depthWrite:false,
+  vertexShader:`attribute vec3 aV;attribute vec2 aD,aC;uniform float uBlur,uAsp;varying vec2 vC;varying float vA,vD;
+  void main(){vec4 h=projectionMatrix*viewMatrix*vec4(position,1.),t=projectionMatrix*viewMatrix*vec4(position-aV*uBlur,1.);vA=aD.y;vD=h.w;vC=aC;
+   if(aD.y<.003||h.w<.05){gl_Position=vec4(2.,2.,2.,1.);return;}
+   vec2 hs=h.xy/h.w,ts=t.xy/max(t.w,.05);vec2 d=(hs-ts)*vec2(uAsp,1.);float L=length(d);vec2 dir=L>1e-5?d/L:vec2(0.,1.),nr=vec2(-dir.y,dir.x);
+   float w=aD.x*projectionMatrix[1][1]/h.w;float len=max(L,w*1.5);vec2 p=hs*vec2(uAsp,1.)+dir*w*.5-dir*(len+w)*aC.y+nr*w*aC.x*.5;
+   gl_Position=vec4(p.x/uAsp*h.w,p.y*h.w,h.z,h.w);}`,
+  fragmentShader:`uniform vec3 uWc,uFogC;uniform float uFogN,uFogF,uHaze;varying vec2 vC;varying float vA,vD;${FOG}
+  void main(){float core=exp(-vC.x*vC.x*5.),tail=(1.-smoothstep(.15,1.,vC.y))*smoothstep(0.,.08,vC.y);float a=vA*core*tail;if(a<.004)discard;
+   vec3 c=mix(uWc,vec3(1.)*max(max(uWc.r,uWc.g),uWc.b)*1.35,core*core);gl_FragColor=vec4(mix(c,uFogC,fogMix(vD)*.8),a*(.35+.65*core*core));
+  #include <colorspace_fragment>
+  }`});
+ const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=7;root.add(o);const Q=[];for(let i=0;i<n;i++)Q.push({on:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,age:0,life:1,w:.01,a:.6,dr:0});
+ let k=0;return{n,g,P,Vv,D,Q,emit(x,y,z,vx,vy,vz,life,w,a,dr){const q=Q[k];k=(k+1)%n;Object.assign(q,{on:1,x,y,z,vx,vy,vz,age:0,life,w,a,dr:dr||0})}}})();
+function emitW(x,y,z,vx,vy,vz,life,w,a,dr){streak.emit(x,y,z,vx,vy,vz,life,w,a,dr)}
+function streakUpd(dt,wn){const S=streak;for(let i=0;i<S.n;i++){const q=S.Q[i];let a=0;if(q.on){q.age+=dt;if(q.age>q.life||q.y<hAt(q.x,q.z).y-.05)q.on=0;else{q.vy-=4.2*dt;const dk=Math.exp(-dt*q.dr);q.vx=q.vx*dk+wn*.25*dt;q.vz*=dk;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;const u=q.age/q.life;a=q.a*(1-u*u)*Math.min(1,q.age*20)}}
+  for(let c=0;c<4;c++){const j=(i*4+c)*3;S.P[j]=q.x;S.P[j+1]=q.y;S.P[j+2]=q.z;S.Vv[j]=q.vx;S.Vv[j+1]=q.vy;S.Vv[j+2]=q.vz;S.D[(i*4+c)*2]=q.w;S.D[(i*4+c)*2+1]=a}}
+ S.g.attributes.position.needsUpdate=S.g.attributes.aV.needsUpdate=S.g.attributes.aD.needsUpdate=true}
 
 /* ---------------- foam ribbons: wake, bow waves and the waterline ring ---------------- */
 const ribMat=new T.SM({uniforms:{...U,...SKY},transparent:true,side:2,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,
@@ -532,7 +559,10 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  U.uFogC.value.copy(Jt.fog.color);U.uFogN.value=Jt.fog.near;U.uFogF.value=Jt.fog.far;
  {const lit=C1.copy(U.uAmb.value).multiplyScalar(.95).add(C2.copy(U.uKey.value).multiplyScalar(Math.max(U.uKeyDir.value.y,0)*.8)).multiplyScalar(.3183);
   spray.m.uniforms.uC.value.copy(lit).multiplyScalar(.95);hail.m.uniforms.uC.value.copy(lit).multiplyScalar(1.1);fdrop.m.uniforms.uC.value.copy(lit).multiplyScalar(1.05);mist.m.uniforms.uC.value.copy(lit).multiplyScalar(.9).lerp(U.uFogC.value,.35);cbank.m.uniforms.uC.value.copy(lit).multiplyScalar(.85).lerp(U.uFogC.value,.5);
-  blowS.m.uniforms.uC.value.copy(lit).multiplyScalar(1.05)}
+  blowS.m.uniforms.uC.value.copy(lit).multiplyScalar(1.05);
+  /* whale water: near-white with a hint of sky, only as bright as the light, never tinted by it */
+  const lum=Math.min(1.1,Math.max(.04,(.2126*lit.r+.7152*lit.g+.0722*lit.b)*1.25)),tp=jt.top.value,tm=Math.max(tp.r,tp.g,tp.b,1e-3);
+  wtrU.uWc.value.setRGB(.88+(tp.r/tm-.88)*.3,.93+(tp.g/tm-.93)*.3,.97+(tp.b/tm-.97)*.3).multiplyScalar(lum);wtrU.uAsp.value=De.aspect}
  /* season colours ease in */
  const ke=ease(.9,dt);U.uDeep.value.lerp(C1.set(sz.deep).multiplyScalar(1-.25*rain),ke);U.uScat.value.lerp(C2.set(sz.scat),ke);U.uHaze.value+=(sz.haze*(1+rain*.8)+(w==="snow"?.008:0)-U.uHaze.value)*ke;
  U.uBio.value=night*(Ct.season===1?1:Ct.season===0?.25:0)*.9;
@@ -634,6 +664,42 @@ const GU=[];for(let i=0;i<5;i++){const g=new T.Group();const b=new T.Mesh(GBd,mG
  const W2=[];for(const sg of[1,-1]){const r=new T.Group();r.position.set(.01,.006,sg*.02);g.add(r);const a=new T.Mesh(GW[sg>0?0:2],mGW);r.add(a);const o=new T.Group();o.position.set(-.004,0,sg*.13);r.add(o);o.add(new T.Mesh(GW[sg>0?1:3],mGW));W2.push({r,o,sg})}
  g.visible=false;root.add(g);GU.push({g,W:W2,th:rnd()*TAU,r0:rr(1.3,2.8),a0:rr(4.4,6.6),dir:rnd()<.8?1:-1,sp:rr(1.3,1.9),ph:rnd()*TAU,p:0,fl:0,ft:rr(0,2),fp:0,call:rr(4,14),m:i%3})}
 /* plume of the whale's blow (soft puffs) */
+/* water sheet hanging from the raised fluke's trailing edge; it tears into strands and drops lower down */
+const FSH=(()=>{const NS=WFK[0].te.length,cols=[];for(let k=NS-1;k>=0;k--)cols.push([0,k]);for(let k=1;k<NS;k++)cols.push([1,k]);const NC=cols.length,KR=9,n=NC*KR;
+ const P=new Float32Array(n*3),UV=new Float32Array(n*2),F=new Float32Array(n),I=[];for(let c=0;c<NC;c++)for(let r=0;r<KR;r++){const j=c*KR+r;UV[j*2]=c/(NC-1);UV[j*2+1]=r/(KR-1);if(c<NC-1&&r<KR-1)I.push(j,j+KR,j+1,j+1,j+KR,j+KR+1)}
+ const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("uv",new T.BA(UV,2));g.setAttribute("aF",new T.BA(F,1));g.setIndex(I);
+ const m=new T.SM({uniforms:{...wtrU,tF:{value:tF},uT:U.uT},transparent:true,depthWrite:false,side:2,
+  vertexShader:`attribute float aF;varying vec2 vU;varying float vF;void main(){vU=uv;vF=aF;gl_Position=projectionMatrix*viewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform sampler2D tF;uniform vec3 uWc;uniform float uT;varying vec2 vU;varying float vF;
+  void main(){float f=texture2D(tF,vec2(vU.x*5.3,vU.y*.5-uT*1.3)).r,f2=texture2D(tF,vec2(vU.x*13.+.4,vU.y*.9-uT*2.1)).r;
+   float st=.5+.5*sin(vU.x*${MOB?70:110}.+f*6.);float end=.35+.45*f2;float a=vF*(1.-smoothstep(end-.15,end,vU.y))*(.18+.45*st*st+.25*f)*smoothstep(0.,.06,vU.y+.02);
+   if(a<.004)discard;gl_FragColor=vec4(mix(uWc,vec3(max(uWc.r,max(uWc.g,uWc.b))*1.3),st*st*.6),a);
+  #include <colorspace_fragment>
+  }`});
+ const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=7;o.visible=false;root.add(o);return{o,g,P,F,cols,NC,KR,a:0}})();
+function flukeSheet(dt,on,E){const S=FSH;S.a+=((on?1:0)-S.a)*ease(on?6:2.5,dt);S.o.visible=S.a>.01;if(!S.o.visible)return;const W=whale.P,t=st.t;
+ for(let c=0;c<S.NC;c++){const[o,k]=S.cols[c],ap=WFK[o],j=(ap.o+ap.te[k])*3,x=W[j],y=W[j+1],z=W[j+2],hw=hAt(x,z).y,up=y>hw+.03,L=.22+.32*(.5+.5*Math.sin(c*1.7+t*1.3))*(.6+.4*Math.sin(c*.53+t*.7));
+  for(let r=0;r<S.KR;r++){const v=r/(S.KR-1),i=c*S.KR+r;let yy=y-L*v;const xx=x+E.wn*.04*v,zz=z,hv=hAt(xx,zz).y;S.P[i*3]=xx;S.P[i*3+1]=Math.max(yy,hv);S.P[i*3+2]=zz;S.F[i]=up&&yy>hv?S.a:0}
+  if(up&&rnd()<dt*(MOB?14:28))emitW(x+E.wn*.04,y-L*.8,z,rr(-.03,.03),-rr(.6,1.1),rr(-.03,.03),rr(.4,.7),rr(.008,.014),.75)}
+ S.g.attributes.position.needsUpdate=S.g.attributes.aF.needsUpdate=true}
+/* slap crown: a flaring sheet of white water that rises, tears into fingers and collapses */
+const CRW=(()=>{const NA=MOB?40:64,NV=8,n=(NA+1)*NV,P=new Float32Array(n*3),UV=new Float32Array(n*2),I=[];
+ for(let i=0;i<=NA;i++)for(let v=0;v<NV;v++){const j=i*NV+v;UV[j*2]=i/NA;UV[j*2+1]=v/(NV-1);if(i<NA&&v<NV-1)I.push(j,j+NV,j+1,j+1,j+NV,j+NV+1)}
+ const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("uv",new T.BA(UV,2));g.setIndex(I);
+ const uA={value:0},m=new T.SM({uniforms:{...wtrU,tF:{value:tF},uA},transparent:true,depthWrite:false,side:2,
+  vertexShader:`varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*viewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform sampler2D tF;uniform vec3 uWc;uniform float uA;varying vec2 vU;
+  void main(){float f=texture2D(tF,vec2(vU.x*7.,vU.y*.45-uA*.35)).r,f2=texture2D(tF,vec2(vU.x*17.+.3,vU.y*.8)).g;
+   float top=.45+.5*f2-uA*.25;float a=(1.-smoothstep(top-.2,top,vU.y))*(.35+.65*smoothstep(.25,.6,f))*smoothstep(.0,.35,vU.y)*(1.-smoothstep(.55,1.5,uA))*smoothstep(0.,.06,uA);
+   if(a<.004)discard;gl_FragColor=vec4(mix(uWc,vec3(max(uWc.r,max(uWc.g,uWc.b))*1.35),.55+.45*f),a*.62);
+  #include <colorspace_fragment>
+  }`});
+ const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=7;o.visible=false;root.add(o);return{o,g,P,NA,NV,uA,on:0,age:0,x:0,z:0}})();
+function crownUpd(dt,E){const C=CRW;if(!C.on){C.o.visible=false;return}C.age+=dt;C.x-=E.ux*dt;C.z-=E.uz*dt;const a=C.age;if(a>1.6){C.on=0;C.o.visible=false;return}C.o.visible=true;C.uA.value=a;
+ const r0=.3+1.05*(1-Math.exp(-a*2.6)),h=.85*Math.pow(Math.sin(Math.min(a/1.2,1)*Math.PI),.8);
+ for(let i=0;i<=C.NA;i++){const an=i/C.NA*TAU,ca=Math.cos(an),sa=Math.sin(an),j0=1+.05*Math.sin(an*3+C.ph)+.035*Math.sin(an*7+C.ph*2)+.02*Math.sin(an*19+C.ph*3);
+  for(let v=0;v<C.NV;v++){const k=v/(C.NV-1),r=r0*j0*(1+.4*k*k),x=C.x+ca*r,z=C.z+sa*r,j=(i*C.NV+v)*3;C.P[j]=x;C.P[j+1]=hAt(x,z).y-.02+h*k*(1-.25*k);C.P[j+2]=z}}
+ C.g.attributes.position.needsUpdate=true}
 const blowS=ptSys(MOB?90:150,tPuff);blowS.o.renderOrder=6;root.add(blowS.o);
 const BLW=[];let blN=0;for(let i=0;i<blowS.n;i++)BLW.push({on:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,age:0,life:1,sz:.2,a:.6});
 function puff(x,y,z,vx,vy,vz,life,sz,a){const q=BLW[blN];blN=(blN+1)%blowS.n;Object.assign(q,{on:1,x,y,z,vx,vy,vz,age:0,life,sz,a})}
@@ -684,14 +750,14 @@ function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==fals
   /* water sheets off the back wherever it has just broken the surface */
   {whaleF(.4,whale.fr);WSH.cs=(De.position.x-whale.fr.p.x)*whale.fr.b.x+(De.position.z-whale.fr.p.z)*whale.fr.b.z>0?1:-1}
   for(let i=0;i<WSH.n;i++){const s0=.1+i*.1;whaleF(s0,whale.fr);const f=whale.fr,[rw,rh]=wProf(s0);const ty=f.p.y+f.n.y*rh,hw=hAt(f.p.x,f.p.z).y,up=ty>hw+.01;
-   if(up&&!WSH.u[i]){WSH.w[i]=2.2;for(const sg of[1,-1])puff(f.p.x+f.b.x*WR*sg*1.1,hw+.04,f.p.z+f.b.z*WR*sg*1.1,f.b.x*sg*.25,rr(.1,.3),f.b.z*sg*.25,rr(.9,1.4),rr(.22,.36),.22);if(i%2===0)ring(f.p.x,f.p.z,.5)}WSH.u[i]=up;if(!up){WSH.w[i]=0;continue}if(WSH.w[i]<=0)continue;WSH.w[i]-=dt;WSH.a[i]+=dt*(MOB?90:190)*(WSH.w[i]/2.2+(WSH.w[i]>1.5?1.6:0));
-   for(;WSH.a[i]>1;WSH.a[i]--){const sg=rnd()<.7?WSH.cs:-WSH.cs,th=rr(.1,1.),c=Math.cos(th),sn=Math.sin(th)*sg,bx=f.b.x,bz=f.b.z,ex=f.p.x+f.n.x*rh*c+bx*rw*sn*1.04+f.t.x*rr(-.05,.05),ey=f.p.y+f.n.y*rh*c+.01,ez=f.p.z+f.n.z*rh*c+bz*rw*sn*1.04+f.t.z*rr(-.05,.05);
-    if(ey>hAt(ex,ez).y+.015)emit(ex,ey,ez,bx*sg*rr(.1,.4),rr(0,.25),bz*sg*rr(.1,.4),rr(.3,.55),rr(.02,.042),.8)}}
+   if(up&&!WSH.u[i]){WSH.w[i]=2.2;for(const sg of[1,-1])puff(f.p.x+f.b.x*WR*sg*1.1,hw+.04,f.p.z+f.b.z*WR*sg*1.1,f.b.x*sg*.25,rr(.1,.3),f.b.z*sg*.25,rr(.9,1.4),rr(.22,.36),.22);if(i%2===0)ring(f.p.x,f.p.z,.5)}WSH.u[i]=up;if(!up){WSH.w[i]=0;continue}WSH.w[i]=Math.max(0,WSH.w[i]-dt);WSH.a[i]+=dt*(MOB?90:190)*(.55+WSH.w[i]/2.2+(WSH.w[i]>1.5?1.6:0));
+   for(;WSH.a[i]>1;WSH.a[i]--){const sg=rnd()<.7?WSH.cs:-WSH.cs,th=rr(.5,1.5),c=Math.cos(th),sn=Math.sin(th)*sg,bx=f.b.x,bz=f.b.z,ex=f.p.x+f.n.x*rh*c+bx*rw*sn*1.08+f.t.x*rr(-.05,.05),ey=f.p.y+f.n.y*rh*c+.01,ez=f.p.z+f.n.z*rh*c+bz*rw*sn*1.08+f.t.z*rr(-.05,.05);
+    if(ey>hAt(ex,ez).y+.015)emitW(ex,ey,ez,bx*sg*rr(.3,.75),rr(-.1,.2),bz*sg*rr(.3,.75),rr(.35,.6),rr(.008,.016),.85)}}
   /* blowhole a little behind the head */
   whaleF(.1,whale.fr);const bh=whale.fr.p;const hwB=hAt(bh.x,bh.z).y;
   /* the exhale lasts as long as its sound (about 0.8 s): puffs stream from the blowhole the whole time */
   if(H.bt>0){const k=1-H.bt/H.bd;H.bt-=dt;H.ba+=dt*(MOB?70:110)*H.bs;for(;H.ba>1;H.ba--){const vy=rr(1.9,3.4)*(1-.35*k)*H.bs,sp=.13+vy*.16,lo=(rnd()<.5?-1:1)*rr(.04,.22);puff(bh.x+rr(-.05,.05),hwB+.1+rr(0,.06),bh.z+rr(-.05,.05),rr(-sp,sp)-H.hz*lo+E.wn*.3,vy,rr(-sp,sp)+H.hx*lo,rr(2.4,4.2),rr(.2,.38),.34)}
-   if(rnd()<dt*40)emit(bh.x,hwB+.12,bh.z,rr(-.35,.35),rr(1.4,3)*H.bs,rr(-.35,.35),rr(.8,1.3),rr(.025,.045),.55)}
+   if(rnd()<dt*40)emitW(bh.x,hwB+.12,bh.z,rr(-.35,.35),rr(1.4,3)*H.bs,rr(-.35,.35),rr(.8,1.3),rr(.006,.012),.6)}
   if(!H.blown&&H.uh>WP.su[2]+.55){H.blown=1;H.bt=H.bd=.8;H.bs=1;H.ba=0;lw.copy(bh);lw.y=hwB;shot("zWbl",.7,lw,rr(.96,1.03));logE("wBlow",lw);
    if(amb&&!H.sung&&rnd()<.6){H.sung=1;shot(rnd()<.5?"zWs1":"zWs2",.26,lw2.set(lw.x,-4,lw.z),rr(.95,1.03),1)}}
   if(H.blown===1&&H.uh>WP.su[3]+.3){H.blown=2;H.bt=H.bd=.55;H.bs=.6;H.ba=0;lw.copy(bh);lw.y=hwB;shot("zWbl",.45,lw,rr(1.04,1.1));logE("wBlow2",lw)}
@@ -699,12 +765,17 @@ function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==fals
   const ft=lw2.copy(whale.f1.p).addScaledVector(whale.f1.t,-.36),hT=hAt(ft.x,ft.z).y;
   if(ut>WP.apex-.5&&H.slap<.1){const P=whale.P;H.drip+=dt*(MOB?180:380);
    const te=(k,o)=>{const a=WFK[o],j=(a.o+a.te[k])*3;lw.set(P[j],P[j+1],P[j+2]);return lw.y>hAt(lw.x,lw.z).y+.04};
-   for(;H.drip>1;H.drip--){const o=rnd()<.5?0:1;if(te(Math.floor(rnd()*WFK[o].te.length),o))emit(lw.x,lw.y-.01,lw.z,rr(-.04,.04),-rr(0,.2),rr(-.04,.04),rr(.7,1.1),rr(.022,.042),.8)}
+   for(;H.drip>1;H.drip--){const o=rnd()<.5?0:1;if(te(Math.floor(rnd()*WFK[o].te.length),o))emitW(lw.x,lw.y-.01,lw.z,rr(-.04,.04),-rr(0,.3),rr(-.04,.04),rr(.7,1.1),rr(.005,.01),.7)}
    /* steady streams from the notch, mid-blade and tips */
-   for(const o of[0,1])for(const k of[0,2,Math.floor(WFK[o].te.length*.45),Math.floor(WFK[o].te.length*.7),WFK[o].te.length-2])if(te(k,o))emit(lw.x+rr(-.01,.01),lw.y-.01,lw.z+rr(-.01,.01),0,-rr(.05,.15),0,rr(.8,1.1),MOB?.036:.03,.85)}
-  if(H.slap>.1&&!H.slapped&&ft.y<hT+.02){H.slapped=1;lw.set(ft.x,hT,ft.z);for(let i=0;i<(MOB?120:200);i++){const a=rnd()*TAU,sp=rr(.4,2.4);emit(ft.x+rr(-.3,.3),hT+.03,ft.z+rr(-.3,.3),Math.cos(a)*sp*.7,rr(1.2,3.6),Math.sin(a)*sp*.7,rr(.7,1.4),rr(.03,.07),.85)}
-   for(let i=0;i<18;i++)puff(ft.x+rr(-.3,.3),hT+.1,ft.z+rr(-.3,.3),rr(-.4,.4),rr(.4,1.2),rr(-.4,.4),rr(1.2,2),rr(.25,.45),.4);ring(ft.x,ft.z,1.6);ring(ft.x+.2,ft.z-.15,1.1);shot("zWsl",.95,lw,rr(.96,1.02));logE("wSlap",lw)}
-  if(H.uh>WP.L+WLN*.4||H.slapped&&ft.y<hT-1.1){H.on=0;whale.o.visible=false}}
+   for(const o of[0,1])for(const k of[0,2,Math.floor(WFK[o].te.length*.45),Math.floor(WFK[o].te.length*.7),WFK[o].te.length-2])if(te(k,o))emitW(lw.x+rr(-.008,.008),lw.y-.01,lw.z+rr(-.008,.008),0,-rr(.05,.2),0,rr(.8,1.1),MOB?.012:.009,.8)}
+  if(H.slap>.1&&!H.slapped&&ft.y<hT+.02){H.slapped=1;H.rg=0;H.st=0;lw.set(ft.x,hT,ft.z);Object.assign(CRW,{on:1,age:0,x:ft.x,z:ft.z,ph:rnd()*10});
+   /* fine spray thrown off the crown, a little mist, then a spreading foam patch with rings */
+   for(let i=0;i<(MOB?170:320);i++){const a=rnd()*TAU,sp=rr(.5,2.6),r=rr(.2,.6);emitW(ft.x+Math.cos(a)*r,hT+rr(.05,.4),ft.z+Math.sin(a)*r,Math.cos(a)*sp*.8,rr(1.4,4),Math.sin(a)*sp*.8,rr(.6,1.3),rr(.005,.012),.8,.4)}
+   for(let i=0;i<10;i++)puff(ft.x+rr(-.4,.4),hT+.15,ft.z+rr(-.4,.4),rr(-.3,.3),rr(.3,.9),rr(-.3,.3),rr(1.2,2.2),rr(.3,.5),.22);U.uPatch.value.set(ft.x,ft.z,U.uT.value,1);ring(ft.x,ft.z,1.6);shot("zWsl",.95,lw,rr(.96,1.02));logE("wSlap",lw)}
+  if(H.slapped&&H.rg<3){H.st+=dt;if(H.st>[.35,.85,1.5][H.rg]){H.rg++;ring(CRW.x+rr(-.15,.15),CRW.z+rr(-.15,.15),1.2-H.rg*.25)}}
+  flukeSheet(dt,ut>WP.apex-.5&&H.slap>-1.5&&H.slap<.1,E);
+  if(H.uh>WP.L+WLN*.4||H.slapped&&ft.y<hT-1.1){H.on=0;whale.o.visible=false}}else flukeSheet(dt,false,E);
+ crownUpd(dt,E);streakUpd(dt,E.wn);U.uPatch.value.x-=E.ux*dt;U.uPatch.value.y-=E.uz*dt;
  /* blow plume */
  for(let i=0;i<blowS.n;i++){const q=BLW[i];if(!q.on){blowS.a[i]=0;continue}q.age+=dt;if(q.age>q.life){q.on=0;blowS.a[i]=0;continue}const dr=Math.exp(-dt*1.9);q.vx=(q.vx-E.wn*1.4)*dr+E.wn*1.4;q.vz*=dr;q.vy=q.vy*dr-.12*dt;
   q.x+=(q.vx-E.ux*.3)*dt;q.y+=q.vy*dt;q.z+=(q.vz-E.uz*.3)*dt;const u=q.age/q.life;blowS.p.set([q.x,q.y,q.z],i*3);blowS.a[i]=q.a*(1-u)*(1-u)*Math.min(1,q.age*8);blowS.s[i]=q.sz*(1+u*2.8)}
@@ -789,7 +860,7 @@ onSea(root);lanL.layers.mask=L2;
 function show(on){root.visible=on;grade.enabled=on;De.layers.set(on?2:0);window.__seaA=on;const x=SX();x&&x.C&&x.C();
  if(!on&&AU.bus&&x&&x.s){AU.bus.gain.setTargetAtTime(0,x.s.currentTime,.25);const L=AU.lp;AU.lp={};setTimeout(()=>{for(const k in L)try{L[k].s.stop()}catch(e){}},1500)}}
 window.__seaShow=show;window.__seaU=update;
-window.__sea={st,ship,root,W,hAt,U,SAILS,FL,De,Ce:X.Ce,Cn,grade:gradeM,jt,trailW,wl,bowL,LOG,WH,POD,GU,AU,WP,whale,WSH,SP,
+window.__sea={st,ship,root,W,hAt,U,streak,SAILS,FL,De,Ce:X.Ce,Cn,grade:gradeM,jt,trailW,wl,bowL,LOG,WH,POD,GU,AU,WP,whale,WSH,SP,
  spawn:k=>k==="whale"?(WH.on=0,spawnWhale(ENV)):k==="dolphin"?(POD.on=0,spawnPod(ENV)):0};
 window.__seaReady=true;
 };

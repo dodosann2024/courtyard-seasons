@@ -371,11 +371,11 @@ const streak=(()=>{const n=MOB?420:800,g=new T.BG(),P=new Float32Array(n*12),Vv=
    vec3 c=mix(uWc,vec3(1.)*max(max(uWc.r,uWc.g),uWc.b)*1.35,core*core);gl_FragColor=vec4(mix(c,uFogC,fogMix(vD)*.8),a*(.35+.65*core*core));
   #include <colorspace_fragment>
   }`});
- const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=7;root.add(o);const Q=[];for(let i=0;i<n;i++)Q.push({on:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,age:0,life:1,w:.01,a:.6,dr:0});
- let k=0;return{n,g,P,Vv,D,Q,emit(x,y,z,vx,vy,vz,life,w,a,dr){const q=Q[k];k=(k+1)%n;Object.assign(q,{on:1,x,y,z,vx,vy,vz,age:0,life,w,a,dr:dr||0})}}})();
-function emitW(x,y,z,vx,vy,vz,life,w,a,dr){streak.emit(x,y,z,vx,vy,vz,life,w,a,dr)}
-function streakUpd(dt,wn){const S=streak;for(let i=0;i<S.n;i++){const q=S.Q[i];let a=0;if(q.on){q.age+=dt;if(q.age>q.life||q.y<hAt(q.x,q.z).y-.05)q.on=0;else{q.vy-=4.2*dt;const dk=Math.exp(-dt*q.dr);q.vx=q.vx*dk+wn*.25*dt;q.vz*=dk;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;const u=q.age/q.life;a=q.a*(1-u*u)*Math.min(1,q.age*20)}}
-  for(let c=0;c<4;c++){const j=(i*4+c)*3;S.P[j]=q.x;S.P[j+1]=q.y;S.P[j+2]=q.z;S.Vv[j]=q.vx;S.Vv[j+1]=q.vy;S.Vv[j+2]=q.vz;S.D[(i*4+c)*2]=q.w;S.D[(i*4+c)*2+1]=a}}
+ const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=7;root.add(o);const Q=[];for(let i=0;i<n;i++)Q.push({on:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,age:0,life:1,w:.01,a:.6,dr:0,bs:1,rg:0});
+ let k=0;return{n,g,P,Vv,D,Q,emit(x,y,z,vx,vy,vz,life,w,a,dr,bs,rg){const q=Q[k];k=(k+1)%n;Object.assign(q,{on:1,x,y,z,vx,vy,vz,age:0,life,w,a,dr:dr||0,bs:bs||1,rg:rg||0})}}})();
+function emitW(x,y,z,vx,vy,vz,life,w,a,dr,bs,rg){streak.emit(x,y,z,vx,vy,vz,life,w,a,dr,bs,rg)}
+function streakUpd(dt,wn){const S=streak;for(let i=0;i<S.n;i++){const q=S.Q[i];let a=0;if(q.on){q.age+=dt;if(q.age>q.life)q.on=0;else if(q.y<hAt(q.x,q.z).y-.05){q.on=0;if(q.rg&&st.t-(S.rt||0)>.14){S.rt=st.t;ring(q.x,q.z,.16)}}else{q.vy-=4.2*dt;const dk=Math.exp(-dt*q.dr);q.vx=q.vx*dk+wn*.25*dt;q.vz*=dk;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;const u=q.age/q.life;a=q.a*(1-u*u)*Math.min(1,q.age*20)}}
+  for(let c=0;c<4;c++){const j=(i*4+c)*3;S.P[j]=q.x;S.P[j+1]=q.y;S.P[j+2]=q.z;S.Vv[j]=q.vx*q.bs;S.Vv[j+1]=q.vy*q.bs;S.Vv[j+2]=q.vz*q.bs;S.D[(i*4+c)*2]=q.w;S.D[(i*4+c)*2+1]=a}}
  S.g.attributes.position.needsUpdate=S.g.attributes.aV.needsUpdate=S.g.attributes.aD.needsUpdate=true}
 
 /* ---------------- foam ribbons: wake, bow waves and the waterline ring ---------------- */
@@ -768,8 +768,10 @@ const lifeM=(ro,sk)=>{const m=M({vertexColors:true,roughness:ro||.34,metalness:0
   sh.fragmentShader=(sk?WGL+"\n":"")+"uniform float uFd;uniform sampler2D tF;uniform vec3 uShal,uDeep,uAmb,uKey,uKeyDir;\n"+AQG+"\n"+sh.fragmentShader.replace("#include <clipping_planes_fragment>",DITH+`if(vWP.y<${YS0.toFixed(2)}+${(YW-YS0).toFixed(2)}*min(1.,dot(vWP.xz,vWP.xz)/${(RS*RS).toFixed(2)})+.03)discard;\n#include <clipping_planes_fragment>`)
    .replace("#include <tonemapping_fragment>","gl_FragColor.rgb=mix(gl_FragColor.rgb,aqFogK(gl_FragColor.rgb,vWP,.6),smoothstep(-.02,-.35,vWP.y));\n"+(sk?
     /* wet flukes catch the sky: a Fresnel sheen where the reflection points upward */
-    `{float fk_=smoothstep(2.5,2.72,vO.x);if(fk_>.01){vec3 vv_=normalize(vViewPosition),n_=normalize(normal);if(dot(n_,vv_)<0.)n_=-n_;float c_=dot(n_,vv_);vec3 r_=reflect(-vv_,n_);float up_=smoothstep(-.15,.7,dot(r_,(viewMatrix*vec4(0.,1.,0.,0.)).xyz));
-     gl_FragColor.rgb+=uAmb*(.1+.6*pow(1.-c_,3.))*up_*fk_*.6;}}
+    `{float fk_=smoothstep(2.5,2.72,vO.x);vec3 vv_=normalize(vViewPosition),n_=normalize(normal);if(dot(n_,vv_)<0.)n_=-n_;float c_=dot(n_,vv_);vec3 uv_=(viewMatrix*vec4(0.,1.,0.,0.)).xyz,r_=reflect(-vv_,n_);float up_=smoothstep(-.15,.7,dot(r_,uv_));
+     /* hemisphere fill wrapping round from the sky, so the shadow side stays a dark wet grey */
+     gl_FragColor.rgb+=(diffuseColor.rgb*(.13+.09*dot(n_,uv_))+.022+.01*dot(n_,uv_))*uAmb*(1.+.5*fk_);
+     gl_FragColor.rgb+=uAmb*(.06+.6*pow(1.-c_,3.))*up_*(.22+.4*fk_);}
 `+
     /* below the local wave surface the skin sinks into the water colour, so only what breaks the surface reads as whale */
     `{vec3 wp_,wn_;float wj_;waves(vWP.xz,wp_,wn_,wj_);float dep_=wp_.y-vWP.y;vec3 wc_=aqLight(.6+max(dep_,0.)*1.5);
@@ -836,7 +838,7 @@ const WPE=[1,-1].map(sg=>{const NS=MOB?6:8,secs=[];for(let i=0;i<NS;i++){const v
   secs.push({le:[px+.05+kn,py,pz],te:[px+.05-ch,py,pz+.02],th:.026*(1-v)+.005,up:[0,-sg*.45,.89]})}return foil(.27,secs,MOB?5:6,hex("#9aa2a3"),wFin,(v,u,top)=>top&&hsh(v*13,u*7)>.7?-.35:0)});
 const WDF=(()=>{const s=.66,top=WR*wRH(s)+WR*.11*Math.exp(-Math.pow((s-.64)/.06,2))+wProf(s)[2],secs=[];for(let i=0;i<5;i++){const v=i/4;secs.push({le:[.05-.13*Math.pow(v,1.3),0,top-.03+.1*v],te:[-.14+.05*v,0,top-.03+.08*v],th:.022*(1-v)+.003,up:[0,1,0]})}return foil(s,secs,5,wTop,wTop)})();
 for(const f of[...WPE,WDF])delete f.oz;
-const whale=new Body(WLN,MOB?42:58,MOB?16:24,wProf,wCol,[...WFK,...WPE,WDF]);whale.o.material=lifeM(.52,WSKIN);
+const whale=new Body(WLN,MOB?50:76,MOB?20:32,wProf,wCol,[...WFK,...WPE,WDF]);whale.o.material=lifeM(.52,WSKIN);
 /* bottlenose dolphin (about 2.5 m against the galleon): short beak under a rounded melon, fusiform body, keeled tail stock;
    falcate dorsal, curved pectorals and crescent flukes are lofted with real thickness; grey cape, paler flanks, white belly */
 const DL=.38,DR=.042,DS=[0,.03,.06,.09,.13,.2,.32,.45,.58,.7,.8,.88,.94,1],dRH=tbl(DS,[.1,.2,.25,.4,.66,.88,1,.97,.82,.6,.43,.32,.24,.13]),dRW=tbl(DS,[.1,.2,.24,.38,.62,.84,.95,.92,.76,.5,.3,.2,.14,.08]);
@@ -898,17 +900,19 @@ const FSH=(()=>{const NS=WFK[0].te.length,cols=[];for(let k=NS-1;k>=0;k--)cols.p
   void main(){float f=texture2D(tF,vec2(vU.x*5.3,vU.y*.5-uT*1.3)).r,f2=texture2D(tF,vec2(vU.x*13.+.4,vU.y*.9-uT*2.1)).r;
    float st=.5+.5*sin(vU.x*17.+f*5.+f2*3.);float end=.5+.5*f2*f;float a=vF*(1.-smoothstep(end-.25,end,vU.y))*(.22+.2*st+.2*f+.25*smoothstep(.15,.0,vU.y))*smoothstep(0.,.06,vU.y+.02);
    a*=1.-smoothstep(.55,.75,texture2D(tF,vec2(vU.x*7.1+.2,vU.y*1.6-uT*1.7)).g)*smoothstep(.2,.6,vU.y);
-   if(a<.004)discard;gl_FragColor=vec4(mix(uWc,vec3(max(uWc.r,max(uWc.g,uWc.b))*1.3),.25+st*.35),a);
+   /* lower down the sheet breaks into separate drops */
+   float dp=texture2D(tF,vec2(vU.x*29.+.13,vU.y*5.5-uT*2.4)).r;a*=mix(1.,smoothstep(.6,.7,dp)*1.7,smoothstep(.3,.65,vU.y))*.85;
+   if(a<.004)discard;gl_FragColor=vec4(mix(uWc,vec3(max(uWc.r,max(uWc.g,uWc.b))*1.25),.12+st*.25),a);
   #include <colorspace_fragment>
   }`});
  const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=7;o.visible=false;root.add(o);return{o,g,P,F,cols,NC,KR,a:0}})();
 /* only a few irregular sheets run off: always at the tips, plus two or three drifting patches along the trailing edge */
-const fshW=(c,NC,t,sd)=>{const v=c/(NC-1),n=Math.sin(c*2.3+sd*7+t*.35)*Math.sin(c*.83+sd*3.1-t*.21);return Math.max(.5,ss(.14,0,v),ss(.86,1,v),ss(.3,.7,n))};
+const fshW=(c,NC,t,sd)=>{const v=c/(NC-1),n=Math.sin(c*.33+sd*7+t*.35)*Math.sin(c*.19+sd*3.1-t*.21);return Math.max(.5,ss(.14,0,v),ss(.86,1,v),ss(.3,.7,n))};
 function flukeSheet(dt,on,E){const S=FSH;S.a+=((on?1:0)-S.a)*ease(on?6:2.5,dt);S.o.visible=S.a>.01;if(!S.o.visible)return;const W=whale.P,t=st.t,sd=WH.sd||0;
- for(let c=0;c<S.NC;c++){const[o,k]=S.cols[c],ap=WFK[o],j=(ap.o+ap.te[k])*3,x=W[j],y=W[j+1],z=W[j+2],hw=hAt(x,z).y,up=y>hw+.03,w=fshW(c,S.NC,t,sd),L=(.1+.46*w)*(.7+.3*Math.sin(c*1.7+t*1.3));
-  for(let r=0;r<S.KR;r++){const v=r/(S.KR-1),i=c*S.KR+r;let yy=y-L*v;const xx=x+E.wn*.04*v-whale.f1.t.x*.05*v*v,zz=z-whale.f1.t.z*.05*v*v,hv=hAt(xx,zz).y;S.P[i*3]=xx;S.P[i*3+1]=Math.max(yy,hv);S.P[i*3+2]=zz;S.F[i]=up&&yy>hv?S.a*w:0}
+ for(let c=0;c<S.NC;c++){const[o,k]=S.cols[c],ap=WFK[o],j=(ap.o+ap.te[k])*3,x=W[j],y=W[j+1],z=W[j+2],hw=hAt(x,z).y,up=y>hw+.03,w=fshW(c,S.NC,t,sd),L=(.1+.46*w)*(.62+.22*Math.sin(c*.37+t*1.3)+.18*Math.sin(c*.13+sd*5.)),bw=.03*Math.sin(c*.21+t*1.7+sd)+.02;
+  for(let r=0;r<S.KR;r++){const v=r/(S.KR-1),i=c*S.KR+r;let yy=y-L*v;const xx=x+E.wn*.04*v-whale.f1.t.x*(.05+bw)*v*v,zz=z-whale.f1.t.z*(.05+bw)*v*v,hv=hAt(xx,zz).y;S.P[i*3]=xx;S.P[i*3+1]=Math.max(yy,hv);S.P[i*3+2]=zz;S.F[i]=up&&yy>hv?S.a*w:0}
   /* the sheets break into drops below their ragged ends */
-  if(up&&w>.3&&rnd()<dt*(MOB?7:11)*w)emitW(x+E.wn*.04+rr(-.01,.01),y-L*rr(.6,.95),z+rr(-.01,.01),rr(-.03,.03),-rr(.3,.9),rr(-.03,.03),rr(.4,.7),rr(.007,.013),.75)}
+  if(up&&w>.3&&rnd()<dt*(MOB?7:11)*w){const k=rr(-.08,.16)-bw;emitW(x+E.wn*.04+rr(-.01,.01),y-L*rr(.6,.95),z+rr(-.01,.01),rr(-.03,.03)-whale.f1.t.x*k,-rr(.2,.6),rr(-.03,.03)-whale.f1.t.z*k,rr(.4,.7),rr(.006,.014),rr(.4,.65),0,rr(.15,.35),1)}}
  S.g.attributes.position.needsUpdate=S.g.attributes.aF.needsUpdate=true}
 /* foam collar hugging the tail stock where it cuts the surface */
 const COLR=(()=>{const NA=whale.NA,NV=3,n=(NA+1)*NV,P=new Float32Array(n*3),UV=new Float32Array(n*2),I=[];
@@ -1205,7 +1209,7 @@ function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==fals
   const ft=lw2.copy(whale.f1.p).addScaledVector(whale.f1.t,-.36),hT=hAt(ft.x,ft.z).y;
   if(ut>WP.apex-.5&&H.slap<.1){const P=whale.P;H.drip+=dt*(MOB?10:16);
    const te=(k,o)=>{const a=WFK[o],j=(a.o+a.te[k])*3;lw.set(P[j],P[j+1],P[j+2]);return lw.y>hAt(lw.x,lw.z).y+.04};
-   for(;H.drip>1;H.drip--){const o=rnd()<.5?0:1;if(te(Math.floor(rnd()*WFK[o].te.length),o))emitW(lw.x,lw.y-.01,lw.z,rr(-.04,.04),-rr(0,.3),rr(-.04,.04),rr(.7,1.1),rr(.005,.01),.7)}
+   for(;H.drip>1;H.drip--){const o=rnd()<.5?0:1;if(te(Math.floor(rnd()*WFK[o].te.length),o)){const k=rr(-.1,.2),f=whale.f1.t;emitW(lw.x,lw.y-.01,lw.z,rr(-.05,.05)-f.x*k,-rr(0,.25),rr(-.05,.05)-f.z*k,rr(.7,1.1),rr(.005,.014),rr(.35,.65),0,rr(.15,.4),1)}}
 }
   if(H.slap>.1&&!H.slapped&&ft.y<hT+.02){H.slapped=1;H.rg=0;H.st=0;lw.set(ft.x,hT,ft.z);Object.assign(CRW,{on:1,age:0,x:ft.x,z:ft.z,ph:rnd()*10});
    /* fine spray thrown off the crown, a little mist, then a spreading foam patch with rings */

@@ -1084,18 +1084,34 @@ function spawnPod(E){const sg=rnd()<.5?-1:1;const cam=De.position;let best=null;
  for(let i=0;i<n;i++){const nh=rr(.2,.28),nt=rr(.85,1);POD.M.push({b:DOL[i],H:null,a:-i*rr(.2,.45),lat:(i-(n-1)/2)*rr(.2,.3)+rr(-.06,.06),st:0,tl:rr(1.2,2)+i*.3,t:0,tau:1,h:.35,y:-.8,ys:-.8,vs:0,ye:-.08,ve:4*nh/nt,tup:0,nh,ntau:nt,up:0,fd:0,bub:0,leaps:3+Math.floor(rnd()*3),vd:rr(1.35,1.55)})}
  return 1}
 function spawnWhale(E){const fx=Math.cos(st.psi),fz=-Math.sin(st.psi),u0=WP.su[2]-.3,dv=WH.force!=null?WH.force:rnd()<.55?1:0,u1=WP.apex+WLN+(dv?1.8:.3);
- const ua=WP.su[2]-.4,ub=WP.su[10],tAt=u=>Math.min(u,ua)/.55+Math.max(0,Math.min(u,ub)-ua)/.42+Math.max(0,u-ub)/.45+(u>WP.apex+WLN-.4?3.6:0),RT=[];
- /* the route is laid out first relative to its own start, then centred on the disc and nudged sideways, so a fitting place is found at once */
- for(let tr=0;tr<16;tr++){const a=st.psi+st.yaw+(tr<8?rr(-.7,.7):rnd()*TAU),hx=Math.cos(a),hz=-Math.sin(a),kp=(rnd()<.5?-1:1)*rr(.03,.07);
+ const ua=WP.su[2]-.4,ub=WP.su[10],tAt=u=>Math.min(u,ua)/.55+Math.max(0,Math.min(u,ub)-ua)/.42+Math.max(0,u-ub)/.45+(u>WP.apex+WLN-.4?3.6:0),RT=[],DR=[0,0];
+ /* the water carries the whale along the ship's swaying heading, so its drift is integrated ahead the way update() will apply it */
+ for(let k=1,x=0,z=0;k<=320;k++){const t=st.t+(k-.5)*.25,a=st.psi+.07*Math.sin(t*.11)+.035*Math.sin(t*.27+1.3);x-=Math.cos(a)*st.vs*.25;z+=Math.sin(a)*st.vs*.25;DR.push(x,z)}
+ /* where the hull will be when the whale gets there: the same sway and yaw update() gives it */
+ const shp=tt=>{const t=st.t+tt,ya=.07*Math.sin(t*.11)+.035*Math.sin(t*.27+1.3),hx=Math.cos(st.psi+ya),hz=-Math.sin(st.psi+ya),sg0=.35*Math.sin(t*.021);return[ShipC.x+.12*Math.sin(t*.05)+hx*sg0,ShipC.z+.1*Math.sin(t*.037+.7)+hz*sg0,hx,hz]};
+ const dr=(tt,o)=>{const f=Math.min(319.99,Math.max(0,tt*4)),i=f|0,k=f-i;return DR[2*i+o]+(DR[2*i+2+o]-DR[2*i+o])*k};
+ const go=(ox,oz,hx,hz,kp)=>{Object.assign(WH,{bw:0,wk:0,wp:0,on:1,ox,oz,hx,hz,kp,ua:0,uph:rnd()*TAU,y0:-.185-WP.cy,ag:0,uh:0,v:.5,blown:0,slap:-1,slapped:0,bend:0,hold:0,sa:0,sung:0,drip:0,bt:0,bd:1,sd:rnd()*9,bs:1,ba:0,dv,dvs:0,fin:0,fd:0,end:0,rg:0,st:0});whale.o.material.userData.fd.value=0;WSH.u.fill(0);WSH.w.fill(0);whale.o.visible=true;return 1};
+ /* the hull's outline on screen from the current view, as a box in normalised device units */
+ const sx=-fz,sz=fx,HB=[1e9,-1e9,1e9,-1e9],pv=new V3();De.updateMatrixWorld();for(const a of[-2.7,3.3])for(const b of[-.85,.85])for(const y of[-.3,1.3]){pv.set(E.cx+fx*a+sx*b,y,E.cz+fz*a+sz*b).project(De);HB[0]=Math.min(HB[0],pv.x);HB[1]=Math.max(HB[1],pv.x);HB[2]=Math.min(HB[2],pv.y);HB[3]=Math.max(HB[3],pv.y)}
+ const scr=(x,z)=>{let g=9;for(const y of[.5,0]){pv.set(x,y,z).project(De);if(pv.z>1)continue;g=Math.min(g,Math.max(HB[0]-pv.x,pv.x-HB[1],HB[2]-pv.y,pv.y-HB[3]))}return g-.08};
+ /* the route is laid out first relative to its own start, then centred on the disc and nudged sideways, so a fitting place is found at once; looser passes only run when the stricter ones find no place at all */
+ for(const rl of[0,.4,.8]){let best=null;for(let tr=0;tr<24;tr++){const a=st.psi+st.yaw+(tr<10?rr(-.7,.7):rnd()*TAU),hx=Math.cos(a),hz=-Math.sin(a),kp=(rnd()<.5?-1:1)*rr(.03,.07);
   RT.length=0;let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;
-  for(let k=0;k<=12;k++){const u=u0+(u1-u0)*k/12,tt=tAt(u);for(const b of[0,WLN*.5,WLN]){pAt(u-b,PO);wTrk(0,0,hx,hz,kp,PO.x,WTK);const qx=WTK.x-fx*st.vs*tt,qz=WTK.z-fz*st.vs*tt;RT.push(qx,qz,b);
+  for(let k=0;k<=24;k++){const u=u0+(u1-u0)*k/24,tt=tAt(u);for(const b of[0,WLN*.5,WLN]){pAt(u-b,PO);wTrk(0,0,hx,hz,kp,PO.x,WTK);const qx=WTK.x+dr(tt,0),qz=WTK.z+dr(tt,1);RT.push(qx,qz,b,...shp(tt));
    x0=Math.min(x0,qx);x1=Math.max(x1,qx);z0=Math.min(z0,qz);z1=Math.max(z1,qz)}}
   /* slide the route so the dive point sits toward the middle of the disc, as far as the rest of the route allows */
-  pAt(WP.apex,PO);wTrk(0,0,hx,hz,kp,PO.x,WTK);const td=tAt(WP.apex+WLN),cx=(x0+x1)/2,cz=(z0+z1)/2,dx0=WTK.x-fx*st.vs*td,dz0=WTK.z-fz*st.vs*td;let vx=cx-dx0,vz=cz-dz0;const vl=Math.hypot(vx,vz)||1;vx/=vl;vz/=vl;
-  const sg=rnd()<.5?1:-1;for(let jt=0;jt<40;jt++){const sl=sg*(jt&4?-1:1)*[.3,2.8,3.6,1.5,4.3][jt>>3]+rr(-.2,.2),sa=[1.2,.6,1.8,0][jt&3],ox=-cx-vz*sl+vx*sa,oz=-cz+vx*sl+vz*sa;let ok=!dv||Math.hypot(dx0+ox,dz0+oz)>3.3;
-   for(let n=0;n<RT.length&&ok;n+=3){const qx=RT[n]+ox,qz=RT[n+1]+oz,b=RT[n+2];const sx=qx-E.cx,sz=qz-E.cz,al=Math.max(-2.6,Math.min(3.2,sx*fx+sz*fz));if(Math.hypot(qx,qz)>(b===WLN?R-(dv?3.1:2.6):R-1.8)||Math.hypot(sx-fx*al,sz-fz*al)<2.2)ok=false}
+  pAt(WP.apex,PO);wTrk(0,0,hx,hz,kp,PO.x,WTK);const td=tAt(WP.apex+WLN-.41),cx=(x0+x1)/2,cz=(z0+z1)/2,dx0=WTK.x+dr(td,0),dz0=WTK.z+dr(td,1);let vx=cx-dx0,vz=cz-dz0;const vl=Math.hypot(vx,vz)||1;vx/=vl;vz/=vl;
+  /* clearance from the hull's centre line, capped past bow and stern: a ship-beam plus a margin for the body, more for the flukes */
+  const hd=(x,z,P,n)=>{const sx=x-P[n],sz=z-P[n+1],hx=P[n+2],hz=P[n+3],al=Math.max(-2.6,Math.min(3.2,sx*hx+sz*hz));return Math.hypot(sx-hx*al,sz-hz*al)},PD=shp(td);
+  /* quarter positions off bow and stern are tried first, then slides across the disc */
+  const s0=rnd()*16|0,sg=rnd()<.5?1:-1;for(let jt=0;jt<56;jt++){let ox,oz;if(jt<16){const k=(jt+s0)%16,al=[3,-2.8,3.6,-3.4][k&3],la=(k&4?-1:1)*(k&8?4.6:4.1);ox=E.cx+fx*al-fz*la-dx0;oz=E.cz+fz*al+fx*la-dz0}
+    else{const j=jt-16,sl=sg*(j&4?-1:1)*[.3,2.8,3.6,1.5,4.3][j>>3]+rr(-.2,.2),sa=[1.2,.6,1.8,0][j&3];ox=-cx-vz*sl+vx*sa;oz=-cz+vx*sl+vz*sa}
+   const qx=dx0+ox,qz=dz0+oz;let ok=(!dv||Math.hypot(qx,qz)>3.3)&&hd(qx,qz,PD,0)>3.6-rl;
+   for(let n=0;n<RT.length&&ok;n+=7){const qx=RT[n]+ox,qz=RT[n+1]+oz,b=RT[n+2];if(Math.hypot(qx,qz)>(b===WLN?R-(dv?3.1:2.6):R-1.8)||hd(qx,qz,RT,n+3)<(b===WLN?3.5:3.4)-rl)ok=false}
    if(!ok)continue;
-   Object.assign(WH,{bw:0,wk:0,wp:0,on:1,ox,oz,hx,hz,kp,ua:0,uph:rnd()*TAU,y0:-.185-WP.cy,ag:0,uh:0,v:.5,blown:0,slap:-1,slapped:0,bend:0,hold:0,sa:0,sung:0,drip:0,bt:0,bd:1,sd:rnd()*9,bs:1,ba:0,dv,dvs:0,fin:0,fd:0,end:0,rg:0,st:0});whale.o.material.userData.fd.value=0;WSH.u.fill(0);WSH.w.fill(0);whale.o.visible=true;return 1}}return 0}
+   /* the flukes should rise off a quarter rather than abeam, and outside the hull's outline as the viewer sees it, so the hull is not right behind them */
+   const vs=Math.min(scr(qx,qz),(Math.abs((qx-E.cx)*fx+(qz-E.cz)*fz)-2.5)*.1);if(vs<0){if(!best||vs>best.vs)best={vs,ox,oz,hx,hz,kp};continue}
+   return go(ox,oz,hx,hz,kp)}}if(best)return go(best.ox,best.oz,best.hx,best.hz,best.kp)}return 0}
 const lw=new V3(),lw2=new V3(),lq=new T.Quat(),lm=new T.M4();
 const WSH={n:7,u:new Uint8Array(7),w:new Float32Array(7),a:new Float32Array(7)};
 function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==false,nt=E.night>.5,heavy=/storm|hail/.test(E.w);

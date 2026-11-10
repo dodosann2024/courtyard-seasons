@@ -63,7 +63,7 @@ void waves(vec2 x0,out vec3 p,out vec3 n,out float J){float r=length(x0);float a
  n=mix(n,vec3(0.,1.,0.),lp);n.xz+=x0/max(r,1e-3)*(.26*lp*6.*t*(1.-t)/.6);J=mix(jx*jz-jc*jc,1.,lp);}`;
 
 /* ---------------- shared lighting uniforms ---------------- */
-const U={uT:{value:0},uFlow:{value:new T.V2()},uDeep:{value:new C3("#07357f")},uScat:{value:new C3("#35e2d6")},uShal:{value:new C3("#12c2cc")},uSlick:{value:new T.V4(0,0,-99,0)},uSpot:{value:[...Array(6)].map(()=>new T.V4(0,0,-99,0))},
+const U={uT:{value:0},uFlow:{value:new T.V2()},uDeep:{value:new C3("#07357f")},uScat:{value:new C3("#35e2d6")},uShal:{value:new C3("#12c2cc")},uSlick:{value:new T.V4(0,0,-99,0)},uSlickH:{value:new T.V4(1,0,0,0)},uSpot:{value:[...Array(6)].map(()=>new T.V4(0,0,-99,0))},
  uAmb:{value:new C3()},uKey:{value:new C3()},uKeyDir:{value:new V3(0,1,0)},uFogC:{value:new C3()},uFogN:{value:30},uFogF:{value:90},uHaze:{value:.02},
  uRain:{value:0},uDet:{value:1},uWhite:{value:0},uGlit:{value:1},uHI:{value:2},uLanP:{value:new V3()},uLanC:{value:new C3(0,0,0)},uPatch:{value:new T.V4(0,0,-99,0)},uBio:{value:0},uIce:{value:0},
  uRing:{value:[...Array(16)].map(()=>new T.V4(0,0,-99,0))},uTur:{value:new T.V4(0,0,0,0)},uWh0:{value:new T.V4()},uWh1:{value:new T.V4()},uKel:{value:new T.V4(0,0,1,0)},uKelS:{value:0},uTurF:{value:new T.V4()},uRingOn:{value:0},uSunCol:{value:new C3()},uMoonC:{value:new C3()},tN:{value:tN},tF:{value:tF}};
@@ -90,7 +90,7 @@ function seaGeo(nr,na){const pos=[0,0,0],idx=[];for(let j=1;j<=nr;j++){const r=R
 const seaMat=new T.SM({uniforms:{...U,...SKY,uWK,uWA,uWQ,uWP},side:2,
  vertexShader:WGL+`varying vec3 vW,vN;varying float vJ;varying vec2 vX;void main(){vec3 p,n;float J;waves(position.xz,p,n,J);vW=p;vN=n;vJ=J;vX=position.xz;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
  fragmentShader:`uniform sampler2D tN,tF;uniform float uKelS,uT,uRingOn,uRain,uDet,uWhite,uGlit,uHI,uFogN,uFogF,uHaze,uSunVis,uMoonVis,uNight,uCover,uDark,uFlash,uBio,uIce;
-uniform vec4 uPatch,uSlick,uSpot[6],uTur,uTurF,uKel,uWh0,uWh1;uniform vec2 uFlow;uniform vec3 uShal,uDeep,uScat,uAmb,uKey,uKeyDir,uFogC,uTop,uBot,uSunDir,uSunCol,uMoonDir,uMoonC,uLanP,uLanC;uniform vec4 uRing[16];
+uniform vec4 uPatch,uSlick,uSlickH,uSpot[6],uTur,uTurF,uKel,uWh0,uWh1;uniform vec2 uFlow;uniform vec3 uShal,uDeep,uScat,uAmb,uKey,uKeyDir,uFogC,uTop,uBot,uSunDir,uSunCol,uMoonDir,uMoonC,uLanP,uLanC;uniform vec4 uRing[16];
 varying vec3 vW,vN;varying float vJ;varying vec2 vX;
 float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float specks(vec2 g,float t){float b=0.;for(int k=0;k<2;k++){float sc=k==0?23.:37.;vec2 q=g*sc+float(k)*13.7;vec2 c=floor(q),f=fract(q);float h=hs(c);
@@ -117,9 +117,13 @@ void main(){vec3 E=cameraPosition-vW;float dist=length(E);vec3 V=E/dist;float lo
    float ins=smoothstep(arm+.05,arm-.6,la)*smoothstep(.4,1.6,a)*exp(-a*.11);vec2 gd=-f*.6+sd*sign(l)*.8;
    float kp=sin((a*.6+la*.8)*8.);det+=(gd*kp*cu*.55+f*sin(a*4.3)*ins*.3)*uKelS;kel=cu*uKelS*(.3+.7*smoothstep(-.2,.8,kp));}}
  /* footprint of a diving whale: a smooth, glassy slick that spreads and fades */
- float slk=0.,slr=0.;{float sa=uT-uSlick.z;if(sa>0.&&sa<24.){float d=length(vW.xz-uSlick.xy),r=.5+.7*sqrt(sa),nz=texture2D(tF,vW.xz*.35).g;slk=(1.-smoothstep(r*.75,r,d+(nz-.5)*.5))*uSlick.w*exp(-sa*.09)*smoothstep(0.,.8,sa);
-  /* a broken ring of foam pushed out around the footprint, lasting a few seconds */
-  float rr2=r*.86+.08,nb=texture2D(tF,vW.xz*1.9+.4).r;slr=smoothstep(.17,.03,abs(d-rr2+(nz-.5)*.3))*(.3+.7*smoothstep(.3,.6,nb+.12))*uSlick.w*exp(-sa*.17)*smoothstep(0.,.4,sa);}}
+ /* an uneven oval a little wider than the flukes, stretched along the whale's track */
+ float slk=0.,slr=0.;{float sa=uT-uSlick.z;if(sa>0.&&sa<22.){vec2 dv=vW.xz-uSlick.xy,q=vec2(dot(dv,uSlickH.xy),dot(dv,vec2(-uSlickH.y,uSlickH.x)));float r=.44+.09*sqrt(sa),an=atan(q.y,q.x)+uSlickH.z;
+  float nz=texture2D(tF,vW.xz*.45+uSlickH.z).g,d=length(q/vec2(r*1.25,r*.88))*(1.+.05*sin(an*3.)+.06*sin(an*5.+1.7)+.04*sin(an*2.+.6))+(nz-.5)*.32;
+  slk=(1.-smoothstep(.7,1.02,d))*uSlick.w*exp(-sa*.07)*smoothstep(0.,.8,sa)*(1.-smoothstep(14.,22.,sa));
+  /* a thin, broken lip of foam that drifts apart and dissolves over a few seconds */
+  float nb=texture2D(tF,vW.xz*2.4+.4+sa*vec2(.03,-.02)).r,nc=texture2D(tF,vW.xz*.9-.2).g,th=.45+.035*sa;
+  slr=smoothstep(.13,.02,abs(d-.98))*smoothstep(th,th+.2,nb*.65+nc*.35+.1)*uSlick.w*smoothstep(0.,.35,sa)*(1.-smoothstep(3.5,7.5,sa))*.85;}}
  det*=1.-.92*slk;
  vec3 N=normalize(mix(normalize(vN),vec3(0.,1.,0.),.55*slk));float lp=smoothstep(${R-.7},${R.toFixed(2)},length(vX));
  /* seen from inside the aquarium: the bright, rippling underside of the surface */
@@ -151,9 +155,9 @@ void main(){vec3 E=cameraPosition-vW;float dist=length(E);vec3 V=E/dist;float lo
   vec3 tf=mix(vec3(.2,.16,.09),vec3(.48,.42,.28),smoothstep(.62,.8,nm)*.45);float mm=max(ms,mf);tc=mix(tf,tc,ms);
   tc*=(1.08-.4*e*e)*(aW*.85+kW*.95)*.3183*vec3(.82,.86,.7);tc=mix(tc,body,.16);body=mix(body,tc,mm*uTur.w*.85);F*=1.-.55*mm*uTur.w;}
  /* the whale's submerged bulk: a soft dark shape along its spine, fading with depth */
- if(uWh1.z>.005){vec2 pq=vW.xz+det*.03,a0=uWh0.xy,a1=uWh0.zw,a2=uWh1.xy,e0=a1-a0,e1=a2-a1;float h0=clamp(dot(pq-a0,e0)/dot(e0,e0),0.,1.),h1=clamp(dot(pq-a1,e1)/dot(e1,e1),0.,1.);
+ if(uWh1.z>.005){float nz3=texture2D(tF,vW.xz*.8).g;vec2 pq=vW.xz+det*.03,a0=uWh0.xy,a1=uWh0.zw,a2=uWh1.xy,e0=a1-a0,e1=a2-a1;float h0=clamp(dot(pq-a0,e0)/dot(e0,e0),0.,1.),h1=clamp(dot(pq-a1,e1)/dot(e1,e1),0.,1.);
   float d0=length(pq-a0-e0*h0),d1=length(pq-a1-e1*h1),sw=d0<d1?h0*.5:.5+h1*.5,dw=min(d0,d1),wd=.3*(1.-.75*sw*sw)*smoothstep(-.02,.1,sw)+.02;
-  float wm=(1.-smoothstep(wd*.55,wd*1.25,dw))*uWh1.z*exp(-uWh1.w*1.6);body=mix(body,body*.28,wm*.9);F*=1.-.6*wm;}
+  float wm=(1.-smoothstep(wd*.3,wd*1.45,dw+(nz3-.5)*.06))*uWh1.z*exp(-uWh1.w*2.6);body=mix(body,body*.34,wm*.75);F*=1.-.45*wm;}
  float sg=max(dot(Rg,Ls),0.),sb=max(dot(Rf,Ls),0.);
  vec3 Hs=normalize(V+Ls);float nh=max(dot(Ng,Hs),1e-3),t2=(1.-nh*nh)/(nh*nh),m2=.012+.01*uDet;
  float spk=smoothstep(.15,.9,texture2D(tN,fx*3.1+uT*vec2(.05,-.04)).x*texture2D(tN,fx*2.3-uT*vec2(.03,.06)).y*4.);
@@ -161,7 +165,7 @@ void main(){vec3 E=cameraPosition-vW;float dist=length(E);vec3 V=E/dist;float lo
  vec3 spec=uSunCol*uSunVis*uGlit*(pow(sg,700.)*70.+pow(sb,110.)*2.+pow(sb,14.)*.14+bk*(.35+2.6*spk)*.5);
  float mg=max(dot(Rg,uMoonDir),0.);spec+=uMoonC*uMoonVis*(pow(mg,900.)*14.+pow(max(dot(Rf,uMoonDir),0.),44.)*.7);
  vec3 Ld=uLanP-vW;float ld=length(Ld);Ld/=ld;spec+=uLanC*(pow(max(dot(Rg,Ld),0.),220.)*2.2+pow(max(dot(Rf,Ld),0.),18.)*.12)/(1.+ld*ld*.35);
- vec3 col=mix(body,sky,F)+spec*(.3+.7*F)*(1.-.75*slk);col=mix(col,col*1.12+vec3(.03,.045,.05),slk*.6);
+ vec3 col=mix(body,sky,F)+spec*(.3+.7*F)*(1.-.6*slk);col=mix(col,col*1.08+vec3(.015,.025,.03),slk*.45);
  float cap=smoothstep(.04,.62,1.-vJ)*uWhite;
  /* two rotated scales so the tile never lines up; crests grow the coverage, a broad noise thins it out */
  vec2 fr=mat2(.951,.309,-.309,.951)*fx;float f1=texture2D(tF,fx*.21).r,f2=texture2D(tF,fr*.57+.31).r,fm=f1*.6+f2*.4;
@@ -770,7 +774,10 @@ const lifeM=(ro,sk)=>{const m=M({vertexColors:true,roughness:ro||.34,metalness:0
 const WSKIN=[`vec3 sk0=diffuseColor.rgb;float skT=smoothstep(2.55,2.7,vO.x);vec2 sq=vec2(vO.x,vO.y+vO.z);float sk1=texture2D(tF,sq*1.6).g,sk2=texture2D(tF,sq*4.2+.31).r,sk3=texture2D(tF,sq*11.+.7).g;
  float skf=1.-smoothstep(.12,.24,abs(vO.z));diffuseColor.rgb*=(.8+.34*sk1+.14*(sk3-.5))*vec3(.94,.98,1.05);
  diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.55+.025,smoothstep(.62,.82,sk2)*skf*.55);
- float scr=texture2D(tF,vec2(vO.x*1.4+vO.z*5.,(vO.y+vO.z)*13.)).r;diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.42,.46,.48),smoothstep(.018,.0,abs(scr-.5))*smoothstep(.55,.72,sk1)*.3);diffuseColor.rgb=mix(diffuseColor.rgb,sk0,skT);`,
+ float scr=texture2D(tF,vec2(vO.x*1.4+vO.z*5.,(vO.y+vO.z)*13.)).r;diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.42,.46,.48),smoothstep(.018,.0,abs(scr-.5))*smoothstep(.55,.72,sk1)*.3);diffuseColor.rgb=mix(diffuseColor.rgb,sk0,skT);
+ /* fluke underside: low-contrast pale blotches and dark flecks, humpback fashion */
+ float skU=skT*smoothstep(-.2,-.8,vO.z);if(skU>.01){vec2 fq=vO.xy+vec2(0.,.37);float m1=texture2D(tF,fq*.9+.13).g,m2=texture2D(tF,fq*2.4+.61).r,m3=texture2D(tF,fq*6.+.3).g;
+  diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.5,.54,.55),skU*smoothstep(.5,.8,m1*.7+m2*.3)*.34);diffuseColor.rgb*=1.-skU*smoothstep(.66,.86,m3)*.12;}`,
  `roughnessFactor=mix(clamp(roughnessFactor+(sk3-.5)*.3-(sk1-.5)*.15,.32,.85),roughnessFactor,skT);`];
 /* a tapered body of rings along a spine plus flat appendages, posed through a frame function */
 class Body{constructor(L,NR,NA,prof,colF,apps){this.L=L;this.NR=NR;this.NA=NA;this.prof=prof;this.apps=apps;
@@ -782,7 +789,7 @@ class Body{constructor(L,NR,NA,prof,colF,apps){this.L=L;this.NR=NR;this.NA=NA;th
   let o=nr+2;for(const p of apps){p.o=o;p.v.forEach((v,k)=>C.set(p.cs?p.cs[k]:p.c,(o+k)*3));for(const t of p.t)idx.push(o+t[0],o+t[1],o+t[2]);o+=p.v.length}
   const g=new T.BG();g.setAttribute("position",new T.BA(this.P,3));g.setAttribute("color",new T.BA(C,3));g.setIndex(idx);this.g=g;
   {const O=new Float32Array(nv*3);for(let i=0;i<=NR;i++){const[rw,rh]=prof(i/NR);for(let j=0;j<NA;j++){const a=j/NA*TAU;O.set([i/NR*L,Math.cos(a)*rw,Math.sin(a)*rh],(i*NA+j)*3)}}
-   O.set([L,0,0],nr*3+3);for(const p of apps)p.v.forEach((v,k)=>O.set([p.s*L-v[0],v[1],v[2]],(p.o+k)*3));g.setAttribute("aO",new T.BA(O,3))}
+   O.set([L,0,0],nr*3+3);for(const p of apps)p.v.forEach((v,k)=>O.set([p.s*L-v[0],v[1],v[2]+(p.oz?p.oz[k]:0)],(p.o+k)*3));g.setAttribute("aO",new T.BA(O,3))}
   this.o=new T.Mesh(g,lifeM(this.rough));this.o.frustumCulled=false;this.o.castShadow=true;this.o.visible=false;root.add(this.o);this.fr={p:new V3(),t:new V3(),n:new V3(),b:new V3()}}
  pose(F,roll){const P=this.P,NA=this.NA,fr=this.fr,cr=Math.cos(roll),sr=Math.sin(roll),put=(k,u,v,w)=>{const bu=u*cr-v*sr,bv=u*sr+v*cr;
    P[k]=fr.p.x+fr.t.x*w+fr.b.x*bu+fr.n.x*bv;P[k+1]=fr.p.y+fr.t.y*w+fr.b.y*bu+fr.n.y*bv;P[k+2]=fr.p.z+fr.t.z*w+fr.b.z*bu+fr.n.z*bv};
@@ -798,10 +805,10 @@ function flukeApp(k,col){const R0=[.03,0,0],O=[[-.06,.1,0],[-.2,.3,0],[-.36,.47,
  for(const sg of[1,-1]){const b=v.length;O.forEach(p=>v.push([p[0]*k,p[1]*k*sg,p[2]*k]));for(let i=0;i<O.length-1;i++)t.push([0,b+i,b+i+1])}return{s:1,v,t,c:col}}
 /* whale (humpback-like): long white flippers, small dorsal, broad flukes */
 /* lofted fin: sections of [le, te] (in [back, lateral, up]) with a thickness axis; returns an appendage with per-vertex colours */
-function foil(sp,secs,K,cT,cB,mot){const M=2*K-2,v=[],t=[],cs=[],te=[],us=[...Array(K)].map((_,k)=>(1-Math.cos(Math.PI*k/(K-1)))/2),sh=u=>Math.min(1,2.6*Math.sqrt(u)*(1-u));
+function foil(sp,secs,K,cT,cB,mot){const M=2*K-2,v=[],t=[],cs=[],te=[],oz=[],us=[...Array(K)].map((_,k)=>(1-Math.cos(Math.PI*k/(K-1)))/2),sh=u=>Math.min(1,2.6*Math.sqrt(u)*(1-u));
  secs.forEach((S,i)=>{const P=u=>[0,1,2].map(d=>S.le[d]+(S.te[d]-S.le[d])*u);for(let m=0;m<M;m++){const top=m<K,k=top?m:2*K-2-m,u=us[k],q=P(u),h=S.th*sh(u)*(top?1:-1);
-   v.push([q[0]+S.up[0]*h,q[1]+S.up[1]*h,q[2]+S.up[2]*h]);const c=top?cT:cB,n=mot?mot(i/(secs.length-1),u,top):0;cs.push(mix3(c,n>0?[.86,.89,.88]:[.1,.12,.13],Math.abs(n)))}
-  te.push(i*M+K-1);if(i)for(let m=0;m<M;m++){const a=(i-1)*M+m,b=(i-1)*M+(m+1)%M,c=i*M+m,d=i*M+(m+1)%M;t.push([a,c,b],[b,c,d])}});return{s:sp,v,t,cs,te}}
+   v.push([q[0]+S.up[0]*h,q[1]+S.up[1]*h,q[2]+S.up[2]*h]);oz.push(top?0:-1);const c=top?cT:cB,n=mot?mot(i/(secs.length-1),u,top):0;cs.push(mix3(c,n>0?[.86,.89,.88]:[.1,.12,.13],Math.abs(n)))}
+  te.push(i*M+K-1);if(i)for(let m=0;m<M;m++){const a=(i-1)*M+m,b=(i-1)*M+(m+1)%M,c=i*M+m,d=i*M+(m+1)%M;t.push([a,c,b],[b,c,d])}});return{s:sp,v,t,cs,te,oz}}
 const hsh=(a,b)=>{const x=Math.sin(a*127.1+b*311.7)*43758.5453;return x-Math.floor(x)};
 /* whale (humpback-like): broad flat head, deep body, keeled tail stock, long pale flippers, small dorsal on a hump, wide notched flukes */
 const WLN=2.7,WR=.27,WS=[0,.03,.08,.15,.25,.36,.48,.6,.7,.8,.88,.94,1],wRW=tbl(WS,[.24,.58,.78,.91,1,1,.93,.78,.55,.33,.2,.14,.12]),wRH=tbl(WS,[.17,.42,.6,.79,.92,.97,.94,.84,.72,.6,.52,.42,.27]);
@@ -814,14 +821,15 @@ const wCol=(s,sa)=>{const k=ss(.2,-.75,sa)*(1-.35*ss(.7,.9,s)),h=hsh(s*41.3,sa*9
  if(sa>.55&&s<.14&&h>.8)o=mix3(o,wSpot,.55);
  /* tail stock keels: a pale crest line with darker flanks either side, so the ridge reads face-on */
  const kz=ss(.7,.82,s),as=Math.abs(sa);if(kz>0){o=mix3(o,[0,0,0],.35*kz*ss(.55,.82,as)*(1-ss(.9,.97,as)));o=mix3(o,mix3(wFl,wSpot,.45),.6*kz*ss(.92,.99,as))}return o};
-const WFK=(()=>{const NS=MOB?11:17,HS=.47,out=[];for(const sg of[1,-1]){const secs=[];for(let i=0;i<NS;i++){const v=Math.pow(i/(NS-1),.85),xl=.08-.4*Math.pow(v,1.6),
-  xt=Math.min(xl-.006,-.29-.03*v+.045*Math.exp(-v*v/.0025)-.004*(.5+.5*Math.cos(v*TAU*5.5))*ss(.08,.2,v)*(1-ss(.85,.97,v)));
+const WFK=(()=>{const NS=MOB?17:27,HS=.47,out=[];for(const sg of[1,-1]){const secs=[];for(let i=0;i<NS;i++){const v=Math.pow(i/(NS-1),.85),xl=.08-.4*Math.pow(v,1.6),
+  xt=Math.min(xl-.006,-.29-.03*v+.045*Math.exp(-v*v/.0025)-(i%2?.004+.006*hsh(i,sg):.0015*hsh(sg,i))*ss(.06,.16,v)*(1-ss(.88,.98,v)));
   secs.push({le:[xl,sg*HS*v,.015*v],te:[xt,sg*HS*v,.015*v],th:.06*Math.pow(1-v,1.6)+.004,up:[0,0,1]})}
  /* fluke underside: smooth dark grey, darkening toward the trailing margin and the tips */
  out.push(foil(1,secs,MOB?7:10,hex("#2a3236"),hex("#4b5559"),(v,u,top)=>top?0:-.45*ss(.7,.95,u)-.35*ss(.85,1,v)))}return out})();
 const WPE=[1,-1].map(sg=>{const NS=MOB?6:8,secs=[];for(let i=0;i<NS;i++){const v=i/(NS-1),px=.02-.5*v,py=sg*(.17+.58*v),pz=-.1-.26*v-.06*v*v,ch=.16*(1-.55*v)+.02,kn=.012*Math.pow(Math.sin(v*Math.PI*6),2);
   secs.push({le:[px+.05+kn,py,pz],te:[px+.05-ch,py,pz+.02],th:.026*(1-v)+.005,up:[0,-sg*.45,.89]})}return foil(.27,secs,MOB?5:6,hex("#9aa2a3"),wFin,(v,u,top)=>top&&hsh(v*13,u*7)>.7?-.35:0)});
 const WDF=(()=>{const s=.66,top=WR*wRH(s)+WR*.11*Math.exp(-Math.pow((s-.64)/.06,2))+wProf(s)[2],secs=[];for(let i=0;i<5;i++){const v=i/4;secs.push({le:[.05-.13*Math.pow(v,1.3),0,top-.03+.1*v],te:[-.14+.05*v,0,top-.03+.08*v],th:.022*(1-v)+.003,up:[0,1,0]})}return foil(s,secs,5,wTop,wTop)})();
+for(const f of[...WPE,WDF])delete f.oz;
 const whale=new Body(WLN,MOB?42:58,MOB?16:24,wProf,wCol,[...WFK,...WPE,WDF]);whale.o.material=lifeM(.52,WSKIN);
 /* bottlenose dolphin (about 2.5 m against the galleon): short beak under a rounded melon, fusiform body, keeled tail stock;
    falcate dorsal, curved pectorals and crescent flukes are lofted with real thickness; grey cape, paler flanks, white belly */
@@ -861,7 +869,7 @@ function whaleF(s,f){const H=WH,u=H.uh-s*WLN;if(s<=.82||H.bend<=0){pAt(u,PO);con
    f.t.addScaledVector(f.n,-sl).normalize();f.n.set(f.n.x+tx*sl,f.n.y+ty*sl,f.n.z+tz*sl).normalize()}
   pv.copy(f.p);H.ps=s;return}
  /* tail stock bends toward vertical so the flukes stand up, then throws them back onto the water */
- pAt(u,PO);const T=wTrk(H.ox,H.oz,H.hx,H.hz,H.kp||0,PO.x,WTK),dx=T.dx,dz=T.dz,a=PO.f+(-1.62+H.sa-PO.f)*Math.pow((s-.82)/.18,1.4)*H.bend,c=Math.cos(a),sn=Math.sin(a);f.t.set(dx*c,sn,dz*c);f.n.set(-dx*sn,c,-dz*sn);f.b.set(-dz,0,dx);
+ pAt(u,PO);const T=wTrk(H.ox,H.oz,H.hx,H.hz,H.kp||0,PO.x,WTK),dx=T.dx,dz=T.dz,be=H.bend*H.bend*(3-2*H.bend),a=PO.f+(-1.62+H.sa-PO.f)*Math.pow((s-.82)/.18,1.4)*be,c=Math.cos(a),sn=Math.sin(a);f.t.set(dx*c,sn,dz*c);f.n.set(-dx*sn,c,-dz*sn);f.b.set(-dz,0,dx);
  if(s>H.ps){pv.addScaledVector(f.t,-(s-H.ps)*WLN);H.ps=s}f.p.copy(pv)}
 /* gulls: body, head, beak, two-part wings with black tips */
 const mGB=M({color:"#f3f2ec",roughness:.7},{snow:0,wet:0}),mGK=M({color:"#d6a83a",roughness:.6},{snow:0,wet:0}),mGW=M({vertexColors:true,roughness:.75,side:2},{snow:0,wet:0});
@@ -1075,15 +1083,19 @@ function spawnPod(E){const sg=rnd()<.5?-1:1;const cam=De.position;let best=null;
  if(!best)return 0;Object.assign(POD,best,{on:1,cl:rr(.4,1.2),M:[]});const n=Math.min(DOL.length,2+Math.floor(rnd()*3));
  for(let i=0;i<n;i++){const nh=rr(.2,.28),nt=rr(.85,1);POD.M.push({b:DOL[i],H:null,a:-i*rr(.2,.45),lat:(i-(n-1)/2)*rr(.2,.3)+rr(-.06,.06),st:0,tl:rr(1.2,2)+i*.3,t:0,tau:1,h:.35,y:-.8,ys:-.8,vs:0,ye:-.08,ve:4*nh/nt,tup:0,nh,ntau:nt,up:0,fd:0,bub:0,leaps:3+Math.floor(rnd()*3),vd:rr(1.35,1.55)})}
  return 1}
-function spawnWhale(E){const cam=De.position,fx=Math.cos(st.psi),fz=-Math.sin(st.psi),u0=WP.su[2]-.3,dv=WH.force!=null?WH.force:rnd()<.55?1:0,u1=WP.apex+WLN+(dv?1.8:.3);
- for(let tr=0;tr<24;tr++){const a=st.psi+st.yaw+rr(-.6,.6),hx=Math.cos(a),hz=-Math.sin(a);
-  const ang=Math.atan2(cam.z,cam.x)+rr(-1.2,1.2),rad=rr(1.5,6.5),sx0=Math.cos(ang)*rad,sz0=Math.sin(ang)*rad;
-  /* route of the visible stretch, with the water's drift, must stay on the disc and clear of the ship */
-  const kp=(rnd()<.5?-1:1)*rr(.03,.07),ua=WP.su[2]-.4,ub=WP.su[10],tAt=u=>Math.min(u,ua)/.55+Math.max(0,Math.min(u,ub)-ua)/.42+Math.max(0,u-ub)/.45+(u>WP.apex+WLN-.4?3.6:0);pAt(u0,PO);const xs=PO.x,ts=tAt(u0);wTrk(0,0,hx,hz,kp,xs,WTK);const ox=sx0-WTK.x+fx*st.vs*ts,oz=sz0-WTK.z+fz*st.vs*ts;let ok=true;
-  for(let k=0;k<=12&&ok;k++){const u=u0+(u1-u0)*k/12;const tt=tAt(u);
-   for(const b of[0,WLN*.5,WLN]){pAt(u-b,PO);wTrk(ox,oz,hx,hz,kp,PO.x,WTK);const qx=WTK.x-fx*st.vs*tt,qz=WTK.z-fz*st.vs*tt;if(Math.hypot(qx,qz)>(b===WLN?R-(dv?3.1:2.6):R-1.8)||Math.hypot(qx-E.cx,qz-E.cz)<2.9)ok=false}}
-  if(!ok)continue;
-  Object.assign(WH,{bw:0,wk:0,wp:0,on:1,ox,oz,hx,hz,kp,ua:0,uph:rnd()*TAU,y0:-.2-WP.cy,ag:0,uh:0,v:.5,blown:0,slap:-1,slapped:0,bend:0,hold:0,sa:0,sung:0,drip:0,bt:0,bd:1,sd:rnd()*9,bs:1,ba:0,dv,dvs:0,fin:0,fd:0,end:0,rg:0,st:0});whale.o.material.userData.fd.value=0;WSH.u.fill(0);WSH.w.fill(0);whale.o.visible=true;return 1}return 0}
+function spawnWhale(E){const fx=Math.cos(st.psi),fz=-Math.sin(st.psi),u0=WP.su[2]-.3,dv=WH.force!=null?WH.force:rnd()<.55?1:0,u1=WP.apex+WLN+(dv?1.8:.3);
+ const ua=WP.su[2]-.4,ub=WP.su[10],tAt=u=>Math.min(u,ua)/.55+Math.max(0,Math.min(u,ub)-ua)/.42+Math.max(0,u-ub)/.45+(u>WP.apex+WLN-.4?3.6:0),RT=[];
+ /* the route is laid out first relative to its own start, then centred on the disc and nudged sideways, so a fitting place is found at once */
+ for(let tr=0;tr<16;tr++){const a=st.psi+st.yaw+(tr<8?rr(-.7,.7):rnd()*TAU),hx=Math.cos(a),hz=-Math.sin(a),kp=(rnd()<.5?-1:1)*rr(.03,.07);
+  RT.length=0;let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;
+  for(let k=0;k<=12;k++){const u=u0+(u1-u0)*k/12,tt=tAt(u);for(const b of[0,WLN*.5,WLN]){pAt(u-b,PO);wTrk(0,0,hx,hz,kp,PO.x,WTK);const qx=WTK.x-fx*st.vs*tt,qz=WTK.z-fz*st.vs*tt;RT.push(qx,qz,b);
+   x0=Math.min(x0,qx);x1=Math.max(x1,qx);z0=Math.min(z0,qz);z1=Math.max(z1,qz)}}
+  /* slide the route so the dive point sits toward the middle of the disc, as far as the rest of the route allows */
+  pAt(WP.apex,PO);wTrk(0,0,hx,hz,kp,PO.x,WTK);const td=tAt(WP.apex+WLN),cx=(x0+x1)/2,cz=(z0+z1)/2,dx0=WTK.x-fx*st.vs*td,dz0=WTK.z-fz*st.vs*td;let vx=cx-dx0,vz=cz-dz0;const vl=Math.hypot(vx,vz)||1;vx/=vl;vz/=vl;
+  const sg=rnd()<.5?1:-1;for(let jt=0;jt<40;jt++){const sl=sg*(jt&4?-1:1)*[.3,2.8,3.6,1.5,4.3][jt>>3]+rr(-.2,.2),sa=[1.2,.6,1.8,0][jt&3],ox=-cx-vz*sl+vx*sa,oz=-cz+vx*sl+vz*sa;let ok=!dv||Math.hypot(dx0+ox,dz0+oz)>3.3;
+   for(let n=0;n<RT.length&&ok;n+=3){const qx=RT[n]+ox,qz=RT[n+1]+oz,b=RT[n+2];const sx=qx-E.cx,sz=qz-E.cz,al=Math.max(-2.6,Math.min(3.2,sx*fx+sz*fz));if(Math.hypot(qx,qz)>(b===WLN?R-(dv?3.1:2.6):R-1.8)||Math.hypot(sx-fx*al,sz-fz*al)<2.2)ok=false}
+   if(!ok)continue;
+   Object.assign(WH,{bw:0,wk:0,wp:0,on:1,ox,oz,hx,hz,kp,ua:0,uph:rnd()*TAU,y0:-.185-WP.cy,ag:0,uh:0,v:.5,blown:0,slap:-1,slapped:0,bend:0,hold:0,sa:0,sung:0,drip:0,bt:0,bd:1,sd:rnd()*9,bs:1,ba:0,dv,dvs:0,fin:0,fd:0,end:0,rg:0,st:0});whale.o.material.userData.fd.value=0;WSH.u.fill(0);WSH.w.fill(0);whale.o.visible=true;return 1}}return 0}
 const lw=new V3(),lw2=new V3(),lq=new T.Quat(),lm=new T.M4();
 const WSH={n:7,u:new Uint8Array(7),w:new Float32Array(7),a:new Float32Array(7)};
 function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==false,nt=E.night>.5,heavy=/storm|hail/.test(E.w);
@@ -1126,11 +1138,11 @@ function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==fals
   if(!alive){POD.on=0;for(const m of POD.M)m.b.o.visible=false}}
  /* whale: rise, blow, roll, arch, raise the flukes, slap, dive */
  if(WH.on){const H=WH;H.ox-=E.ux*dt;H.oz-=E.uz*dt;const ut=H.uh-WLN;
-  if(ut>=WP.apex-.35)H.bend=Math.min(1,H.bend+dt/1.1);
+  if(ut>=WP.apex-1.1)H.bend=Math.min(1,H.bend+dt/2);
   if(H.slap>=0){H.slap+=dt;const k=Math.min(1,H.slap/.45);H.sa=1.95*k*k;H.v=0;if(H.slap>.9){H.slap=-2;H.v=.7}}
   else{const tgt=H.uh<WP.su[2]-.4?.55:H.uh<WP.su[10]?.42:ut<WP.apex-.6?.45:H.slap===-2?.75:H.dvs?.42:.2;H.v+=(tgt-H.v)*ease(1.5,dt)}
   H.uh+=H.v*dt;H.uph+=dt*TAU/4.2;H.ua+=(.13*(1-H.bend)*(H.slap===-1?1:0)-H.ua)*ease(1.2,dt);
-  if(H.slap===-1&&H.bend>=1&&!H.dvs){H.hold+=dt;if(H.hold>(H.dv?.8:1.3)){if(H.dv&&Math.hypot(whale.f1.p.x,whale.f1.p.z)<R-1.5)H.dvs=1;else H.slap=0}}
+  if(H.slap===-1&&H.bend>=1&&!H.dvs){H.hold+=dt;if(H.hold>(H.dv?1:1.3)){if(H.dv&&Math.hypot(whale.f1.p.x,whale.f1.p.z)<R-1.5)H.dvs=1;else H.slap=0}}
   const roll=H.uh>WP.su[4]&&H.uh<WP.su[8]?.3*Math.sin(Math.PI*(H.uh-WP.su[4])/(WP.su[8]-WP.su[4])):0;
   /* the back rises out over the arch only as the tail stock reaches it, so the peduncle comes up as the back goes under */
   H.ag=ss(WP.apex-1.5,WP.apex-.45,ut);
@@ -1177,7 +1189,7 @@ function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==fals
    for(let i=0;i<10;i++)puff(ft.x+rr(-.4,.4),hT+.15,ft.z+rr(-.4,.4),rr(-.3,.3),rr(.3,.9),rr(-.3,.3),rr(1.2,2.2),rr(.3,.5),.22);U.uPatch.value.set(ft.x,ft.z,U.uT.value,1);ring(ft.x,ft.z,1.6);shot("zWsl",.95,lw,rr(.96,1.02));logE("wSlap",lw)}
   /* clean dive: the flukes slide straight down, leaving a few drops, a ring and a smooth footprint */
   if(H.dvs){if(!H.fin&&ft.y<hT-.02){H.fin=1;lw.set(ft.x,hT,ft.z);ring(ft.x,ft.z,.55);spot(ft.x,ft.z,.16);for(let i=0;i<8;i++)emitW(ft.x+rr(-.1,.1),hT+.03,ft.z+rr(-.1,.1),rr(-.15,.15),rr(.3,.8),rr(-.15,.15),rr(.3,.5),rr(.005,.009),.7);logE("wDive",lw)}
-   if(H.fin===1&&ft.y<hT-.35){H.fin=2;U.uSlick.value.set(ft.x,ft.z,U.uT.value,1);H.st=0;H.rg=0;ring(ft.x,ft.z,.7)}
+   if(H.fin===1&&ft.y<hT-.35){H.fin=2;U.uSlick.value.set(ft.x,ft.z,U.uT.value,1);U.uSlickH.value.set(H.hx,H.hz,rnd()*6.28,0);H.st=0;H.rg=0;ring(ft.x,ft.z,.7)}
    if(H.fin===2&&H.rg<2){H.st+=dt;if(H.st>[.9,2.1][H.rg]){H.rg++;ring(U.uSlick.value.x,U.uSlick.value.y,.5-H.rg*.12)}}}
   if(H.slapped&&H.rg<3){H.st+=dt;if(H.st>[.35,.85,1.5][H.rg]){H.rg++;ring(CRW.x+rr(-.15,.15),CRW.z+rr(-.15,.15),1.2-H.rg*.25)}}
   flukeSheet(dt,ut>WP.apex-.5&&H.slap>-1.5&&H.slap<.1,E);

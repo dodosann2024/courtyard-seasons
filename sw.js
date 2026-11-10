@@ -1,4 +1,4 @@
-const V="712a1a813d",CORE=["assets/app.a634cd9d23.js", "assets/ui.ace789515c.js", "assets/thumbs/def.81d03a6673.webp", "assets/thumbs/jp.f47a498518.webp", "assets/thumbs/cn.ee3d2450aa.webp", "assets/thumbs/kr.f3a9e00359.webp", "assets/thumbs/eu.5833743157.webp"];
+const V="4fe8908448",CORE=["assets/app.a9b1f205f2.js", "assets/ui.ace789515c.js", "assets/thumbs/def.81d03a6673.webp", "assets/thumbs/jp.f47a498518.webp", "assets/thumbs/cn.ee3d2450aa.webp", "assets/thumbs/kr.f3a9e00359.webp", "assets/thumbs/eu.5833743157.webp"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open("cy-"+V).then(c=>c.addAll(CORE)).catch(()=>{}).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith("cy-")&&k!=="cy-"+V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{

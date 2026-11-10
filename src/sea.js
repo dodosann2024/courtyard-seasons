@@ -120,19 +120,19 @@ void main(){vec3 E=cameraPosition-vW;float dist=length(E);vec3 V=E/dist;float lo
  /* an uneven oval a little wider than the flukes, stretched along the whale's track */
  float slk=0.,slr=0.;{float sa=uT-uSlick.z;if(sa>0.&&sa<22.){vec2 dv=vW.xz-uSlick.xy,q=vec2(dot(dv,uSlickH.xy),dot(dv,vec2(-uSlickH.y,uSlickH.x)));float r=.44+.09*sqrt(sa),an=atan(q.y,q.x)+uSlickH.z;
   float nz=texture2D(tF,vW.xz*.45+uSlickH.z).g,d=length(q/vec2(r*1.25,r*.88))*(1.+.05*sin(an*3.)+.06*sin(an*5.+1.7)+.04*sin(an*2.+.6))+(nz-.5)*.32;
-  slk=(1.-smoothstep(.7,1.02,d))*uSlick.w*exp(-sa*.07)*smoothstep(0.,.8,sa)*(1.-smoothstep(14.,22.,sa));
+  slk=(1.-smoothstep(.7,1.02,d))*uSlick.w*exp(-sa*.05)*smoothstep(0.,.8,sa)*(1.-smoothstep(14.,22.,sa));
   /* a thin, broken lip of foam that drifts apart and dissolves over a few seconds */
-  float nb=texture2D(tF,vW.xz*2.4+.4+sa*vec2(.03,-.02)).r,nc=texture2D(tF,vW.xz*.9-.2).g,th=.45+.035*sa;
-  slr=smoothstep(.13,.02,abs(d-.98))*smoothstep(th,th+.2,nb*.65+nc*.35+.1)*uSlick.w*smoothstep(0.,.35,sa)*(1.-smoothstep(3.5,7.5,sa))*.85;}}
- det*=1.-.92*slk;
- vec3 N=normalize(mix(normalize(vN),vec3(0.,1.,0.),.55*slk));float lp=smoothstep(${R-.7},${R.toFixed(2)},length(vX));
+  float nb=texture2D(tF,vW.xz*2.4+.4+sa*vec2(.03,-.02)).r,nc=texture2D(tF,vW.xz*.9-.2).g,th=.41+.045*sa,fr=1.-smoothstep(.8,3.2,sa);
+  slr=min(1.,smoothstep(.13+.04*fr,.02,abs(d-.98))*smoothstep(th,th+.2,nb*.65+nc*.35+.1)*uSlick.w*smoothstep(0.,.35,sa)*(1.-smoothstep(3.5,7.5,sa))*(.85+.22*fr));}}
+ det*=1.-.98*slk;
+ vec3 N=normalize(mix(normalize(vN),vec3(0.,1.,0.),.85*slk));float lp=smoothstep(${R-.7},${R.toFixed(2)},length(vX));
  /* seen from inside the aquarium: the bright, rippling underside of the surface */
  if(!gl_FrontFacing){vec3 c=aqLight(.2)*1.6+uShal*(uAmb+uKey)*.3183*.22*smoothstep(.35,.9,n1.x*.5+.5+det.x)+uSunCol*uSunVis*caus(vW.xz,uT)*.22;c=aqFog(c,vW-vec3(0.,.04,0.));c=mix(c,uFogC,fogMix(dist));gl_FragColor=vec4(c,1.);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
  return;}
- vec3 Nf=normalize(N+vec3(det.x,0.,det.y)*(.58-lp*.3)),Ng=normalize(N+vec3(det.x*1.6+n3.x*.55*lod,0.,det.y*1.6+n3.y*.55*lod)*(1.-.9*slk));
- float NV=max(dot(Nf,V),0.),F=(.02+.98*pow(1.-NV,5.))*.82*mix(1.,.5,smoothstep(18.,50.,dist));vec3 Rf=reflect(-V,Nf);Rf.y=abs(Rf.y);vec3 Rg=reflect(-V,Ng);
+ vec3 Nf=normalize(N+vec3(det.x,0.,det.y)*(.58-lp*.3)),Ng=normalize(N+vec3(det.x*1.6+n3.x*.55*lod,0.,det.y*1.6+n3.y*.55*lod)*(1.-.97*slk));
+ float NV=max(dot(Nf,V),0.),F=(.02+.98*pow(1.-NV,5.))*.82*mix(1.,.5,smoothstep(18.,50.,dist));F=mix(F,min(1.,F*1.45+.03),slk);F=mix(F,min(.95,F*2.+.22),slk*smoothstep(.75,.15,NV));vec3 Rf=reflect(-V,Nf);Rf.y=abs(Rf.y);vec3 Rg=reflect(-V,Ng);
  vec3 sky=skyC(Rf)*vec3(.74,.87,1.)*.9;vec3 Ls=normalize(vec3(uSunDir.x,max(uSunDir.y,.06),uSunDir.z));
  float hr=clamp(vW.y*uHI+.5,0.,1.),sss=pow(clamp(dot(V,-uKeyDir)*.6+.4,0.,1.),3.)*hr*hr;
  vec3 key=uKey*max(uKeyDir.y,0.);
@@ -165,7 +165,7 @@ void main(){vec3 E=cameraPosition-vW;float dist=length(E);vec3 V=E/dist;float lo
  vec3 spec=uSunCol*uSunVis*uGlit*(pow(sg,700.)*70.+pow(sb,110.)*2.+pow(sb,14.)*.14+bk*(.35+2.6*spk)*.5);
  float mg=max(dot(Rg,uMoonDir),0.);spec+=uMoonC*uMoonVis*(pow(mg,900.)*14.+pow(max(dot(Rf,uMoonDir),0.),44.)*.7);
  vec3 Ld=uLanP-vW;float ld=length(Ld);Ld/=ld;spec+=uLanC*(pow(max(dot(Rg,Ld),0.),220.)*2.2+pow(max(dot(Rf,Ld),0.),18.)*.12)/(1.+ld*ld*.35);
- vec3 col=mix(body,sky,F)+spec*(.3+.7*F)*(1.-.6*slk);col=mix(col,col*1.08+vec3(.015,.025,.03),slk*.45);
+ vec3 col=mix(body,sky,F)+spec*(.3+.7*F)*(1.-.8*slk);col=mix(col,col*1.08+vec3(.015,.025,.03),slk*.45);
  float cap=smoothstep(.04,.62,1.-vJ)*uWhite;
  /* two rotated scales so the tile never lines up; crests grow the coverage, a broad noise thins it out */
  vec2 fr=mat2(.951,.309,-.309,.951)*fx;float f1=texture2D(tF,fx*.21).r,f2=texture2D(tF,fr*.57+.31).r,fm=f1*.6+f2*.4;

@@ -46,6 +46,13 @@ button:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
  .p .rows{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}
  .p #sub,.p .rows>.g:nth-child(5),.p .rows>.sub{grid-column:1/-1}
 }
+@media (min-width:601px) and (max-width:899px){.p{width:min(660px,calc(100vw - 32px))}}
+@media (min-width:900px){
+ .p{width:min(820px,calc(100vw - 48px))}
+ #gy button{flex-direction:row;align-items:center;gap:9px;padding:5px 10px 5px 5px;border-radius:15px;font-size:13.5px}
+ #gy img{flex:0 0 58px;width:58px;border-radius:10px}
+ #gy button.on::after{top:7px;right:7px;width:7px;height:7px}
+}
 @media (max-width:600px){
  .p{left:max(8px,var(--sa-l));right:max(8px,var(--sa-r));width:auto;transform:none;bottom:max(8px,calc(var(--sa-b) + 2px));padding:4px 10px 12px;border-radius:26px;max-height:60vh;max-height:60dvh}
  body.col .p{transform:translateY(calc(100% + 40px));opacity:0}

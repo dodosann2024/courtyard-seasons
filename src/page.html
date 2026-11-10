@@ -1,0 +1,26 @@
+<!DOCTYPE html><html lang="zh-CN" data-yard="{{YARD}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:,">
+<title>{{TITLE}}</title><meta name="description" content="天空之境 | Sky Haven — 云端深处，听见四季的流转。"><meta name="application-name" content="天空之境"><meta name="apple-mobile-web-app-title" content="天空之境"><meta name="theme-color" content="#cfd6dc"><meta property="og:title" content="{{TITLE}}"><meta property="og:description" content="云端深处，听见四季的流转。"><meta property="og:type" content="website"><meta name="twitter:title" content="{{TITLE}}"><meta name="twitter:description" content="云端深处，听见四季的流转。">
+<script>{{BOOT}}</script>
+<link rel="preload" href="{{P}}{{APP}}" as="script"><script defer src="{{P}}{{UI}}"></script>
+<style>
+{{CSS}}</style></head><body>
+<div id="ld" aria-hidden="true"><div class="bg"></div><div class="pill"><b class="nm"></b><div class="bar"><i></i></div></div></div><script>CY.ld()</script>
+<div class="t"><h1>天空之境</h1><div>SKY HAVEN</div><div class="tg">云端深处，听见四季的流转。</div></div>
+<div class="p" role="region" aria-label="场景设置">
+ <div class="ph"><i class="grab"></i><button id="fold" title="缩小设置" aria-label="收起设置">⌄</button></div>
+ <div class="g" id="gy"><span>院</span><button data-y="def"><img alt="" decoding="async" fetchpriority="low" src="{{P}}{{T_def}}" width="160" height="120"><b>默认小院</b></button><button data-y="jp"><img alt="" decoding="async" fetchpriority="low" src="{{P}}{{T_jp}}" width="160" height="120"><b>日式庭院</b></button><button data-y="cn"><img alt="" decoding="async" fetchpriority="low" src="{{P}}{{T_cn}}" width="160" height="120"><b>中式小院</b></button><button data-y="kr"><img alt="" decoding="async" fetchpriority="low" src="{{P}}{{T_kr}}" width="160" height="120"><b>韩式小院</b></button><button data-y="eu"><img alt="" decoding="async" fetchpriority="low" src="{{P}}{{T_eu}}" width="160" height="120"><b>欧式小院</b></button></div>
+ <div class="rows">
+ <div class="g" id="gs"><span>季</span><button data-s="0">春</button><button data-s="1">夏</button><button data-s="2">秋</button><button data-s="3">冬</button></div>
+ <div class="g" id="gw"><span>天</span><button data-m="sun">晴</button><button data-m="cloud">阴</button><button data-m="rain">雨</button><button data-m="hail">冰雹</button><button data-m="snow">雪</button></div>
+ <div class="g sub" id="sub"></div>
+ <div class="g2"><div class="g" id="gv"><span>观</span><button id="fence" aria-pressed="false">隐藏围栏</button></div><div class="g gwind"><span>风</span><input id="wind" type="range" min="0" max="1" step="0.01" value="0.35" aria-label="风力"></div></div>
+ <div class="g"><span>趣</span><button id="night">夜</button><button id="auto">四季轮转</button><button id="orbit">自动环绕</button><button id="meteor">流星雨</button><button id="lines">星座</button><button id="reset" title="复位视角" aria-label="复位视角">⟲</button></div>
+ <div class="g sub" id="gv"><span>景</span><button id="follow">跟随时间</button><button data-v="sunrise">日出</button><button data-v="sunset">日落</button><button data-v="full">满月</button><button data-v="crescent">月牙</button><button data-v="half">半弦月</button></div>
+ <div class="g sub info"><span id="info"></span></div>
+ </div>
+</div>
+<button id="fab" title="打开设置" aria-label="打开设置">☀</button>
+<button id="sbtn" title="打开音效设置" aria-label="打开音效设置">♪</button>
+{{SND}}<script>{{PANELFIT}}</script>
+<div id="tp" aria-live="polite"><span></span><div class="bar"><i></i></div></div>
+</body></html>

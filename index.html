@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="zh-CN" data-yard=""><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:,">
 <title>天空之境 | Sky Haven</title><meta name="description" content="天空之境 | Sky Haven — 云端深处，听见四季的流转。"><meta name="application-name" content="天空之境"><meta name="apple-mobile-web-app-title" content="天空之境"><meta name="theme-color" content="#cfd6dc"><meta property="og:title" content="天空之境 | Sky Haven"><meta property="og:description" content="云端深处，听见四季的流转。"><meta property="og:type" content="website"><meta name="twitter:title" content="天空之境 | Sky Haven"><meta name="twitter:description" content="云端深处，听见四季的流转。">
-<script>window.CY={"p":"","yard":"","app":"assets/app.a9b1f205f2.js","th":{"def":"assets/thumbs/def.81d03a6673.webp","jp":"assets/thumbs/jp.f47a498518.webp","cn":"assets/thumbs/cn.ee3d2450aa.webp","kr":"assets/thumbs/kr.f3a9e00359.webp","eu":"assets/thumbs/eu.5833743157.webp"},"au":{"loop":"assets/audio/loop.3e59b4ad4b.mp3","pour":"assets/audio/pour.e6e23c4cbb.mp3","clack":"assets/audio/clack.ed21f72f61.mp3","fu":"assets/audio/fu.edf2ec5c8b.mp3"}};(()=>{const C=window.CY,Y=["def","jp","cn","kr","eu"],d=document.documentElement;
-C.names={def:"默认小院",jp:"日式庭院",cn:"中式小院",kr:"韩式小院",eu:"欧式小院"};
+<script>window.CY={"p":"","yard":"","app":"assets/app.c246db90b5.js","sea":"assets/sea.2e155a8ab5.js","th":{"def":"assets/thumbs/def.81d03a6673.webp","jp":"assets/thumbs/jp.f47a498518.webp","cn":"assets/thumbs/cn.ee3d2450aa.webp","kr":"assets/thumbs/kr.f3a9e00359.webp","eu":"assets/thumbs/eu.5833743157.webp","sea":"assets/thumbs/sea.9ec97c1685.webp"},"au":{"loop":"assets/audio/loop.3e59b4ad4b.mp3","pour":"assets/audio/pour.e6e23c4cbb.mp3","clack":"assets/audio/clack.ed21f72f61.mp3","fu":"assets/audio/fu.edf2ec5c8b.mp3"}};(()=>{const C=window.CY,Y=["def","jp","cn","kr","eu","sea"],d=document.documentElement;
+C.names={def:"默认小院",jp:"日式庭院",cn:"中式小院",kr:"韩式小院",eu:"欧式小院",sea:"空中海洋"};
 C.root=new URL(C.p||"./",location.href).href;
 C.url=k=>C.root+(k==="def"?"":k+"/");
 let q="";try{q=new URLSearchParams(location.search).get("yard")||decodeURIComponent(location.hash.slice(1))}catch{}
@@ -18,7 +18,7 @@ if(innerWidth<=600&&cl!=="1"&&sp!=="0"){sp="0";try{localStorage.setItem("cySound
 sp==="0"&&B.classList.add("snc");cl==="1"&&B.classList.add("col");
 const l=document.getElementById("ld");if(!l)return;l.querySelector(".bg").style.backgroundImage="url("+C.root+C.th[y]+")";l.querySelector(".nm").textContent=C.names[y]};
 })();</script>
-<link rel="preload" href="assets/app.a9b1f205f2.js" as="script"><script defer src="assets/ui.ace789515c.js"></script>
+<link rel="preload" href="assets/app.c246db90b5.js" as="script"><script defer src="assets/ui.3dd1169e60.js"></script>
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#cfd6dc;font-family:"Songti SC","Noto Serif SC","STSong",serif;color:#2d2a26}
 canvas{display:block}
@@ -91,13 +91,17 @@ button:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
 .p .ph{position:relative;display:flex;justify-content:center;align-items:center;height:26px;margin-bottom:4px}
 .p .grab{width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.5)}
 #fold{position:absolute;top:2px;right:-6px;width:40px;height:40px;font-size:17px;border-radius:50%;background:rgba(255,255,255,.12);backdrop-filter:none;-webkit-backdrop-filter:none}
-#gy{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:0 0 12px}
+#gy{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) minmax(0,1.06fr);gap:5px 8px;margin:0 0 12px}
 #gy>span{display:none}
+#gy .sh{grid-column:1/6;font-style:normal;font-size:11px;letter-spacing:.24em;color:rgba(255,255,255,.72);padding:0 4px;white-space:nowrap;overflow:hidden}
+#gy .sh.sea{grid-column:6/7;padding-left:12px;color:rgba(214,236,240,.85)}
+#gy button.sea{margin-left:6px}
+#gy button.sea::before{content:"";position:absolute;left:-8px;top:6%;bottom:6%;width:1px;background:rgba(255,255,255,.28)}
 #gy button{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0;padding:4px 4px 8px;border-radius:17px;font-size:13px;letter-spacing:.08em;
  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);transition:background .25s,box-shadow .25s,transform .15s}
 #gy button:active{transform:scale(.96)}
 #gy img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:13px;background:rgba(255,255,255,.14);pointer-events:none}
-#gy b{font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#gy b{font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 #gy button.on{background:rgba(246,231,204,.24);color:#fff;border-color:var(--cream);text-shadow:0 1px 4px rgba(0,0,0,.4);box-shadow:0 0 0 1.5px var(--cream),0 8px 20px rgba(0,0,0,.22)}
 #gy button.on::after{content:"";position:absolute;top:10px;right:10px;width:9px;height:9px;border-radius:50%;background:var(--cream);box-shadow:0 0 0 2px rgba(40,34,26,.45)}
 .p .rows{display:flex;flex-direction:column;gap:8px}
@@ -123,14 +127,14 @@ button:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
 @media (min-width:601px) and (max-width:899px){.p{width:min(660px,calc(100vw - 32px))}}
 @media (min-width:900px){
  .p{width:min(820px,calc(100vw - 48px))}
- #gy button{flex-direction:row;align-items:center;gap:9px;padding:5px 10px 5px 5px;border-radius:15px;font-size:13.5px}
- #gy img{flex:0 0 58px;width:58px;border-radius:10px}
- #gy button.on::after{top:7px;right:7px;width:7px;height:7px}
+ #gy button{gap:5px;padding:4px 4px 7px;border-radius:15px;font-size:13px}
+ #gy img{border-radius:11px}
+ #gy button.on::after{top:8px;right:8px;width:8px;height:8px}
 }
 @media (max-width:600px){
  .p{left:max(8px,var(--sa-l));right:max(8px,var(--sa-r));width:auto;transform:none;bottom:max(8px,calc(var(--sa-b) + 2px));padding:4px 10px 12px;border-radius:26px;max-height:60vh;max-height:60dvh}
  body.col .p{transform:translateY(calc(100% + 40px));opacity:0}
- #gy{gap:6px;margin-bottom:10px}#gy button{font-size:12px;letter-spacing:.02em;padding:3px 3px 7px;border-radius:15px;gap:5px}#gy img{border-radius:12px}
+ #gy{gap:4px 5px;margin:16px 0 10px}#gy .sh{font-size:10.5px;letter-spacing:.12em}#gy .sh.sea{padding-left:8px}#gy button.sea{margin-left:4px}#gy button.sea::before{left:-5px}#gy button{font-size:min(11.5px,2.9vw);letter-spacing:0;padding:3px 3px 7px;border-radius:15px;gap:5px}#gy img{border-radius:12px}
  #gy button.on::after{top:8px;right:8px;width:8px;height:8px}
  .p .g{gap:6px}.p .g button{font-size:14.5px;padding:0 13px}
  .p .g2{flex-wrap:wrap;gap:4px 12px}.p .g2 .gwind{min-width:200px}
@@ -161,7 +165,7 @@ html.ldn #ld{background:#1c2230}html.ldn #ld .bg{filter:blur(7px) brightness(.42
 <div class="t"><h1>天空之境</h1><div>SKY HAVEN</div><div class="tg">云端深处，听见四季的流转。</div></div>
 <div class="p" role="region" aria-label="场景设置">
  <div class="ph"><i class="grab"></i><button id="fold" title="缩小设置" aria-label="收起设置">⌄</button></div>
- <div class="g" id="gy"><span>院</span><button data-y="def"><img alt="" decoding="async" fetchpriority="low" src="assets/thumbs/def.81d03a6673.webp" width="160" height="120"><b>默认小院</b></button><button data-y="jp"><img alt="" decoding="async" fetchpriority="low" src="assets/thumbs/jp.f47a498518.webp" width="160" height="120"><b>日式庭院</b></button><button data-y="cn"><img alt="" decoding="async" fetchpriority="low" src="assets/thumbs/cn.ee3d2450aa.webp" width="160" height="120"><b>中式小院</b></button><button data-y="kr"><img alt="" decoding="async" fetchpriority="low" src="assets/thumbs/kr.f3a9e00359.webp" width="160" height="120"><b>韩式小院</b></button><button data-y="eu"><img alt="" decoding="async" fetchpriority="low" src="assets/thumbs/eu.5833743157.webp" width="160" height="120"><b>欧式小院</b></button></div>
+ <div class="g" id="gy"><span>院</span><em class="sh">小院系列</em><em class="sh sea">空中海洋</em><button data-y="def"><img alt="" decoding="async" fetchpriority="low" src="assets/thumbs/def.81d03a6673.webp" width="160" height="120"><b>默认小院</b></button><button data-y="jp"><img alt="" decoding="async" fetchpriority="low" src="assets/thumbs/jp.f47a498518.webp" width="160" height="120"><b>日式庭院</b></button><button data-y="cn"><img alt="" decoding="async" fetchpriority="low" src="assets/thumbs/cn.ee3d2450aa.webp" width="160" height="120"><b>中式小院</b></button><button data-y="kr"><img alt="" decoding="async" fetchpriority="low" src="assets/thumbs/kr.f3a9e00359.webp" width="160" height="120"><b>韩式小院</b></button><button data-y="eu"><img alt="" decoding="async" fetchpriority="low" src="assets/thumbs/eu.5833743157.webp" width="160" height="120"><b>欧式小院</b></button><button data-y="sea" class="sea"><img alt="" decoding="async" fetchpriority="low" src="assets/thumbs/sea.9ec97c1685.webp" width="160" height="120"><b>空中海洋</b></button></div>
  <div class="rows">
  <div class="g" id="gs"><span>季</span><button data-s="0">春</button><button data-s="1">夏</button><button data-s="2">秋</button><button data-s="3">冬</button></div>
  <div class="g" id="gw"><span>天</span><button data-m="sun">晴</button><button data-m="cloud">阴</button><button data-m="rain">雨</button><button data-m="hail">冰雹</button><button data-m="snow">雪</button></div>

@@ -157,7 +157,7 @@ void main(){vec3 E=cameraPosition-vW;float dist=length(E);vec3 V=E/dist;float lo
  /* the whale's submerged bulk: a soft dark shape along its spine, fading with depth */
  if(uWh1.z>.005){float nz3=texture2D(tF,vW.xz*.8).g;vec2 pq=vW.xz+det*.03,a0=uWh0.xy,a1=uWh0.zw,a2=uWh1.xy,e0=a1-a0,e1=a2-a1;float h0=clamp(dot(pq-a0,e0)/dot(e0,e0),0.,1.),h1=clamp(dot(pq-a1,e1)/dot(e1,e1),0.,1.);
   float d0=length(pq-a0-e0*h0),d1=length(pq-a1-e1*h1),sw=d0<d1?h0*.5:.5+h1*.5,dw=min(d0,d1),wd=.3*(1.-.75*sw*sw)*smoothstep(-.02,.1,sw)+.02;
-  float wm=(1.-smoothstep(wd*.3,wd*1.45,dw+(nz3-.5)*.06))*uWh1.z*exp(-uWh1.w*2.6);body=mix(body,body*.34,wm*.75);F*=1.-.45*wm;}
+  float wm=(1.-smoothstep(wd*.3,wd*1.45,dw+(nz3-.5)*.06))*uWh1.z*exp(-uWh1.w*2.6);body=mix(body,body*.3,wm*.85);F*=1.-.62*wm;}
  float sg=max(dot(Rg,Ls),0.),sb=max(dot(Rf,Ls),0.);
  vec3 Hs=normalize(V+Ls);float nh=max(dot(Ng,Hs),1e-3),t2=(1.-nh*nh)/(nh*nh),m2=.012+.01*uDet;
  float spk=smoothstep(.15,.9,texture2D(tN,fx*3.1+uT*vec2(.05,-.04)).x*texture2D(tN,fx*2.3-uT*vec2(.03,.06)).y*4.);
@@ -775,6 +775,9 @@ const lifeM=(ro,sk)=>{const m=M({vertexColors:true,roughness:ro||.34,metalness:0
 `+
     /* below the local wave surface the skin sinks into the water colour, so only what breaks the surface reads as whale */
     `{vec3 wp_,wn_;float wj_;waves(vWP.xz,wp_,wn_,wj_);float dep_=wp_.y-vWP.y;vec3 wc_=aqLight(.6+max(dep_,0.)*1.5);
+     float wl_=smoothstep(-.025,-.002,dep_),fo_=texture2D(tF,vWP.xz*5.3+vWP.y*2.).r*.6+texture2D(tF,vWP.xz*13.1+.37).g*.4;
+     /* a wet film where the water washes over the skin, with broken foam right at the line */
+     gl_FragColor.rgb=mix(gl_FragColor.rgb,wc_*.6,wl_*.35);gl_FragColor.rgb=mix(gl_FragColor.rgb,(uAmb*.6+uKey*.4)*.7,smoothstep(.6,.78,fo_)*smoothstep(-.014,-.002,dep_)*.6);
      gl_FragColor.rgb=mix(gl_FragColor.rgb,gl_FragColor.rgb*.45+wc_*.55,smoothstep(-.005,.05,dep_));gl_FragColor.rgb=mix(gl_FragColor.rgb,wc_*.9,smoothstep(.04,.5,dep_)*.8);}\n`:"")+"#include <tonemapping_fragment>")};m.customProgramCacheKey=()=>sk?"sealife-skin":"sealife";return m};
 /* whale skin in body space (so it rides with the animal): blotchy dark blue-grey, paler flank mottles, faint scars, uneven wetness */
 const WSKIN=[`float skT=smoothstep(2.55,2.7,vO.x);vec2 sq=vec2(vO.x,vO.y+vO.z);float sk1=texture2D(tF,sq*1.6).g,sk2=texture2D(tF,sq*4.2+.31).r,sk3=texture2D(tF,sq*11.+.7).g;
@@ -871,14 +874,16 @@ const wTrk=(ox,oz,hx,hz,k,l,o)=>{if(Math.abs(k)<1e-4){o.x=ox+hx*l;o.z=oz+hz*l;o.
  o.x=ox+(Math.sin(b)-Math.sin(a))/k;o.z=oz+(Math.cos(b)-Math.cos(a))/k;o.dx=Math.cos(b);o.dz=-Math.sin(b);return o};
 /* fluke stroke: a vertical wave driven from the peduncle, head steady, growing toward the tail, gentler near the surface */
 const wUnd=(s,yl,x,z)=>{const H=WH;if(!(H.ua>1e-3))return 0;const e=Math.pow(ss(.28,1,s),1.6);return H.ua*e*cl((hAt(x,z).y-yl-.05)/.35,.2,1)*Math.sin(H.uph-s*3.2)};
-function whaleF(s,f){const H=WH,u=H.uh-s*WLN;if(s<=.82||H.bend<=0){pAt(u,PO);const c=Math.cos(PO.f),sn=Math.sin(PO.f);const T=wTrk(H.ox,H.oz,H.hx,H.hz,H.kp||0,PO.x,WTK),x=T.x,z=T.z,dx=T.dx,dz=T.dz,yl=H.y0+PO.y+(H.ag>0?H.ag*.14*Math.exp(-Math.pow((u-WP.apex)/.55,2)):0);
+/* until the stock arches, the tail end and flukes ride just under the water */
+const wTS=s=>.1*ss(.78,1,s)*(1-ss(.2,.65,WH.bend));
+function whaleF(s,f){const H=WH,u=H.uh-s*WLN;if(s<=.82||H.bend<=0){pAt(u,PO);const c=Math.cos(PO.f),sn=Math.sin(PO.f);const T=wTrk(H.ox,H.oz,H.hx,H.hz,H.kp||0,PO.x,WTK),x=T.x,z=T.z,dx=T.dx,dz=T.dz,yl=H.y0+PO.y+(H.ag>0?H.ag*.14*Math.exp(-Math.pow((u-WP.apex)/.55,2)):0)-.035*(1-H.ag)-wTS(s);
   const lf=(H.pl||0)*ss(.6,.93,s);H.pl0=lf;f.p.set(x,yl+ss(-.95,-.05,yl)*hAt(x,z).y*.85+lf,z);f.t.set(dx*c,sn,dz*c);f.n.set(-dx*sn,c,-dz*sn);f.b.set(-dz,0,dx);
   if(H.ua>1e-3){const d=wUnd(s,yl,x,z),sl=(wUnd(s+.02,yl,x,z)-wUnd(s-.02,yl,x,z))/(.04*WLN);f.p.addScaledVector(f.n,d);const tx=f.t.x,ty=f.t.y,tz=f.t.z;
    f.t.addScaledVector(f.n,-sl).normalize();f.n.set(f.n.x+tx*sl,f.n.y+ty*sl,f.n.z+tz*sl).normalize()}
   pv.copy(f.p);H.ps=s;return}
  /* tail stock bends toward vertical so the flukes stand up, then throws them back onto the water */
  pAt(u,PO);const T=wTrk(H.ox,H.oz,H.hx,H.hz,H.kp||0,PO.x,WTK),dx=T.dx,dz=T.dz,be=H.bend*H.bend*(3-2*H.bend),a=PO.f+(-1.62+H.sa-PO.f)*Math.pow((s-.82)/.18,1.4)*be,c=Math.cos(a),sn=Math.sin(a);f.t.set(dx*c,sn,dz*c);f.n.set(-dx*sn,c,-dz*sn);f.b.set(-dz,0,dx);
- if(s>H.ps){pv.addScaledVector(f.t,-(s-H.ps)*WLN);H.ps=s}f.p.copy(pv);f.p.y+=(H.pl||0)*ss(.6,.93,s)-(H.pl0||0)}
+ if(s>H.ps){pv.addScaledVector(f.t,-(s-H.ps)*WLN);H.ps=s}f.p.copy(pv);f.p.y+=(H.pl||0)*ss(.6,.93,s)-(H.pl0||0)-wTS(s)+wTS(.82)}
 /* gulls: body, head, beak, two-part wings with black tips */
 const mGB=M({color:"#f3f2ec",roughness:.7},{snow:0,wet:0}),mGK=M({color:"#d6a83a",roughness:.6},{snow:0,wet:0}),mGW=M({vertexColors:true,roughness:.75,side:2},{snow:0,wet:0});
 function wingGeo(outer,sg){const g0=hex("#aab2b7"),g1=hex("#1c2023");const V=outer?[[.02,0,0],[-.05,0,0],[0,0,.07],[-.055,0,.07],[-.045,0,.145]]:[[.03,0,0],[-.045,0,0],[.022,0,.13],[-.05,0,.13]];
@@ -1166,7 +1171,7 @@ function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==fals
  if(WH.on){const H=WH;H.ox-=E.ux*dt;H.oz-=E.uz*dt;const ut=H.uh-WLN;
   if(ut>=WP.apex-1.1)H.bend=Math.min(1,H.bend+dt/2);
   /* the tail stock arches clear of the water before and while the flukes lift, so they stay visibly joined to it */
-  H.pl=.17*ss(WP.apex-1.8,WP.apex-1.05,ut)*(1-ss(WP.apex-.45,WP.apex+.4,ut));
+  H.pl=.17*ss(WP.apex-1.8,WP.apex-1.05,ut)*ss(.04,.4,H.bend)*(1-ss(WP.apex-.45,WP.apex+.4,ut));
   if(H.slap>=0){H.slap+=dt;const k=Math.min(1,H.slap/.45);H.sa=1.95*k*k;H.v=0;if(H.slap>.9){H.slap=-2;H.v=.7}}
   else{const tgt=H.uh<WP.su[2]-.4?.55:H.uh<WP.su[10]?.42:ut<WP.apex-.6?.45:H.slap===-2?.75:H.dvs?.42:.2;H.v+=(tgt-H.v)*ease(1.5,dt)}
   H.uh+=H.v*dt;H.uph+=dt*TAU/4.2;H.ua+=(.13*(1-H.bend)*(H.slap===-1?1:0)-H.ua)*ease(1.2,dt);
@@ -1203,8 +1208,8 @@ function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==fals
    if(!k&&amb&&!H.sung&&rnd()<.6){H.sung=1;shot(rnd()<.5?"zWs1":"zWs2",.26,lw2.set(lw.x,-4,lw.z),rr(.95,1.03),1)}}
   /* soft bow wave where the back first cuts the water, and a foam wake trailing from where it goes back under */
   if(H.bend<.3&&H.fd>.5){let fr=-1,bk=-1,fp=null;for(let i=0;i<=16;i++){const s0=i/16*.8;whaleF(s0,whale.fr);const f=whale.fr,P2=wProf(s0),hw=hAt(f.p.x,f.p.z).y,up=f.p.y+f.n.y*(P2[1]+P2[3])>hw+.005;if(up){if(fr<0){fr=s0;fp=[f.p.x,f.p.z,hw,P2[0]]}bk=s0}}
-   if(fr>=0){const vx=H.hx*H.v,vz=H.hz*H.v,bx=-H.hz,bz=H.hx;H.bw=(H.bw||0)+dt*(MOB?14:24);for(;H.bw>1;H.bw--){const sg=rnd()<.5?-1:1,r2=fp[3]*rr(.5,1.1);puff(fp[0]+bx*sg*r2+H.hx*.04,fp[2]+.02,fp[1]+bz*sg*r2+H.hz*.04,bx*sg*rr(.12,.25)+vx*.4,rr(.01,.05),bz*sg*rr(.12,.25)+vz*.4,rr(.6,1),rr(.07,.12),.2)}
-    whaleF(bk,whale.fr);const q=whale.fr.p,hw=hAt(q.x,q.z).y;H.wk=(H.wk||0)+dt;if(H.wk>.5){H.wk=0;spot(q.x,q.z,.13)}H.wp=(H.wp||0)+dt*(MOB?8:14);for(;H.wp>1;H.wp--)puff(q.x+rr(-.06,.06),hw+.02,q.z+rr(-.06,.06),-vx*.2+rr(-.05,.05),rr(0,.03),-vz*.2+rr(-.05,.05),rr(.8,1.3),rr(.08,.13),.16)}}
+   if(fr>=0){const vx=H.hx*H.v,vz=H.hz*H.v,bx=-H.hz,bz=H.hx;H.bw=(H.bw||0)+dt*(MOB?14:24);for(;H.bw>1;H.bw--){const sg=rnd()<.5?-1:1,r2=fp[3]*rr(.5,1.1);puff(fp[0]+bx*sg*r2+H.hx*.04,fp[2]+.02,fp[1]+bz*sg*r2+H.hz*.04,bx*sg*rr(.12,.25)+vx*.4,rr(.01,.05),bz*sg*rr(.12,.25)+vz*.4,rr(.6,1),rr(.07,.12),.27)}
+    whaleF(bk,whale.fr);const q=whale.fr.p,hw=hAt(q.x,q.z).y;H.wk=(H.wk||0)+dt;if(H.wk>.5){H.wk=0;spot(q.x,q.z,.13)}H.wp=(H.wp||0)+dt*(MOB?8:14);for(;H.wp>1;H.wp--)puff(q.x+rr(-.06,.06),hw+.02,q.z+rr(-.06,.06),-vx*.2+rr(-.05,.05),rr(0,.03),-vz*.2+rr(-.05,.05),rr(.8,1.3),rr(.08,.13),.22)}}
   /* flukes: water streams off while raised; the slap lands when the tip meets the water */
   const ft=lw2.copy(whale.f1.p).addScaledVector(whale.f1.t,-.36),hT=hAt(ft.x,ft.z).y;
   if(ut>WP.apex-.5&&H.slap<.1){const P=whale.P;H.drip+=dt*(MOB?10:16);

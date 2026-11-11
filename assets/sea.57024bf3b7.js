@@ -306,13 +306,13 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
  /* the water rolls over a small rounded lip at the rim and then hangs straight down the edge; s runs down the fall, the drop growing as s*s so the texture stretches as it speeds up */
  const LR=.11,fp=(s)=>{const q=Math.min(1,s/.1),th=q*Math.PI/2;return[R-.04+LR*Math.sin(th)+.1*Math.min(1,s/.15),-.03+LR*(Math.cos(th)-1)-FALL_H*Math.max(0,s*s-.01)*(s>.1?1:0)]};
  for(const f of FALLS){const nu=f.hw<.04?4:MOB?9:13,nv=MOB?34:46,o=pos.length/3;
-  for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.25),w=f.hw*(1+.2*s)*(1+.08*Math.sin(s*7.+f.sd)*Math.min(1,s*5.)),P=fp(s),r=P[0],y=P[1];
+  for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.25),w=f.hw,P=fp(s),r=P[0],y=P[1];
    const P0=fp(Math.max(0,s-.003)),P1=fp(s+.003),dr=P1[0]-P0[0],dy=P1[1]-P0[1],nl=Math.hypot(dy,dr)||1;
    for(let i=0;i<=nu;i++){const x=i/nu,an=f.a+(x*2-1)*w;pos.push(r*Math.cos(an),y,r*Math.sin(an));uv.push(x,s);kk.push(f.h,f.sd,f.hw);nn.push(-dy/nl*Math.cos(an),dr/nl,-dy/nl*Math.sin(an))}}
   for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}}
  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("uv",new T.BA(new Float32Array(uv),2));g.setAttribute("aK",new T.BA(new Float32Array(kk),3));g.setAttribute("aN",new T.BA(new Float32Array(nn),3));g.setIndex(idx);
  const m=new T.SM({uniforms:{...U,...SKY,...fallU},extensions:{derivatives:true},transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-8,
-  vertexShader:`uniform float uWind;attribute vec3 aK,aN;varying vec2 vU;varying vec3 vW,vK,vN;void main(){vU=uv;vK=aK;vN=aN;vec3 p=position;p.x+=uWind*.22*uv.y*uv.y;p.z+=uWind*.07*uv.y*uv.y;vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
+  vertexShader:`uniform float uWind;attribute vec3 aK,aN;varying vec2 vU;varying vec3 vW,vK,vN;void main(){vU=uv;vK=aK;vN=aN;vec3 p=position;vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
   fragmentShader:`uniform float uFT,uFA,uIce,uFogN,uFogF,uHaze,uSunVis,uT,uNight,uMoonVis;uniform vec3 uDeep,uScat,uAmb,uKey,uFogC,uTop,uBot,uSunDir,uSunCol,uMoonDir,uMoonC;varying vec2 vU;varying vec3 vW,vK,vN;${FOG}
   float h1(float n){return fract(sin(n*91.7)*43758.55);}
   /* length of the sight line that runs through the bowl's water before reaching this point (the bowl is an ellipsoid, flattened to a sphere here) */
@@ -325,7 +325,7 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   float Nt=8.+hw*190.,tx=x*Nt+sd,v=s*7.-uFT*2.3;
   float aa=clamp(fwidth(tx*2.6)*.7,0.,1.),ab=clamp(fwidth(tx*.45)*.9,0.,1.);
   /* streams wander across the sheet, so strands merge, split and sway instead of running as parallel lines */
-  float Xw=tx+2.2*(vn(vec2(tx*.16+3.,s*2.2-uFT*.45))-.5)+.45*sin(s*21.+tx*.6+uFT*1.2)*smoothstep(.05,.3,s);
+  float Xw=tx+.3*(vn(vec2(tx*.23+7.,s*2.6-uFT*.5))-.5);
   float n1=vn(vec2(Xw*.45,s*2.1-uFT*.55)),n2=vn(vec2(Xw*1.1+5.,s*5.-uFT*1.15)),n3=vn(vec2(Xw*2.6+9.,s*11.4-uFT*2.3));
   float str=n1*.5+n2*.32+n3*.18,bri=.45+.55*vn(vec2(Xw*.22+31.,s*1.2-uFT*.3));
   float wS=mix(smoothstep(.5,.74,str)*bri,.32,ab);
@@ -353,7 +353,7 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   float fo=vn(vec2(tx*1.3,s*24.-uFT*2.2))*.45+vn(vec2(tx*3.4+4.,s*60.-uFT*3.))*.35+vn(vec2(tx*8.+9.,s*130.-uFT*4.4))*.2;
   float foam=fz*smoothstep(.5,.62,fo*.6+st*.4+.12*fz)*mix(1.,.7,clamp(fwidth(tx*8.)-.3,0.,1.));
   /* ragged sides: strands peel off, more as it falls, and loose threads hang outside */
-  float fr=vn(vec2(Xw*.45+3.,v*.45)),fr2=vn(vec2(Xw*1.7+11.,v*1.1)),eW=.07+.12*smoothstep(.1,.5,s)+.25*s*s;
+  float fr=vn(vec2(Xw*.45+3.,v*.45)),fr2=vn(vec2(Xw*1.7+11.,v*1.1)),eW=.12;
   float edge=smoothstep(0.,.02,ed-eW*(1.-fr*.55-fr2*.45)),fringe=(1.-edge)*smoothstep(.56,.76,n3*.6+fr2*.4)*smoothstep(0.,.012,ed)*smoothstep(.06,.4,s)*(1.-aa*.5)*(1.-smoothstep(.3,.6,s));
   /* the foot: the last streaks become rain, thin tapered threads each led by a bright drop */
   float lx=sx*.9,lid=floor(lx),lf=fract(lx)-.5,lph=s*14.-uFT*4.5+h1(lid)*9.,lseg=fract(lph),lk=h1(lid*3.1+floor(lph)*5.7);

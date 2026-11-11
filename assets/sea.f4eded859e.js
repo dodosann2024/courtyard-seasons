@@ -489,7 +489,30 @@ const tBillow=srgbTex(canvas(128,128,(g)=>{const D=g.createImageData(128,128),cx
 const mist=ptSys(MOB?120:190,tBillow);mist.o.renderOrder=3;root.add(mist.o);
 /* fine spray shed all down the falls, most of it where the water pours over and off the sides: tiny bright streaked droplets drifting outward */
 const tGrain=srgbTex(canvas(32,32,(g)=>{const D=g.createImageData(32,32);for(let y=0;y<32;y++)for(let x=0;x<32;x++){const dx=(x-15.5)/4.2,dy=(y-15.5)/11,hd=(y-21)/4.5,v=Math.max(.55*Math.exp(-dx*dx-dy*dy*dy*dy),Math.exp(-dx*dx*1.6-hd*hd*1.6)),k=(y*32+x)*4;D.data[k]=D.data[k+1]=D.data[k+2]=255;D.data[k+3]=Math.round(255*Math.min(1,v))}g.putImageData(D,0,0)}));
-const spr=ptSys(MOB?340:620,tGrain);spr.o.renderOrder=4;root.add(spr.o);const HF=FALLS.filter(f=>f.h>.35);
+const spr=ptSys(MOB?340:620,tGrain);spr.o.renderOrder=4;root.add(spr.o);
+/* snow: the yards' flakes fill a fixed cylinder over the courtyard, far too small for this open sky. These live in a box aligned with the
+   camera that spans the whole view out to SND; each flake moves in world space and wraps inside the box (fall, wind drift and all),
+   so no part of the view ever empties. Flakes fade toward the far and side faces so wrapping never pops */
+const SND=26,SNN=MOB?3500:6000,snG=new T.BG(),snP=new Float32Array(SNN*3),snS=new Float32Array(SNN),snT=new Float32Array(SNN),snR=new Float32Array(SNN),snA=new Float32Array(SNN),snA0=new Float32Array(SNN),SNF=[];
+{const mr=(a,b)=>a+(b-a)*Math.random();for(let i=0;i<SNN;i++){const e=.035+.26*Math.pow(Math.random(),3.2);snS[i]=e;snT[i]=e<.07?0:e<.12?(Math.random()<.5?0:1):(Math.random()<.55?3:2);snR[i]=Math.random()*6.28;snA0[i]=mr(.7,1);
+ SNF.push({x:0,y:0,z:0,u:Math.random(),w:Math.random(),d:Math.random(),on:0,ph:Math.random()*6.28,v:mr(.55,.85)+e*3.2,fl:.15+e*2.2,ff:mr(.6,1.6)})}}
+snG.setAttribute("position",new T.BA(snP,3));snG.setAttribute("aS",new T.BA(snS,1));snG.setAttribute("aT",new T.BA(snT,1));snG.setAttribute("aR",new T.BA(snR,1));snG.setAttribute("aA",new T.BA(snA,1));
+const snow=new T.Points(snG,X.qc.material);snow.frustumCulled=false;snow.visible=false;snow.renderOrder=8;root.add(snow);
+const snR0=new V3(),snU0=new V3(),snF0=new V3();
+function snowUpd(dt,t,wn){const sl=qt.sl??(Ct.snowLv||2),SI=Math.max(0,Math.min(4,Math.floor(sl))),SF=sl-SI,SA=a=>a[SI]+(a[Math.min(4,SI+1)]-a[SI])*SF;
+ const n=Math.min(SNN,Math.floor((qt.snowf||0)*SNN*SA([0,.2,.5,.85,1])));snow.visible=n>10;if(!snow.visible)return;
+ const SV=SA([0,.8,.9,1,1.5]),SD=sl>3?(sl-3)*(2.2+1.2*Math.sin(t*.7)):0,c=De.position;
+ De.updateMatrixWorld();const me=De.matrixWorld.elements;snR0.set(me[0],me[1],me[2]);snU0.set(me[4],me[5],me[6]);snF0.set(-me[8],-me[9],-me[10]);
+ const th=Math.tan(De.fov*Math.PI/360)*1.08,Wy=SND*th,Wx=Wy*De.aspect,z0=.3;
+ for(let i=0;i<n;i++){const k=SNF[i];
+  if(!k.on){k.on=1;const lz=z0+k.d*SND,lx=(k.u*2-1)*Wx,ly=(k.w*2-1)*Wy;k.x=c.x+snR0.x*lx+snU0.x*ly+snF0.x*lz;k.y=c.y+snR0.y*lx+snU0.y*ly+snF0.y*lz;k.z=c.z+snR0.z*lx+snU0.z*ly+snF0.z*lz}
+  k.y-=k.v*SV*dt;k.x+=((wn+SD)*(2.5+k.fl*3)+Math.sin(t*k.ff+k.ph)*k.fl)*dt;k.z+=Math.cos(t*k.ff*.9+k.ph)*k.fl*.8*dt;
+  const dx=k.x-c.x,dy=k.y-c.y,dz=k.z-c.z;let lx=dx*snR0.x+dy*snR0.y+dz*snR0.z,ly=dx*snU0.x+dy*snU0.y+dz*snU0.z,lz=dx*snF0.x+dy*snF0.y+dz*snF0.z;
+  const lx0=lx,ly0=ly,lz0=lz;lx-=2*Wx*Math.floor((lx+Wx)/(2*Wx));ly-=2*Wy*Math.floor((ly+Wy)/(2*Wy));lz-=SND*Math.floor((lz-z0)/SND);
+  if(lx!==lx0||ly!==ly0||lz!==lz0){k.x=c.x+snR0.x*lx+snU0.x*ly+snF0.x*lz;k.y=c.y+snR0.y*lx+snU0.y*ly+snF0.y*lz;k.z=c.z+snR0.z*lx+snU0.z*ly+snF0.z*lz}
+  snP[i*3]=k.x;snP[i*3+1]=k.y;snP[i*3+2]=k.z;
+  snA[i]=snA0[i]*(.15+.85*ss(1.2,4.5,lz))*(1-ss(.8,1,(lz-z0)/SND))*(1-ss(.9,1.02,Math.max(Math.abs(lx)/Wx,Math.abs(ly)/Wy)))}
+ snG.setDrawRange(0,n);snG.attributes.position.needsUpdate=snG.attributes.aA.needsUpdate=true}const HF=FALLS.filter(f=>f.h>.35);
 const FSP=[];for(let i=0;i<spr.n;i++)FSP.push({age:rr(0,2),life:1,a:0,r:0,y:0,vr:0,vy:0,w:0,sz:1});
 const MI=[];for(let i=0;i<mist.n;i++)MI.push({a:FALLS[i%FALLS.length].a,w:FALLS[i%FALLS.length].h,r:0,y:0,age:rr(0,12),life:rr(7,13),sz:rr(1.3,2.8),vy:rr(.14,.3),vr:rr(.03,.12),k:rr(.25,1)});
 /* a slow bank of cloud below the disc that the falls dissolve into */
@@ -948,7 +971,7 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  mist.g.attributes.position.needsUpdate=mist.g.attributes.aA.needsUpdate=mist.g.attributes.aS.needsUpdate=true;
  for(let i=0;i<spr.n;i++){const q=FSP[i];q.age+=dt;if(q.age>q.life){const f=HF[i%HF.length],sg=rnd()<.5?-1:1,u0=rnd(),top=u0<.2,s0=top?rr(.08,.3):u0<.38?rr(.3,.7):rr(.72,1.04);q.age=0;q.life=rr(.7,1.5);q.a=f.a+((top||s0>.72)&&rnd()<.6?rr(-1,1):sg*rr(.75,1.25))*f.hw*(1+.2*s0);q.r=R+.1+rr(0,.1);q.y=-FALL_H*(s0*s0-.01);q.vr=rr(.12,.5);q.vy=-rr(.6,2)-19*s0;q.w=f.h;q.sz=rr(.3,.75)}
   q.vy-=6*dt;q.r+=q.vr*dt;q.y+=q.vy*dt;const u=q.age/q.life;spr.p[i*3]=Math.cos(q.a)*q.r+wn*u*.5;spr.p[i*3+1]=q.y;spr.p[i*3+2]=Math.sin(q.a)*q.r;spr.a[i]=.8*q.w*Math.sin(Math.PI*Math.min(1,u*1.3))*(1-st.ice*.5)*(1+night*(1.8*Math.pow(.5+.5*Math.sin(t*(9+i%7)+i*2.3),6)-.45));const cd=Math.hypot(spr.p[i*3]-De.position.x,q.y-De.position.y,spr.p[i*3+2]-De.position.z);spr.s[i]=Math.min(q.sz*(1+.4*u)*.45,22*cd/ptScale.value)}
- spr.m.uniforms.uC.value.setRGB(1,1,1).lerp(C1.setRGB(.62,.72,.95),night);spr.g.attributes.position.needsUpdate=spr.g.attributes.aA.needsUpdate=spr.g.attributes.aS.needsUpdate=true;
+ snowUpd(dt,t,wn);spr.m.uniforms.uC.value.setRGB(1,1,1).lerp(C1.setRGB(.62,.72,.95),night);spr.g.attributes.position.needsUpdate=spr.g.attributes.aA.needsUpdate=spr.g.attributes.aS.needsUpdate=true;
  for(let i=0;i<cbank.n;i++){const b=CB[i];b.a+=b.w*dt;cbank.p[i*3]=Math.cos(b.a)*b.r;cbank.p[i*3+1]=b.y+.3*Math.sin(t*.07+b.ph);cbank.p[i*3+2]=Math.sin(b.a)*b.r;cbank.a[i]=.3+.08*Math.sin(t*.05+b.ph*2.);cbank.s[i]=b.sz}
  cbank.g.attributes.position.needsUpdate=cbank.g.attributes.aA.needsUpdate=cbank.g.attributes.aS.needsUpdate=true;
  /* ice floes drift with the water and part around the hull */
@@ -1607,7 +1630,7 @@ function sound(dt,E){const x=SX();if(!aOK()){return}if(!aBus())return;const c=x.
    const m=new T.Mesh(G,L[0].material);m.castShadow=L[0].castShadow;m.receiveShadow=L[0].receiveShadow;C.add(m);for(const o of L)o.parent.remove(o)}}}
 
 /* ---------------- show / hide ---------------- */
-for(const o of[X.vd,pi,dc,X.Dc,X.qc,X.sr,...(X.Ca||[]).map(c=>c.m)])o&&o.traverse(c=>c.layers.enable(2));
+for(const o of[X.vd,pi,dc,X.Dc,X.sr,...(X.Ca||[]).map(c=>c.m)])o&&o.traverse(c=>c.layers.enable(2));
 onSea(root);lanL.layers.mask=L2;
 function show(on){root.visible=on;grade.enabled=on;De.layers.set(on?2:0);window.__seaA=on;const x=SX();x&&x.C&&x.C();
  if(!on&&AU.bus&&x&&x.s){AU.bus.gain.setTargetAtTime(0,x.s.currentTime,.25);const L=AU.lp;AU.lp={};setTimeout(()=>{for(const k in L)try{L[k].s.stop()}catch(e){}},1500)}}

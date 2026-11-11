@@ -528,17 +528,18 @@ const BS0=new V3(2.25,.95,0),BSd=new V3(Math.cos(.42),Math.sin(.42),0),BS=t=>BS0
   const P=[];for(let k=0;k<=20;k++){const x=x0+(x1-x0)*k/20;P.push(new V3(x,.63,sd*(hwAt(x,.63)-.05)))}add(new T.Tube(new T.Curve(P),40,.012,5,false),mWood,0,0,0)}}
 /* masts, tops, yards, sails, rigging */
 const clothU={uST:{value:0},uSunV:{value:new V3()},uSunC:{value:new C3()}};
-function clothMat(kind){const m=X.Wt({map:sailTex,roughness:.92,side:2},{snow:1,wet:1});const pu={uBil:{value:0},uFlu:{value:0},uFoot:{value:0},uReef:{value:0},uTopY:{value:0},uAx:{value:new V3(1,0,0)},uDrp:{value:0},uFW:{value:6},uSlk:{value:0}};
+function clothMat(kind){const m=X.Wt({map:sailTex,roughness:.92,side:2},{snow:1,wet:1});const pu={uBil:{value:0},uFlu:{value:0},uFoot:{value:0},uReef:{value:0},uTopY:{value:0},uAx:{value:new V3(1,0,0)},uDrp:{value:0},uFW:{value:6},uSlk:{value:0},uH:{value:1},uFil:{value:0},uKd:{value:0}};
  const ob=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{ob.call(m,sh,r);Object.assign(sh.uniforms,clothU,pu);
   const fn=kind==="flag"?`float sD(vec2 s){float x=s.x;return uBil*x*(sin(8.5*x-uST*uFW+s.y*1.3)*.75+sin(15.*x-uST*uFW*1.6+s.y*2.)*.25);}`
-   :`float sD(vec2 s){float u=s.x,v=s.y;float vv=v*(1.-.42*uFoot);float d=uBil*(1.-.75*u*u)*sin(3.14159*clamp(vv,0.,1.));d+=uFlu*sin(7.*u-uST*9.+v*2.5)*(.25+.75*abs(u))*(.35+.65*v)*.07;
-   /* slack canvas: soft vertical folds and a flutter along the leeches */
-   d+=uSlk*(.032*sin(u*13.5+v*1.7+1.5*sin(uST*.55))*(.25+.75*v)+.014*sin(uST*12.+v*7.)*pow(abs(u),3.));return d*(1.-.9*uReef);}`;
-  sh.vertexShader=`attribute vec2 aS;attribute vec3 aTu,aTv;uniform float uBil,uFlu,uFoot,uReef,uTopY,uST,uDrp,uFW,uSlk;uniform vec3 uAx;${fn}\n`+sh.vertexShader
+   :`float sD(vec2 s){float u=s.x,v=s.y;float vv=v*(1.-.42*uFoot);float d=uBil*(1.-.35*u*u)*sin(3.14159*clamp(vv,0.,1.));d+=uFlu*sin(7.*u-uST*9.+v*2.5)*(.25+.75*abs(u))*(.35+.65*v)*.07;
+   /* slack canvas hangs a little aft of the yard in deep vertical folds, wavering, with the leech (both leeches on a square sail) flapping */
+   float h=uH*uSlk;d+=h*(-.04*v*(1.-uKd)+.045*sin(u*9.4+v*1.2+1.4*sin(uST*.6+uTopY*1.7))*(.2+.8*v)+.022*sin(uST*1.3+uTopY*2.3+u*.8)*v
+    +.035*sin(uST*11.+v*7.+u*2.)*mix(pow(abs(u),3.),smoothstep(.2,1.,u)*(.3+.7*v),uKd));return d*(1.-.9*uReef);}`;
+  sh.vertexShader=`attribute vec2 aS;attribute vec3 aTu,aTv;uniform float uBil,uFlu,uFoot,uReef,uTopY,uST,uDrp,uFW,uSlk,uH,uFil,uKd;uniform vec3 uAx;${fn}\n`+sh.vertexShader
    .replace("#include <beginnormal_vertex>",`#include <beginnormal_vertex>
    float e_=.02,d0_=sD(aS),du_=(sD(aS+vec2(e_,0.))-d0_)/e_,dv_=(sD(aS+vec2(0.,e_))-d0_)/e_;vec3 Tu_=aTu+uAx*du_,Tv_=aTv*vec3(1.,1.-.96*uReef,1.)+uAx*dv_;vec3 nn_=normalize(cross(Tu_,Tv_));objectNormal=dot(nn_,objectNormal)<0.?-nn_:nn_;`)
    .replace("#include <begin_vertex>",`#include <begin_vertex>
-   transformed.y=uTopY-(uTopY-transformed.y)*(1.-.96*uReef);transformed+=uAx*d0_;transformed.y-=uDrp*aS.x*aS.x+uSlk*.05*(1.-aS.x*aS.x)*aS.y;`);
+   transformed.y=uTopY-(uTopY-transformed.y)*(1.-.96*uReef);transformed+=uAx*d0_;transformed.y-=uDrp*aS.x*aS.x;transformed.y+=uH*(1.-uKd)*(1.-aS.x*aS.x)*aS.y*aS.y*(.1*uFil*(1.-uSlk)-uSlk*(.03+.06*uFoot))*(1.-uReef);`);
   sh.fragmentShader="uniform vec3 uSunV,uSunC;\n"+sh.fragmentShader.replace("#include <opaque_fragment>",`{float tr_=max(0.,-dot(normal,uSunV));outgoingLight+=diffuseColor.rgb*uSunC*tr_*.1;}\n#include <opaque_fragment>`)};
  m.customProgramCacheKey=()=>"seacloth"+kind;m.userData.pu=pu;mats.push(m);return m}
 /* generic cloth grid: corner function P(s,t) -> V3; s in [0,1] across, t in [0,1] down */
@@ -547,9 +548,9 @@ function clothGeo(nu,nv,P,su){const pos=[],uv=[],aS=[],aTu=[],aTv=[],idx=[],e=1e
  for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const a=j*(nu+1)+i,b=a+nu+1;idx.push(a,b,a+1,b,b+1,a+1)}
  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("uv",new T.BA(new Float32Array(uv),2));g.setAttribute("aS",new T.BA(new Float32Array(aS),2));g.setAttribute("aTu",new T.BA(new Float32Array(aTu),3));g.setAttribute("aTv",new T.BA(new Float32Array(aTv),3));g.setIndex(idx);g.computeVertexNormals();return g}
 const SAILS=[],YARDS=[],PIV=[];
-function squareSail(piv,top,bot,tw,bw,foot,bmax,kind){const g=clothGeo(MOB?10:14,MOB?8:12,(s,t)=>new V3(0,top-(top-bot)*t,(s*2-1)*(tw+(bw-tw)*t)/2),true);const m=clothMat("sail");m.userData.pu.uTopY.value=top;m.userData.pu.uFoot.value=foot;
+function squareSail(piv,top,bot,tw,bw,foot,bmax,kind){const g=clothGeo(MOB?12:18,MOB?8:12,(s,t)=>new V3(0,top-(top-bot)*t,(s*2-1)*(tw+(bw-tw)*t)/2),true);const m=clothMat("sail");m.userData.pu.uTopY.value=top;m.userData.pu.uFoot.value=foot;m.userData.pu.uH.value=top-bot;
  const o=new T.Mesh(g,m);o.castShadow=true;o.receiveShadow=true;piv.add(o);const rl=add(new T.Cyl(.05,.05,tw*.92,8),M({color:"#cdbf9f",roughness:.95},{snow:1,wet:1}),0,top-.03,0,Math.PI/2,0,0,piv);rl.scale.set(0,1,0);
- const S={o,m,pu:m.userData.pu,top,bot,tw,bw,foot,bmax,kind,roll:rl,reef:0,piv};SAILS.push(S);return S}
+ const S={o,m,pu:m.userData.pu,top,bot,H:top-bot,tw,bw,foot,bmax,kind,roll:rl,reef:0,piv};SAILS.push(S);return S}
 const MASTS=[{x:1.48,base:.47,low:2.78,top:2.64,tm:4.15,tg:5.02,y:[[2.5,1.3,.98],[3.9,1.0],[4.8,.64]]},{x:.08,base:.47,low:3.02,top:2.88,tm:4.52,tg:5.52,y:[[2.74,1.46,1.05],[4.24,1.1],[5.26,.72]]},{x:-1.36,base:.92,low:2.72,top:2.6,tm:3.72,tg:0,y:[[3.46,.56]]}];
 const RIG=[];const seg=(a,b)=>RIG.push(a.x,a.y,a.z,b.x,b.y,b.z);
 for(const[mi,m]of MASTS.entries()){const x=m.x;
@@ -576,7 +577,7 @@ const sprP=new T.Group();ship.add(sprP);{const p=BS(.62);sprP.position.set(p.x,0
 /* mizzen lateen: triangle tack-peak-clew, billowing sideways */
 const latP=new T.Group();ship.add(latP);let LAT;{const mx=MASTS[2].x,A=new V3(mx+1.0,1.45,0),B=new V3(mx-1.3,3.95,0),Cc=new V3(mx-1.2,1.5,0);
  const yd=new T.Mesh(new T.Cyl(.014,.03,A.distanceTo(B)+.2,8),mSpar);yd.position.copy(A).add(B).multiplyScalar(.5);yd.quaternion.setFromUnitVectors(new V3(0,1,0),B.clone().sub(A).normalize());yd.castShadow=true;latP.add(yd);
- const g=clothGeo(MOB?10:14,MOB?8:12,(s,t)=>A.clone().lerp(B,s).multiplyScalar(1-t*.97).addScaledVector(Cc,t*.97),true);const m=clothMat("sail");m.userData.pu.uAx.value.set(0,0,1);m.userData.pu.uTopY.value=9;
+ const g=clothGeo(MOB?10:14,MOB?8:12,(s,t)=>A.clone().lerp(B,s).multiplyScalar(1-t*.97).addScaledVector(Cc,t*.97),true);const m=clothMat("sail");m.userData.pu.uAx.value.set(0,0,1);m.userData.pu.uTopY.value=9;m.userData.pu.uH.value=1.4;m.userData.pu.uKd.value=1;
  const o=new T.Mesh(g,m);o.castShadow=true;latP.add(o);LAT={o,m,pu:m.userData.pu,A,B,C:Cc};seg(B,new V3(mx,MASTS[2].tm-.1,0))}
 /* ensign and masthead pennant */
 const FL=[];function flag(par,x,y,len,wid,col,kind){const g=clothGeo(kind==="pen"?20:12,kind==="pen"?2:7,(s,t)=>new V3(s*len,-t*wid*(kind==="pen"?1-s*.85:1),0),false);const m=clothMat("flag");m.map=null;m.color=new C3(col);m.userData.pu.uAx.value.set(0,0,1);
@@ -662,19 +663,19 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  st.reefT=storm?1:wn>.82?.6:0;st.reefC+=(st.reefT-st.reefC)*ease(.35,dt);
  /* gusts and lulls: mostly filled, with irregular lulls where the canvas goes slack over a second or two; a gust fills each sail with a snap and a small overshoot, each a little after the last */
  const G=st.gw||(st.gw={on:1,prev:1,tc:-9,tn:t+rr(6,14)});if(t>G.tn){G.prev=G.on;G.on=G.on?0:1;G.tc=t;G.tn=t+(G.on?rr(5,16):rr(1.8,4.2))}
- let slA=0;[...SAILS,LAT].forEach((s,i)=>{if(s.f==null){s.f=1;s.fv=0;s.lo=1;s.lag=.04+.065*(i%6)+.05*hsh(i,3.1);s.sl=.08+.12*hsh(i,7.3)}
+ let slA=0;[...SAILS,LAT].forEach((s,i)=>{if(s.f==null){s.f=1;s.fv=0;s.lo=1;s.lag=.04+.065*(i%6)+.05*hsh(i,3.1);s.sl=.02+.06*hsh(i,7.3)}
   const on=t-G.tc>=s.lag?G.on:G.prev;if(on){for(let k=0;k<2;k++){const h2=dt/2;s.fv+=(121*(1-s.f)-9.2*s.fv)*h2;s.f+=s.fv*h2}if(s.f>.8&&s.lo<.5){s.lo=1;sailHit(s)}}else{s.fv=0;s.f+=(s.sl-s.f)*ease(1.8,dt);s.lo=Math.min(s.lo,s.f)}
-  s.slk=cl(1-s.f,0,1);s.pu.uSlk.value=s.slk;slA+=s.slk});st.slk=slA/(SAILS.length+1);
+  s.slk=cl(1-s.f,0,1);s.pu.uSlk.value=s.slk;s.pu.uFil.value=s.f;slA+=s.slk});st.slk=slA/(SAILS.length+1);
  for(const s of SAILS){const furl=s.kind==="tg"?ss(.55,.85,wn)+storm*.4:s.kind==="course"?st.reefC*.45:s.kind==="sprit2"?ss(.6,.9,wn):s.kind==="top"?st.reefC*.3:0;s.reef+=(cl(furl,0,.97)-s.reef)*ease(.5,dt);
-  s.pu.uReef.value=s.reef;s.pu.uBil.value=s.bmax*1.4*(.55+.45*fill)*gust*s.f;s.pu.uFlu.value=.25+.9*(1-fill)+.8*Math.max(0,wn-.6)+storm*.5+1.1*s.slk;s.roll.scale.set(Math.max(.001,s.reef),1,Math.max(.001,s.reef))}
- LAT.pu.uBil.value=.22*(.25+.75*cl(aw/.9,0,1))*Math.sign(laz||1)*gust*LAT.f;LAT.pu.uFlu.value=.3+.8*Math.max(0,wn-.5)+1.1*LAT.slk;
+  s.pu.uReef.value=s.reef;s.pu.uBil.value=s.H*.17*(.78+.22*fill)*gust*s.f;s.pu.uFlu.value=.25+.9*(1-fill)+.8*Math.max(0,wn-.6)+storm*.5+1.1*s.slk;s.roll.scale.set(Math.max(.001,s.reef),1,Math.max(.001,s.reef))}
+ LAT.pu.uBil.value=.3*(.25+.75*cl(aw/.9,0,1))*Math.sign(laz||1)*gust*LAT.f;LAT.pu.uFlu.value=.3+.8*Math.max(0,wn-.5)+1.1*LAT.slk;
  for(const f of FL){const sp=cl(aw/.7,0,1),tgt=Math.atan2(-laz,lax);let d=tgt-f.p.rotation.y;d-=Math.round(d/TAU)*TAU;f.p.rotation.y+=d*ease(1.5,dt);
   f.pu.uBil.value=(f.kind==="pen"?.12:.07)*(.3+.7*sp);f.pu.uFW.value=4+9*sp;f.pu.uDrp.value=(1-sp)*(f.kind==="pen"?.5:.12)}
  /* running rigging follows the yards */
  {let k=0;const P=dynP,put=(a,b)=>{if(k>=dynN)return;P.set([a.x,a.y,a.z,b.x,b.y,b.z],k*6);k++};
   for(const y of YARDS){const c=Math.cos(y.piv.rotation.y),s=Math.sin(y.piv.rotation.y);for(const sg of[-1,1]){const z=sg*y.hl,arm=new V3(y.piv.position.x+s*z,y.y,c*z);
    put(arm,new V3(y.piv.position.x,y.y+.45,0));const ax=y.mi===0?MASTS[1].x:y.mi===1?MASTS[2].x:-2.5;put(arm,new V3(ax,y.mi===2?railF(-2.5):Math.min(y.y,3)-.2,sg*.1))}}
-  for(const S2 of SAILS)if(S2.kind==="course"){const c=Math.cos(S2.piv.rotation.y),s=Math.sin(S2.piv.rotation.y),d=S2.pu.uBil.value*.25*(1-.9*S2.reef);for(const sg of[-1,1]){const z=sg*S2.bw/2,yb=S2.top-(S2.top-S2.bot)*(1-.96*S2.reef);const cl2=new V3(S2.piv.position.x+s*z+c*d,yb,c*z-s*d);
+  for(const S2 of SAILS)if(S2.kind==="course"){const c=Math.cos(S2.piv.rotation.y),s=Math.sin(S2.piv.rotation.y),d=(S2.pu.uBil.value*.63-.04*S2.H*S2.slk)*(1-.9*S2.reef);for(const sg of[-1,1]){const z=sg*S2.bw/2,yb=S2.top-(S2.top-S2.bot)*(1-.96*S2.reef);const cl2=new V3(S2.piv.position.x+s*z+c*d,yb,c*z-s*d);
    put(cl2,new V3(S2.piv.position.x-.95,railF(S2.piv.position.x-.95),sg*hwAt(S2.piv.position.x-.95,railF(S2.piv.position.x-.95)-.02)));put(cl2,new V3(S2.piv.position.x+.75,railF(S2.piv.position.x+.75),sg*hwAt(S2.piv.position.x+.75,railF(S2.piv.position.x+.75)-.02)))}}
   for(;k<dynN;k++)P.fill(0,k*6,k*6+6);dynG.attributes.position.needsUpdate=true}
  /* wake, bow waves, waterline foam */
@@ -775,7 +776,7 @@ const lifeM=(ro,sk)=>{const m=M({vertexColors:true,roughness:ro||.34,metalness:0
   sh.fragmentShader=(sk?WGL+"\n":"")+"uniform float uFd;uniform sampler2D tF;uniform vec3 uShal,uDeep,uAmb,uKey,uKeyDir;\n"+AQG+"\n"+sh.fragmentShader.replace("#include <clipping_planes_fragment>",DITH+`if(vWP.y<${YS0.toFixed(2)}+${(YW-YS0).toFixed(2)}*min(1.,dot(vWP.xz,vWP.xz)/${(RS*RS).toFixed(2)})+.03)discard;\n#include <clipping_planes_fragment>`)
    .replace("#include <tonemapping_fragment>","gl_FragColor.rgb=mix(gl_FragColor.rgb,aqFogK(gl_FragColor.rgb,vWP,.6),smoothstep(-.02,-.35,vWP.y));\n"+(sk?
     /* wet flukes catch the sky: a Fresnel sheen where the reflection points upward */
-    `{float fk_=smoothstep(2.5,2.72,vO.x);vec3 vv_=normalize(vViewPosition),n_=normalize(normal);if(dot(n_,vv_)<0.)n_=-n_;float c_=dot(n_,vv_);vec3 uv_=(viewMatrix*vec4(0.,1.,0.,0.)).xyz,r_=reflect(-vv_,n_);float up_=smoothstep(-.15,.7,dot(r_,uv_));
+    `{float fk_=smoothstep(2.2,2.72,vO.x);vec3 vv_=normalize(vViewPosition),n_=normalize(normal);if(dot(n_,vv_)<0.)n_=-n_;float c_=dot(n_,vv_);vec3 uv_=(viewMatrix*vec4(0.,1.,0.,0.)).xyz,r_=reflect(-vv_,n_);float up_=smoothstep(-.15,.7,dot(r_,uv_));
      /* hemisphere fill wrapping round from the sky, so the shadow side stays a dark wet grey */
      gl_FragColor.rgb+=(diffuseColor.rgb*(.13+.09*dot(n_,uv_))+.022+.01*dot(n_,uv_))*uAmb*(1.+.5*fk_);
      gl_FragColor.rgb+=uAmb*(.06+.6*pow(1.-c_,3.))*up_*(.22+.4*fk_);}
@@ -787,12 +788,12 @@ const lifeM=(ro,sk)=>{const m=M({vertexColors:true,roughness:ro||.34,metalness:0
      gl_FragColor.rgb*=1.-.4*wl_;gl_FragColor.rgb=mix(gl_FragColor.rgb,(uAmb*.6+uKey*.4)*.8,smoothstep(.55,.75,fo_)*smoothstep(-.012,-.001,dep_)*.7);
      gl_FragColor.rgb=mix(gl_FragColor.rgb,gl_FragColor.rgb*.45+wc_*.55,smoothstep(-.005,.05,dep_));gl_FragColor.rgb=mix(gl_FragColor.rgb,wc_*.9,smoothstep(.04,.5,dep_)*.8);}\n`:"")+"#include <tonemapping_fragment>")};m.customProgramCacheKey=()=>sk?"sealife-skin":"sealife";return m};
 /* whale skin in body space (so it rides with the animal): blotchy dark blue-grey, paler flank mottles, faint scars, uneven wetness */
-const WSKIN=[`float skT=smoothstep(2.55,2.7,vO.x);vec2 sq=vec2(vO.x,vO.y+vO.z);float sk1=texture2D(tF,sq*1.6).g,sk2=texture2D(tF,sq*4.2+.31).r,sk3=texture2D(tF,sq*11.+.7).g;
+const WSKIN=[`float skT=smoothstep(2.25,2.68,vO.x);vec2 sq=vec2(vO.x,vO.y+vO.z);float sk1=texture2D(tF,sq*1.6).g,sk2=texture2D(tF,sq*4.2+.31).r,sk3=texture2D(tF,sq*11.+.7).g;
  float skf=1.-smoothstep(.12,.24,abs(vO.z));diffuseColor.rgb*=(.8+.34*sk1+.14*(sk3-.5))*vec3(.94,.98,1.05);
  diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.55+.025,smoothstep(.62,.82,sk2)*skf*(.55-.4*skT));
  float scr=texture2D(tF,vec2(vO.x*1.4+vO.z*5.,(vO.y+vO.z)*13.)).r;diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.42,.46,.48),smoothstep(.018,.0,abs(scr-.5))*smoothstep(.55,.72,sk1)*.3);
  /* fluke underside: low-contrast pale blotches and dark flecks, humpback fashion */
- float skU=skT*smoothstep(-.2,-.8,vO.z);if(skU>.01){vec2 fq=vO.xy+vec2(0.,.37);float m1=texture2D(tF,fq*.9+.13).g,m2=texture2D(tF,fq*2.4+.61).r,m3=texture2D(tF,fq*6.+.3).g;
+ float skU=skT*smoothstep(-.01,-.08,vO.z);if(skU>.01){vec2 fq=vO.xy+vec2(0.,.37);float m1=texture2D(tF,fq*.9+.13).g,m2=texture2D(tF,fq*2.4+.61).r,m3=texture2D(tF,fq*6.+.3).g;
   diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.66,.7,.7),skU*smoothstep(.5,.8,m1*.7+m2*.3)*.42);diffuseColor.rgb*=1.-skU*smoothstep(.66,.86,m3)*.16;
   /* barnacle clusters toward the leading edge and tips, and pale rake scars */
   float bc=smoothstep(.62,.8,texture2D(tF,fq*1.7+.47).r)*(.35+.65*smoothstep(-.1,-.35,vO.x-2.8)),bd=smoothstep(.72,.84,texture2D(tF,fq*21.+.19).g);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.78,.8,.76),skT*bc*bd*.8);
@@ -840,7 +841,7 @@ const wCol=(s,sa)=>{const k=ss(.2,-.75,sa)*(1-.35*ss(.7,.9,s)),h=hsh(s*41.3,sa*9
  let o=mix3(c,k>.3?wSpot:wFl,(k>.3?Math.pow(h,5)*.45:Math.pow(h,6)*.35)*(1-ss(.5,.68,s)));if(sa<-.35&&s>.03&&s<.42)o=mix3(o,wTop,.35*Math.pow(.5+.5*Math.cos(Math.asin(sa)*46),3));
  if(sa>.55&&s<.14&&h>.8)o=mix3(o,wSpot,.55);
  /* tail stock keels: a pale crest line with darker flanks either side, so the ridge reads face-on */
- const kz=ss(.7,.82,s)*(1-ss(.9,.98,s)),as=Math.abs(sa);if(kz>0){o=mix3(o,[0,0,0],.35*kz*ss(.55,.82,as)*(1-ss(.9,.97,as)));o=mix3(o,mix3(wFl,wSpot,.45),.6*kz*ss(.92,.99,as))}
+ const kz=ss(.7,.82,s)*(1-ss(.84,.9,s)),as=Math.abs(sa);if(kz>0){o=mix3(o,[0,0,0],.35*kz*ss(.55,.82,as)*(1-ss(.9,.97,as)));o=mix3(o,mix3(wFl,wSpot,.45),.6*kz*ss(.92,.99,as))}
  if(s>.9)o=mix3(o,sa>0?wFkT:mix3(wFkT,wFkB,ss(0,-.6,sa)),ss(.9,1,s));return o};
 const WFK=(()=>{const NS=MOB?19:31,HS=.47,out=[];for(const sg of[1,-1]){const secs=[];for(let i=0;i<NS;i++){const v=1-Math.pow(1-i/(NS-1),1.3),xl=.08-.42*Math.pow(v,1.6),
   /* chord closes on a rounded tip; the trailing edge carries the central notch and soft scallops, humpback fashion */
@@ -856,10 +857,10 @@ for(const f of[...WPE,WDF])delete f.oz;
 const whale=new Body(WLN,MOB?50:76,MOB?20:32,wProf,wCol,[...WFK,...WPE,WDF]);whale.o.material=lifeM(.52,WSKIN);
 /* the fluke roots and the flared stock are separate surfaces: share their normals across the join so it shades as one */
 whale.post=function(){const N=this.g.attributes.normal.array,P=this.P;if(!this.jp){this.jp=[];const NA=this.NA,NR=this.NR,i0=Math.floor(NR*.92);
-  for(const ap of this.apps.slice(0,2))ap.v.forEach((v,k)=>{const y=Math.abs(v[1]);if(y>.14)return;const j=(ap.o+k)*3;let bd=1e9,bi=-1;
+  for(const ap of this.apps.slice(0,2))ap.v.forEach((v,k)=>{const y=Math.abs(v[1]);if(y>.2)return;const j=(ap.o+k)*3;let bd=1e9,bi=-1;
    for(let r=i0;r<=NR;r++)for(let a=0;a<NA;a++){const q=(r*NA+a)*3,d=(P[q]-P[j])**2+(P[q+1]-P[j+1])**2+(P[q+2]-P[j+2])**2;if(d<bd){bd=d;bi=q}}
-   bd=Math.sqrt(bd);if(bd<.07)this.jp.push(j,bi,(1-bd/.07)*(1-y/.14))})}
- const J=this.jp;for(let k=0;k<J.length;k+=3){const a=J[k],b=J[k+1],w=J[k+2]*.65,sg=N[a]*N[b]+N[a+1]*N[b+1]+N[a+2]*N[b+2]<0?-1:1;
+   bd=Math.sqrt(bd);if(bd<.1)this.jp.push(j,bi,Math.min(1,1.4*(1-bd/.1))*(1-Math.pow(y/.2,2)))})}
+ const J=this.jp;for(let k=0;k<J.length;k+=3){const a=J[k],b=J[k+1],w=J[k+2]*.85,sg=N[a]*N[b]+N[a+1]*N[b+1]+N[a+2]*N[b+2]<0?-1:1;
   for(let d=0;d<3;d++){const na=N[a+d],nb=N[b+d]*sg;N[a+d]=na*(1-w)+nb*w;N[b+d]=(nb*(1-w*.5)+na*w*.5)*sg}}};
 /* bottlenose dolphin (about 2.5 m against the galleon): short beak under a rounded melon, fusiform body, keeled tail stock;
    falcate dorsal, curved pectorals and crescent flukes are lofted with real thickness; grey cape, paler flanks, white belly */
@@ -1194,6 +1195,8 @@ function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==fals
   if(ut>=WP.apex-1.1)H.bend=Math.min(1,H.bend+dt/2);
   /* the tail stock arches clear of the water before and while the flukes lift, so they stay visibly joined to it */
   H.pl=.17*ss(WP.apex-1.8,WP.apex-1.05,ut)*ss(.04,.4,H.bend)*(1-ss(WP.apex-.45,WP.apex+.4,ut));
+  /* sliding down into the dive the flukes tip over past vertical, turning the pale underside up to the sky */
+  if(H.dvs)H.sa+=(-.5-H.sa)*ease(1.3,dt);
   if(H.slap>=0){H.slap+=dt;const k=Math.min(1,H.slap/.45);H.sa=1.95*k*k;H.v=0;if(H.slap>.9){H.slap=-2;H.v=.7}}
   else{const tgt=H.uh<WP.su[2]-.4?.55:H.uh<WP.su[10]?.42:ut<WP.apex-.6?.45:H.slap===-2?.75:H.dvs?.42:.2;H.v+=(tgt-H.v)*ease(1.5,dt)}
   H.uh+=H.v*dt;H.uph+=dt*TAU/4.2;H.ua+=(.13*(1-H.bend)*(H.slap===-1?1:0)-H.ua)*ease(1.2,dt);

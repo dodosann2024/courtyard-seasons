@@ -313,7 +313,7 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("uv",new T.BA(new Float32Array(uv),2));g.setAttribute("aK",new T.BA(new Float32Array(kk),3));g.setAttribute("aN",new T.BA(new Float32Array(nn),3));g.setIndex(idx);
  const m=new T.SM({uniforms:{...U,...SKY,...fallU},extensions:{derivatives:true},transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-8,
   vertexShader:`uniform float uWind;attribute vec3 aK,aN;varying vec2 vU;varying vec3 vW,vK,vN;void main(){vU=uv;vK=aK;vN=aN;vec3 p=position;p.x+=uWind*.22*uv.y*uv.y;p.z+=uWind*.07*uv.y*uv.y;vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
-  fragmentShader:`uniform float uFT,uFA,uIce,uFogN,uFogF,uHaze,uSunVis,uT;uniform vec3 uDeep,uScat,uAmb,uKey,uFogC,uTop,uBot,uSunDir,uSunCol;varying vec2 vU;varying vec3 vW,vK,vN;${FOG}
+  fragmentShader:`uniform float uFT,uFA,uIce,uFogN,uFogF,uHaze,uSunVis,uT,uNight,uMoonVis;uniform vec3 uDeep,uScat,uAmb,uKey,uFogC,uTop,uBot,uSunDir,uSunCol,uMoonDir,uMoonC;varying vec2 vU;varying vec3 vW,vK,vN;${FOG}
   float h1(float n){return fract(sin(n*91.7)*43758.55);}
   /* length of the sight line that runs through the bowl's water before reaching this point (the bowl is an ellipsoid, flattened to a sphere here) */
   float thru(vec3 c,vec3 p){float k=${(R/BD).toFixed(4)};vec3 a=vec3(c.x,c.y*k,c.z),b=vec3(p.x,p.y*k,p.z),d=b-a;float A=dot(d,d),B=dot(a,d),C=dot(a,a)-${(R*R).toFixed(3)};float D=B*B-A*C;if(D<=0.)return 0.;D=sqrt(D);
@@ -395,11 +395,32 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   float ls=pow(sun,18.)*lip*(.5+.8*vn(vec2(tx*.6-uT*1.5,s*40.)));
   vec2 gw=fwidth(gq);gl*=(1.-back)*(1.-clamp(max(gw.x,gw.y)*1.4-.25,0.,1.));
   c+=gt*(uSunCol*uSunVis+lit*.8)*gl*8.+(uSunCol*uSunVis*1.2+lit*.6)*ls*1.4*edge;a=max(a,clamp(gl+ls*edge,0.,1.));
+  /* night: glossy dark navy water lit by the moon, crisp strand edges, glints and sparkles running down, nothing milky */
+  if(uNight>.01){
+   vec3 mC=uMoonC*(.4+.6*uMoonVis)+vec3(.03,.04,.07)*uNight;
+   vec3 Tn=normalize(vec3(-Nw.z,0.,Nw.x));
+   float gx=(vn(vec2((sx+.06)*1.9+5.,s*2.-uFT*.75))-sB)*14.+(vn(vec2((sx+.03)*4.7+9.,s*4.6-uFT*1.5))-sC)*12.;
+   float ny=(vn(vec2(sx*2.3+31.,s*26.-uFT*5.))-.5)*1.1+(vn(vec2(sx*5.1+3.,s*61.-uFT*9.))-.5)*.6+.9*lip*(1.-rq);
+   vec3 Np=normalize(Nw+Tn*clamp(gx*.3,-1.2,1.2)+vec3(0.,ny,0.));vec3 Rn=reflect(-Vd,Np);
+   float mr=max(dot(Rn,normalize(uMoonDir)),1e-4),sh=max(dot(Rn,vec3(0.,1.,0.)),1e-4);
+   float spec=(pow(mr,26.)*.7+pow(mr,320.)*7.)*(1.-sab*.6),skyR=pow(sh,2.)*.06;
+   float eh=clamp(stk*(1.-stk)*4.,0.,1.)*(1.-sab)*edge*(.2+.8*smoothstep(.35,.85,vn(vec2(sx*2.9+11.,s*18.-uFT*4.2))));
+   vec3 gN=vec3(.004,.011,.03)*(1.+.6*core*(1.-aer))+mC*.012+uTop*skyR;
+   vec3 wN=mC*(.16+.2*sBri)*(.8+.3*sC)+vec3(.01,.016,.03);
+   vec3 cN=mix(gN,wN,wv);
+   cN=mix(cN,gN+mC*(.1+.22*roll)*(.4+.6*rw)+mC*hl*1.6,lip*.85);
+   cN=mix(cN,mC*(.36+.1*fo),clamp(foam,0.,1.));
+   cN+=mC*(eh*(.25+.55*sBri)+spec*edge*max(max(stk,lz),.25));
+   cN=mix(cN,mC*.75,clamp(rainA+grain,0.,1.)*.85);
+   vec2 gj=gf-(vec2(h1(gh*71.3+2.),h1(gh*37.9+5.))-.5)*.6;gj.y*=2.5;float gN2=step(.8,gh)*exp(-dot(gj,gj)*90.)*pow(max(.5+.5*sin(uT*(5.+8.*gh)+gh*40.),1e-4),10.)*max(max(stk*sBri,lz),max(rainA,grain))*edge*(1.-clamp(max(gw.x,gw.y)*1.4-.25,0.,1.))*(1.-back);
+   cN+=mC*gN2*7.;
+   c=mix(c,cN,uNight);a=max(a,clamp(gN2+spec*.3*edge,0.,1.)*uNight);
+  }
   a*=1.-.97*back;
   c=mix(c,vec3(.9,.95,1.)*(uAmb+uKey*.4)*.3183,uIce*.55);
   /* seen through the bowl the fall is behind a body of water: it takes the water's colour and fades */
   float L=thru(cameraPosition,vW);vec3 Tr=exp(-L*vec3(.3,.11,.08));c=c*Tr+(uDeep*.4+uScat*.6)*lit*(1.-Tr);a*=mix(.15,1.,Tr.g);
-  c=mix(c,uFogC,fogMix(length(cameraPosition-vW))*.6);
+  c=mix(c,uFogC,fogMix(length(cameraPosition-vW))*.6*(1.-.75*uNight));
   /* a NaN here would spread through the god-ray grade and black out the frame (iOS returns NaN where desktop GPUs do not) */
   float ck=c.r+c.g+c.b+a;if(!(ck>-1.&&ck<1e3))discard;
   gl_FragColor=vec4(clamp(c,0.,16.),clamp(a,0.,1.)*uFA*(1.-uIce*.35));
@@ -923,11 +944,11 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  RIMF.step();
  /* mist under the rim */
  for(let i=0;i<mist.n;i++){const m=MI[i];m.age+=dt;if(m.age>m.life){m.age=0;const f=FALLS[i%FALLS.length];f.cl||(f.cl=[rr(.62,.72),rr(.8,.88),rr(.95,1.05)]);m.a=f.a+rr(-1,1)*f.hw*1.4;m.w=f.h;m.s0=f.cl[(rnd()*3)|0]+rr(-.03,.03);m.k=rr(.25,1);m.life=rr(6,11)}const u=m.age/m.life,s0=m.s0||(m.s0=rr(.62,1)),r=R+.25+m.vr*m.age*1.5+.4*u,y=-FALL_H*s0*s0-m.vy*m.age*1.2-u*.8;
-  const bw=.35*Math.sin(m.age*.9+i);mist.p[i*3]=Math.cos(m.a)*r+wn*u*1.2-Math.sin(m.a)*bw;mist.p[i*3+1]=y+.25*Math.sin(m.age*1.1+i*1.7);mist.p[i*3+2]=Math.sin(m.a)*r+Math.cos(m.a)*bw;mist.a[i]=1.1*(m.k||.6)*(.3+.7*m.w)*Math.sin(Math.PI*Math.pow(u,.7))*(1-st.ice*.4);mist.s[i]=m.sz*(.5+.8*m.w)*(.7+.7*u)*(1+.18*Math.sin(m.age*1.3+i*2.1))}
+  const bw=.35*Math.sin(m.age*.9+i);mist.p[i*3]=Math.cos(m.a)*r+wn*u*1.2-Math.sin(m.a)*bw;mist.p[i*3+1]=y+.25*Math.sin(m.age*1.1+i*1.7);mist.p[i*3+2]=Math.sin(m.a)*r+Math.cos(m.a)*bw;mist.a[i]=1.1*(1-.5*night)*(m.k||.6)*(.3+.7*m.w)*Math.sin(Math.PI*Math.pow(u,.7))*(1-st.ice*.4);mist.s[i]=m.sz*(.5+.8*m.w)*(.7+.7*u)*(1+.18*Math.sin(m.age*1.3+i*2.1))}
  mist.g.attributes.position.needsUpdate=mist.g.attributes.aA.needsUpdate=mist.g.attributes.aS.needsUpdate=true;
  for(let i=0;i<spr.n;i++){const q=FSP[i];q.age+=dt;if(q.age>q.life){const f=HF[i%HF.length],sg=rnd()<.5?-1:1,u0=rnd(),top=u0<.2,s0=top?rr(.08,.3):u0<.38?rr(.3,.7):rr(.72,1.04);q.age=0;q.life=rr(.7,1.5);q.a=f.a+((top||s0>.72)&&rnd()<.6?rr(-1,1):sg*rr(.75,1.25))*f.hw*(1+.2*s0);q.r=R+.1+rr(0,.1);q.y=-FALL_H*(s0*s0-.01);q.vr=rr(.12,.5);q.vy=-rr(.6,2)-19*s0;q.w=f.h;q.sz=rr(.3,.75)}
-  q.vy-=6*dt;q.r+=q.vr*dt;q.y+=q.vy*dt;const u=q.age/q.life;spr.p[i*3]=Math.cos(q.a)*q.r+wn*u*.5;spr.p[i*3+1]=q.y;spr.p[i*3+2]=Math.sin(q.a)*q.r;spr.a[i]=.8*q.w*Math.sin(Math.PI*Math.min(1,u*1.3))*(1-st.ice*.5);const cd=Math.hypot(spr.p[i*3]-De.position.x,q.y-De.position.y,spr.p[i*3+2]-De.position.z);spr.s[i]=Math.min(q.sz*(1+.4*u)*.45,22*cd/ptScale.value)}
- spr.g.attributes.position.needsUpdate=spr.g.attributes.aA.needsUpdate=spr.g.attributes.aS.needsUpdate=true;
+  q.vy-=6*dt;q.r+=q.vr*dt;q.y+=q.vy*dt;const u=q.age/q.life;spr.p[i*3]=Math.cos(q.a)*q.r+wn*u*.5;spr.p[i*3+1]=q.y;spr.p[i*3+2]=Math.sin(q.a)*q.r;spr.a[i]=.8*q.w*Math.sin(Math.PI*Math.min(1,u*1.3))*(1-st.ice*.5)*(1+night*(1.8*Math.pow(.5+.5*Math.sin(t*(9+i%7)+i*2.3),6)-.45));const cd=Math.hypot(spr.p[i*3]-De.position.x,q.y-De.position.y,spr.p[i*3+2]-De.position.z);spr.s[i]=Math.min(q.sz*(1+.4*u)*.45,22*cd/ptScale.value)}
+ spr.m.uniforms.uC.value.setRGB(1,1,1).lerp(C1.setRGB(.62,.72,.95),night);spr.g.attributes.position.needsUpdate=spr.g.attributes.aA.needsUpdate=spr.g.attributes.aS.needsUpdate=true;
  for(let i=0;i<cbank.n;i++){const b=CB[i];b.a+=b.w*dt;cbank.p[i*3]=Math.cos(b.a)*b.r;cbank.p[i*3+1]=b.y+.3*Math.sin(t*.07+b.ph);cbank.p[i*3+2]=Math.sin(b.a)*b.r;cbank.a[i]=.3+.08*Math.sin(t*.05+b.ph*2.);cbank.s[i]=b.sz}
  cbank.g.attributes.position.needsUpdate=cbank.g.attributes.aA.needsUpdate=cbank.g.attributes.aS.needsUpdate=true;
  /* ice floes drift with the water and part around the hull */

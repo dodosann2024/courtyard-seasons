@@ -490,27 +490,27 @@ const mist=ptSys(MOB?120:190,tBillow);mist.o.renderOrder=3;root.add(mist.o);
 /* fine spray shed all down the falls, most of it where the water pours over and off the sides: tiny bright streaked droplets drifting outward */
 const tGrain=srgbTex(canvas(32,32,(g)=>{const D=g.createImageData(32,32);for(let y=0;y<32;y++)for(let x=0;x<32;x++){const dx=(x-15.5)/4.2,dy=(y-15.5)/11,hd=(y-21)/4.5,v=Math.max(.55*Math.exp(-dx*dx-dy*dy*dy*dy),Math.exp(-dx*dx*1.6-hd*hd*1.6)),k=(y*32+x)*4;D.data[k]=D.data[k+1]=D.data[k+2]=255;D.data[k+3]=Math.round(255*Math.min(1,v))}g.putImageData(D,0,0)}));
 const spr=ptSys(MOB?340:620,tGrain);spr.o.renderOrder=4;root.add(spr.o);
-/* snow: a column over the sea disc only (radius SNR, sea surface up to SNY1, well above the masts and the frame top). Flakes are
+/* snow: a column over the sea disc only (radius SNR, sea surface up to SNY1, every third flake in a low layer (tops 2..7, weighted low) so the near water reads as snowy as the sky; well above the masts and the frame top). Flakes are
    spread evenly by area and wrap inside the column: one blown past the rim re-enters upwind along its own chord, one that lands
    goes back to the top, so wind slants them but never clears any part of the disc. Soft fades at the rim, the surface and the lens */
-const SNR=R*.96,SNY0=0,SNY1=30,SNN=MOB?6000:9000,snG=new T.BG(),snP=new Float32Array(SNN*3),snS=new Float32Array(SNN),snT=new Float32Array(SNN),snR=new Float32Array(SNN),snA=new Float32Array(SNN),snA0=new Float32Array(SNN),SNF=[];
+const SNR=R*.96,SNY0=0,SNY1=30,SNN=MOB?9000:13000,snG=new T.BG(),snP=new Float32Array(SNN*3),snS=new Float32Array(SNN),snT=new Float32Array(SNN),snR=new Float32Array(SNN),snA=new Float32Array(SNN),snA0=new Float32Array(SNN),SNF=[];
 {const mr=(a,b)=>a+(b-a)*Math.random();for(let i=0;i<SNN;i++){const e=.035+.26*Math.pow(Math.random(),3.2);snS[i]=e;snT[i]=e<.07?0:e<.12?(Math.random()<.5?0:1):(Math.random()<.55?3:2);snR[i]=Math.random()*6.28;snA0[i]=mr(.7,1);
- const r=SNR*Math.sqrt(Math.random()),a=Math.random()*TAU;SNF.push({x:Math.cos(a)*r,y:mr(SNY0,SNY1),z:Math.sin(a)*r,ph:Math.random()*6.28,v:mr(.55,.85)+e*3.2,fl:.15+e*2.2,ff:mr(.6,1.6)})}}
+ const r=SNR*Math.sqrt(Math.random()),a=Math.random()*TAU,tp=i%3==2?2+5*Math.pow(Math.random(),1.5):SNY1;SNF.push({x:Math.cos(a)*r,y:mr(SNY0,tp),z:Math.sin(a)*r,tp,ph:Math.random()*6.28,v:mr(.55,.85)+e*3.2,fl:.15+e*2.2,ff:mr(.6,1.6)})}}
 snG.setAttribute("position",new T.BA(snP,3));snG.setAttribute("aS",new T.BA(snS,1));snG.setAttribute("aT",new T.BA(snT,1));snG.setAttribute("aR",new T.BA(snR,1));snG.setAttribute("aA",new T.BA(snA,1));
 /* same look as the yards' flakes (shared live uniforms) but capped on screen, so no flake near the lens grows into a sticker */
 const snM=X.qc.material.clone();snM.uniforms=X.qc.material.uniforms;snM.vertexShader=X.qc.material.vertexShader.replace("gl_PointSize=max(px,2.)*dpr","gl_PointSize=clamp(px,2.,max(2.,scale*.047))*dpr");
 const snow=new T.Points(snG,snM);snow.frustumCulled=false;snow.visible=false;snow.renderOrder=8;root.add(snow);
 function snowUpd(dt,t,wn){const sl=qt.sl??(Ct.snowLv||2),SI=Math.max(0,Math.min(4,Math.floor(sl))),SF=sl-SI,SA=a=>a[SI]+(a[Math.min(4,SI+1)]-a[SI])*SF;
  const n=Math.min(SNN,Math.floor((qt.snowf||0)*SNN*SA([0,.2,.5,.85,1])));snow.visible=n>10;if(!snow.visible)return;
- const SV=SA([0,.8,.9,1,1.5]),SD=sl>3?(sl-3)*(2.2+1.2*Math.sin(t*.7)):0,c=De.position,R2=SNR*SNR,HY=SNY1-SNY0;
+ const SV=SA([0,.8,.9,1,1.5]),SD=sl>3?(sl-3)*(2.2+1.2*Math.sin(t*.7)):0,c=De.position,R2=SNR*SNR;
  for(let i=0;i<n;i++){const k=SNF[i];
   k.y-=k.v*SV*dt;k.x+=((wn+SD)*(2.5+k.fl*3)+Math.sin(t*k.ff+k.ph)*k.fl)*dt;k.z+=Math.cos(t*k.ff*.9+k.ph)*k.fl*.8*dt;
-  if(k.y<SNY0)k.y+=HY*(1+Math.floor((SNY0-k.y)/HY));else if(k.y>SNY1)k.y=SNY0+(k.y-SNY0)%HY;
+  const HY=k.tp-SNY0;if(k.y<SNY0)k.y+=HY*(1+Math.floor((SNY0-k.y)/HY));else if(k.y>k.tp)k.y=SNY0+(k.y-SNY0)%HY;
   if(k.x*k.x+k.z*k.z>R2){if(Math.abs(k.z)>=SNR)k.z=-k.z*.98;const hc=Math.sqrt(Math.max(0,R2-k.z*k.z));
    if(hc<1e-3)k.x=0;else{k.x=((k.x+hc)%(2*hc)+2*hc)%(2*hc)-hc}}
   snP[i*3]=k.x;snP[i*3+1]=k.y;snP[i*3+2]=k.z;
   const dx=k.x-c.x,dy=k.y-c.y,dz=k.z-c.z;
-  snA[i]=snA0[i]*(1-ss(.86,1,Math.sqrt(k.x*k.x+k.z*k.z)/SNR))*ss(SNY0,SNY0+.5,k.y)*ss(4,25,dx*dx+dy*dy+dz*dz)}
+  snA[i]=snA0[i]*(1-ss(.86,1,Math.sqrt(k.x*k.x+k.z*k.z)/SNR))*ss(SNY0,SNY0+.5,k.y)*(1-ss(k.tp-1.2,k.tp,k.y))*ss(4,25,dx*dx+dy*dy+dz*dz)}
  snG.setDrawRange(0,n);snG.attributes.position.needsUpdate=snG.attributes.aA.needsUpdate=true}const HF=FALLS.filter(f=>f.h>.35);
 const FSP=[];for(let i=0;i<spr.n;i++)FSP.push({age:rr(0,2),life:1,a:0,r:0,y:0,vr:0,vy:0,w:0,sz:1});
 const MI=[];for(let i=0;i<mist.n;i++)MI.push({a:FALLS[i%FALLS.length].a,w:FALLS[i%FALLS.length].h,r:0,y:0,age:rr(0,12),life:rr(7,13),sz:rr(1.3,2.8),vy:rr(.14,.3),vr:rr(.03,.12),k:rr(.25,1)});

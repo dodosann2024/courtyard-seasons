@@ -337,7 +337,9 @@ const FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,.15,.35]],
   /* the roll over the edge: bright glassy top with a highlight band where it faces up, darker sea-cyan as it turns down into the fall */
   float top=exp(-pow((s-.05)/.028,2.)),und=smoothstep(.065,.095,s)*(1.-smoothstep(.13,.19,s));
   vec3 lipC=mix(vec3(.6,.92,1.)*lit*1.4,vec3(.1,.38,.48)*lit*1.5,und*(.8+.2*stri))+vec3(.95,1.,1.)*lit*1.6*top*(.75+.25*vn(vec2(x*hw*90.-uT*.9+sd,2.)));
-  c=mix(c,lipC,lz*edge*(1.-smoothstep(.15,.2,s)));a=max(a,edge*lz*(.86+.1*h)*(1.-smoothstep(.12,.2,s)));
+  c=mix(c,lipC,lz*edge*(1.-smoothstep(.15,.2,s)));
+  /* a lip on the far side of the disc is seen from behind, over the water: let it sink into the sea instead of standing up white on the horizon */
+  float back=smoothstep(.15,-.25,dot(normalize(vW.xz),normalize(cameraPosition.xz-vW.xz)))*lz;a=max(a,edge*lz*(.86+.1*h)*(1.-smoothstep(.12,.2,s)));
   c=mix(c,mix(wht,uFogC,.4),mst*(1.-body));
   /* sun on the rolling lip and glitter in the falling water: sparse sparkles that twinkle as they ride down */
   vec3 N=normalize(vN),Vd=normalize(cameraPosition-vW);if(dot(N,Vd)<0.)N=-N;vec3 Rf=reflect(-Vd,N);float sun=max(dot(Rf,normalize(uSunDir)),0.);
@@ -346,7 +348,9 @@ const FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,.15,.35]],
   vec3 gt=mix(vec3(1.,.9,.7),vec3(.65,1.,1.),step(.87,gh));
   float ls=pow(sun,18.)*lip*(.5+.8*vn(vec2(x*hw*160.-uT*1.5+sd,s*40.)));
   float band=exp(-pow((s-.06)/.025,2.))*(.6+.4*vn(vec2(x*hw*120.-uT*.8+sd,3.)));c+=(sky*.5+lit*.5)*band*.45*edge;
+  gl*=1.-back;
   c+=gt*(uSunCol*uSunVis+lit*.8)*gl*8.*edge+(uSunCol*uSunVis*1.2+lit*.6)*ls*1.4*edge;a=max(a,clamp((gl+ls)*edge,0.,1.));
+  a*=1.-.97*back;
   c=mix(c,vec3(.9,.95,1.)*(uAmb+uKey*.4)*.3183,uIce*.55);
   /* seen through the bowl the fall is behind a body of water: it takes the water's colour and fades */
   float L=thru(cameraPosition,vW);vec3 Tr=exp(-L*vec3(.3,.11,.08));c=c*Tr+(uDeep*.4+uScat*.6)*lit*(1.-Tr);a*=mix(.15,1.,Tr.g);
@@ -368,20 +372,22 @@ const RIMF=(()=>{const nu=MOB?10:12,nr=MOB?6:8,pos=[],at=[],idx=[],S=[],wp=[],wa
   vec3 glint(vec2 gq,float zone,vec3 Vd){vec2 gc=floor(gq),gf=fract(gq)-.5;float gh=h1(gc.x*3.3+gc.y*71.7);
    float g=step(.72,gh)*exp(-dot(gf,gf)*45.)*pow(.5+.5*sin(uT*(4.+7.*gh)+gh*50.+dot(Vd,vec3(17.,9.,13.))),14.)*zone;return mix(vec3(1.,.9,.7),vec3(.65,1.,1.),step(.9,gh))*g;}`;
  const m=new T.SM({uniforms:{...U,...SKY,...fallU},transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,
-  vertexShader:`uniform sampler2D tF;uniform float uFT;attribute vec3 aR;varying vec3 vR,vW;void main(){vR=aR;vec3 p=position;float ang=atan(p.z,p.x),r=length(p.xz);
-   vec2 q=vec2(ang*${R}.*.9,r*1.4-uFT*1.1);float f=texture2D(tF,q*.35).r*.6+texture2D(tF,q*.8+.37).r*.4;
-   /* foam heaps stand a little proud of the water so they catch the light at grazing angles */
-   p.y+=smoothstep(.45,.85,f)*.13*smoothstep(0.,.6,aR.y)*smoothstep(0.,.25,aR.x)*smoothstep(1.,.75,aR.x);vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
+  vertexShader:`uniform float uFT;attribute vec3 aR;varying vec3 vR,vW;void main(){vR=aR;vec3 p=position;float ang=atan(p.z,p.x),r=length(p.xz);
+   /* a low, smooth surf swell rolling out to the lip: broad and rounded, never peaked */
+   float sw=.5+.5*sin(r*3.2-uFT*2.4+ang*${R}.*.7);p.y+=.045*smoothstep(0.,.7,aR.y)*(.55+.45*sw)*sin(3.1416*clamp(aR.x,0.,1.));vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
   fragmentShader:`uniform sampler2D tF;uniform float uT,uFT,uFA,uIce,uSunVis,uFogN,uFogF,uHaze;uniform vec3 uAmb,uKey,uFogC,uSunDir,uSunCol;varying vec3 vR,vW;${FOG}${GLI}
   void main(){float u=vR.x,t=vR.y,h=vR.z;vec2 p=vW.xz;float ang=atan(p.y,p.x),r=length(p);vec3 Vd=normalize(cameraPosition-vW);
    /* foam carried out toward the lip, breaking into whitecaps as it nears the edge */
    vec2 q=vec2(ang*${R}.*.9,r*1.4-uFT*1.1);float f=texture2D(tF,q*.35).r*.55+texture2D(tF,q*.8+.37).r*.3+texture2D(tF,q*1.9+.71).r*.15;
    float ramp=smoothstep(0.,.75,t),side=smoothstep(0.,.25,u)*smoothstep(1.,.75,u);
    float foam=smoothstep(.55-.45*ramp,.85-.35*ramp,f)*side*smoothstep(0.,.5,t);
+   /* lace: fine bubbly holes through the foam, drifting toward the lip */
+   vec2 bq=vec2(ang*${R}.*5.,r*5.-uFT*2.2);float b1=texture2D(tF,bq*.5+.13).r,b2=texture2D(tF,bq*1.1+.61).r;
+   float lace=smoothstep(.28,.5,b1*.6+b2*.4);foam*=mix(1.,lace*(.75+.25*smoothstep(.4,.7,f)),.85)*(.55+.45*smoothstep(0.,.35,min(u,1.-u)));
    vec3 gl=glint(vec2(ang*${R}.*14.,r*14.-uFT*6.),side*smoothstep(.2,.8,t),Vd);
    vec3 lit=(uAmb*.95+uKey*.62)*.3183;float gm=max(gl.r,gl.g);
-   float a=clamp(foam*(.7+.28*h)+gm,0.,1.)*uFA*(1.-.5*uIce);if(a<.004)discard;
-   vec3 c=vec3(.94,.97,1.)*lit*1.3*(.8+.3*f)*(.85+.15*smoothstep(.0,.2,vW.y-0.))+gl*(uSunCol*uSunVis+lit*.8)*8.;
+   float a=clamp(foam*(.62+.28*h)+gm,0.,1.)*uFA*(1.-.5*uIce);if(a<.004)discard;
+   vec3 c=vec3(.94,.97,1.)*lit*1.3*(.82+.25*f)+gl*(uSunCol*uSunVis+lit*.8)*8.;
    c=mix(c,uFogC,fogMix(length(cameraPosition-vW)));gl_FragColor=vec4(c,a);
    #include <colorspace_fragment>
   }`});const o=new T.Mesh(g,m);o.renderOrder=3;o.frustumCulled=false;root.add(o);
@@ -391,14 +397,14 @@ const RIMF=(()=>{const nu=MOB?10:12,nr=MOB?6:8,pos=[],at=[],idx=[],S=[],wp=[],wa
   fragmentShader:`uniform sampler2D tF;uniform float uT,uFT,uFA,uIce,uSunVis,uFogN,uFogF,uHaze;uniform vec3 uAmb,uKey,uFogC,uSunDir,uSunCol;varying vec3 vR,vW;${FOG}${GLI}
   void main(){float u=vR.x,k=vR.y,h=vR.z;float ang=atan(vW.z,vW.x);vec3 Vd=normalize(cameraPosition-vW);
    float f=texture2D(tF,vec2(ang*${R}.*.5-uFT*.15,k*.4-uFT*.5)).r*.6+texture2D(tF,vec2(ang*${R}.*1.3+.3,k*.9-uFT*.9)).r*.4;
-   float side=smoothstep(0.,.2,u)*smoothstep(1.,.8,u);float a=(1.-smoothstep(.3+.55*f,.6+.4*f,k))*side*(.75+.2*h);
+   float side=smoothstep(0.,.25,u)*smoothstep(1.,.75,u);float a=pow(1.-k,1.6)*(.35+.4*f)*side*(.6+.3*h);
    vec3 gl=glint(vec2(ang*${R}.*16.,k*3.-uFT*2.),side*(1.-k),Vd);float gm=max(gl.r,gl.g);a=clamp(a+gm,0.,1.)*uFA*(1.-.5*uIce);if(a<.004)discard;
    vec3 lit=(uAmb*.95+uKey*.62)*.3183;vec3 c=vec3(.94,.97,1.)*lit*1.3*(.8+.3*f)+gl*(uSunCol*uSunVis+lit*.8)*8.;
    c=mix(c,uFogC,fogMix(length(cameraPosition-vW)));gl_FragColor=vec4(c,a);
    #include <colorspace_fragment>
   }`});const o2=new T.Mesh(g2,m2);o2.renderOrder=3;o2.frustumCulled=false;root.add(o2);let fr=0;
  return{step(){fr++;if(MOB&&fr%2)return;for(let i=0;i<S.length;i++)P[i*3+1]=hAt(S[i][0],S[i][1]).y+.025;g.attributes.position.needsUpdate=true;
-  for(let i=0;i<WS.length;i++){const y=hAt(WS[i][0],WS[i][1]).y;P2[i*6+1]=y-.02;P2[i*6+4]=y+.17}g2.attributes.position.needsUpdate=true}}})();
+  for(let i=0;i<WS.length;i++){const y=hAt(WS[i][0],WS[i][1]).y;P2[i*6+1]=y-.01;P2[i*6+4]=y+.11}g2.attributes.position.needsUpdate=true}}})();
 /* soft points for mist and spray; size is in world units */
 const ptScale={value:500};
 function ptMat(tex,add){return new T.SM({uniforms:{tS:{value:tex},uSc:ptScale,uC:{value:new C3(1,1,1)},uFogC:U.uFogC,uFogN:U.uFogN,uFogF:U.uFogF,uHaze:U.uHaze},transparent:true,depthWrite:false,blending:add?2:1,

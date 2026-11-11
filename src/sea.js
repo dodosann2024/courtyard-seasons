@@ -294,6 +294,8 @@ const REEF=[];
   #include <colorspace_fragment>
   }`});const o=new T.Mesh(g,m);o.frustumCulled=false;root.add(o)}
 const fallU={uFT:{value:0},uFA:{value:1},uWind:Ue.uWind};
+/* if a falls shader fails to link on some GPU, drop that mesh rather than risk the frame */
+const fallSafe=o=>{o.onAfterRender=function(r){const pr=r.properties.get(this.material).currentProgram,d=pr&&pr.diagnostics;if(d&&d.runnable===false)this.visible=false;this.onAfterRender=()=>{}}};
 /* rim falls: separate ribbons of water poured over the lip, heavy falls, thinner falls and trickles with dry gaps between;
    each bends glassy over the edge, accelerates and thins, tears into streaks and dissolves into mist above the cloud bank */
 const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,.15,.35]],pat=[0,2,1,2,1,0,2,1],nR=MOB?9:13,sl=TAU/nR;
@@ -309,7 +311,7 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
    for(let i=0;i<=nu;i++){const x=i/nu,an=f.a+(x*2-1)*w;pos.push(r*Math.cos(an),y,r*Math.sin(an));uv.push(x,s);kk.push(f.h,f.sd,f.hw);nn.push(-dy/nl*Math.cos(an),dr/nl,-dy/nl*Math.sin(an))}}
   for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}}
  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("uv",new T.BA(new Float32Array(uv),2));g.setAttribute("aK",new T.BA(new Float32Array(kk),3));g.setAttribute("aN",new T.BA(new Float32Array(nn),3));g.setIndex(idx);
- const m=new T.SM({uniforms:{...U,...SKY,...fallU},transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-8,
+ const m=new T.SM({uniforms:{...U,...SKY,...fallU},extensions:{derivatives:true},transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-8,
   vertexShader:`uniform float uWind;attribute vec3 aK,aN;varying vec2 vU;varying vec3 vW,vK,vN;void main(){vU=uv;vK=aK;vN=aN;vec3 p=position;p.x+=uWind*.22*uv.y*uv.y;p.z+=uWind*.07*uv.y*uv.y;vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
   fragmentShader:`uniform float uFT,uFA,uIce,uFogN,uFogF,uHaze,uSunVis,uT;uniform vec3 uDeep,uScat,uAmb,uKey,uFogC,uTop,uBot,uSunDir,uSunCol;varying vec2 vU;varying vec3 vW,vK,vN;${FOG}
   float h1(float n){return fract(sin(n*91.7)*43758.55);}
@@ -362,10 +364,10 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   vec2 dq=vec2(x*Nt*.9+sd,s*44.-uFT*3.);vec2 dc=floor(dq);float dh=h1(dc.x*17.3+dc.y*71.9);vec2 df=fract(dq)-.5-(vec2(h1(dh*91.3+3.),h1(dh*57.1+8.))-.5)*.7;
   float gd=.9-.15*fz-.2*(1.-edge)-.22*bs-.3*brk;
   vec2 gw2=fwidth(dq);float grain=step(gd,dh)*exp(-dot(df,df)*70.)*smoothstep(.04,.1,s)*(1.-smoothstep(.97,1.,s))*(1.-clamp(max(gw2.x,gw2.y)*1.5-.3,0.,1.));
-  vec3 Nw=normalize(vN);if(dot(Nw,Vd)<0.)Nw=-Nw;vec3 Rf=reflect(-Vd,Nw);float F=.04+.96*pow(1.-max(dot(Nw,Vd),0.),5.);
+  vec3 Nw=normalize(vN);if(dot(Nw,Vd)<0.)Nw=-Nw;vec3 Rf=reflect(-Vd,Nw);float F=.04+.96*pow(clamp(1.-dot(Nw,Vd),1e-4,1.),5.);
   float sun=max(dot(Rf,normalize(uSunDir)),0.);
   /* the water body: thick translucent blue-grey glass, thinning to a faint continuous veil below; brighter along its sides and at grazing angles */
-  float sideG=smoothstep(.1,.02,ed)*edge*(.4+.6*vn(vec2(sx*.2,s*3.-uFT*.6)))*(1.-smoothstep(.2,.45,s));
+  float sideG=(1.-smoothstep(.02,.1,ed))*edge*(.4+.6*vn(vec2(sx*.2,s*3.-uFT*.6)))*(1.-smoothstep(.2,.45,s));
   float body=(.78-.26*aer-.3*bs+.06*core)*edge*(.75+.25*vn(vec2(sx*.25,s*1.5-uFT*.4)));
   float bk=mix(mix(smoothstep(.44,.6,sA*.55+sB*.45),smoothstep(.35,.65,sA),sabB),.45,sabA);body*=mix(1.,.04+.96*bk,smoothstep(.18,.55,s));
   float ndv=abs(dot(Nw,Vd));
@@ -374,21 +376,21 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   vec3 lit=(uAmb*.95+uKey*.62)*.3183,sky=mix(uBot,uTop,.6);
   vec3 glass=mix(vec3(.032,.062,.1),uScat*.2,.15)*lit*1.4*(1.-.3*core*(1.-aer));vec3 wht=vec3(.93,.97,1.)*lit*1.7;
   glass=mix(glass,sky*.6+glass*.4,clamp(F*.25*(1.-.85*aer)+sideG*.3,0.,1.));
-  float shn=pow(vn(vec2(sx*.12+sd,s*3.-uFT*.9)),3.)*(1.-smoothstep(.15,.45,s))*(1.-lip)*edge;
+  float shn=pow(max(vn(vec2(sx*.12+sd,s*3.-uFT*.9)),1e-4),3.)*(1.-smoothstep(.15,.45,s))*(1.-lip)*edge;
   glass+=(sky*.4+uSunCol*uSunVis*(.2+.8*pow(sun,6.)))*shn*.7;
   float wv=clamp(stk*(.45+.55*sBri)*(.6+.5*aer)+fine*.5+fringe,0.,1.);
   vec3 c=mix(glass,wht*(.8+.25*sC),wv);
   float rq=clamp(s/.1,0.,1.),rv=vn(vec2(tx*.45+sd,uFT*.25)),rw=vn(vec2(tx*1.7+13.,s*30.-uFT*1.3));
-  float roll=pow(sin(rq*3.1416),.7)*(.35+.65*rv);
+  float roll=pow(max(sin(rq*3.14159),1e-4),.7)*(.35+.65*rv);
   float hl=exp(-(s-.025-.02*rv)*(s-.025-.02*rv)*6000.)*smoothstep(.45,.7,rw*.6+vn(vec2(tx*3.3+7.,uT*.35))*.4);
   vec3 rc=glass*(.7+.5*rv)+sky*(.12+.3*roll)*(.4+.6*rw)+(uSunCol*uSunVis*.8+lit*.9)*hl;
   c=mix(c,rc,lip*.85);a=max(a,edge*lip*(.55+.2*h+.15*roll+.3*hl));
   c=mix(c,wht*(.95+.15*fo),clamp(foam*1.1,0.,1.));
   c=mix(c,wht*1.12,clamp(rainA+grain,0.,1.));
-  float back=smoothstep(.15,-.25,dot(normalize(vW.xz),normalize(cameraPosition.xz-vW.xz)))*lz;
+  float back=(1.-smoothstep(-.25,.15,dot(normalize(vW.xz),normalize(cameraPosition.xz-vW.xz))))*lz;
   /* sun glints on the lip and in the upper threads */
   vec2 gq=vec2(tx*1.4,v*24.);vec2 gc=floor(gq),gf=fract(gq)-.5;float gh=h1(gc.x*7.1+gc.y*113.3);
-  float gz=max(lz,1.-smoothstep(.25,.42,s));float gl=step(.66,gh)*exp(-dot(gf,gf)*45.)*pow(.5+.5*sin(uT*(4.+7.*gh)+gh*60.+dot(Vd,vec3(17.,9.,13.))),14.)*(.4+.6*smoothstep(.2,.9,sun))*max(max(stk*sBri,lz),foam)*max(gz,foam)*edge*(1.-ab);
+  float gz=max(lz,1.-smoothstep(.25,.42,s));float gl=step(.66,gh)*exp(-dot(gf,gf)*45.)*pow(max(.5+.5*sin(uT*(4.+7.*gh)+gh*60.+dot(Vd,vec3(17.,9.,13.))),1e-4),14.)*(.4+.6*smoothstep(.2,.9,sun))*max(max(stk*sBri,lz),foam)*max(gz,foam)*edge*(1.-ab);
   vec3 gt=mix(vec3(1.,.9,.7),vec3(.65,1.,1.),step(.87,gh));
   float ls=pow(sun,18.)*lip*(.5+.8*vn(vec2(tx*.6-uT*1.5,s*40.)));
   vec2 gw=fwidth(gq);gl*=(1.-back)*(1.-clamp(max(gw.x,gw.y)*1.4-.25,0.,1.));
@@ -398,10 +400,12 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   /* seen through the bowl the fall is behind a body of water: it takes the water's colour and fades */
   float L=thru(cameraPosition,vW);vec3 Tr=exp(-L*vec3(.3,.11,.08));c=c*Tr+(uDeep*.4+uScat*.6)*lit*(1.-Tr);a*=mix(.15,1.,Tr.g);
   c=mix(c,uFogC,fogMix(length(cameraPosition-vW))*.6);
-  gl_FragColor=vec4(c,clamp(a,0.,1.)*uFA*(1.-uIce*.35));
+  /* a NaN here would spread through the god-ray grade and black out the frame (iOS returns NaN where desktop GPUs do not) */
+  float ck=c.r+c.g+c.b+a;if(!(ck>-1.&&ck<1e3))discard;
+  gl_FragColor=vec4(clamp(c,0.,16.),clamp(a,0.,1.)*uFA*(1.-uIce*.35));
   #include <colorspace_fragment>
   }`});
- const falls=new T.Mesh(g,m);falls.renderOrder=2;falls.frustumCulled=false;root.add(falls)}
+ const falls=new T.Mesh(g,m);falls.renderOrder=2;falls.frustumCulled=false;fallSafe(falls);root.add(falls)}
 /* surf at the rim above each fall: whitecaps and foam rolling out to the lip so the water visibly pours out of a breaking surface */
 const RIMF=(()=>{const nu=MOB?10:12,nr=MOB?6:8,pos=[],at=[],idx=[],S=[],wp=[],wa=[],wi=[],WS=[];for(const f of FALLS){const o=pos.length/3,wd=f.hw*1.5,dr=.9+1.1*f.h;
   for(let j=0;j<=nr;j++)for(let i=0;i<=nu;i++){const u=i/nu,t=j/nr,an=f.a+(u*2-1)*wd,r=R-dr*(1-t)+.01;pos.push(r*Math.cos(an),0,r*Math.sin(an));at.push(u,t,f.h);S.push([r*Math.cos(an),r*Math.sin(an)])}
@@ -413,8 +417,8 @@ const RIMF=(()=>{const nu=MOB?10:12,nr=MOB?6:8,pos=[],at=[],idx=[],S=[],wp=[],wa
  const GLI=`float h1(float n){return fract(sin(n*91.7)*43758.55);}
   /* brief sharp flashes of sun, warm or cyan, twinkling with time and with the angle they are seen from */
   vec3 glint(vec2 gq,float zone,vec3 Vd){vec2 gc=floor(gq),gf=fract(gq)-.5;float gh=h1(gc.x*3.3+gc.y*71.7);
-   float g=step(.72,gh)*exp(-dot(gf,gf)*45.)*pow(.5+.5*sin(uT*(4.+7.*gh)+gh*50.+dot(Vd,vec3(17.,9.,13.))),14.)*zone;return mix(vec3(1.,.9,.7),vec3(.65,1.,1.),step(.9,gh))*g;}`;
- const m=new T.SM({uniforms:{...U,...SKY,...fallU},transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,
+   float g=step(.72,gh)*exp(-dot(gf,gf)*45.)*pow(max(.5+.5*sin(uT*(4.+7.*gh)+gh*50.+dot(Vd,vec3(17.,9.,13.))),1e-4),14.)*zone;return mix(vec3(1.,.9,.7),vec3(.65,1.,1.),step(.9,gh))*g;}`;
+ const m=new T.SM({uniforms:{...U,...SKY,...fallU},extensions:{derivatives:true},transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,
   vertexShader:`uniform float uFT;attribute vec3 aR;varying vec3 vR,vW;void main(){vR=aR;vec3 p=position;float ang=atan(p.z,p.x),r=length(p.xz);
    /* a low, smooth surf swell rolling out to the lip: broad and rounded, never peaked */
    float sw=.5+.5*sin(r*3.2-uFT*2.4+ang*${R}.*.7);p.y+=.045*smoothstep(0.,.7,aR.y)*(.55+.45*sw)*sin(3.1416*clamp(aR.x,0.,1.));vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
@@ -433,14 +437,14 @@ const RIMF=(()=>{const nu=MOB?10:12,nr=MOB?6:8,pos=[],at=[],idx=[],S=[],wp=[],wa
    vec3 c=vec3(.94,.97,1.)*lit*1.3*(.82+.25*f)+gl*(uSunCol*uSunVis+lit*.8)*8.;
    c=mix(c,uFogC,fogMix(length(cameraPosition-vW)));gl_FragColor=vec4(c,a);
    #include <colorspace_fragment>
-  }`});const o=new T.Mesh(g,m);o.renderOrder=3;o.frustumCulled=false;root.add(o);
+  }`});const o=new T.Mesh(g,m);o.renderOrder=3;o.frustumCulled=false;fallSafe(o);root.add(o);
  const g2=new T.BG(),P2=new Float32Array(wp);g2.setAttribute("position",new T.BA(P2,3));g2.setAttribute("aR",new T.BA(new Float32Array(wa),3));g2.setIndex(wi);
  const m2=new T.SM({uniforms:{...U,...SKY,...fallU},transparent:true,depthWrite:false,side:2,
   vertexShader:`attribute vec3 aR;varying vec3 vR,vW;void main(){vR=aR;vW=position;gl_Position=projectionMatrix*viewMatrix*vec4(position,1.);}`,
   fragmentShader:`uniform sampler2D tF;uniform float uT,uFT,uFA,uIce,uSunVis,uFogN,uFogF,uHaze;uniform vec3 uAmb,uKey,uFogC,uSunDir,uSunCol;varying vec3 vR,vW;${FOG}${GLI}
   void main(){float u=vR.x,k=vR.y,h=vR.z;float ang=atan(vW.z,vW.x);vec3 Vd=normalize(cameraPosition-vW);
    float f=texture2D(tF,vec2(ang*${R}.*.5-uFT*.15,k*.4-uFT*.5)).r*.6+texture2D(tF,vec2(ang*${R}.*1.3+.3,k*.9-uFT*.9)).r*.4;
-   float side=smoothstep(0.,.25,u)*smoothstep(1.,.75,u);float a=pow(1.-k,1.6)*(.35+.4*f)*side*(.6+.3*h);
+   float side=smoothstep(0.,.25,u)*smoothstep(1.,.75,u);float a=pow(max(1.-k,1e-4),1.6)*(.35+.4*f)*side*(.6+.3*h);
    vec3 gl=glint(vec2(ang*${R}.*16.,k*3.-uFT*2.),side*(1.-k),Vd);float gm=max(gl.r,gl.g);a=clamp(a+gm,0.,1.)*uFA*(1.-.5*uIce);if(a<.004)discard;
    vec3 lit=(uAmb*.95+uKey*.62)*.3183;vec3 c=vec3(.94,.97,1.)*lit*1.3*(.8+.3*f)+gl*(uSunCol*uSunVis+lit*.8)*8.;
    c=mix(c,uFogC,fogMix(length(cameraPosition-vW)));gl_FragColor=vec4(c,a);

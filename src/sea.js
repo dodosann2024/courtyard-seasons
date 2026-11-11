@@ -497,7 +497,9 @@ const SND=26,SNN=MOB?3500:6000,snG=new T.BG(),snP=new Float32Array(SNN*3),snS=ne
 {const mr=(a,b)=>a+(b-a)*Math.random();for(let i=0;i<SNN;i++){const e=.035+.26*Math.pow(Math.random(),3.2);snS[i]=e;snT[i]=e<.07?0:e<.12?(Math.random()<.5?0:1):(Math.random()<.55?3:2);snR[i]=Math.random()*6.28;snA0[i]=mr(.7,1);
  SNF.push({x:0,y:0,z:0,u:Math.random(),w:Math.random(),d:Math.random(),on:0,ph:Math.random()*6.28,v:mr(.55,.85)+e*3.2,fl:.15+e*2.2,ff:mr(.6,1.6)})}}
 snG.setAttribute("position",new T.BA(snP,3));snG.setAttribute("aS",new T.BA(snS,1));snG.setAttribute("aT",new T.BA(snT,1));snG.setAttribute("aR",new T.BA(snR,1));snG.setAttribute("aA",new T.BA(snA,1));
-const snow=new T.Points(snG,X.qc.material);snow.frustumCulled=false;snow.visible=false;snow.renderOrder=8;root.add(snow);
+/* same look as the yards' flakes (shared live uniforms) but capped on screen, so no flake near the lens grows into a sticker */
+const snM=X.qc.material.clone();snM.uniforms=X.qc.material.uniforms;snM.vertexShader=X.qc.material.vertexShader.replace("gl_PointSize=max(px,2.)*dpr","gl_PointSize=clamp(px,2.,max(2.,scale*.047))*dpr");
+const snow=new T.Points(snG,snM);snow.frustumCulled=false;snow.visible=false;snow.renderOrder=8;root.add(snow);
 const snR0=new V3(),snU0=new V3(),snF0=new V3();
 function snowUpd(dt,t,wn){const sl=qt.sl??(Ct.snowLv||2),SI=Math.max(0,Math.min(4,Math.floor(sl))),SF=sl-SI,SA=a=>a[SI]+(a[Math.min(4,SI+1)]-a[SI])*SF;
  const n=Math.min(SNN,Math.floor((qt.snowf||0)*SNN*SA([0,.2,.5,.85,1])));snow.visible=n>10;if(!snow.visible)return;
@@ -511,7 +513,7 @@ function snowUpd(dt,t,wn){const sl=qt.sl??(Ct.snowLv||2),SI=Math.max(0,Math.min(
   const lx0=lx,ly0=ly,lz0=lz;lx-=2*Wx*Math.floor((lx+Wx)/(2*Wx));ly-=2*Wy*Math.floor((ly+Wy)/(2*Wy));lz-=SND*Math.floor((lz-z0)/SND);
   if(lx!==lx0||ly!==ly0||lz!==lz0){k.x=c.x+snR0.x*lx+snU0.x*ly+snF0.x*lz;k.y=c.y+snR0.y*lx+snU0.y*ly+snF0.y*lz;k.z=c.z+snR0.z*lx+snU0.z*ly+snF0.z*lz}
   snP[i*3]=k.x;snP[i*3+1]=k.y;snP[i*3+2]=k.z;
-  snA[i]=snA0[i]*(.15+.85*ss(1.2,4.5,lz))*(1-ss(.8,1,(lz-z0)/SND))*(1-ss(.9,1.02,Math.max(Math.abs(lx)/Wx,Math.abs(ly)/Wy)))}
+  snA[i]=snA0[i]*ss(3,7,lz)*(1-ss(.8,1,(lz-z0)/SND))*(1-ss(.9,1.02,Math.max(Math.abs(lx)/Wx,Math.abs(ly)/Wy)))}
  snG.setDrawRange(0,n);snG.attributes.position.needsUpdate=snG.attributes.aA.needsUpdate=true}const HF=FALLS.filter(f=>f.h>.35);
 const FSP=[];for(let i=0;i<spr.n;i++)FSP.push({age:rr(0,2),life:1,a:0,r:0,y:0,vr:0,vy:0,w:0,sz:1});
 const MI=[];for(let i=0;i<mist.n;i++)MI.push({a:FALLS[i%FALLS.length].a,w:FALLS[i%FALLS.length].h,r:0,y:0,age:rr(0,12),life:rr(7,13),sz:rr(1.3,2.8),vy:rr(.14,.3),vr:rr(.03,.12),k:rr(.25,1)});

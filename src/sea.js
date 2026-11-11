@@ -777,7 +777,7 @@ const lifeM=(ro,sk)=>{const m=M({vertexColors:true,roughness:ro||.34,metalness:0
     `{vec3 wp_,wn_;float wj_;waves(vWP.xz,wp_,wn_,wj_);float dep_=wp_.y-vWP.y;vec3 wc_=aqLight(.6+max(dep_,0.)*1.5);
      float wl_=smoothstep(-.025,-.002,dep_),fo_=texture2D(tF,vWP.xz*5.3+vWP.y*2.).r*.6+texture2D(tF,vWP.xz*13.1+.37).g*.4;
      /* a wet film where the water washes over the skin, with broken foam right at the line */
-     gl_FragColor.rgb=mix(gl_FragColor.rgb,wc_*.6,wl_*.35);gl_FragColor.rgb=mix(gl_FragColor.rgb,(uAmb*.6+uKey*.4)*.7,smoothstep(.6,.78,fo_)*smoothstep(-.014,-.002,dep_)*.6);
+     gl_FragColor.rgb*=1.-.4*wl_;gl_FragColor.rgb=mix(gl_FragColor.rgb,(uAmb*.6+uKey*.4)*.8,smoothstep(.55,.75,fo_)*smoothstep(-.012,-.001,dep_)*.7);
      gl_FragColor.rgb=mix(gl_FragColor.rgb,gl_FragColor.rgb*.45+wc_*.55,smoothstep(-.005,.05,dep_));gl_FragColor.rgb=mix(gl_FragColor.rgb,wc_*.9,smoothstep(.04,.5,dep_)*.8);}\n`:"")+"#include <tonemapping_fragment>")};m.customProgramCacheKey=()=>sk?"sealife-skin":"sealife";return m};
 /* whale skin in body space (so it rides with the animal): blotchy dark blue-grey, paler flank mottles, faint scars, uneven wetness */
 const WSKIN=[`float skT=smoothstep(2.55,2.7,vO.x);vec2 sq=vec2(vO.x,vO.y+vO.z);float sk1=texture2D(tF,sq*1.6).g,sk2=texture2D(tF,sq*4.2+.31).r,sk3=texture2D(tF,sq*11.+.7).g;
@@ -876,14 +876,17 @@ const wTrk=(ox,oz,hx,hz,k,l,o)=>{if(Math.abs(k)<1e-4){o.x=ox+hx*l;o.z=oz+hz*l;o.
 const wUnd=(s,yl,x,z)=>{const H=WH;if(!(H.ua>1e-3))return 0;const e=Math.pow(ss(.28,1,s),1.6);return H.ua*e*cl((hAt(x,z).y-yl-.05)/.35,.2,1)*Math.sin(H.uph-s*3.2)};
 /* until the stock arches, the tail end and flukes ride just under the water */
 const wTS=s=>.2*ss(.72,1,s)*(1-ss(.3,.8,WH.bend));
+/* during the arch the flukes ride level (no roll toward the tail) and are kept under the local water, reach included, until the stock has risen */
+const wTL=(s,f)=>{const H=WH,d=(H.rl||0)*(H.rd||0)*ss(.55,.95,s);if(d){const c=Math.cos(d),sn=Math.sin(d),bx=f.b.x,by=f.b.y,bz=f.b.z;f.b.set(bx*c-f.n.x*sn,by*c-f.n.y*sn,bz*c-f.n.z*sn);f.n.set(f.n.x*c+bx*sn,f.n.y*c+by*sn,f.n.z*c+bz*sn)}
+ const k=(H.hd||0)*ss(.8,1,s);if(k>0){const lim=hAt(f.p.x,f.p.z).y-.16-.45*Math.max(0,-f.t.y);if(f.p.y>lim)f.p.y-=k*(f.p.y-lim)}};
 function whaleF(s,f){const H=WH,u=H.uh-s*WLN;if(s<=.82||H.bend<=0){pAt(u,PO);const c=Math.cos(PO.f),sn=Math.sin(PO.f);const T=wTrk(H.ox,H.oz,H.hx,H.hz,H.kp||0,PO.x,WTK),x=T.x,z=T.z,dx=T.dx,dz=T.dz,yl=H.y0+PO.y+(H.ag>0?H.ag*.14*Math.exp(-Math.pow((u-WP.apex)/.55,2)):0)-.035*(1-H.ag)-wTS(s);
   const lf=(H.pl||0)*ss(.6,.93,s);H.pl0=lf;f.p.set(x,yl+ss(-.95,-.05,yl)*hAt(x,z).y*.85+lf,z);f.t.set(dx*c,sn,dz*c);f.n.set(-dx*sn,c,-dz*sn);f.b.set(-dz,0,dx);
   if(H.ua>1e-3){const d=wUnd(s,yl,x,z),sl=(wUnd(s+.02,yl,x,z)-wUnd(s-.02,yl,x,z))/(.04*WLN);f.p.addScaledVector(f.n,d);const tx=f.t.x,ty=f.t.y,tz=f.t.z;
    f.t.addScaledVector(f.n,-sl).normalize();f.n.set(f.n.x+tx*sl,f.n.y+ty*sl,f.n.z+tz*sl).normalize()}
-  pv.copy(f.p);H.ps=s;return}
+  pv.copy(f.p);H.ps=s;wTL(s,f);return}
  /* tail stock bends toward vertical so the flukes stand up, then throws them back onto the water */
  pAt(u,PO);const T=wTrk(H.ox,H.oz,H.hx,H.hz,H.kp||0,PO.x,WTK),dx=T.dx,dz=T.dz,be=H.bend*H.bend*(3-2*H.bend),a=PO.f+(-1.62+H.sa-PO.f)*Math.pow((s-.82)/.18,1.4)*be,c=Math.cos(a),sn=Math.sin(a);f.t.set(dx*c,sn,dz*c);f.n.set(-dx*sn,c,-dz*sn);f.b.set(-dz,0,dx);
- if(s>H.ps){pv.addScaledVector(f.t,-(s-H.ps)*WLN);H.ps=s}f.p.copy(pv);f.p.y+=(H.pl||0)*ss(.6,.93,s)-(H.pl0||0)-wTS(s)+wTS(.82)}
+ if(s>H.ps){pv.addScaledVector(f.t,-(s-H.ps)*WLN);H.ps=s}f.p.copy(pv);f.p.y+=(H.pl||0)*ss(.6,.93,s)-(H.pl0||0)-wTS(s)+wTS(.82);wTL(s,f)}
 /* gulls: body, head, beak, two-part wings with black tips */
 const mGB=M({color:"#f3f2ec",roughness:.7},{snow:0,wet:0}),mGK=M({color:"#d6a83a",roughness:.6},{snow:0,wet:0}),mGW=M({vertexColors:true,roughness:.75,side:2},{snow:0,wet:0});
 function wingGeo(outer,sg){const g0=hex("#aab2b7"),g1=hex("#1c2023");const V=outer?[[.02,0,0],[-.05,0,0],[0,0,.07],[-.055,0,.07],[-.045,0,.145]]:[[.03,0,0],[-.045,0,0],[.022,0,.13],[-.05,0,.13]];
@@ -1179,7 +1182,8 @@ function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==fals
   const roll=H.uh>WP.su[4]&&H.uh<WP.su[8]?.3*Math.sin(Math.PI*(H.uh-WP.su[4])/(WP.su[8]-WP.su[4])):0;
   /* the back rises out over the arch only as the tail stock reaches it, so the peduncle comes up as the back goes under */
   H.ag=ss(WP.apex-1.5,WP.apex-.45,ut);
-  whale.pose(whaleF,roll+(H.kp||0)*3.5*(1-H.bend));
+  H.rl=roll+(H.kp||0)*3.5*(1-H.bend);H.rd=ss(WP.apex-1.4,WP.apex-1.05,ut);H.hd=H.rd*(1-ss(.45,.8,H.bend));
+  whale.pose(whaleF,H.rl);
   {const P=whale.P,NA=whale.NA,NR=whale.NR,c=[0,0,0,0,0,0],w0=U.uWh0.value,w1=U.uWh1.value;let dp=0;
    [.04,.45,.84].forEach((s,k)=>{const i=Math.round(s*NR);let x=0,y=0,z=0;for(let a=0;a<NA;a++){const j=(i*NA+a)*3;x+=P[j];y+=P[j+1];z+=P[j+2]}x/=NA;y/=NA;z/=NA;c[k*2]=x;c[k*2+1]=z;dp+=Math.max(0,hAt(x,z).y-y)/3});
    w0.set(c[0],c[1],c[2],c[3]);w1.set(c[4],c[5],H.fd,dp)}

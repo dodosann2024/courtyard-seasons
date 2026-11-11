@@ -498,10 +498,10 @@ const SNR=R*.96,SNY0=0,SNY1=30,SNN=MOB?9000:13000,snG=new T.BG(),snP=new Float32
  const r=SNR*Math.sqrt(Math.random()),a=Math.random()*TAU,tp=i%3==2?2+5*Math.pow(Math.random(),1.5):SNY1;SNF.push({x:Math.cos(a)*r,y:mr(SNY0,tp),z:Math.sin(a)*r,tp,ph:Math.random()*6.28,v:mr(.55,.85)+e*3.2,fl:.15+e*2.2,ff:mr(.6,1.6)})}}
 snG.setAttribute("position",new T.BA(snP,3));snG.setAttribute("aS",new T.BA(snS,1));snG.setAttribute("aT",new T.BA(snT,1));snG.setAttribute("aR",new T.BA(snR,1));snG.setAttribute("aA",new T.BA(snA,1));
 /* same look as the yards' flakes (shared live uniforms) but capped on screen, so no flake near the lens grows into a sticker */
-const snM=X.qc.material.clone();snM.uniforms=X.qc.material.uniforms;snM.vertexShader=X.qc.material.vertexShader.replace("gl_PointSize=max(px,2.)*dpr","gl_PointSize=clamp(px,2.,max(2.,scale*.047))*dpr");
+const snM=X.qc.material.clone();snM.uniforms={...X.qc.material.uniforms,uDay:{value:0}};snM.vertexShader=X.qc.material.vertexShader.replace("gl_PointSize=max(px,2.)*dpr","gl_PointSize=clamp(px,2.,max(2.,scale*.047))*dpr");
 const snow=new T.Points(snG,snM);snow.frustumCulled=false;snow.visible=false;snow.renderOrder=8;root.add(snow);
 function snowUpd(dt,t,wn){const sl=qt.sl??(Ct.snowLv||2),SI=Math.max(0,Math.min(4,Math.floor(sl))),SF=sl-SI,SA=a=>a[SI]+(a[Math.min(4,SI+1)]-a[SI])*SF;
- const n=Math.min(SNN,Math.floor((qt.snowf||0)*SNN*SA([0,.2,.5,.85,1])));snow.visible=n>10;if(!snow.visible)return;
+ const n=Math.min(SNN,Math.floor((qt.snowf||0)*SNN*SA([0,.2,.5,.85,1])));snow.visible=n>10;if(!snow.visible)return;snM.uniforms.uDay.value=.5*cl(1-(qt.night||0),0,1);
  const SV=SA([0,.8,.9,1,1.5]),SD=sl>3?(sl-3)*(2.2+1.2*Math.sin(t*.7)):0,c=De.position,R2=SNR*SNR;
  for(let i=0;i<n;i++){const k=SNF[i];
   k.y-=k.v*SV*dt;k.x+=((wn+SD)*(2.5+k.fl*3)+Math.sin(t*k.ff+k.ph)*k.fl)*dt;k.z+=Math.cos(t*k.ff*.9+k.ph)*k.fl*.8*dt;

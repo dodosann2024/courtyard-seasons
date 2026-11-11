@@ -296,11 +296,11 @@ const REEF=[];
 const fallU={uFT:{value:0},uFA:{value:1},uWind:Ue.uWind};
 /* rim falls: separate ribbons of water poured over the lip, heavy falls, thinner falls and trickles with dry gaps between;
    each bends glassy over the edge, accelerates and thins, tears into streaks and dissolves into mist above the cloud bank */
-const FALLS=[];{let a=1.62;const kinds=[[.13,.24,.75,1],[.05,.1,.4,.7],[.012,.03,.12,.35]],nR=MOB?9:16;
- for(let k=0;k<nR;k++){const ty=k%3===0?0:rnd()<.45?1:2,K=kinds[ty],hw=rr(K[0],K[1]);FALLS.push({a:a+hw,hw,h:rr(K[2],K[3]),sd:rnd()*50});a+=hw*2+rr(.12,TAU/nR*1.5-hw*2)}
- const sc=TAU/(a-1.62);for(const f of FALLS){f.hw*=Math.min(1,sc);f.a=1.62+(f.a-1.62)*sc}}
-{const pos=[],uv=[],kk=[],idx=[];for(const f of FALLS){const nu=f.hw<.04?3:MOB?8:12,nv=MOB?26:36,o=pos.length/3,dr=.45+.45*f.h;
-  for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.35),w=f.hw*(1-.55*s*(1-.35*f.h)),r=R+.02+dr*s+.06*s*s,y=-.1-(.05*s+8.4*s*s);
+const FALLS=[];{const kinds=[[.09,.16,.75,1],[.04,.075,.4,.7],[.01,.025,.12,.35]],pat=[0,2,1,2,1,0,2,1],nR=MOB?9:16,sl=TAU/nR;
+ for(let k=0;k<nR;k++){const ty=pat[k%pat.length],K=kinds[ty],hw=rr(K[0],K[1]),h=rr(K[2],K[3]);FALLS.push({a:1.62+k*sl+rr(-.3,.3)*Math.max(0,sl-2*hw),hw,h,sd:rnd()*50,D:(1.5+2.4*h)*rr(.85,1.15)})}}
+{const pos=[],uv=[],kk=[],idx=[];for(const f of FALLS){const nu=f.hw<.04?3:MOB?8:12,nv=MOB?26:36,o=pos.length/3;
+  for(let j=0;j<=nv;j++){/* thrown clear of the wall on a parabola, after a low glassy hump over the lip; the width swells and pinches on the way down */
+   const s=Math.pow(j/nv,1.35),w=f.hw*(1-.5*s*(1-.35*f.h))*(1+.22*Math.sin(s*7.+f.sd)*Math.min(1,s*5.)),r=R+.02+f.D*s,y=-.1+.1*Math.sin(Math.PI*Math.min(1,s/.09))*(.5+.5*f.h)-11.*s*s;
    for(let i=0;i<=nu;i++){const x=i/nu,an=f.a+(x*2-1)*w;pos.push(r*Math.cos(an),y,r*Math.sin(an));uv.push(x,s);kk.push(f.h,f.sd,f.hw)}}
   for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}}
  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("uv",new T.BA(new Float32Array(uv),2));g.setAttribute("aK",new T.BA(new Float32Array(kk),3));g.setIndex(idx);
@@ -315,17 +315,17 @@ const FALLS=[];{let a=1.62;const kinds=[[.13,.24,.75,1],[.05,.1,.4,.7],[.012,.03
   float cx=x*cols+sd+.6*sin(s*5.+sd)*s;
   float n=vn(vec2(cx,v*1.6))*.6+vn(vec2(cx*2.7+3.1,v*3.2))*.4;
   float edge=smoothstep(0.,.16+.2*s,x)*smoothstep(1.,.84-.2*s,x);
-  float tear=mix(-.6,.62,smoothstep(.08,.55,s))*(1.25-.45*h);
+  float tear=mix(-.6,.44,smoothstep(.08,.6,s))*(1.15-.35*h);
   float body=smoothstep(tear,tear+.16,n)*edge;
   float lip=1.-smoothstep(0.,.07,s);
   /* thin fast streaks of loose water in the broken part */
-  float id=floor(x*cols*2.3+sd),fv=fract(v*.9+h1(id)*9.);float dash=step(.72,h1(id+floor(v*.9)*7.3))*smoothstep(0.,.03,fv)*(1.-smoothstep(.06,.16,fv))*smoothstep(.25,.45,s)*(1.-smoothstep(.6,.8,s))*edge;
-  float mst=smoothstep(.45,.8,s)*(1.-smoothstep(.85,1.,s))*smoothstep(0.,.4,x)*smoothstep(1.,.6,x)*(.3+.7*vn(vec2(x*4.+sd,v*.7)));
-  float a=body*mix(.42,.3+.45*h,smoothstep(.05,.3,s))*(1.-smoothstep(.5,.8,s))+dash*.35+mst*.22*h;
+  float id=floor(x*cols*2.3+sd),fv=fract(v*.9+h1(id)*9.);float dash=step(.72,h1(id+floor(v*.9)*7.3))*smoothstep(0.,.03,fv)*(1.-smoothstep(.06,.16,fv))*smoothstep(.25,.45,s)*(1.-smoothstep(.75,.92,s))*edge;
+  float mst=smoothstep(.55,.85,s)*(1.-smoothstep(.9,1.,s))*smoothstep(0.,.4,x)*smoothstep(1.,.6,x)*(.3+.7*vn(vec2(x*4.+sd,v*.7)));
+  float a=body*mix(.42,.4+.45*h,smoothstep(.05,.3,s))*(1.-smoothstep(.62,.9,s))+dash*.4+mst*.26*h;
   a=max(a,lip*edge*(.5+.3*h));
   float aer=clamp(h*smoothstep(.06,.5,s)*.95+.4*h*(n-.5),0.,1.)*.9;
   vec3 lit=(uAmb*.95+uKey*.62)*.3183*1.1;
-  vec3 wat=mix(uScat*1.15+uDeep*.12,vec3(.9,.95,.98),aer)*lit;
+  vec3 wat=mix(uScat*1.15+uDeep*.12,vec3(.93,.97,1.),aer)*lit*(1.+.25*smoothstep(.35,.7,s));
   /* the glassy bend over the lip carries sky and turquoise */
   vec3 sky=mix(uBot,uTop,.55);float fr=lip*(.55+.45*sin(x*9.+sd+uFT*.6));
   vec3 c=mix(wat,mix(uScat*1.1*lit*1.4,sky,.45),fr*.8)+lip*(1.-smoothstep(0.,.03,s))*.18*(uAmb*.4+uKey)*.3183;
@@ -648,7 +648,17 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  const q=cl(.3+.22*S,.3,.82);for(let i=0;i<NW;i++){const A=W.A0[i]*S*(i<2?1+.15*storm:1);W.A[i]=A;W.Q[i]=A>1e-5?Math.min(1.25,q/(W.k[i]*A*NW)):0}
  U.uHI.value=.5/Math.max(.05,(W.A[0]+W.A[1]+W.A[2])*.8);U.uWhite.value=ss(1.05,2.2,S)*.9+ss(.55,1,wn)*.35;U.uDet.value=.75+.5*wn+.25*Math.min(1,S-.6);U.uGlit.value=1-.55*jt.uCover.value*jt.uCover.value;
  /* the ship sails in place: the water streams past it */
- st.vs+=((.2+.62*wn)*(storm?.85:1)-st.vs)*ease(.25,dt);st.yaw=.07*Math.sin(t*.11)+.035*Math.sin(t*.27+1.3);const psi=st.psi+st.yaw,fx=Math.cos(psi),fz=-Math.sin(psi),ux=st.vs*fx,uz=st.vs*fz;
+ st.vs+=((.2+.62*wn)*(storm?.85:1)-st.vs)*ease(.25,dt);
+ /* she keeps her canvas turned to the onlooker: if the yards stand nearly edge-on to the view she wears round, slowly, to a point of sail
+    (never closer than a little forward of the beam) where the sails show a quarter of their face and the belly reads in silhouette;
+    the course holds while a whale is out, since its route is laid along the heading */
+ {const tw=wn*1.2+.15,vw=ps=>{const fx=Math.cos(ps),fz=-Math.sin(ps),ax=tw*Math.cos(a0)-st.vs*fx,az=tw*Math.sin(a0)-st.vs*fz,lx=ax*fx+az*fz,lz=-ax*fz+az*fx,
+   b=cl(Math.atan2(lz,lx)*.8,-.6,.6),pc=Math.atan2(De.position.z-ship.position.z,De.position.x-ship.position.x);let d=(((pc+ps-b)%Math.PI)+Math.PI)%Math.PI;d=Math.min(d,Math.PI-d);
+   const th=Math.atan2(Math.sin(a0+ps),Math.cos(a0+ps));st.hq=Math.abs(Math.sin(pc+ps));return Math.abs(th)>1.75?9:d};
+  if(st.psiT==null){st.psiT=st.psi;st.psiV=0;st.hk=0}st.hk-=dt;
+  if(st.hk<=0&&!WH.on&&Math.abs(st.psiT-st.psi)<.03){st.hk=.5;const d0=vw(st.psi);if(d0<.24||d0>1.15||st.hq<.5){let best=st.psiT,bs=1e9;for(let k=-36;k<=36;k++){const ps=st.psi+k*.0873,d=vw(ps);if(d>1.01||d<.35||st.hq<.7)continue;const sc=Math.abs(d-.7)+.12*Math.abs(k*.0873)+.6*(1-st.hq);if(sc<bs){bs=sc;best=ps}}st.psiT=best}}
+  const dp=WH.on?0:st.psiT-st.psi;st.psiV+=(cl(dp*.3,-.075,.075)-st.psiV)*ease(1.2,dt);st.psi+=st.psiV*dt}
+ st.yaw=.07*Math.sin(t*.11)+.035*Math.sin(t*.27+1.3);const psi=st.psi+st.yaw,fx=Math.cos(psi),fz=-Math.sin(psi),ux=st.vs*fx,uz=st.vs*fz;
  st.flowX+=ux*dt;st.flowZ+=uz*dt;U.uFlow.value.set(st.flowX,st.flowZ);
  for(let i=0;i<NW;i++){W.ph[i]=(W.ph[i]-W.w[i]*dt+W.k[i]*(W.dx[i]*ux+W.dz[i]*uz)*dt)%TAU;W.P[i]=W.ph[i]}
  /* buoyancy from the same wave model at four hull stations */
@@ -688,8 +698,6 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  /* bow spray when the bow plunges */
  {const hw=hAt(bowW.x,bowW.z).y,rel=bowW.y-hw,rv=(rel-st.bowPrev)/Math.max(dt,1e-3);st.bowPrev=rel;let nE=dt*(10+44*spd*(.45+wn))*(rel<.25?1:.25);if(rv<-.25&&rel<.3)nE+=dt*120*Math.min(1,-rv-.25);
   for(;nE>0;nE--){if(nE<1&&rnd()>nE)break;const sg=rnd()<.5?-1:1;emit(bowW.x+rr(-.08,.08),hw+.03,bowW.z+rr(-.08,.08),fx*rr(.1,.5)+sx*sg*rr(.3,.9),rr(.6,1.6)*(1+S*.25),fz*rr(.1,.5)+sz2*sg*rr(.3,.9),rr(.6,1.2),rr(.03,.07),.75)}}
- /* rim spray blown off the lip in strong wind */
- {let nE=dt*Math.max(0,wn-.45)*40;for(;nE>0;nE--){if(nE<1&&rnd()>nE)break;const a=rnd()*TAU;emit(Math.cos(a)*(R-.05),-.1,Math.sin(a)*(R-.05),Math.cos(a)*rr(.2,.6)+wn*1.4,rr(.1,.6),Math.sin(a)*rr(.2,.6)+wn*.4,rr(.8,1.6),rr(.05,.1),.45)}}
  /* rain: patter on the deck and canvas (rings on the water are in the sea shader) */
  const rain=qt.rain;U.uRain.value=rain;
  {let nE=dt*rain*(MOB?70:110);for(;nE>0;nE--){if(nE<1&&rnd()>nE)break;const lx=rr(-2.4,2.5),y=deckY(lx),hw=hwAt(lx,y);if(hw<.05)continue;const p=toW(lx,y+.01,rr(-hw,hw)*.92,tmpV2);
@@ -711,7 +719,7 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
   const u=q2.age/q2.life;spray.p[i*3]=q2.x;spray.p[i*3+1]=q2.y;spray.p[i*3+2]=q2.z;spray.a[i]=q2.a*(1-u)*Math.min(1,q2.age*12);spray.s[i]=q2.sz*(1+u*.8)}
  spray.g.attributes.position.needsUpdate=spray.g.attributes.aA.needsUpdate=spray.g.attributes.aS.needsUpdate=true;
  /* mist under the rim */
- for(let i=0;i<mist.n;i++){const m=MI[i];m.age+=dt;if(m.age>m.life){m.age=0;const f=FALLS[i%FALLS.length];m.a=f.a+rr(-1,1)*f.hw*1.3;m.w=f.h;m.life=rr(7,13)}const u=m.age/m.life,r=R+.6+m.vr*m.age*2.5+.7*u,y=-4.4-m.vy*m.age*2.2-u*2.4;
+ for(let i=0;i<mist.n;i++){const m=MI[i];m.age+=dt;if(m.age>m.life){m.age=0;const f=FALLS[i%FALLS.length];m.a=f.a+rr(-1,1)*f.hw*1.3;m.w=f.h;m.D=f.D;m.life=rr(7,13)}const u=m.age/m.life,r=R+(m.D||2)*.75+m.vr*m.age*2.5+.7*u,y=-7.-m.vy*m.age*2.2-u*2.4;
   mist.p[i*3]=Math.cos(m.a)*r+wn*u*1.2;mist.p[i*3+1]=y;mist.p[i*3+2]=Math.sin(m.a)*r;mist.a[i]=.42*(.3+.7*m.w)*Math.sin(Math.PI*Math.pow(u,.7))*(1-st.ice*.4);mist.s[i]=m.sz*(.6+.9*u)}
  mist.g.attributes.position.needsUpdate=mist.g.attributes.aA.needsUpdate=mist.g.attributes.aS.needsUpdate=true;
  for(let i=0;i<cbank.n;i++){const b=CB[i];b.a+=b.w*dt;cbank.p[i*3]=Math.cos(b.a)*b.r;cbank.p[i*3+1]=b.y+.3*Math.sin(t*.07+b.ph);cbank.p[i*3+2]=Math.sin(b.a)*b.r;cbank.a[i]=.3+.08*Math.sin(t*.05+b.ph*2.);cbank.s[i]=b.sz}

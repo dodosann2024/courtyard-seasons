@@ -875,7 +875,7 @@ const wTrk=(ox,oz,hx,hz,k,l,o)=>{if(Math.abs(k)<1e-4){o.x=ox+hx*l;o.z=oz+hz*l;o.
 /* fluke stroke: a vertical wave driven from the peduncle, head steady, growing toward the tail, gentler near the surface */
 const wUnd=(s,yl,x,z)=>{const H=WH;if(!(H.ua>1e-3))return 0;const e=Math.pow(ss(.28,1,s),1.6);return H.ua*e*cl((hAt(x,z).y-yl-.05)/.35,.2,1)*Math.sin(H.uph-s*3.2)};
 /* until the stock arches, the tail end and flukes ride just under the water */
-const wTS=s=>.1*ss(.78,1,s)*(1-ss(.2,.65,WH.bend));
+const wTS=s=>.2*ss(.72,1,s)*(1-ss(.3,.8,WH.bend));
 function whaleF(s,f){const H=WH,u=H.uh-s*WLN;if(s<=.82||H.bend<=0){pAt(u,PO);const c=Math.cos(PO.f),sn=Math.sin(PO.f);const T=wTrk(H.ox,H.oz,H.hx,H.hz,H.kp||0,PO.x,WTK),x=T.x,z=T.z,dx=T.dx,dz=T.dz,yl=H.y0+PO.y+(H.ag>0?H.ag*.14*Math.exp(-Math.pow((u-WP.apex)/.55,2)):0)-.035*(1-H.ag)-wTS(s);
   const lf=(H.pl||0)*ss(.6,.93,s);H.pl0=lf;f.p.set(x,yl+ss(-.95,-.05,yl)*hAt(x,z).y*.85+lf,z);f.t.set(dx*c,sn,dz*c);f.n.set(-dx*sn,c,-dz*sn);f.b.set(-dz,0,dx);
   if(H.ua>1e-3){const d=wUnd(s,yl,x,z),sl=(wUnd(s+.02,yl,x,z)-wUnd(s-.02,yl,x,z))/(.04*WLN);f.p.addScaledVector(f.n,d);const tx=f.t.x,ty=f.t.y,tz=f.t.z;

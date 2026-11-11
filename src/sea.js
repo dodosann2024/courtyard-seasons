@@ -336,11 +336,12 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   float st=sA*.5+sB*.3+sC*.2,sBri=vn(vec2(sx*.31+21.,s*.6-uFT*.2)),sDen=vn(vec2(sx*.53+40.,s*.9-uFT*.28));
   float sab=clamp(fwidth(sx*4.7)*.8-.2,0.,1.);
   float thr=mix(.66,.46,aer)-.08*sDen;
-  float stk=mix(smoothstep(thr,thr+.1,st),.35*(.3+.7*aer),sab);
+  float sabB=clamp(fwidth(sx*1.9)*.8-.2,0.,1.),sabA=clamp(fwidth(sx*.7)*.8-.2,0.,1.),stLo=sA*.62+sB*.38;
+  float stk=mix(mix(smoothstep(thr,thr+.08,st),smoothstep(thr,thr+.12,stLo),sab),mix(smoothstep(thr-.05,thr+.2,sA),.2*(.3+.7*aer),sabA),sabB);
   float fine=mix(smoothstep(.62,.7,sC)*smoothstep(.3,.7,aer),.15*aer,clamp(fwidth(sx*4.7)*1.2-.2,0.,1.));
   /* lower down the streaks tear into lengths, threads and drops: gaps open along each streak and grow as it falls */
   float bs=smoothstep(.5,.95,s);
-  float tear=smoothstep(.25+.45*bs,.4+.45*bs,vn(vec2(sx*1.3+3.,s*9.-uFT*3.2))*.65+sB*.35);
+  float tear=smoothstep(.22+.22*bs,.36+.26*bs,vn(vec2(sx*1.3+3.,s*9.-uFT*3.2))*.65+sB*.35);
   stk*=mix(1.,tear,smoothstep(.4,.7,s));
   /* where it pours over: a narrow churn of streaky froth, not a cloth of foam */
   float fe=(vn(vec2(tx*.4+sd,uFT*.4))-.5)*.06,fs=(vn(vec2(tx*1.9+2.,uFT*.7))-.5)*.04;
@@ -362,19 +363,24 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   vec3 Nw=normalize(vN);if(dot(Nw,Vd)<0.)Nw=-Nw;vec3 Rf=reflect(-Vd,Nw);float F=.04+.96*pow(1.-max(dot(Nw,Vd),0.),5.);
   float sun=max(dot(Rf,normalize(uSunDir)),0.);
   /* the water body: thick translucent blue-grey glass, thinning to a faint continuous veil below; brighter along its sides and at grazing angles */
-  float sideG=smoothstep(.16,.02,ed)*edge;
-  float body=(.74-.26*aer-.3*bs+.06*core)*edge*(.75+.25*vn(vec2(sx*.25,s*1.5-uFT*.4)));
+  float sideG=smoothstep(.1,.02,ed)*edge*(.4+.6*vn(vec2(sx*.2,s*3.-uFT*.6)));
+  float body=(.78-.26*aer-.3*bs+.06*core)*edge*(.75+.25*vn(vec2(sx*.25,s*1.5-uFT*.4)));
+  float bk=mix(mix(smoothstep(.44,.6,sA*.55+sB*.45),smoothstep(.35,.65,sA),sabB),.45,sabA);body*=mix(1.,.06+.94*bk,smoothstep(.25,.7,s));
+  float ndv=abs(dot(Nw,Vd));
   float a=body+stk*(.35+.6*sDen)*edge+fine*.35*edge+fringe*.55;
-  a=max(a,foam*.9*edge);a=a*(1.-smoothstep(.93,1.,s))+rainA*.8+grain*.9;
+  a=max(a,foam*.9*edge);a*=mix(.12,1.,smoothstep(.03,.32,ndv)*(1.-lz)+lz);a=a*(1.-smoothstep(.93,1.,s))+rainA*.8+grain*.9;
   vec3 lit=(uAmb*.95+uKey*.62)*.3183,sky=mix(uBot,uTop,.6);
-  vec3 glass=mix(vec3(.045,.08,.115),uScat*.25,.2)*lit*1.4*(1.-.3*core*(1.-aer));vec3 wht=vec3(.93,.97,1.)*lit*1.7;
-  glass=mix(glass,sky*.75+glass*.4,clamp(F*.35+sideG*.4,0.,1.));
+  vec3 glass=mix(vec3(.032,.062,.1),uScat*.2,.15)*lit*1.4*(1.-.3*core*(1.-aer));vec3 wht=vec3(.93,.97,1.)*lit*1.7;
+  glass=mix(glass,sky*.6+glass*.4,clamp(F*.25+sideG*.3,0.,1.));
   float shn=pow(vn(vec2(sx*.12+sd,s*3.-uFT*.9)),3.)*(1.-smoothstep(.15,.45,s))*(1.-lip)*edge;
   glass+=(sky*.4+uSunCol*uSunVis*(.2+.8*pow(sun,6.)))*shn*.7;
   float wv=clamp(stk*(.45+.55*sBri)*(.6+.5*aer)+fine*.5+fringe,0.,1.);
   vec3 c=mix(glass,wht*(.8+.25*sC),wv);
-  float band=exp(-(s-.03)*(s-.03)*3086.)*(.6+.4*vn(vec2(tx*.3-uT*.8,3.)));
-  c=mix(c,mix(glass,sky,.35+.4*F)+lit*band*.6,lip*.75);a=max(a,edge*lip*(.5+.25*h+.2*band));
+  float rq=clamp(s/.1,0.,1.),rv=vn(vec2(tx*.45+sd,uFT*.25)),rw=vn(vec2(tx*1.7+13.,s*30.-uFT*1.3));
+  float roll=pow(sin(rq*3.1416),.7)*(.35+.65*rv);
+  float hl=exp(-(s-.025-.02*rv)*(s-.025-.02*rv)*6000.)*smoothstep(.45,.7,rw*.6+vn(vec2(tx*3.3+7.,uT*.35))*.4);
+  vec3 rc=glass*(.7+.5*rv)+sky*(.12+.3*roll)*(.4+.6*rw)+(uSunCol*uSunVis*.8+lit*.9)*hl;
+  c=mix(c,rc,lip*.85);a=max(a,edge*lip*(.55+.2*h+.15*roll+.3*hl));
   c=mix(c,wht*(.95+.15*fo),clamp(foam*1.1,0.,1.));
   c=mix(c,wht*1.12,clamp(rainA+grain,0.,1.));
   float back=smoothstep(.15,-.25,dot(normalize(vW.xz),normalize(cameraPosition.xz-vW.xz)))*lz;
@@ -389,7 +395,7 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   c=mix(c,vec3(.9,.95,1.)*(uAmb+uKey*.4)*.3183,uIce*.55);
   /* seen through the bowl the fall is behind a body of water: it takes the water's colour and fades */
   float L=thru(cameraPosition,vW);vec3 Tr=exp(-L*vec3(.3,.11,.08));c=c*Tr+(uDeep*.4+uScat*.6)*lit*(1.-Tr);a*=mix(.15,1.,Tr.g);
-  c=mix(c,uFogC,fogMix(length(cameraPosition-vW)));
+  c=mix(c,uFogC,fogMix(length(cameraPosition-vW))*.6);
   gl_FragColor=vec4(c,clamp(a,0.,1.)*uFA*(1.-uIce*.35));
   #include <colorspace_fragment>
   }`});
@@ -456,7 +462,7 @@ const tBillow=srgbTex(canvas(128,128,(g)=>{const D=g.createImageData(128,128),cx
 const mist=ptSys(MOB?120:190,tBillow);mist.o.renderOrder=3;root.add(mist.o);
 /* fine spray shed all down the falls, most of it where the water pours over and off the sides: tiny bright streaked droplets drifting outward */
 const tGrain=srgbTex(canvas(32,32,(g)=>{const D=g.createImageData(32,32);for(let y=0;y<32;y++)for(let x=0;x<32;x++){const dx=(x-15.5)/4.2,dy=(y-15.5)/11,hd=(y-21)/4.5,v=Math.max(.55*Math.exp(-dx*dx-dy*dy*dy*dy),Math.exp(-dx*dx*1.6-hd*hd*1.6)),k=(y*32+x)*4;D.data[k]=D.data[k+1]=D.data[k+2]=255;D.data[k+3]=Math.round(255*Math.min(1,v))}g.putImageData(D,0,0)}));
-const spr=ptSys(MOB?240:420,tGrain);spr.o.renderOrder=4;root.add(spr.o);const HF=FALLS.filter(f=>f.h>.35);
+const spr=ptSys(MOB?340:620,tGrain);spr.o.renderOrder=4;root.add(spr.o);const HF=FALLS.filter(f=>f.h>.35);
 const FSP=[];for(let i=0;i<spr.n;i++)FSP.push({age:rr(0,2),life:1,a:0,r:0,y:0,vr:0,vy:0,w:0,sz:1});
 const MI=[];for(let i=0;i<mist.n;i++)MI.push({a:FALLS[i%FALLS.length].a,w:FALLS[i%FALLS.length].h,r:0,y:0,age:rr(0,12),life:rr(7,13),sz:rr(1.3,2.8),vy:rr(.14,.3),vr:rr(.03,.12),k:rr(.25,1)});
 /* a slow bank of cloud below the disc that the falls dissolve into */
@@ -913,7 +919,7 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  for(let i=0;i<mist.n;i++){const m=MI[i];m.age+=dt;if(m.age>m.life){m.age=0;const f=FALLS[i%FALLS.length];f.cl||(f.cl=[rr(.62,.72),rr(.8,.88),rr(.95,1.05)]);m.a=f.a+rr(-1,1)*f.hw*1.4;m.w=f.h;m.s0=f.cl[(rnd()*3)|0]+rr(-.03,.03);m.k=rr(.25,1);m.life=rr(6,11)}const u=m.age/m.life,s0=m.s0||(m.s0=rr(.62,1)),r=R+.25+m.vr*m.age*1.5+.4*u,y=-FALL_H*s0*s0-m.vy*m.age*1.2-u*.8;
   const bw=.35*Math.sin(m.age*.9+i);mist.p[i*3]=Math.cos(m.a)*r+wn*u*1.2-Math.sin(m.a)*bw;mist.p[i*3+1]=y+.25*Math.sin(m.age*1.1+i*1.7);mist.p[i*3+2]=Math.sin(m.a)*r+Math.cos(m.a)*bw;mist.a[i]=1.1*(m.k||.6)*(.3+.7*m.w)*Math.sin(Math.PI*Math.pow(u,.7))*(1-st.ice*.4);mist.s[i]=m.sz*(.5+.8*m.w)*(.7+.7*u)*(1+.18*Math.sin(m.age*1.3+i*2.1))}
  mist.g.attributes.position.needsUpdate=mist.g.attributes.aA.needsUpdate=mist.g.attributes.aS.needsUpdate=true;
- for(let i=0;i<spr.n;i++){const q=FSP[i];q.age+=dt;if(q.age>q.life){const f=HF[i%HF.length],sg=rnd()<.5?-1:1,u0=rnd(),top=u0<.28,s0=top?rr(.08,.3):u0<.55?rr(.3,.7):rr(.7,1.02);q.age=0;q.life=rr(.7,1.5);q.a=f.a+(top&&rnd()<.6?rr(-.9,.9):sg*rr(.75,1.25))*f.hw*(1+.2*s0);q.r=R+.1+rr(0,.1);q.y=-FALL_H*(s0*s0-.01);q.vr=rr(.12,.5);q.vy=-rr(.6,2)-19*s0;q.w=f.h;q.sz=rr(.3,.75)}
+ for(let i=0;i<spr.n;i++){const q=FSP[i];q.age+=dt;if(q.age>q.life){const f=HF[i%HF.length],sg=rnd()<.5?-1:1,u0=rnd(),top=u0<.2,s0=top?rr(.08,.3):u0<.38?rr(.3,.7):rr(.72,1.04);q.age=0;q.life=rr(.7,1.5);q.a=f.a+((top||s0>.72)&&rnd()<.6?rr(-1,1):sg*rr(.75,1.25))*f.hw*(1+.2*s0);q.r=R+.1+rr(0,.1);q.y=-FALL_H*(s0*s0-.01);q.vr=rr(.12,.5);q.vy=-rr(.6,2)-19*s0;q.w=f.h;q.sz=rr(.3,.75)}
   q.vy-=6*dt;q.r+=q.vr*dt;q.y+=q.vy*dt;const u=q.age/q.life;spr.p[i*3]=Math.cos(q.a)*q.r+wn*u*.5;spr.p[i*3+1]=q.y;spr.p[i*3+2]=Math.sin(q.a)*q.r;spr.a[i]=.8*q.w*Math.sin(Math.PI*Math.min(1,u*1.3))*(1-st.ice*.5);const cd=Math.hypot(spr.p[i*3]-De.position.x,q.y-De.position.y,spr.p[i*3+2]-De.position.z);spr.s[i]=Math.min(q.sz*(1+.4*u)*.45,22*cd/ptScale.value)}
  spr.g.attributes.position.needsUpdate=spr.g.attributes.aA.needsUpdate=spr.g.attributes.aS.needsUpdate=true;
  for(let i=0;i<cbank.n;i++){const b=CB[i];b.a+=b.w*dt;cbank.p[i*3]=Math.cos(b.a)*b.r;cbank.p[i*3+1]=b.y+.3*Math.sin(t*.07+b.ph);cbank.p[i*3+2]=Math.sin(b.a)*b.r;cbank.a[i]=.3+.08*Math.sin(t*.05+b.ph*2.);cbank.s[i]=b.sz}

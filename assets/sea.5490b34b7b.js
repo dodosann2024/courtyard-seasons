@@ -298,11 +298,12 @@ const fallU={uFT:{value:0},uFA:{value:1},uWind:Ue.uWind};
    each bends glassy over the edge, accelerates and thins, tears into streaks and dissolves into mist above the cloud bank */
 const FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,.15,.35]],pat=[0,2,1,2,1,0,2,1],nR=MOB?9:13,sl=TAU/nR;
  for(let k=0;k<nR;k++){const ty=pat[k%pat.length],K=kinds[ty],hw=Math.min(rr(K[0],K[1]),sl*.4),h=rr(K[2],K[3]);FALLS.push({a:1.62+k*sl+rr(-.3,.3)*Math.max(0,sl-2*hw),hw,h,sd:rnd()*50,D:(1.5+2.4*h)*rr(.85,1.15)})}}
-{const pos=[],uv=[],kk=[],nn=[],idx=[];const fy=(f,s)=>-.1+.1*Math.sin(Math.PI*Math.min(1,s/.09))*(.5+.5*f.h)-11.*s*s;for(const f of FALLS){const nu=f.hw<.04?3:MOB?8:12,nv=MOB?26:36,o=pos.length/3;
+{const pos=[],uv=[],kk=[],nn=[],idx=[];const fy=(f,s)=>-.1+.26*Math.sin(Math.PI*Math.min(1,s/.12))*(.6+.4*f.h)-11.*s*s;for(const f of FALLS){const nu=f.hw<.04?3:MOB?8:12,nv=MOB?26:36,o=pos.length/3;
   for(let j=0;j<=nv;j++){/* thrown clear of the wall on a parabola, after a low glassy hump over the lip; the width swells and pinches on the way down */
-   const s=Math.pow(j/nv,1.35),w=f.hw*(1-.5*s*(1-.35*f.h))*(1+.22*Math.sin(s*7.+f.sd)*Math.min(1,s*5.)),r=R+.02+f.D*s,y=-.1+.1*Math.sin(Math.PI*Math.min(1,s/.09))*(.5+.5*f.h)-11.*s*s;
+   const s=Math.pow(j/nv,1.6),w=f.hw*(1-.5*s*(1-.35*f.h))*(1+.22*Math.sin(s*7.+f.sd)*Math.min(1,s*5.)),r=R+.02+f.D*s,y=fy(f,s);
    const dy=(fy(f,s+.002)-fy(f,Math.max(0,s-.002)))/(s>.002?.004:.002),nl=Math.hypot(dy,f.D);
-   for(let i=0;i<=nu;i++){const x=i/nu,an=f.a+(x*2-1)*w;pos.push(r*Math.cos(an),y,r*Math.sin(an));uv.push(x,s);kk.push(f.h,f.sd,f.hw);nn.push(-dy/nl*Math.cos(an),f.D/nl,-dy/nl*Math.sin(an))}}
+   const hmp=.26*Math.sin(Math.PI*Math.min(1,s/.12))*(.6+.4*f.h);
+   for(let i=0;i<=nu;i++){const x=i/nu,an=f.a+(x*2-1)*w;pos.push(r*Math.cos(an),y-hmp*.6*(1-Math.sin(Math.PI*x)),r*Math.sin(an));uv.push(x,s);kk.push(f.h,f.sd,f.hw);nn.push(-dy/nl*Math.cos(an),f.D/nl,-dy/nl*Math.sin(an))}}
   for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}}
  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("uv",new T.BA(new Float32Array(uv),2));g.setAttribute("aK",new T.BA(new Float32Array(kk),3));g.setAttribute("aN",new T.BA(new Float32Array(nn),3));g.setIndex(idx);
  const m=new T.SM({uniforms:{...U,...SKY,...fallU},transparent:true,depthWrite:false,side:2,
@@ -320,27 +321,32 @@ const FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,.15,.35]],
   float nc=max(1.,floor(1.+hw*13.)),cx=x*nc+sd,ci=floor(cx),cf=fract(cx)-.5-.12*sin(s*5.+ci*3.7)*s;
   float prof=1.-abs(cf)*2.,core=smoothstep(-.15,.4+.25*s,prof+(h1(ci*3.1+floor(sd))-.5)*.3);
   /* fine vertical striations streaming down, and the columns fraying apart lower down */
-  float stri=vn(vec2(x*hw*380.+sd,v*.5))*.5+vn(vec2(x*hw*900.+sd*2.,v*1.2))*.5;stri=smoothstep(.15,.85,stri);
+  float stri=vn(vec2(x*hw*380.+sd,v*.5))*.5+vn(vec2(x*hw*900.+sd*2.,v*1.2))*.5;stri=smoothstep(.32,.68,stri);
   float br=vn(vec2(x*hw*70.+sd,v*.32))*.7+stri*.3,fray=smoothstep(.3,.95,s);
   float body=core*(1.-fray*(1.-smoothstep(.3,.62,br)));
   float edge=smoothstep(0.,.05+.2*s,x)*smoothstep(1.,.95-.2*s,x);
   float lip=1.-smoothstep(0.,.07,s);
   float id=floor(x*nc*7.+sd),fv=fract(v*.8+h1(id)*9.);float dash=step(.62,h1(id+floor(v*.8)*7.3))*smoothstep(0.,.03,fv)*(1.-smoothstep(.05,.14,fv))*smoothstep(.45,.65,s)*(1.-smoothstep(.85,.97,s))*edge;
   float mst=smoothstep(.6,.88,s)*(1.-smoothstep(.93,1.,s))*smoothstep(0.,.4,x)*smoothstep(1.,.6,x)*(.4+.6*vn(vec2(x*3.+sd,v*.4)));
-  float a=edge*(body*(.8+.17*h)*(.9+.18*stri)+(1.-core)*.22*(1.-.6*s))*(1.-smoothstep(.82,1.,s))+dash*.55+mst*.45*h;
+  float a=edge*(body*(.8+.17*h)*mix(.55,1.,max(stri,fray*.7))+(1.-core)*.22*(1.-.6*s))*(1.-smoothstep(.82,1.,s))+dash*.55+mst*.45*h;
   a=max(a,edge*lip*(.82+.12*h));
   vec3 lit=(uAmb*.95+uKey*.62)*.3183;vec3 wht=vec3(.93,.97,1.)*lit*1.6;vec3 sky=mix(uBot,uTop,.6);
   /* bright white cores shaded by the striations, sky-tinted thin water at the sides, a cyan glassy lip */
-  vec3 c=mix(mix(sky*.9,uScat*lit*1.6,.35),wht*(.68+.5*stri),clamp(core*(.7+.3*s)+fray*.4,0.,1.));
-  c=mix(c,mix(vec3(.72,.95,1.)*lit*1.35,wht*1.1,smoothstep(.0,.07,s)*.5),lip*(1.-smoothstep(.05,.09,s)));
+  vec3 cy=mix(uScat*lit*1.7,vec3(.55,.86,.97)*lit*1.45,.5);vec3 c=mix(mix(sky*.9,cy,.5),mix(cy,wht*(.82+.25*stri),clamp(stri*1.3+fray*.7,0.,1.)),clamp(core*(.75+.25*s)+fray*.4,0.,1.));
+  vec3 Nw=normalize(vN);float lz=1.-smoothstep(.1,.2,s);
+  /* the roll over the edge: bright glassy top with a highlight band where it faces up, darker sea-cyan as it turns down into the fall */
+  float top=exp(-pow((s-.05)/.028,2.)),und=smoothstep(.065,.095,s)*(1.-smoothstep(.13,.19,s));
+  vec3 lipC=mix(vec3(.6,.92,1.)*lit*1.4,vec3(.1,.38,.48)*lit*1.5,und*(.8+.2*stri))+vec3(.95,1.,1.)*lit*1.6*top*(.75+.25*vn(vec2(x*hw*90.-uT*.9+sd,2.)));
+  c=mix(c,lipC,lz*edge*(1.-smoothstep(.15,.2,s)));a=max(a,edge*lz*(.86+.1*h)*(1.-smoothstep(.12,.2,s)));
   c=mix(c,mix(wht,uFogC,.4),mst*(1.-body));
   /* sun on the rolling lip and glitter in the falling water: sparse sparkles that twinkle as they ride down */
   vec3 N=normalize(vN),Vd=normalize(cameraPosition-vW);if(dot(N,Vd)<0.)N=-N;vec3 Rf=reflect(-Vd,N);float sun=max(dot(Rf,normalize(uSunDir)),0.);
   vec2 gq=vec2(x*nc*14.+sd,v*24.);vec2 gc=floor(gq),gf=fract(gq)-.5;float gh=h1(gc.x*7.1+gc.y*113.3);
-  float gl=step(.8,gh)*exp(-dot(gf,gf)*28.)*pow(.5+.5*sin(uT*(5.+6.*gh)+gh*60.),4.)*(.45+.55*smoothstep(.3,.9,sun))*body;
+  float gz=max(lz,1.-smoothstep(.22,.4,s));float gl=step(.66,gh)*exp(-dot(gf,gf)*45.)*pow(.5+.5*sin(uT*(4.+7.*gh)+gh*60.+dot(Vd,vec3(17.,9.,13.))),14.)*(.4+.6*smoothstep(.2,.9,sun))*max(body,lz)*gz;
+  vec3 gt=mix(vec3(1.,.9,.7),vec3(.65,1.,1.),step(.87,gh));
   float ls=pow(sun,18.)*lip*(.5+.8*vn(vec2(x*hw*160.-uT*1.5+sd,s*40.)));
-  float band=exp(-pow((s-.045)/.02,2.))*(.6+.4*vn(vec2(x*hw*120.-uT*.8+sd,3.)));c+=(sky*.5+lit*.5)*band*.45*edge;
-  c+=(uSunCol*uSunVis*1.2+lit*.6)*(gl*1.6+ls*1.4)*edge;a=max(a,clamp((gl+ls)*edge,0.,1.));
+  float band=exp(-pow((s-.06)/.025,2.))*(.6+.4*vn(vec2(x*hw*120.-uT*.8+sd,3.)));c+=(sky*.5+lit*.5)*band*.45*edge;
+  c+=gt*(uSunCol*uSunVis+lit*.8)*gl*8.*edge+(uSunCol*uSunVis*1.2+lit*.6)*ls*1.4*edge;a=max(a,clamp((gl+ls)*edge,0.,1.));
   c=mix(c,vec3(.9,.95,1.)*(uAmb+uKey*.4)*.3183,uIce*.55);
   /* seen through the bowl the fall is behind a body of water: it takes the water's colour and fades */
   float L=thru(cameraPosition,vW);vec3 Tr=exp(-L*vec3(.3,.11,.08));c=c*Tr+(uDeep*.4+uScat*.6)*lit*(1.-Tr);a*=mix(.15,1.,Tr.g);
@@ -350,27 +356,49 @@ const FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,.15,.35]],
   }`});
  const falls=new T.Mesh(g,m);falls.renderOrder=2;falls.frustumCulled=false;root.add(falls)}
 /* surf at the rim above each fall: whitecaps and foam rolling out to the lip so the water visibly pours out of a breaking surface */
-const RIMF=(()=>{const nu=7,nr=5,pos=[],at=[],idx=[],S=[];for(const f of FALLS){const o=pos.length/3,wd=f.hw*1.5,dr=.9+1.1*f.h;
+const RIMF=(()=>{const nu=MOB?10:12,nr=MOB?6:8,pos=[],at=[],idx=[],S=[],wp=[],wa=[],wi=[],WS=[];for(const f of FALLS){const o=pos.length/3,wd=f.hw*1.5,dr=.9+1.1*f.h;
   for(let j=0;j<=nr;j++)for(let i=0;i<=nu;i++){const u=i/nu,t=j/nr,an=f.a+(u*2-1)*wd,r=R-dr*(1-t)+.01;pos.push(r*Math.cos(an),0,r*Math.sin(an));at.push(u,t,f.h);S.push([r*Math.cos(an),r*Math.sin(an)])}
-  for(let j=0;j<nr;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,q+1,b,q+1,b+1,b)}}
+  for(let j=0;j<nr;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,q+1,b,q+1,b+1,b)}
+  /* a standing band of whitecaps right on the edge, so the surf still shows when the sea is seen edge-on */
+  const o2=wp.length/3,w2=f.hw*1.25;for(let i=0;i<=nu;i++){const u=i/nu,an=f.a+(u*2-1)*w2,x=(R-.04)*Math.cos(an),z=(R-.04)*Math.sin(an);for(let k=0;k<2;k++){wp.push(x,0,z);wa.push(u,k,f.h)}WS.push([x,z])}
+  for(let i=0;i<nu;i++){const q=o2+i*2;wi.push(q,q+2,q+1,q+2,q+3,q+1)}}
  const g=new T.BG(),P=new Float32Array(pos);g.setAttribute("position",new T.BA(P,3));g.setAttribute("aR",new T.BA(new Float32Array(at),3));g.setIndex(idx);
+ const GLI=`float h1(float n){return fract(sin(n*91.7)*43758.55);}
+  /* brief sharp flashes of sun, warm or cyan, twinkling with time and with the angle they are seen from */
+  vec3 glint(vec2 gq,float zone,vec3 Vd){vec2 gc=floor(gq),gf=fract(gq)-.5;float gh=h1(gc.x*3.3+gc.y*71.7);
+   float g=step(.72,gh)*exp(-dot(gf,gf)*45.)*pow(.5+.5*sin(uT*(4.+7.*gh)+gh*50.+dot(Vd,vec3(17.,9.,13.))),14.)*zone;return mix(vec3(1.,.9,.7),vec3(.65,1.,1.),step(.9,gh))*g;}`;
  const m=new T.SM({uniforms:{...U,...SKY,...fallU},transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,
-  vertexShader:`attribute vec3 aR;varying vec3 vR,vW;void main(){vR=aR;vW=position;gl_Position=projectionMatrix*viewMatrix*vec4(position,1.);}`,
-  fragmentShader:`uniform sampler2D tF;uniform float uT,uFT,uFA,uIce,uSunVis,uFogN,uFogF,uHaze;uniform vec3 uAmb,uKey,uFogC,uSunDir,uSunCol;varying vec3 vR,vW;${FOG}
-  float h1(float n){return fract(sin(n*91.7)*43758.55);}
-  void main(){float u=vR.x,t=vR.y,h=vR.z;vec2 p=vW.xz;float ang=atan(p.y,p.x),r=length(p);
+  vertexShader:`uniform sampler2D tF;uniform float uFT;attribute vec3 aR;varying vec3 vR,vW;void main(){vR=aR;vec3 p=position;float ang=atan(p.z,p.x),r=length(p.xz);
+   vec2 q=vec2(ang*${R}.*.9,r*1.4-uFT*1.1);float f=texture2D(tF,q*.35).r*.6+texture2D(tF,q*.8+.37).r*.4;
+   /* foam heaps stand a little proud of the water so they catch the light at grazing angles */
+   p.y+=smoothstep(.45,.85,f)*.13*smoothstep(0.,.6,aR.y)*smoothstep(0.,.25,aR.x)*smoothstep(1.,.75,aR.x);vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
+  fragmentShader:`uniform sampler2D tF;uniform float uT,uFT,uFA,uIce,uSunVis,uFogN,uFogF,uHaze;uniform vec3 uAmb,uKey,uFogC,uSunDir,uSunCol;varying vec3 vR,vW;${FOG}${GLI}
+  void main(){float u=vR.x,t=vR.y,h=vR.z;vec2 p=vW.xz;float ang=atan(p.y,p.x),r=length(p);vec3 Vd=normalize(cameraPosition-vW);
    /* foam carried out toward the lip, breaking into whitecaps as it nears the edge */
    vec2 q=vec2(ang*${R}.*.9,r*1.4-uFT*1.1);float f=texture2D(tF,q*.35).r*.55+texture2D(tF,q*.8+.37).r*.3+texture2D(tF,q*1.9+.71).r*.15;
    float ramp=smoothstep(0.,.75,t),side=smoothstep(0.,.25,u)*smoothstep(1.,.75,u);
    float foam=smoothstep(.55-.45*ramp,.85-.35*ramp,f)*side*smoothstep(0.,.5,t);
-   vec2 gq=vec2(ang*${R}.*14.,r*14.-uFT*6.);vec2 gc=floor(gq),gf=fract(gq)-.5;float gh=h1(gc.x*3.3+gc.y*71.7);
-   float gl=step(.9,gh)*exp(-dot(gf,gf)*30.)*pow(.5+.5*sin(uT*(6.+5.*gh)+gh*50.),6.)*side*smoothstep(.3,.9,t)*uSunVis;
-   float a=clamp(foam*(.7+.28*h)+gl,0.,1.)*uFA*(1.-.5*uIce);if(a<.004)discard;
-   vec3 lit=(uAmb*.95+uKey*.62)*.3183;vec3 c=vec3(.94,.97,1.)*lit*1.3*(.85+.25*f)+uSunCol*gl*1.4;
+   vec3 gl=glint(vec2(ang*${R}.*14.,r*14.-uFT*6.),side*smoothstep(.2,.8,t),Vd);
+   vec3 lit=(uAmb*.95+uKey*.62)*.3183;float gm=max(gl.r,gl.g);
+   float a=clamp(foam*(.7+.28*h)+gm,0.,1.)*uFA*(1.-.5*uIce);if(a<.004)discard;
+   vec3 c=vec3(.94,.97,1.)*lit*1.3*(.8+.3*f)*(.85+.15*smoothstep(.0,.2,vW.y-0.))+gl*(uSunCol*uSunVis+lit*.8)*8.;
    c=mix(c,uFogC,fogMix(length(cameraPosition-vW)));gl_FragColor=vec4(c,a);
    #include <colorspace_fragment>
   }`});const o=new T.Mesh(g,m);o.renderOrder=3;o.frustumCulled=false;root.add(o);
- return{step(){for(let i=0;i<S.length;i++)P[i*3+1]=hAt(S[i][0],S[i][1]).y+.025;g.attributes.position.needsUpdate=true}}})();
+ const g2=new T.BG(),P2=new Float32Array(wp);g2.setAttribute("position",new T.BA(P2,3));g2.setAttribute("aR",new T.BA(new Float32Array(wa),3));g2.setIndex(wi);
+ const m2=new T.SM({uniforms:{...U,...SKY,...fallU},transparent:true,depthWrite:false,side:2,
+  vertexShader:`attribute vec3 aR;varying vec3 vR,vW;void main(){vR=aR;vW=position;gl_Position=projectionMatrix*viewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform sampler2D tF;uniform float uT,uFT,uFA,uIce,uSunVis,uFogN,uFogF,uHaze;uniform vec3 uAmb,uKey,uFogC,uSunDir,uSunCol;varying vec3 vR,vW;${FOG}${GLI}
+  void main(){float u=vR.x,k=vR.y,h=vR.z;float ang=atan(vW.z,vW.x);vec3 Vd=normalize(cameraPosition-vW);
+   float f=texture2D(tF,vec2(ang*${R}.*.5-uFT*.15,k*.4-uFT*.5)).r*.6+texture2D(tF,vec2(ang*${R}.*1.3+.3,k*.9-uFT*.9)).r*.4;
+   float side=smoothstep(0.,.2,u)*smoothstep(1.,.8,u);float a=(1.-smoothstep(.3+.55*f,.6+.4*f,k))*side*(.75+.2*h);
+   vec3 gl=glint(vec2(ang*${R}.*16.,k*3.-uFT*2.),side*(1.-k),Vd);float gm=max(gl.r,gl.g);a=clamp(a+gm,0.,1.)*uFA*(1.-.5*uIce);if(a<.004)discard;
+   vec3 lit=(uAmb*.95+uKey*.62)*.3183;vec3 c=vec3(.94,.97,1.)*lit*1.3*(.8+.3*f)+gl*(uSunCol*uSunVis+lit*.8)*8.;
+   c=mix(c,uFogC,fogMix(length(cameraPosition-vW)));gl_FragColor=vec4(c,a);
+   #include <colorspace_fragment>
+  }`});const o2=new T.Mesh(g2,m2);o2.renderOrder=3;o2.frustumCulled=false;root.add(o2);let fr=0;
+ return{step(){fr++;if(MOB&&fr%2)return;for(let i=0;i<S.length;i++)P[i*3+1]=hAt(S[i][0],S[i][1]).y+.025;g.attributes.position.needsUpdate=true;
+  for(let i=0;i<WS.length;i++){const y=hAt(WS[i][0],WS[i][1]).y;P2[i*6+1]=y-.02;P2[i*6+4]=y+.17}g2.attributes.position.needsUpdate=true}}})();
 /* soft points for mist and spray; size is in world units */
 const ptScale={value:500};
 function ptMat(tex,add){return new T.SM({uniforms:{tS:{value:tex},uSc:ptScale,uC:{value:new C3(1,1,1)},uFogC:U.uFogC,uFogN:U.uFogN,uFogF:U.uFogF,uHaze:U.uHaze},transparent:true,depthWrite:false,blending:add?2:1,
@@ -1499,7 +1527,7 @@ onSea(root);lanL.layers.mask=L2;
 function show(on){root.visible=on;grade.enabled=on;De.layers.set(on?2:0);window.__seaA=on;const x=SX();x&&x.C&&x.C();
  if(!on&&AU.bus&&x&&x.s){AU.bus.gain.setTargetAtTime(0,x.s.currentTime,.25);const L=AU.lp;AU.lp={};setTimeout(()=>{for(const k in L)try{L[k].s.stop()}catch(e){}},1500)}}
 window.__seaShow=show;window.__seaU=update;
-window.__sea={sailSyn,SSG,sailBoom,boomSyn,SBG,diveSyn,DSG,LAT,spawnTurtle,st,ship,root,W,hAt,U,streak,SAILS,FL,De,Ce:X.Ce,Cn,grade:gradeM,jt,trailW,wl,bowL,LOG,WH,POD,GU,AU,WP,whale,WSH,SP,
+window.__sea={FALLS,sailSyn,SSG,sailBoom,boomSyn,SBG,diveSyn,DSG,LAT,spawnTurtle,st,ship,root,W,hAt,U,streak,SAILS,FL,De,Ce:X.Ce,Cn,grade:gradeM,jt,trailW,wl,bowL,LOG,WH,POD,GU,AU,WP,whale,WSH,SP,
  TUR,FISH,FFS,AQU,spawn:(k,a)=>k==="whale"?(WH.on=0,WH.force=a,spawnWhale(ENV)):k==="dolphin"?(POD.on=0,spawnPod(ENV)):k==="turtle"?(TUR.on=0,spawnTurtle(a||0)):k==="ff"?spawnFF(ENV):0};
 window.__seaReady=true;
 };

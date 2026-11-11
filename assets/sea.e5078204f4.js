@@ -1134,7 +1134,7 @@ function spawnWhale(E){const fx=Math.cos(st.psi),fz=-Math.sin(st.psi),u0=WP.su[2
  /* where the hull will be when the whale gets there: the same sway and yaw update() gives it */
  const shp=tt=>{const t=st.t+tt,ya=.07*Math.sin(t*.11)+.035*Math.sin(t*.27+1.3),hx=Math.cos(st.psi+ya),hz=-Math.sin(st.psi+ya),sg0=.35*Math.sin(t*.021);return[ShipC.x+.12*Math.sin(t*.05)+hx*sg0,ShipC.z+.1*Math.sin(t*.037+.7)+hz*sg0,hx,hz]};
  const dr=(tt,o)=>{const f=Math.min(319.99,Math.max(0,tt*4)),i=f|0,k=f-i;return DR[2*i+o]+(DR[2*i+2+o]-DR[2*i+o])*k};
- const go=(ox,oz,hx,hz,kp)=>{Object.assign(WH,{bw:0,wk:0,wp:0,on:1,ox,oz,hx,hz,kp,ua:0,uph:rnd()*TAU,y0:-.185-WP.cy,ag:0,uh:0,v:.5,blown:0,slap:-1,slapped:0,bend:0,hold:0,sa:0,sung:0,drip:0,bt:0,bd:1,sd:rnd()*9,bs:1,ba:0,dv,dvs:0,fin:0,fd:0,end:0,rg:0,st:0});whale.o.material.userData.fd.value=0;WSH.u.fill(0);WSH.w.fill(0);whale.o.visible=true;return 1};
+ const go=(ox,oz,hx,hz,kp)=>{Object.assign(WH,{bw:0,wk:0,wp:0,on:1,ox,oz,hx,hz,kp,ua:0,uph:rnd()*TAU,y0:-.185-WP.cy,ag:0,uh:0,v:.5,blown:0,slap:-1,slapped:0,bend:0,hold:0,sa:0,sung:0,drip:0,bt:0,bd:1,sd:rnd()*9,bs:1,ba:0,dv,dvs:0,ds:0,fin:0,fd:0,end:0,rg:0,st:0});whale.o.material.userData.fd.value=0;WSH.u.fill(0);WSH.w.fill(0);whale.o.visible=true;return 1};
  /* the hull's outline on screen from the current view, as a box in normalised device units */
  const sx=-fz,sz=fx,HB=[1e9,-1e9,1e9,-1e9],pv=new V3();De.updateMatrixWorld();for(const a of[-2.7,3.3])for(const b of[-.85,.85])for(const y of[-.3,1.3]){pv.set(E.cx+fx*a+sx*b,y,E.cz+fz*a+sz*b).project(De);HB[0]=Math.min(HB[0],pv.x);HB[1]=Math.max(HB[1],pv.x);HB[2]=Math.min(HB[2],pv.y);HB[3]=Math.max(HB[3],pv.y)}
  const scr=(x,z)=>{let g=9;for(const y of[.5,0]){pv.set(x,y,z).project(De);if(pv.z>1)continue;g=Math.min(g,Math.max(HB[0]-pv.x,pv.x-HB[1],HB[2]-pv.y,pv.y-HB[3]))}return g-.08};
@@ -1253,6 +1253,10 @@ function life(dt,E){const t=st.t,se=Ct.season,amb=(window.__sndX||{}).amb!==fals
    for(let i=0;i<(MOB?170:320);i++){const a=rnd()*TAU,sp=rr(.5,2.6),r=rr(.2,.6);emitW(ft.x+Math.cos(a)*r,hT+rr(.05,.4),ft.z+Math.sin(a)*r,Math.cos(a)*sp*.8,rr(1.4,4),Math.sin(a)*sp*.8,rr(.6,1.3),rr(.005,.012),.8,.4)}
    for(let i=0;i<10;i++)puff(ft.x+rr(-.4,.4),hT+.15,ft.z+rr(-.4,.4),rr(-.3,.3),rr(.3,.9),rr(-.3,.3),rr(1.2,2.2),rr(.3,.5),.22);U.uPatch.value.set(ft.x,ft.z,U.uT.value,1);ring(ft.x,ft.z,1.6);shot("zWsl",.95,lw,rr(.96,1.02));logE("wSlap",lw)}
   /* clean dive: the flukes slide straight down, leaving a few drops, a ring and a smooth footprint */
+  /* dive entry sound: the swell starts as the trailing edge first meets the water, the gulp when the last of the flukes is under */
+  if(H.dvs&&H.ds<2){const P=whale.P;let te=9,mx=-9;for(const a of WFK){for(const k of a.te){const j=(a.o+k)*3;te=Math.min(te,P[j+1]-hAt(P[j],P[j+2]).y)}
+    if(H.ds)for(let k=0;k<a.v.length;k+=2){const j=(a.o+k)*3;mx=Math.max(mx,P[j+1]-hAt(P[j],P[j+2]).y)}}
+   if(!H.ds&&te<=0){H.ds=1;diveSnd(0,ft);logE("wDvIn",ft)}else if(H.ds===1&&mx<=0&&mx>-9){H.ds=2;diveSnd(1,ft);logE("wDvUnder",ft)}}
   if(H.dvs){if(!H.fin&&ft.y<hT-.02){H.fin=1;lw.set(ft.x,hT,ft.z);ring(ft.x,ft.z,.55);spot(ft.x,ft.z,.16);for(let i=0;i<8;i++)emitW(ft.x+rr(-.1,.1),hT+.03,ft.z+rr(-.1,.1),rr(-.15,.15),rr(.3,.8),rr(-.15,.15),rr(.3,.5),rr(.005,.009),.7);logE("wDive",lw)}
    if(H.fin===1&&ft.y<hT-.35){H.fin=2;U.uSlick.value.set(ft.x,ft.z,U.uT.value,1);U.uSlickH.value.set(H.hx,H.hz,rnd()*6.28,0);H.st=0;H.rg=0;ring(ft.x,ft.z,.7)}
    if(H.fin===2&&H.rg<2){H.st+=dt;if(H.st>[.9,2.1][H.rg]){H.rg++;ring(U.uSlick.value.x,U.uSlick.value.y,.5-H.rg*.12)}}}
@@ -1302,6 +1306,18 @@ function sailSyn(c,out,t0,g,sz){const nz=AU.nz||(AU.nz=(()=>{const b=c.createBuf
  bu(t0,230+120*(1-sz),.8,"bandpass",SSG.th*g,.002,.05,.45);bu(t0,1900,.7,"highpass",SSG.cr*g,.001,.02,.2);bu(t0+.012,3400,.6,"bandpass",SSG.ru*g,.03,.11,.7);
  const o=c.createOscillator(),e=c.createGain();o.type="sine";o.frequency.setValueAtTime(95-30*sz,t0);o.frequency.exponentialRampToValueAtTime(42,t0+.14);e.gain.setValueAtTime(0,t0);e.gain.linearRampToValueAtTime(SSG.lo*g,t0+.006);e.gain.setTargetAtTime(0,t0+.006,.07);o.connect(e);e.connect(out);o.start(t0);o.stop(t0+.5)}
 const SSG={fl:.55,th:1.6,cr:.18,ru:.3,lo:.32};
+/* whale dive entry, part 0: a soft swell of water closing over the tail (low-passed noise closing down over about a second) with runoff plips;
+   part 1: the gulp as the flukes go under, a rising bubble over a soft low thump and a muffled puff, then two small bubbles */
+function diveSyn(c,out,t0,part){const nz=AU.nz||(AU.nz=(()=>{const b=c.createBuffer(1,c.sampleRate*1.2|0,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=rnd()*2-1;return b})());
+ const ns=(t,len,fs,a,at,hold,dc)=>{const s=c.createBufferSource(),e=c.createGain();s.buffer=nz;let n=s;for(const[ty,f0,f1,q]of fs){const f=c.createBiquadFilter();f.type=ty;f.Q.value=q;f.frequency.setValueAtTime(f0,t);if(f1!==f0)f.frequency.exponentialRampToValueAtTime(f1,t+len*.85);n.connect(f);n=f}
+   e.gain.setValueAtTime(0,t);e.gain.linearRampToValueAtTime(a,t+at);e.gain.setTargetAtTime(0,t+at+hold,dc);n.connect(e);e.connect(out);s.start(t,rnd()*(1.15-Math.min(1.1,len)));s.stop(t+len)},
+  bub=(t,f0,f1,dur,a,tc)=>{const o=c.createOscillator(),e=c.createGain();o.type="sine";o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);e.gain.setValueAtTime(0,t);e.gain.linearRampToValueAtTime(a,t+.004);e.gain.setTargetAtTime(0,t+.004,tc);o.connect(e);e.connect(out);o.start(t);o.stop(t+dur+tc*6)};
+ if(!part){ns(t0,1.1,[["highpass",160,160,.5],["lowpass",1900,600,.6]],DSG.sw,.22,.1,.22);ns(t0+.05,1.05,[["bandpass",520,330,.9]],DSG.bo,.3,.08,.25);
+  for(let i=0;i<4;i++){const t=t0+.18+.2*i+rr(0,.15),f=rr(1100,2000);bub(t,f,f*1.5,.035,DSG.dr*rr(.6,1),.018)}}
+ else{bub(t0,150,320,.11,DSG.gu,.06);bub(t0,78,52,.12,DSG.th,.08);ns(t0,.4,[["lowpass",520,380,.7]],DSG.pf,.012,0,.07);bub(t0+.13,380,600,.05,DSG.gu*.25,.025);bub(t0+.27,520,820,.04,DSG.gu*.18,.02)}}
+const DSG={sw:.9,bo:.85,dr:.2,gu:.32,th:.3,pf:.5,g:.22};
+function diveSnd(part,p){if(!aOK()||!aBus())return;try{const c=SX().s;sw.set(p.x,Math.max(p.y,0),p.z);const q=spat(sw),d=De.position.distanceTo(sw),g=DSG.g*cl(Math.pow(7/Math.max(d,1),.9),.1,1),pn=c.createStereoPanner?c.createStereoPanner():null,o=c.createGain();o.gain.value=g;
+  if(pn){pn.pan.value=q[0];o.connect(pn);pn.connect(AU.bus)}else o.connect(AU.bus);diveSyn(c,o,c.currentTime+.01,part);LOG.push({k:"snd:dive"+part,t:+st.t.toFixed(3)});LOG.length>60&&LOG.shift()}catch(e){}}
 function sailHit(S){if(!aOK()||!aBus()||AU.sh>4)return;try{const c=SX().s;toW(S.piv?S.piv.position.x:MASTS[2].x-.2,S.piv?(S.top+S.bot)/2:2.6,0,sw);const q=spat(sw),d=De.position.distanceTo(sw),
   sz=S.bmax?cl(S.bmax/.32,.3,1):.7,g=.3*sz*cl(Math.pow(7/Math.max(d,1),.9),.1,1),pn=c.createStereoPanner?c.createStereoPanner():null,o=c.createGain();o.gain.value=g;
   if(pn){pn.pan.value=q[0];o.connect(pn);pn.connect(AU.bus)}else o.connect(AU.bus);AU.sh++;setTimeout(()=>{AU.sh--},700);sailSyn(c,o,c.currentTime+.14,1,sz);LOG.push({k:"snd:sail",t:+st.t.toFixed(3)});LOG.length>60&&LOG.shift()}catch(e){}}
@@ -1355,7 +1371,7 @@ onSea(root);lanL.layers.mask=L2;
 function show(on){root.visible=on;grade.enabled=on;De.layers.set(on?2:0);window.__seaA=on;const x=SX();x&&x.C&&x.C();
  if(!on&&AU.bus&&x&&x.s){AU.bus.gain.setTargetAtTime(0,x.s.currentTime,.25);const L=AU.lp;AU.lp={};setTimeout(()=>{for(const k in L)try{L[k].s.stop()}catch(e){}},1500)}}
 window.__seaShow=show;window.__seaU=update;
-window.__sea={sailSyn,SSG,LAT,spawnTurtle,st,ship,root,W,hAt,U,streak,SAILS,FL,De,Ce:X.Ce,Cn,grade:gradeM,jt,trailW,wl,bowL,LOG,WH,POD,GU,AU,WP,whale,WSH,SP,
+window.__sea={sailSyn,SSG,diveSyn,DSG,LAT,spawnTurtle,st,ship,root,W,hAt,U,streak,SAILS,FL,De,Ce:X.Ce,Cn,grade:gradeM,jt,trailW,wl,bowL,LOG,WH,POD,GU,AU,WP,whale,WSH,SP,
  TUR,FISH,FFS,AQU,spawn:(k,a)=>k==="whale"?(WH.on=0,WH.force=a,spawnWhale(ENV)):k==="dolphin"?(POD.on=0,spawnPod(ENV)):k==="turtle"?(TUR.on=0,spawnTurtle(a||0)):k==="ff"?spawnFF(ENV):0};
 window.__seaReady=true;
 };

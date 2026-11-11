@@ -332,7 +332,7 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   /* aeration: the water whitens with depth as air gets in, carried by streaks that run straight down with only a small jitter */
   float aer=smoothstep(.05,.5,s);
   float sx=tx+.3*(vn(vec2(tx*.23+7.,s*2.6-uFT*.5))-.5);
-  float sA=vn(vec2(sx*.7,s*.8-uFT*.32)),sB=vn(vec2(sx*1.9+5.,s*2.-uFT*.75)),sC=vn(vec2(sx*4.7+9.,s*4.6-uFT*1.5));
+  float sA=vn(vec2(sx*.7,s*1.3-uFT*.4)),sB=vn(vec2(sx*1.9+5.,s*2.-uFT*.75)),sC=vn(vec2(sx*4.7+9.,s*4.6-uFT*1.5));
   float st=sA*.5+sB*.3+sC*.2,sBri=vn(vec2(sx*.31+21.,s*.6-uFT*.2)),sDen=vn(vec2(sx*.53+40.,s*.9-uFT*.28));
   float sab=clamp(fwidth(sx*4.7)*.8-.2,0.,1.);
   float thr=mix(.66,.46,aer)-.08*sDen;
@@ -341,8 +341,10 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   float fine=mix(smoothstep(.62,.7,sC)*smoothstep(.3,.7,aer),.15*aer,clamp(fwidth(sx*4.7)*1.2-.2,0.,1.));
   /* lower down the streaks tear into lengths, threads and drops: gaps open along each streak and grow as it falls */
   float bs=smoothstep(.5,.95,s);
+  /* each strand gives out at its own height, breaking into drops and spray */
+  float endS=.57+.4*vn(vec2(sx*.55+17.,sd))+.04*vn(vec2(sx*2.3+4.,sd+3.)),cut=1.-smoothstep(endS-.1,endS,s),brk=exp(-(s-endS+.03)*(s-endS+.03)*900.);
   float tear=smoothstep(.22+.22*bs,.36+.26*bs,vn(vec2(sx*1.3+3.,s*9.-uFT*3.2))*.65+sB*.35);
-  stk*=mix(1.,tear,smoothstep(.4,.7,s));
+  stk*=mix(1.,tear,smoothstep(.28,.6,s));
   /* where it pours over: a narrow churn of streaky froth, not a cloth of foam */
   float fe=(vn(vec2(tx*.4+sd,uFT*.4))-.5)*.06,fs=(vn(vec2(tx*1.9+2.,uFT*.7))-.5)*.04;
   float fz=smoothstep(.05+fs,.09+fs,s)*(1.-smoothstep(.1+fe,.24+fe,s))*(.5+.5*h);
@@ -350,28 +352,28 @@ const FALL_H=15,FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,
   float foam=fz*smoothstep(.5,.62,fo*.6+st*.4+.12*fz)*mix(1.,.7,clamp(fwidth(tx*8.)-.3,0.,1.));
   /* ragged sides: strands peel off, more as it falls, and loose threads hang outside */
   float fr=vn(vec2(Xw*.45+3.,v*.45)),fr2=vn(vec2(Xw*1.7+11.,v*1.1)),eW=.07+.12*smoothstep(.1,.5,s)+.25*s*s;
-  float edge=smoothstep(0.,.02,ed-eW*(1.-fr*.55-fr2*.45)),fringe=(1.-edge)*smoothstep(.56,.76,n3*.6+fr2*.4)*smoothstep(0.,.012,ed)*smoothstep(.06,.4,s)*(1.-aa*.5);
+  float edge=smoothstep(0.,.02,ed-eW*(1.-fr*.55-fr2*.45)),fringe=(1.-edge)*smoothstep(.56,.76,n3*.6+fr2*.4)*smoothstep(0.,.012,ed)*smoothstep(.06,.4,s)*(1.-aa*.5)*(1.-smoothstep(.3,.6,s));
   /* the foot: the last streaks become rain, thin tapered threads each led by a bright drop */
   float lx=sx*.9,lid=floor(lx),lf=fract(lx)-.5,lph=s*14.-uFT*4.5+h1(lid)*9.,lseg=fract(lph),lk=h1(lid*3.1+floor(lph)*5.7);
   float lw=exp(-lf*lf*(260.+200.*h1(lid)));
   float streak=step(.45,lk)*lw*smoothstep(.0,.35,lseg)*(1.-smoothstep(.55,.62,lseg)),drop=step(.45,lk)*exp(-(lf*lf*180.+(lseg-.6)*(lseg-.6)*81.));
-  float lAA=clamp(max(fwidth(lx),fwidth(lph)*.3)*1.5-.2,0.,1.);float rainA=(streak*.6+drop)*(1.-lAA)*smoothstep(.35,.6,s)*max(bs,(1.-edge)*.6)*(1.-smoothstep(.97,1.,s));
+  float lAA=clamp(max(fwidth(lx),fwidth(lph)*.3)*1.5-.2,0.,1.);float rainA=(streak*.6+drop)*(1.-lAA)*smoothstep(.35,.6,s)*max(max(bs,(1.-edge)*.6),smoothstep(endS-.14,endS,s))*(1.-smoothstep(.97,1.,s));
   /* fine spray beads, thickest at the lip, the sides and the foot */
   vec2 dq=vec2(x*Nt*.9+sd,s*44.-uFT*3.);vec2 dc=floor(dq);float dh=h1(dc.x*17.3+dc.y*71.9);vec2 df=fract(dq)-.5-(vec2(h1(dh*91.3+3.),h1(dh*57.1+8.))-.5)*.7;
-  float gd=.9-.15*fz-.2*(1.-edge)-.22*bs;
+  float gd=.9-.15*fz-.2*(1.-edge)-.22*bs-.3*brk;
   vec2 gw2=fwidth(dq);float grain=step(gd,dh)*exp(-dot(df,df)*70.)*smoothstep(.04,.1,s)*(1.-smoothstep(.97,1.,s))*(1.-clamp(max(gw2.x,gw2.y)*1.5-.3,0.,1.));
   vec3 Nw=normalize(vN);if(dot(Nw,Vd)<0.)Nw=-Nw;vec3 Rf=reflect(-Vd,Nw);float F=.04+.96*pow(1.-max(dot(Nw,Vd),0.),5.);
   float sun=max(dot(Rf,normalize(uSunDir)),0.);
   /* the water body: thick translucent blue-grey glass, thinning to a faint continuous veil below; brighter along its sides and at grazing angles */
-  float sideG=smoothstep(.1,.02,ed)*edge*(.4+.6*vn(vec2(sx*.2,s*3.-uFT*.6)));
+  float sideG=smoothstep(.1,.02,ed)*edge*(.4+.6*vn(vec2(sx*.2,s*3.-uFT*.6)))*(1.-smoothstep(.2,.45,s));
   float body=(.78-.26*aer-.3*bs+.06*core)*edge*(.75+.25*vn(vec2(sx*.25,s*1.5-uFT*.4)));
-  float bk=mix(mix(smoothstep(.44,.6,sA*.55+sB*.45),smoothstep(.35,.65,sA),sabB),.45,sabA);body*=mix(1.,.06+.94*bk,smoothstep(.25,.7,s));
+  float bk=mix(mix(smoothstep(.44,.6,sA*.55+sB*.45),smoothstep(.35,.65,sA),sabB),.45,sabA);body*=mix(1.,.04+.96*bk,smoothstep(.18,.55,s));
   float ndv=abs(dot(Nw,Vd));
   float a=body+stk*(.35+.6*sDen)*edge+fine*.35*edge+fringe*.55;
-  a=max(a,foam*.9*edge);a*=mix(.12,1.,smoothstep(.03,.32,ndv)*(1.-lz)+lz);a=a*(1.-smoothstep(.93,1.,s))+rainA*.8+grain*.9;
+  a=max(a,foam*.9*edge);a*=mix(.12,1.,smoothstep(.03,.32,ndv)*(1.-lz)+lz);a=a*cut+rainA*.8+grain*.9;
   vec3 lit=(uAmb*.95+uKey*.62)*.3183,sky=mix(uBot,uTop,.6);
   vec3 glass=mix(vec3(.032,.062,.1),uScat*.2,.15)*lit*1.4*(1.-.3*core*(1.-aer));vec3 wht=vec3(.93,.97,1.)*lit*1.7;
-  glass=mix(glass,sky*.6+glass*.4,clamp(F*.25+sideG*.3,0.,1.));
+  glass=mix(glass,sky*.6+glass*.4,clamp(F*.25*(1.-.85*aer)+sideG*.3,0.,1.));
   float shn=pow(vn(vec2(sx*.12+sd,s*3.-uFT*.9)),3.)*(1.-smoothstep(.15,.45,s))*(1.-lip)*edge;
   glass+=(sky*.4+uSunCol*uSunVis*(.2+.8*pow(sun,6.)))*shn*.7;
   float wv=clamp(stk*(.45+.55*sBri)*(.6+.5*aer)+fine*.5+fringe,0.,1.);

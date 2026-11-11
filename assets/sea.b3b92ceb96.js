@@ -325,33 +325,51 @@ const FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,.15,.35]],
   float t1=vn(vec2(tx,v*.3)),t2=vn(vec2(tx*2.3+5.,v*.7)),t3=vn(vec2(tx*5.1+9.,v*1.5));
   float aa=clamp(fwidth(tx*5.1)*.6,0.,1.),ab=clamp(fwidth(tx)*.8,0.,1.);
   float th=mix(smoothstep(.52,.78,t1*.5+t2*.3+t3*.2),.38,ab),thl=mix(smoothstep(.45,.7,t2*.5+t3*.5),.45,aa);
-  float aer=smoothstep(.22,.9,s)*(.5+.5*h);
-  /* ragged sides: strands peel off the edges, more as it falls, and a few loose threads hang outside */
-  float fr=vn(vec2(tx*.45+3.,v*.45)),eW=.02+.3*s*s;
-  float edge=smoothstep(0.,.025,ed-eW*(1.-fr)),fringe=(1.-edge)*smoothstep(.6,.82,t3)*smoothstep(0.,.015,ed)*smoothstep(.1,.4,s);
+  /* three zones: a dark glassy upper sheet, a churning white foam tier on the big falls about a third of the way down, then ropes with sky between them */
+  float big=step(.62,h),tS=.4+.03*sin(sd);
+  float sp=smoothstep(tS-.02,tS+.12,s),aer=smoothstep(tS-.05,.95,s)*(.45+.55*h);
+  float thc=mix(smoothstep(.6,.68,t1*.55+t2*.3+t3*.15),.3,ab);
+  /* ragged sides: strands peel off the edges, more and longer below the tier, and loose threads hang outside */
+  float fr=vn(vec2(tx*.45+3.,v*.45)),fr2=vn(vec2(tx*1.7+11.,v*1.1)),eW=.02+.12*sp+.25*s*s;
+  float edge=smoothstep(0.,.02,ed-eW*(1.-fr*.7-fr2*.3)),fringe=(1.-edge)*smoothstep(.55,.75,t3*.6+fr2*.4)*smoothstep(0.,.012,ed)*smoothstep(.1,.45,s)*(1.-aa*.5);
   float lip=1.-smoothstep(0.,.08,s),lz=1.-smoothstep(.06,.14,s);
-  /* the upper tier's foam line on the bigger falls */
-  float tier=step(.62,h)*exp(-pow((s-.3)/.05,2.))*smoothstep(.38,.8,vn(vec2(tx*.7,s*36.-uFT*.5))*.6+th*.4)*.7;
+  /* the foam tier: a broken band of churning white with a torn upper edge, boiling as the water passes through it */
+  float tO=(vn(vec2(tx*.35+sd,uFT*.3))-.5)*.05,tz=exp(-pow((s-tS-tO)/.055,2.));
+  float tn=vn(vec2(tx*1.1,s*48.-uFT*1.1))*.45+vn(vec2(tx*2.9+7.,s*120.-uFT*2.2))*.35+t3*.2;
+  float tier=big*tz*smoothstep(.44,.54,tn+.22*tz-.08);
+  /* below the tier the sheet tears into ropes; the sky gaps between them widen as it falls */
+  float rN=3.+hw*42.,rp=vn(vec2(x*rN+sd*1.3,v*.06))*.7+vn(vec2(x*rN*2.1+sd,v*.12))*.3;
+  float rope=smoothstep(.3+.2*sp*s,.42+.2*sp*s,rp+.08*thl),split=sp*(.45+.55*smoothstep(.04,.12,hw*h+.02));
   float core=1.-pow(abs(x*2.-1.),2.);
+  /* droplet streaks: short dashes inside the ropes, and longer ones peeling off the sides */
   float id=floor(tx*.6),fv=fract(v*.8+h1(id)*9.);float dash=step(.6,h1(id+floor(v*.8)*7.3))*smoothstep(0.,.03,fv)*(1.-smoothstep(.05,.14,fv))*smoothstep(.35,.6,s)*(1.-smoothstep(.88,.98,s))*(1.-.6*edge*smoothstep(.15,.3,ed));
-  float mst=smoothstep(.55,.85,s)*(1.-smoothstep(.93,1.,s))*smoothstep(0.,.35,x)*smoothstep(1.,.65,x)*(.4+.6*vn(vec2(x*3.+sd,v*.35)));
-  /* glassy and see-through at the top, threads carrying most of the brightness; denser and whiter as air gets in */
-  float aTop=.34+.46*th+.12*core,aLow=.42+.42*max(th,thl)+.1*core;
-  float a=(mix(aTop,aLow,aer)*edge+fringe*.55)*(1.-smoothstep(.84,1.,s)*(1.-.5*fr))+dash*.55+mst*.42*h;
+  float sid=floor(x*Nt*1.3+sd),sv=fract(v*.5+h1(sid)*7.);float sdash=step(.45,h1(sid*3.1+floor(v*.5)*5.7))*smoothstep(0.,.02,sv)*(1.-smoothstep(.06,.2,sv))*(1.-edge)*smoothstep(.3,.5,s)*(1.-smoothstep(.9,.99,s));
+  /* granular spray lower down: crisp droplets on a cell grid, beading out from the falling water */
+  vec2 dq=vec2(x*Nt*.9+sd,v*5.);vec2 dc=floor(dq),df=fract(dq)-.5;float dh=h1(dc.x*17.3+dc.y*71.9);
+  float grain=step(.55,dh)*exp(-dot(df,df)*55.)*smoothstep(.5,.8,s)*(1.-smoothstep(.95,1.,s))*(1.-aa);
+  float mst=smoothstep(.62,.88,s)*(1.-smoothstep(.93,1.,s))*smoothstep(0.,.35,x)*smoothstep(1.,.65,x)*(.3+.7*vn(vec2(x*7.+sd,v*.9)))*(.5+.5*vn(vec2(x*22.,v*3.)));
+  /* the glassy top is see-through with crisp threads; the ropes are dense and white */
+  float aTop=.62+.32*thc+.06*core,aLow=.6+.35*max(th,thl);
+  float a=mix(aTop,aLow,aer)*edge*mix(1.,rope,split)+fringe*.6;
+  a=a*(1.-smoothstep(.84,1.,s)*(1.-.5*fr))+dash*.55*mix(1.,rope,split)+sdash*.6+grain*.85+mst*.38*h;
   vec3 lit=(uAmb*.95+uKey*.62)*.3183,sky=mix(uBot,uTop,.6);
-  /* blue-grey glass, darker where the sheet is thick in the middle; white threads, foam line and aeration on top */
-  vec3 glass=mix(vec3(.2,.27,.33),uScat*.5,.3)*lit*1.3*(1.-.3*core*(1.-aer));vec3 wht=vec3(.92,.96,1.)*lit*1.6;
-  vec3 c=mix(glass,wht*(.85+.2*t3),clamp(th*.85*(1.-ab*.5)+aer*(.25+.6*thl)+tier*1.2+fringe,0.,1.));
+  /* dark blue-grey glass, darkest where thick in the middle; white threads; the tier and the ropes turn white with air */
+  vec3 glass=mix(vec3(.09,.14,.19),uScat*.3,.25)*lit*1.15*(1.-.35*core*(1.-aer));vec3 wht=vec3(.93,.97,1.)*lit*1.7;
+  vec3 c=mix(glass,wht*(.85+.2*t3),clamp(thc*.95*(1.-ab*.4)+aer*(.35+.6*thl)+fringe+sdash,0.,1.));
   vec3 Nw=normalize(vN);if(dot(Nw,Vd)<0.)Nw=-Nw;vec3 Rf=reflect(-Vd,Nw);float F=.04+.96*pow(1.-max(dot(Nw,Vd),0.),5.);
-  /* the smooth launch: a glossy sheet reflecting the sky with a moving highlight band */
+  /* a moving sheen on the glass: broad bright bands slide down the upper sheet, reflecting the sky and sun */
+  float sun=max(dot(Rf,normalize(uSunDir)),0.);
+  float shn=pow(vn(vec2(tx*.12+sd,s*3.-uFT*.9)),3.)*(1.-sp)*(1.-lip)*edge;
+  c+=(sky*.5+uSunCol*uSunVis*(.25+.8*pow(sun,6.)))*shn*1.1*(.4+.6*thc);
   float band=exp(-pow((s-.035)/.02,2.))*(.6+.4*vn(vec2(tx*.3-uT*.8,3.)));
-  c=mix(c,mix(glass,sky,.35+.4*F)+lit*band*.6,lip*.75);a=max(a,edge*lip*(.55+.25*h+.2*band));a=max(a,tier*edge*.8);
+  c=mix(c,mix(glass,sky,.35+.4*F)+lit*band*.6,lip*.75);a=max(a,edge*lip*(.55+.25*h+.2*band));
+  c=mix(c,wht*(1.05+.15*tn),clamp(tier*1.3,0.,1.));a=max(a,tier*edge*.97);
+  c=mix(c,wht*1.1,grain);
   c=mix(c,mix(wht,uFogC,.4),mst*(1.-edge*th));
   float back=smoothstep(.15,-.25,dot(normalize(vW.xz),normalize(cameraPosition.xz-vW.xz)))*lz;
   /* sun glints on the lip and in the upper threads */
-  float sun=max(dot(Rf,normalize(uSunDir)),0.);
   vec2 gq=vec2(tx*1.4,v*24.);vec2 gc=floor(gq),gf=fract(gq)-.5;float gh=h1(gc.x*7.1+gc.y*113.3);
-  float gz=max(lz,1.-smoothstep(.25,.42,s));float gl=step(.66,gh)*exp(-dot(gf,gf)*45.)*pow(.5+.5*sin(uT*(4.+7.*gh)+gh*60.+dot(Vd,vec3(17.,9.,13.))),14.)*(.4+.6*smoothstep(.2,.9,sun))*max(th,lz)*gz*edge*(1.-ab);
+  float gz=max(lz,1.-smoothstep(.25,.42,s));float gl=step(.66,gh)*exp(-dot(gf,gf)*45.)*pow(.5+.5*sin(uT*(4.+7.*gh)+gh*60.+dot(Vd,vec3(17.,9.,13.))),14.)*(.4+.6*smoothstep(.2,.9,sun))*max(max(th,lz),tier)*max(gz,tier)*edge*(1.-ab);
   vec3 gt=mix(vec3(1.,.9,.7),vec3(.65,1.,1.),step(.87,gh));
   float ls=pow(sun,18.)*lip*(.5+.8*vn(vec2(tx*.6-uT*1.5,s*40.)));
   gl*=1.-back;
@@ -421,6 +439,10 @@ function ptMat(tex,add){return new T.SM({uniforms:{tS:{value:tex},uSc:ptScale,uC
 function ptSys(n,tex,add){const g=new T.BG(),p=new Float32Array(n*3),a=new Float32Array(n),s=new Float32Array(n);g.setAttribute("position",new T.BA(p,3));g.setAttribute("aA",new T.BA(a,1));g.setAttribute("aS",new T.BA(s,1));
  const m=ptMat(tex,add),o=new T.Points(g,m);o.frustumCulled=false;return{o,p,a,s,g,m,n}}
 const mist=ptSys(MOB?210:340,tPuff);mist.o.renderOrder=3;root.add(mist.o);
+/* crisp spray beside the lower falls: tiny bright droplets and short streaks, thrown off and falling fast */
+const tGrain=srgbTex(canvas(64,64,(g)=>{for(let i=0;i<26;i++){const x=rr(10,54),y=rr(10,54),r=rr(.6,1.8),d=Math.hypot(x-32,y-32);g.fillStyle=`rgba(255,255,255,${(.95-d/40).toFixed(2)})`;g.beginPath();g.ellipse(x,y,r,r*rr(1,2.6),0,0,TAU);g.fill()}}));
+const spr=ptSys(MOB?110:200,tGrain);spr.o.renderOrder=4;root.add(spr.o);const HF=FALLS.filter(f=>f.h>.35);
+const FSP=[];for(let i=0;i<spr.n;i++)FSP.push({age:rr(0,2),life:1,a:0,r:0,y:0,vr:0,vy:0,w:0,sz:1});
 const MI=[];for(let i=0;i<mist.n;i++)MI.push({a:FALLS[i%FALLS.length].a,w:FALLS[i%FALLS.length].h,r:0,y:0,age:rr(0,12),life:rr(7,13),sz:rr(1.8,3.8),vy:rr(.14,.3),vr:rr(.03,.12)});
 /* a slow bank of cloud below the disc that the falls dissolve into */
 const cbank=ptSys(MOB?26:40,tPuff);cbank.o.renderOrder=0;root.add(cbank.o);
@@ -876,6 +898,9 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  for(let i=0;i<mist.n;i++){const m=MI[i];m.age+=dt;if(m.age>m.life){m.age=0;const f=FALLS[i%FALLS.length];m.a=f.a+rr(-1,1)*f.hw*1.5;m.w=f.h;m.s0=rr(.5,1);m.life=rr(7,13)}const u=m.age/m.life,s0=m.s0||(m.s0=rr(.5,1)),r=R+.3+m.vr*m.age*2.5+.7*u,y=-11.*s0*s0-m.vy*m.age*1.6-u*1.4;
   mist.p[i*3]=Math.cos(m.a)*r+wn*u*1.2;mist.p[i*3+1]=y;mist.p[i*3+2]=Math.sin(m.a)*r;mist.a[i]=.5*(.25+.75*m.w)*Math.sin(Math.PI*Math.pow(u,.7))*(1-st.ice*.4);mist.s[i]=m.sz*(.5+.9*m.w)*(.6+1.1*u)}
  mist.g.attributes.position.needsUpdate=mist.g.attributes.aA.needsUpdate=mist.g.attributes.aS.needsUpdate=true;
+ for(let i=0;i<spr.n;i++){const q=FSP[i];q.age+=dt;if(q.age>q.life){const f=HF[i%HF.length],sg=rnd()<.5?-1:1,s0=rr(.5,.92);q.age=0;q.life=rr(.9,1.8);q.a=f.a+sg*f.hw*rr(.5,1.3);q.r=R+.08+rr(0,.15);q.y=-11*s0*s0;q.vr=rr(.15,.6);q.vy=-rr(1.5,3.5);q.w=f.h;q.sz=rr(.5,1.1)}
+  q.vy-=4*dt;q.r+=q.vr*dt;q.y+=q.vy*dt;const u=q.age/q.life;spr.p[i*3]=Math.cos(q.a)*q.r+wn*u*.5;spr.p[i*3+1]=q.y;spr.p[i*3+2]=Math.sin(q.a)*q.r;spr.a[i]=.75*q.w*Math.sin(Math.PI*Math.min(1,u*1.3))*(1-st.ice*.5);spr.s[i]=q.sz*(1+.6*u)}
+ spr.g.attributes.position.needsUpdate=spr.g.attributes.aA.needsUpdate=spr.g.attributes.aS.needsUpdate=true;
  for(let i=0;i<cbank.n;i++){const b=CB[i];b.a+=b.w*dt;cbank.p[i*3]=Math.cos(b.a)*b.r;cbank.p[i*3+1]=b.y+.3*Math.sin(t*.07+b.ph);cbank.p[i*3+2]=Math.sin(b.a)*b.r;cbank.a[i]=.3+.08*Math.sin(t*.05+b.ph*2.);cbank.s[i]=b.sz}
  cbank.g.attributes.position.needsUpdate=cbank.g.attributes.aA.needsUpdate=cbank.g.attributes.aS.needsUpdate=true;
  /* ice floes drift with the water and part around the hull */

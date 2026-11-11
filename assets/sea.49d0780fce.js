@@ -800,7 +800,7 @@ const WSKIN=[`float skT=smoothstep(2.25,2.68,vO.x);vec2 sq=vec2(vO.x,vO.y+vO.z);
   float rk=abs(fract(vO.y*7.+texture2D(tF,fq*.5).g*1.4)-.5);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.8,.83,.82),skU*smoothstep(.035,.01,rk)*smoothstep(.55,.75,m2)*.45);}`,
  `roughnessFactor=clamp(roughnessFactor+(sk3-.5)*.3-(sk1-.5)*.15-.16*skT+.4*skT*smoothstep(.62,.8,texture2D(tF,(vO.xy+vec2(0.,.37))*1.7+.47).r)*smoothstep(.72,.84,texture2D(tF,(vO.xy+vec2(0.,.37))*21.+.19).g),.26,.9);`];
 /* a tapered body of rings along a spine plus flat appendages, posed through a frame function */
-class Body{constructor(L,NR,NA,prof,colF,apps){this.L=L;this.NR=NR;this.NA=NA;this.prof=prof;this.apps=apps;
+class Body{constructor(L,NR,NA,prof,colF,apps,sec){this.L=L;this.NR=NR;this.NA=NA;this.prof=prof;this.apps=apps;this.sec=sec;
   const nr=(NR+1)*NA,nv=nr+2+apps.reduce((a,p)=>a+p.v.length,0);this.P=new Float32Array(nv*3);const C=new Float32Array(nv*3),idx=[];
   for(let i=0;i<=NR;i++)for(let j=0;j<NA;j++)C.set(colF(i/NR,Math.sin(j/NA*TAU)),(i*NA+j)*3);
   C.set(colF(0,0),nr*3);C.set(colF(1,0),nr*3+3);
@@ -808,13 +808,13 @@ class Body{constructor(L,NR,NA,prof,colF,apps){this.L=L;this.NR=NR;this.NA=NA;th
   for(let j=0;j<NA;j++){const j2=(j+1)%NA;idx.push(nr,j,j2,nr+1,NR*NA+j2,NR*NA+j)}
   let o=nr+2;for(const p of apps){p.o=o;p.v.forEach((v,k)=>C.set(p.cs?p.cs[k]:p.c,(o+k)*3));for(const t of p.t)idx.push(o+t[0],o+t[1],o+t[2]);o+=p.v.length}
   const g=new T.BG();g.setAttribute("position",new T.BA(this.P,3));g.setAttribute("color",new T.BA(C,3));g.setIndex(idx);this.g=g;
-  {const O=new Float32Array(nv*3);for(let i=0;i<=NR;i++){const[rw,rh]=prof(i/NR);for(let j=0;j<NA;j++){const a=j/NA*TAU;O.set([i/NR*L,Math.cos(a)*rw,Math.sin(a)*rh],(i*NA+j)*3)}}
+  {const O=new Float32Array(nv*3);for(let i=0;i<=NR;i++){const[rw,rh]=prof(i/NR);for(let j=0;j<NA;j++){const a=j/NA*TAU,y=Math.cos(a)*rw,sa=Math.sin(a);O.set([i/NR*L,y,sec?sec(i/NR,y,sa,sa*rh):sa*rh],(i*NA+j)*3)}}
    O.set([L,0,0],nr*3+3);for(const p of apps)p.v.forEach((v,k)=>O.set([p.s*L-v[0],v[1],v[2]+(p.oz?p.oz[k]:0)],(p.o+k)*3));g.setAttribute("aO",new T.BA(O,3))}
   this.o=new T.Mesh(g,lifeM(this.rough));this.o.frustumCulled=false;this.o.castShadow=true;this.o.visible=false;root.add(this.o);this.fr={p:new V3(),t:new V3(),n:new V3(),b:new V3()}}
  pose(F,roll){const P=this.P,NA=this.NA,fr=this.fr,cr=Math.cos(roll),sr=Math.sin(roll),put=(k,u,v,w)=>{const bu=u*cr-v*sr,bv=u*sr+v*cr;
    P[k]=fr.p.x+fr.t.x*w+fr.b.x*bu+fr.n.x*bv;P[k+1]=fr.p.y+fr.t.y*w+fr.b.y*bu+fr.n.y*bv;P[k+2]=fr.p.z+fr.t.z*w+fr.b.z*bu+fr.n.z*bv};
   const sv=(o)=>{o.p.copy(fr.p);o.t.copy(fr.t);o.n.copy(fr.n);o.b.copy(fr.b)},ld=(o)=>{fr.p.copy(o.p);fr.t.copy(o.t);fr.n.copy(o.n);fr.b.copy(o.b)},f0=this.f0||(this.f0={p:new V3(),t:new V3(),n:new V3(),b:new V3()}),f1=this.f1||(this.f1={p:new V3(),t:new V3(),n:new V3(),b:new V3()});
-  for(let i=0;i<=this.NR;i++){const s=i/this.NR;F(s,fr);i===0&&sv(f0);i===this.NR&&sv(f1);const[rw,rh,dy,tb,kb]=this.prof(s);for(let j=0;j<NA;j++){const a=j/NA*TAU,sa=Math.sin(a);put((i*NA+j)*3,Math.cos(a)*rw,sa*rh*(sa<0?.92:1)+dy+(tb?tb*Math.pow(Math.max(sa,0),12):0)-(kb?kb*Math.pow(Math.max(-sa,0),12):0),0)}}
+  for(let i=0;i<=this.NR;i++){const s=i/this.NR;F(s,fr);i===0&&sv(f0);i===this.NR&&sv(f1);const[rw,rh,dy,tb,kb]=this.prof(s),sc=this.sec;for(let j=0;j<NA;j++){const a=j/NA*TAU,sa=Math.sin(a),y=Math.cos(a)*rw,z=sa*rh*(sa<0?.92:1)+dy+(tb?tb*Math.pow(Math.max(sa,0),12):0)-(kb?kb*Math.pow(Math.max(-sa,0),12):0);put((i*NA+j)*3,y,sc?sc(s,y,sa,z):z,0)}}
   const nr=(this.NR+1)*NA;ld(f0);put(nr*3,0,this.prof(0)[2],this.L*.012);ld(f1);put(nr*3+3,0,this.prof(1)[2],-this.L*.01);
   for(const p of this.apps){p.s>=1?ld(f1):p.s<=0?ld(f0):F(p.s,fr);p.v.forEach((v,k)=>put((p.o+k)*3,v[1],v[2],v[0]))}
   this.g.attributes.position.needsUpdate=true;this.g.computeVertexNormals();this.post&&this.post()}}
@@ -833,8 +833,17 @@ const hsh=(a,b)=>{const x=Math.sin(a*127.1+b*311.7)*43758.5453;return x-Math.flo
 /* whale (humpback-like): broad flat head, deep body, keeled tail stock, long pale flippers, small dorsal on a hump, wide notched flukes */
 const WLN=2.7,WR=.27,WS=[0,.03,.08,.15,.25,.36,.48,.6,.7,.8,.88,.94,1],wRW=tbl(WS,[.24,.58,.78,.91,1,1,.93,.78,.55,.33,.2,.14,.12]),wRH=tbl(WS,[.17,.42,.6,.79,.92,.97,.94,.84,.72,.6,.52,.42,.27]);
 const wFkT=hex("#434f57"),wFkB=hex("#66727a"),wTop=hex("#333d45"),wFl=hex("#3a454c"),wBel=hex("#8a9599"),wSpot=hex("#b3babb"),wFin=hex("#c9cfcf");
-/* the laterally compressed, keeled stock flares at its end into the fluke root, so the flukes grow out of it with no seam */
-const wProf=s=>{const fr=ss(.88,1,s),rw=WR*wRW(s)+(WR*.44-WR*wRW(s))*fr*fr,rh=WR*wRH(s)*(1-.12*fr),kl=WR*.24*ss(.68,.86,s)*(1-ss(.9,1,s)),kn=WR*.035*ss(.68,.72,s)*(1-ss(.86,.9,s))*Math.pow(Math.max(0,Math.sin((s-.68)/.2*Math.PI*5)),2);
+/* one fluke section at span v (0 root, 1 tip): leading/trailing edge (forward of the root plane is +), camber line ends and half-thickness */
+const FHS=.47,fkS=(v,sg)=>{const xl=.08-.42*Math.pow(v,1.6),
+  /* chord closes on a rounded tip; the trailing edge carries the central notch and soft scallops, humpback fashion */
+  ch=(.37-.17*v)*Math.sqrt(Math.max(0,1-Math.pow(v,4)))+.004,sc=(.007+.008*hsh(Math.floor(v*7),sg))*Math.pow(Math.sin(v*Math.PI*7),2)*ss(.08,.2,v)*(1-ss(.84,.96,v)),
+  xt=Math.min(xl-.004,xl-ch+.05*Math.exp(-v*v/.003)+sc),zl=.05*v*v+.012*v+.035*Math.pow(ss(.72,1,v),2),zt=zl-.022*v*(1-.4*v)-.02*ss(.8,1,v);
+  return[xl,xt,zl,zt,.075*Math.pow(1-v,1.15)+.008+.018*Math.exp(-v*v/.004)]},fkSh=u=>Math.min(1,2.6*Math.sqrt(u)*(1-u)),FV0=Math.pow(.08/.42,1/1.6),FW1=FHS*FV0;
+/* the fluke's own cross-section where the root plane cuts it: the stock's end ring takes exactly this shape, so the two surfaces meet with no lip */
+const fkZ=(y,top)=>{const v=Math.min(Math.abs(y)/FHS,FV0*.9999),[xl,xt,zl,zt,th]=fkS(v,y<0?-1:1),u=xl/(xl-xt);return zl+(zt-zl)*u+(top?1:-1)*th*fkSh(u)};
+const wSec=(s,y,sa,z)=>{const m=ss(.9,1,s);return m>0?z+(fkZ(y,sa>=0)-z)*m:z};
+/* the laterally compressed, keeled stock widens along the flukes' leading-edge sweep and morphs into the fluke root section */
+const wProf=s=>{const fr=ss(.88,1,s),fl=cl((s-.88)/.12,0,1),rw=WR*wRW(s)+(FW1-WR*wRW(s))*Math.pow(fl,2.5),rh=WR*wRH(s)*(1-.12*fr),kl=WR*.24*ss(.68,.86,s)*(1-ss(.9,1,s)),kn=WR*.035*ss(.68,.72,s)*(1-ss(.86,.9,s))*Math.pow(Math.max(0,Math.sin((s-.68)/.2*Math.PI*5)),2);
  return[rw,rh,-rh*.14*(1-ss(.05,.25,s)),WR*.13*Math.exp(-Math.pow((s-.63)/.065,2))+kl+kn,kl*.85]};
 /* dark back, paler mottled belly with throat pleats, pale knobs (tubercles) on the head */
 const wCol=(s,sa)=>{const k=ss(.2,-.75,sa)*(1-.35*ss(.7,.9,s)),h=hsh(s*41.3,sa*9.7),c=mix3(mix3(wTop,wFl,ss(.55,.05,sa)),wBel,k);
@@ -843,20 +852,17 @@ const wCol=(s,sa)=>{const k=ss(.2,-.75,sa)*(1-.35*ss(.7,.9,s)),h=hsh(s*41.3,sa*9
  /* tail stock keels: a pale crest line with darker flanks either side, so the ridge reads face-on */
  const kz=ss(.7,.82,s)*(1-ss(.84,.9,s)),as=Math.abs(sa);if(kz>0){o=mix3(o,[0,0,0],.35*kz*ss(.55,.82,as)*(1-ss(.9,.97,as)));o=mix3(o,mix3(wFl,wSpot,.45),.6*kz*ss(.92,.99,as))}
  if(s>.9)o=mix3(o,sa>0?wFkT:mix3(wFkT,wFkB,ss(0,-.6,sa)),ss(.9,1,s));return o};
-const WFK=(()=>{const NS=MOB?19:31,HS=.47,out=[];for(const sg of[1,-1]){const secs=[];for(let i=0;i<NS;i++){const v=1-Math.pow(1-i/(NS-1),1.3),xl=.08-.42*Math.pow(v,1.6),
-  /* chord closes on a rounded tip; the trailing edge carries the central notch and soft scallops, humpback fashion */
-  ch=(.37-.17*v)*Math.sqrt(Math.max(0,1-Math.pow(v,4)))+.004,sc=(.007+.008*hsh(Math.floor(v*7),sg))*Math.pow(Math.sin(v*Math.PI*7),2)*ss(.08,.2,v)*(1-ss(.84,.96,v)),
-  xt=Math.min(xl-.004,xl-ch+.05*Math.exp(-v*v/.003)+sc),zl=.05*v*v+.012*v+.035*Math.pow(ss(.72,1,v),2),zt=zl-.022*v*(1-.4*v)-.02*ss(.8,1,v);
-  secs.push({le:[xl,sg*HS*v,zl],te:[xt,sg*HS*v,zt],th:.075*Math.pow(1-v,1.15)+.008+.018*Math.exp(-v*v/.004),up:[0,0,1]})}
+const WFK=(()=>{const NS=MOB?19:31,out=[];for(const sg of[1,-1]){const secs=[];for(let i=0;i<NS;i++){const v=1-Math.pow(1-i/(NS-1),1.3),[xl,xt,zl,zt,th]=fkS(v,sg);
+  secs.push({le:[xl,sg*FHS*v,zl],te:[xt,sg*FHS*v,zt],th,up:[0,0,1]})}
  /* top dark grey like the back; underside paler, greying toward the trailing margin and the tips */
  out.push(foil(1,secs,MOB?7:10,hex("#434f57"),hex("#66727a"),(v,u,top)=>top?-.12*ss(.8,1,u):-.28*ss(.72,.97,u)-.2*ss(.86,1,v)))}return out})();
 const WPE=[1,-1].map(sg=>{const NS=MOB?6:8,secs=[];for(let i=0;i<NS;i++){const v=i/(NS-1),px=.02-.5*v,py=sg*(.17+.58*v),pz=-.1-.26*v-.06*v*v,ch=.16*(1-.55*v)+.02,kn=.012*Math.pow(Math.sin(v*Math.PI*6),2);
   secs.push({le:[px+.05+kn,py,pz],te:[px+.05-ch,py,pz+.02],th:.026*(1-v)+.005,up:[0,-sg*.45,.89]})}return foil(.27,secs,MOB?5:6,hex("#9aa2a3"),wFin,(v,u,top)=>top&&hsh(v*13,u*7)>.7?-.35:0)});
 const WDF=(()=>{const s=.66,top=WR*wRH(s)+WR*.11*Math.exp(-Math.pow((s-.64)/.06,2))+wProf(s)[2],secs=[];for(let i=0;i<5;i++){const v=i/4;secs.push({le:[.05-.13*Math.pow(v,1.3),0,top-.03+.1*v],te:[-.14+.05*v,0,top-.03+.08*v],th:.022*(1-v)+.003,up:[0,1,0]})}return foil(s,secs,5,wTop,wTop)})();
 for(const f of[...WPE,WDF])delete f.oz;
-const whale=new Body(WLN,MOB?50:76,MOB?20:32,wProf,wCol,[...WFK,...WPE,WDF]);whale.o.material=lifeM(.52,WSKIN);
+const whale=new Body(WLN,MOB?50:76,MOB?20:32,wProf,wCol,[...WFK,...WPE,WDF],wSec);whale.o.material=lifeM(.52,WSKIN);
 /* the fluke roots and the flared stock are separate surfaces: share their normals across the join so it shades as one */
-whale.post=function(){const N=this.g.attributes.normal.array,P=this.P;if(!this.jp){this.jp=[];const NA=this.NA,NR=this.NR,i0=Math.floor(NR*.92);
+whale.post=function(){const N=this.g.attributes.normal.array,P=this.P;{const NA=this.NA,e=this.NR*NA*3;N.copyWithin(e,e-NA*3,e)}if(!this.jp){this.jp=[];const NA=this.NA,NR=this.NR,i0=Math.floor(NR*.92);
   for(const ap of this.apps.slice(0,2))ap.v.forEach((v,k)=>{const y=Math.abs(v[1]);if(y>.2)return;const j=(ap.o+k)*3;let bd=1e9,bi=-1;
    for(let r=i0;r<=NR;r++)for(let a=0;a<NA;a++){const q=(r*NA+a)*3,d=(P[q]-P[j])**2+(P[q+1]-P[j+1])**2+(P[q+2]-P[j+2])**2;if(d<bd){bd=d;bi=q}}
    bd=Math.sqrt(bd);if(bd<.1)this.jp.push(j,bi,Math.min(1,1.4*(1-bd/.1))*(1-Math.pow(y/.2,2)))})}

@@ -298,21 +298,19 @@ const fallU={uFT:{value:0},uFA:{value:1},uWind:Ue.uWind};
    each bends glassy over the edge, accelerates and thins, tears into streaks and dissolves into mist above the cloud bank */
 const FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,.15,.35]],pat=[0,2,1,2,1,0,2,1],nR=MOB?9:13,sl=TAU/nR;
  for(let k=0;k<nR;k++){const ty=pat[k%pat.length],K=kinds[ty],hw=Math.min(rr(K[0],K[1]),sl*.34),h=rr(K[2],K[3]),a=1.62+k*sl+rr(-.2,.2)*Math.max(0,sl-2.6*hw);
-  /* thrown outward from the lip: the bigger the fall the faster it leaves and the farther it carries */
-  FALLS.push({a,hw,h,sd:rnd()*50,D:(1.8+4.6*h)*rr(.9,1.1)});
-  if(ty===0){const cw=rr(.022,.035),sg=rnd()<.5?-1:1;FALLS.push({a:a+sg*(hw+cw+.035),hw:cw,h:rr(.4,.55),sd:rnd()*50,D:rr(2.6,3.4)})}}}
+  FALLS.push({a,hw,h,sd:rnd()*50});
+  if(ty===0){const cw=rr(.022,.035),sg=rnd()<.5?-1:1;FALLS.push({a:a+sg*(hw+cw+.035),hw:cw,h:rr(.4,.55),sd:rnd()*50})}}}
 {const pos=[],uv=[],kk=[],nn=[],idx=[];
- /* ballistic sheet: s is time since leaving the lip; outward x = D*s at constant speed, drop y = 11*s*s, so it leaves level and bends to near vertical,
-    after a short smooth glassy lip that starts just inside the rim on the surface */
- const fy=(f,s)=>-.03+.05*Math.sin(Math.PI*Math.min(1,s/.07))*(.5+.5*f.h)-11.*s*s;
- for(const f of FALLS){const nu=f.hw<.04?4:MOB?9:13,nv=MOB?34:46,o=pos.length/3;
-  for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.25),w=f.hw*(1+.32*s)*(1+.1*Math.sin(s*7.+f.sd)*Math.min(1,s*5.)),r=R-.12+(f.D+.12)*s,y=fy(f,s);
-   const dy=(fy(f,s+.002)-fy(f,Math.max(0,s-.002)))/(s>.002?.004:.002),dr=f.D+.12,nl=Math.hypot(dy,dr);
+ /* the water rolls over a small rounded lip at the rim and then hangs straight down the edge; s runs down the fall, the drop growing as s*s so the texture stretches as it speeds up */
+ const LR=.11,fp=(s)=>{const q=Math.min(1,s/.1),th=q*Math.PI/2;return[R-.04+LR*Math.sin(th),-.03+LR*(Math.cos(th)-1)-11.*Math.max(0,s*s-.01)*(s>.1?1:0)]};
+ for(const f of FALLS){const nu=f.hw<.04?4:MOB?9:13,nv=MOB?30:40,o=pos.length/3;
+  for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.25),w=f.hw*(1+.2*s)*(1+.08*Math.sin(s*7.+f.sd)*Math.min(1,s*5.)),P=fp(s),r=P[0],y=P[1];
+   const P0=fp(Math.max(0,s-.003)),P1=fp(s+.003),dr=P1[0]-P0[0],dy=P1[1]-P0[1],nl=Math.hypot(dy,dr)||1;
    for(let i=0;i<=nu;i++){const x=i/nu,an=f.a+(x*2-1)*w;pos.push(r*Math.cos(an),y,r*Math.sin(an));uv.push(x,s);kk.push(f.h,f.sd,f.hw);nn.push(-dy/nl*Math.cos(an),dr/nl,-dy/nl*Math.sin(an))}}
   for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}}
  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("uv",new T.BA(new Float32Array(uv),2));g.setAttribute("aK",new T.BA(new Float32Array(kk),3));g.setAttribute("aN",new T.BA(new Float32Array(nn),3));g.setIndex(idx);
  const m=new T.SM({uniforms:{...U,...SKY,...fallU},transparent:true,depthWrite:false,side:2,
-  vertexShader:`uniform float uWind;attribute vec3 aK,aN;varying vec2 vU;varying vec3 vW,vK,vN;void main(){vU=uv;vK=aK;vN=aN;vec3 p=position;p.x+=uWind*.55*uv.y*uv.y;p.z+=uWind*.17*uv.y*uv.y;vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
+  vertexShader:`uniform float uWind;attribute vec3 aK,aN;varying vec2 vU;varying vec3 vW,vK,vN;void main(){vU=uv;vK=aK;vN=aN;vec3 p=position;p.x+=uWind*.22*uv.y*uv.y;p.z+=uWind*.07*uv.y*uv.y;vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
   fragmentShader:`uniform float uFT,uFA,uIce,uFogN,uFogF,uHaze,uSunVis,uT;uniform vec3 uDeep,uScat,uAmb,uKey,uFogC,uTop,uBot,uSunDir,uSunCol;varying vec2 vU;varying vec3 vW,vK,vN;${FOG}
   float h1(float n){return fract(sin(n*91.7)*43758.55);}
   /* length of the sight line that runs through the bowl's water before reaching this point (the bowl is an ellipsoid, flattened to a sphere here) */
@@ -333,7 +331,7 @@ const FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,.15,.35]],
   float edge=smoothstep(0.,.025,ed-eW*(1.-fr)),fringe=(1.-edge)*smoothstep(.6,.82,t3)*smoothstep(0.,.015,ed)*smoothstep(.1,.4,s);
   float lip=1.-smoothstep(0.,.08,s),lz=1.-smoothstep(.06,.14,s);
   /* the upper tier's foam line on the bigger falls */
-  float tier=step(.62,h)*exp(-pow((s-.24)/.035,2.))*(.55+.6*vn(vec2(tx*.35,s*50.-uFT*.4)));
+  float tier=step(.62,h)*exp(-pow((s-.3)/.05,2.))*smoothstep(.38,.8,vn(vec2(tx*.7,s*36.-uFT*.5))*.6+th*.4)*.7;
   float core=1.-pow(abs(x*2.-1.),2.);
   float id=floor(tx*.6),fv=fract(v*.8+h1(id)*9.);float dash=step(.6,h1(id+floor(v*.8)*7.3))*smoothstep(0.,.03,fv)*(1.-smoothstep(.05,.14,fv))*smoothstep(.35,.6,s)*(1.-smoothstep(.88,.98,s))*(1.-.6*edge*smoothstep(.15,.3,ed));
   float mst=smoothstep(.55,.85,s)*(1.-smoothstep(.93,1.,s))*smoothstep(0.,.35,x)*smoothstep(1.,.65,x)*(.4+.6*vn(vec2(x*3.+sd,v*.35)));
@@ -347,7 +345,7 @@ const FALLS=[];{const kinds=[[.17,.27,.8,1],[.05,.09,.4,.7],[.012,.03,.15,.35]],
   vec3 Nw=normalize(vN);if(dot(Nw,Vd)<0.)Nw=-Nw;vec3 Rf=reflect(-Vd,Nw);float F=.04+.96*pow(1.-max(dot(Nw,Vd),0.),5.);
   /* the smooth launch: a glossy sheet reflecting the sky with a moving highlight band */
   float band=exp(-pow((s-.035)/.02,2.))*(.6+.4*vn(vec2(tx*.3-uT*.8,3.)));
-  c=mix(c,mix(glass,sky,.35+.4*F)+lit*band*.6,lip*.75);a=max(a,edge*lip*(.55+.25*h+.2*band));a=max(a,tier*edge*.92);
+  c=mix(c,mix(glass,sky,.35+.4*F)+lit*band*.6,lip*.75);a=max(a,edge*lip*(.55+.25*h+.2*band));a=max(a,tier*edge*.8);
   c=mix(c,mix(wht,uFogC,.4),mst*(1.-edge*th));
   float back=smoothstep(.15,-.25,dot(normalize(vW.xz),normalize(cameraPosition.xz-vW.xz)))*lz;
   /* sun glints on the lip and in the upper threads */
@@ -875,7 +873,7 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  spray.g.attributes.position.needsUpdate=spray.g.attributes.aA.needsUpdate=spray.g.attributes.aS.needsUpdate=true;
  RIMF.step();
  /* mist under the rim */
- for(let i=0;i<mist.n;i++){const m=MI[i];m.age+=dt;if(m.age>m.life){m.age=0;const f=FALLS[i%FALLS.length];m.a=f.a+rr(-1,1)*f.hw*1.5;m.w=f.h;m.D=f.D;m.s0=rr(.5,1);m.life=rr(7,13)}const u=m.age/m.life,s0=m.s0||(m.s0=rr(.5,1)),r=R+(m.D||2)*s0+m.vr*m.age*2.5+.7*u,y=-11.*s0*s0-m.vy*m.age*1.6-u*1.4;
+ for(let i=0;i<mist.n;i++){const m=MI[i];m.age+=dt;if(m.age>m.life){m.age=0;const f=FALLS[i%FALLS.length];m.a=f.a+rr(-1,1)*f.hw*1.5;m.w=f.h;m.s0=rr(.5,1);m.life=rr(7,13)}const u=m.age/m.life,s0=m.s0||(m.s0=rr(.5,1)),r=R+.3+m.vr*m.age*2.5+.7*u,y=-11.*s0*s0-m.vy*m.age*1.6-u*1.4;
   mist.p[i*3]=Math.cos(m.a)*r+wn*u*1.2;mist.p[i*3+1]=y;mist.p[i*3+2]=Math.sin(m.a)*r;mist.a[i]=.5*(.25+.75*m.w)*Math.sin(Math.PI*Math.pow(u,.7))*(1-st.ice*.4);mist.s[i]=m.sz*(.5+.9*m.w)*(.6+1.1*u)}
  mist.g.attributes.position.needsUpdate=mist.g.attributes.aA.needsUpdate=mist.g.attributes.aS.needsUpdate=true;
  for(let i=0;i<cbank.n;i++){const b=CB[i];b.a+=b.w*dt;cbank.p[i*3]=Math.cos(b.a)*b.r;cbank.p[i*3+1]=b.y+.3*Math.sin(t*.07+b.ph);cbank.p[i*3+2]=Math.sin(b.a)*b.r;cbank.a[i]=.3+.08*Math.sin(t*.05+b.ph*2.);cbank.s[i]=b.sz}

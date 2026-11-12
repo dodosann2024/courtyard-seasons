@@ -1,5 +1,5 @@
-(()=>{const C=window.CY,Y=["def","jp","cn","kr","eu","sea"],d=document.documentElement;
-C.names={def:"默认小院",jp:"日式庭院",cn:"中式小院",kr:"韩式小院",eu:"欧式小院",sea:"空中海洋"};
+(()=>{const C=window.CY,Y=["def","jp","cn","kr","eu","sea","desert"],d=document.documentElement;
+C.names={def:"默认小院",jp:"日式庭院",cn:"中式小院",kr:"韩式小院",eu:"欧式小院",sea:"空中海洋",desert:"沙漠绿洲"};
 C.root=new URL(C.p||"./",location.href).href;
 C.url=k=>C.root+(k==="def"?"":k+"/");
 let q="";try{q=new URLSearchParams(location.search).get("yard")||decodeURIComponent(location.hash.slice(1))}catch{}

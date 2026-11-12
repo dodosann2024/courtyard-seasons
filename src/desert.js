@@ -13,44 +13,48 @@ const root=new T.Group();root.visible=false;Jt.add(root);
 const onDes=o=>{o.traverse(c=>{c.layers.mask=1|L3})};
 const M=(p,o)=>{const m=X.Wt(p,o||{snow:0,wet:0});return m};
 
-/* ---------------- tiny static GLB loader (meshes only; skinned Tripo clips land in a follow-up) ---------------- */
+/* ---------------- Tripo GLB via local three GLTFLoader (assets/vendor); procedural if missing ---------------- */
 const MODEL={camel:"assets/models/camel.glb",eagle:"assets/models/eagle.glb",snake:"assets/models/snake.glb",tent:"assets/models/tent.glb",palm:"assets/models/palm.glb",cactus:"assets/models/cactus.glb"};
-function u8str(u){return String.fromCharCode.apply(null,u)}
-function loadGLBStatic(url){
-  return fetch(url).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(buf=>{
-    const dv=new DataView(buf);if(dv.getUint32(0,true)!==0x46546C67)throw 0;
-    let off=12;const chunks={};while(off+8<=buf.byteLength){const len=dv.getUint32(off,true),typ=dv.getUint32(off+4,true);chunks[typ]=buf.slice(off+8,off+8+len);off+=8+len}
-    const json=JSON.parse(u8str(new Uint8Array(chunks[0x4E4F534A])));
-    const bin=chunks[0x004E4942];
-    const g=new T.Group();
-    const accessors=json.accessors||[],views=json.bufferViews||[],mats=json.materials||[];
-    const readAcc=(ai)=>{
-      const a=accessors[ai],v=views[a.bufferView],n=a.count,s=a.type==="VEC3"?3:a.type==="VEC2"?2:a.type==="SCALAR"?1:4;
-      const bytes=a.componentType===5126?4:a.componentType===5123?2:1;
-      const base=(v.byteOffset||0)+(a.byteOffset||0),stride=v.byteStride||bytes*s;
-      const out=new Float32Array(n*s);const d=new DataView(bin);
-      for(let i=0;i<n;i++){const o=base+i*stride;for(let k=0;k<s;k++)out[i*s+k]=a.componentType===5126?d.getFloat32(o+k*4,true):a.componentType===5123?d.getUint16(o+k*2,true):d.getUint8(o+k)}
-      return {arr:out,n,s,comp:a.componentType}};
-    (json.meshes||[]).forEach(mesh=>{
-      (mesh.primitives||[]).forEach(pr=>{
-        const pos=readAcc(pr.attributes.POSITION);
-        const geo=new T.BG();geo.setAttribute("position",new T.BA(pos.arr,3));
-        if(pr.attributes.NORMAL!=null){const n=readAcc(pr.attributes.NORMAL);geo.setAttribute("normal",new T.BA(n.arr,3))}
-        else geo.computeVertexNormals();
-        if(pr.indices!=null){const ix=readAcc(pr.indices);const I=ix.comp===5123?Uint16Array:Uint32Array;const idx=new I(ix.n);const d=new DataView(bin);const a=accessors[pr.indices],v=views[a.bufferView];const base=(v.byteOffset||0)+(a.byteOffset||0);const bytes=ix.comp===5123?2:4;for(let i=0;i<ix.n;i++)idx[i]=bytes===2?d.getUint16(base+i*2,true):d.getUint32(base+i*4,true);geo.setIndex(new T.BA(idx,1))}
-        const mj=mats[pr.material||0],bp=(mj&&mj.pbrMetallicRoughness)||{},col=(bp.baseColorFactor)||[0.82,0.7,0.5,1];
-        const mat=M({color:new C3(col[0],col[1],col[2]),roughness:bp.roughnessFactor!=null?bp.roughnessFactor:.85,metalness:bp.metallicFactor||0});
-        g.add(new T.Mesh(geo,mat))})});
-    return g})}
-let _man=null;function modelsManifest(){if(_man)return _man;const url=((window.CY&&CY.root)||"")+"assets/models/manifest.json";
+/* Expected Tripo frame: Y-up, −Z forward, origin at ground contact; scene units ≈ metres. */
+const MODEL_FIT={camel:1.85,eagle:.55,snake:.12,tent:2.2,palm:4.2,cactus:2.6};
+let _man=null,_gltfMod=null;
+function modelsManifest(){if(_man)return _man;const url=((window.CY&&CY.root)||"")+"assets/models/manifest.json";
  _man=fetch(url).then(r=>r.ok?r.json():{}).catch(()=>({}));return _man}
+function gltfMod(){if(_gltfMod)return _gltfMod;const url=new URL(((window.CY&&CY.root)||"")+"assets/vendor/des-gltf.js",location.href).href;
+ _gltfMod=import(url);return _gltfMod}
+function fitGLB(scene,key){
+  const box={min:[1e9,1e9,1e9],max:[-1e9,-1e9,-1e9]};
+  scene.updateMatrixWorld(true);
+  scene.traverse(o=>{if(!o.isMesh||!o.geometry)return;const g=o.geometry;if(!g.boundingBox)g.computeBoundingBox();const b=g.boundingBox;if(!b)return;
+    const v=[{x:b.min.x,y:b.min.y,z:b.min.z},{x:b.max.x,y:b.max.y,z:b.max.z}];
+    /* world corners via matrix — coarse but enough for unit scale */
+    for(let i=0;i<2;i++)for(let j=0;j<2;j++)for(let k=0;k<2;k++){
+      const p=new V3(i?b.max.x:b.min.x,j?b.max.y:b.min.y,k?b.max.z:b.min.z);o.localToWorld(p);
+      box.min[0]=Math.min(box.min[0],p.x);box.min[1]=Math.min(box.min[1],p.y);box.min[2]=Math.min(box.min[2],p.z);
+      box.max[0]=Math.max(box.max[0],p.x);box.max[1]=Math.max(box.max[1],p.y);box.max[2]=Math.max(box.max[2],p.z)}});
+  const h=Math.max(1e-3,box.max[1]-box.min[1]),target=MODEL_FIT[key]||1;
+  const wrap=new T.Group();wrap.add(scene);
+  scene.position.set(-(box.min[0]+box.max[0])*.5,-box.min[1],-(box.min[2]+box.max[2])*.5);
+  wrap.scale.setScalar(target/h);
+  wrap.userData.anims=scene.userData&&scene.userData.anims;
+  return wrap}
+function loadGLB(url,key){
+  return gltfMod().then(m=>m.loadGLB(url)).then(({scene,animations})=>{
+    if(!scene)throw 0;scene.userData.anims=animations||[];
+    return fitGLB(scene,key)})}
 function tryModel(rel,procedural){
   const key=(rel.split("/").pop()||"").replace(/\.glb$/,"");
   return modelsManifest().then(man=>{
     if(!man||!man[key])return {root:procedural(),src:"procedural"};
     const url=((window.CY&&CY.root)||"")+rel;
-    return loadGLBStatic(url).then(g=>({root:g,src:"glb"})).catch(()=>({root:procedural(),src:"procedural"}))
+    return loadGLB(url,key).then(g=>({root:g,src:"glb",key})).catch(()=>({root:procedural(),src:"procedural"}))
   }).catch(()=>({root:procedural(),src:"procedural"}))}
+/* Hide procedural meshes under a rig host and attach a fitted Tripo GLB.
+   Fitted height is MODEL_FIT; host.scale still applies (palm/cactus size variety). */
+function adoptGLB(host,glb){
+  if(!host||!glb)return;
+  host.children.slice().forEach(ch=>{ch.visible=false});
+  glb.visible=true;host.add(glb);host.userData.glb=glb;host.userData.useGlb=1;onDes(glb)}
 
 /* ---------------- heightfield: rippled dunes over a soft bowl ---------------- */
 const lakeC={x:-2.0,z:-.4},lakeR=1.85;
@@ -200,7 +204,8 @@ function makePalm(){
 const palms=[];
 (function placePalms(){
   const spots=[{x:lakeC.x+.9,z:lakeC.z+.35,s:1.05},{x:lakeC.x+1.35,z:lakeC.z-.2,s:.9},{x:lakeC.x+.55,z:lakeC.z-.85,s:.78}];
-  spots.forEach((sp,i)=>{const p=makePalm();p.scale.setScalar(sp.s);const y=hAt(sp.x,sp.z);p.position.set(sp.x,y,sp.z);p.rotation.y=rr(0,TAU);root.add(p);palms.push(p)})
+  spots.forEach((sp,i)=>{const p=makePalm();p.scale.setScalar(sp.s);const y=hAt(sp.x,sp.z);p.position.set(sp.x,y,sp.z);p.rotation.y=rr(0,TAU);onDes(p);root.add(p);palms.push(p);
+    tryModel(MODEL.palm,()=>null).then(r=>{if(r.src==="glb"&&r.root){adoptGLB(p,r.root)}})})
 })();
 
 /* ---------------- saguaro cacti (eagle perch) ---------------- */
@@ -216,7 +221,8 @@ function makeCactus(){
 const cacti=[];
 (function placeCacti(){
   const spots=[{x:3.2,z:2.4},{x:4.5,z:-1.8},{x:-4.8,z:2.8},{x:1.2,z:4.6},{x:-3.5,z:-3.8},{x:5.2,z:1.1}];
-  spots.forEach(sp=>{if(Math.hypot(sp.x,sp.z)>R-0.6)return;const c=makeCactus();const y=hAt(sp.x,sp.z);c.position.set(sp.x,y,sp.z);c.rotation.y=rr(0,TAU);c.scale.setScalar(rr(.85,1.2));root.add(c);cacti.push(c)});
+  spots.forEach(sp=>{if(Math.hypot(sp.x,sp.z)>R-0.6)return;const c=makeCactus();const y=hAt(sp.x,sp.z);c.position.set(sp.x,y,sp.z);c.rotation.y=rr(0,TAU);const sc=rr(.85,1.2);c.scale.setScalar(sc);onDes(c);root.add(c);cacti.push(c);
+    tryModel(MODEL.cactus,()=>null).then(r=>{if(r.src==="glb"&&r.root){adoptGLB(c,r.root)}})});
 })();
 const eaglePerch=cacti[0];
 
@@ -246,7 +252,7 @@ function makeTentProcedural(){
 const tentAnchor={x:2.6,z:-2.4};
 const tentY=hAt(tentAnchor.x,tentAnchor.z);
 let tent=makeTentProcedural();tent.position.set(tentAnchor.x,tentY,tentAnchor.z);tent.rotation.y=-.55;root.add(tent);
-tryModel(MODEL.tent,()=>({skip:1})).then(r=>{if(r.src==="glb"&&r.root){root.remove(tent);tent=r.root;tent.position.set(tentAnchor.x,tentY,tentAnchor.z);tent.rotation.y=-.55;tent.scale.setScalar(1.1);onDes(tent);root.add(tent)}});
+tryModel(MODEL.tent,()=>({skip:1})).then(r=>{if(r.src==="glb"&&r.root){r.root.scale.multiplyScalar(1.1);adoptGLB(tent,r.root)}});
 
 /* campfire */
 const fireG=new T.Group();const firePos={x:tentAnchor.x-.9,z:tentAnchor.z+.35};
@@ -313,7 +319,7 @@ function spawnCamel(x,z,facing){
   const c=makeCamelProcedural();c.scale.setScalar(.95);plantFeet(c,x,z,facing);onDes(c);root.add(c);
   const st={o:c,x,z,facing,mode:"walk",t:rr(0,8),speed:.55,gx:x,gz:z,drink:0,graze:0,step:rnd()*TAU};
   camels.push(st);
-  tryModel(MODEL.camel,()=>null).then(r=>{if(r.src==="glb"&&r.root){/* keep procedural rig for gait; optional visual overlay later */st.glb=r.root;st.glb.visible=false;c.add(st.glb)}});
+  tryModel(MODEL.camel,()=>null).then(r=>{if(r.src==="glb"&&r.root){adoptGLB(c,r.root);st.glb=r.root}});
   return st}
 spawnCamel(-4.2,2.5,0.4);spawnCamel(-5.0,1.2,-2.2);
 
@@ -357,7 +363,7 @@ function makeEagleProcedural(){
   g.userData={wingL,wingR,head,body,spread:1};return g}
 const eagle={o:makeEagleProcedural(),mode:"soar",t:0,th:rnd()*TAU,rad:5.5,alt:4.5,bank:0,flap:0,perch:null,drink:0};
 eagle.o.scale.setScalar(1.1);root.add(eagle.o);onDes(eagle.o);
-tryModel(MODEL.eagle,()=>null).then(r=>{if(r.src==="glb"&&r.root){eagle.glb=r.root;eagle.glb.visible=false;eagle.o.add(eagle.glb)}});
+tryModel(MODEL.eagle,()=>null).then(r=>{if(r.src==="glb"&&r.root){adoptGLB(eagle.o,r.root);eagle.glb=r.root}});
 
 function eagleUpdate(dt,t){
   const e=eagle,o=e.o,ud=o.userData;e.t+=dt;
@@ -402,7 +408,7 @@ const snakes=[];
 function spawnSnake(){
   const a=rnd()*TAU,rad=rr(2,R*.65);const s={o:makeSnakeProcedural(),x:Math.cos(a)*rad,z:Math.sin(a)*rad,th:rnd()*TAU,mode:"sidewind",t:0,pts:[]};
   root.add(s.o);onDes(s.o);snakes.push(s);
-  tryModel(MODEL.snake,()=>null).then(r=>{if(r.src==="glb"&&r.root){s.glb=r.root;s.glb.visible=false;s.o.add(s.glb)}})}
+  tryModel(MODEL.snake,()=>null).then(r=>{if(r.src==="glb"&&r.root){adoptGLB(s.o,r.root);s.glb=r.root}})}
 spawnSnake();if(!MOB)spawnSnake();
 
 /* faint tracks */
@@ -421,12 +427,18 @@ function snakeUpdate(st,dt,t){
     const r=Math.hypot(st.x,st.z);if(r>R*.85){st.th+=Math.PI*.5;st.x*=.95;st.z*=.95}
     if(Math.hypot(st.x-lakeC.x,st.z-lakeC.z)<lakeR*1.05){st.th+=1.2}
   }
-  const segs=st.o.userData.segs;st.pts.unshift({x:st.x,z:st.z,y:hAt(st.x,st.z)+.04});if(st.pts.length>segs.length)st.pts.length=segs.length;
-  /* body follows path */
-  for(let i=0;i<segs.length;i++){const p=st.pts[Math.min(i,st.pts.length-1)]||st.pts[0];if(!p)continue;
-    const side=Math.sin(t*4-i*.55)*.08; /* sidewinding offset */
-    const px=p.x+Math.cos(st.th)*side,pz=p.z-Math.sin(st.th)*side,py=hAt(px,pz)+.045;
-    segs[i].position.set(px,py,pz)}
+  const ud=st.o.userData,segs=ud.segs||[];
+  if(ud.useGlb){
+    const side=Math.sin(t*4)*.06;
+    st.o.position.set(st.x+Math.cos(st.th)*side,hAt(st.x,st.z)+.04,st.z-Math.sin(st.th)*side);
+    st.o.rotation.set(0,st.th,Math.sin(t*5)*.15);
+  }else{
+    st.pts.unshift({x:st.x,z:st.z,y:hAt(st.x,st.z)+.04});if(st.pts.length>segs.length)st.pts.length=segs.length;
+    for(let i=0;i<segs.length;i++){const p=st.pts[Math.min(i,st.pts.length-1)]||st.pts[0];if(!p)continue;
+      const side=Math.sin(t*4-i*.55)*.08;
+      const px=p.x+Math.cos(st.th)*side,pz=p.z-Math.sin(st.th)*side,py=hAt(px,pz)+.045;
+      segs[i].position.set(px,py,pz)}
+  }
   /* tracks */
   if((st.t*20|0)!==((st.t-dt)*20|0)){const i=trI%TRN;trP[i*3]=st.x;trP[i*3+1]=hAt(st.x,st.z)+.01;trP[i*3+2]=st.z;trA[i]=.7;trI++}
   for(let i=0;i<TRN;i++)trA[i]=Math.max(0,trA[i]-dt*.12);

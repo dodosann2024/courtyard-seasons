@@ -49,6 +49,16 @@ def main():
     if os.path.isdir(mdir):
         for fn in os.listdir(mdir):
             written.add(os.path.normpath(os.path.join(mdir,fn)))
+    # self-hosted three + GLTFLoader for desert Tripo GLBs (no CDN)
+    vsrc=os.path.join(SRC,"vendor")
+    vdst=os.path.join(ASSETS,"vendor")
+    if os.path.isdir(vsrc):
+        os.makedirs(vdst,exist_ok=True)
+        for fn in os.listdir(vsrc):
+            sp,dp=os.path.join(vsrc,fn),os.path.join(vdst,fn)
+            if os.path.isfile(sp):
+                shutil.copy2(sp,dp)
+                written.add(os.path.normpath(dp))
     for fn in sorted(os.listdir(adir)):
         k, h, ext = fn.rsplit(".", 2)
         path = os.path.join(adir, fn)

@@ -1,4 +1,4 @@
-const V="ea652414bb",CORE=["assets/app.b0dcc485a8.js", "assets/ui.3dd1169e60.js", "assets/thumbs/def.81d03a6673.webp", "assets/thumbs/jp.f47a498518.webp", "assets/thumbs/cn.ee3d2450aa.webp", "assets/thumbs/kr.f3a9e00359.webp", "assets/thumbs/eu.5833743157.webp", "assets/thumbs/sea.9ec97c1685.webp", "assets/thumbs/desert.653baea1f2.webp"];
+const V="94ab6e308d",CORE=["assets/app.b0dcc485a8.js", "assets/ui.3dd1169e60.js", "assets/thumbs/def.81d03a6673.webp", "assets/thumbs/jp.f47a498518.webp", "assets/thumbs/cn.ee3d2450aa.webp", "assets/thumbs/kr.f3a9e00359.webp", "assets/thumbs/eu.5833743157.webp", "assets/thumbs/sea.9ec97c1685.webp", "assets/thumbs/desert.653baea1f2.webp"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open("cy-"+V).then(c=>c.addAll(CORE)).catch(()=>{}).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith("cy-")&&k!=="cy-"+V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{

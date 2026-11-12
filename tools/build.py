@@ -44,12 +44,16 @@ def main():
     # Audio never changes, so the hashed files in assets/audio are the only copy.
     audio = {}
     adir = os.path.join(ASSETS, "audio")
-    # keep Tripo GLBs and the models manifest
+    # keep Tripo GLBs and the models manifest; precache in service worker
     mdir=os.path.join(ASSETS,"models")
+    models_core=[]
     if os.path.isdir(mdir):
-        for fn in os.listdir(mdir):
+        for fn in sorted(os.listdir(mdir)):
             written.add(os.path.normpath(os.path.join(mdir,fn)))
+            if fn.endswith(".glb") or fn=="manifest.json":
+                models_core.append(f"assets/models/{fn}")
     # self-hosted three + GLTFLoader for desert Tripo GLBs (no CDN)
+    vendor_core=[]
     vsrc=os.path.join(SRC,"vendor")
     vdst=os.path.join(ASSETS,"vendor")
     if os.path.isdir(vsrc):
@@ -59,6 +63,8 @@ def main():
             if os.path.isfile(sp):
                 shutil.copy2(sp,dp)
                 written.add(os.path.normpath(dp))
+                if fn in ("des-gltf.js","GLTFLoader.js","three.module.min.js"):
+                    vendor_core.append(f"assets/vendor/{fn}")
     for fn in sorted(os.listdir(adir)):
         k, h, ext = fn.rsplit(".", 2)
         path = os.path.join(adir, fn)
@@ -101,8 +107,8 @@ def main():
         assert "{{" not in html, re.findall(r"\{\{\w+\}\}", html)
         write("index.html" if y is None else f"{y}/index.html", html)
 
-    core = [app_rel, ui_rel] + list(thumbs.values())
-    version = hashlib.sha256("|".join(sorted(core + [sea_rel, desert_rel] + list(audio.values()))).encode()).hexdigest()[:10]
+    core = [app_rel, ui_rel, desert_rel] + list(thumbs.values()) + models_core + vendor_core
+    version = hashlib.sha256("|".join(sorted(core + [sea_rel] + list(audio.values()))).encode()).hexdigest()[:10]
     sw = rd("sw.js").replace("{{VERSION}}", version).replace("{{CORE}}", json.dumps(core))
     write("sw.js", sw)
 

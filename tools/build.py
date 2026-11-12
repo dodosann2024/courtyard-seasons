@@ -52,6 +52,14 @@ def main():
             written.add(os.path.normpath(os.path.join(mdir,fn)))
             if fn.endswith(".glb") or fn=="manifest.json":
                 models_core.append(f"assets/models/{fn}")
+    # desert painted textures (sky cloud-sea backdrop + sandstone cliff)
+    tdir=os.path.join(ASSETS,"tex")
+    tex_core=[]
+    if os.path.isdir(tdir):
+        for fn in sorted(os.listdir(tdir)):
+            written.add(os.path.normpath(os.path.join(tdir,fn)))
+            if fn.endswith((".jpg",".jpeg",".png",".webp")):
+                tex_core.append(f"assets/tex/{fn}")
     # self-hosted three + GLTFLoader for desert Tripo GLBs (no CDN)
     vendor_core=[]
     vsrc=os.path.join(SRC,"vendor")
@@ -107,7 +115,7 @@ def main():
         assert "{{" not in html, re.findall(r"\{\{\w+\}\}", html)
         write("index.html" if y is None else f"{y}/index.html", html)
 
-    core = [app_rel, ui_rel, desert_rel] + list(thumbs.values()) + models_core + vendor_core
+    core = [app_rel, ui_rel, desert_rel] + list(thumbs.values()) + models_core + vendor_core + tex_core
     version = hashlib.sha256("|".join(sorted(core + [sea_rel] + list(audio.values()))).encode()).hexdigest()[:10]
     sw = rd("sw.js").replace("{{VERSION}}", version).replace("{{CORE}}", json.dumps(core))
     write("sw.js", sw)

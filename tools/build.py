@@ -63,7 +63,7 @@ def main():
             if os.path.isfile(sp):
                 shutil.copy2(sp,dp)
                 written.add(os.path.normpath(dp))
-                if fn in ("des-gltf.js","GLTFLoader.js","three.module.min.js"):
+                if fn in ("des-gltf.js","GLTFLoader.js","three.module.min.js","SkeletonUtils.js"):
                     vendor_core.append(f"assets/vendor/{fn}")
     for fn in sorted(os.listdir(adir)):
         k, h, ext = fn.rsplit(".", 2)

@@ -1,18 +1,18 @@
 # Desert Tripo GLBs
 
-Optimized static meshes (1k JPEG textures, no Draco/meshopt). `desert.js` loads them via the self-hosted `assets/vendor/des-gltf.js` GLTFLoader. Missing/failed keys keep the procedural fallback.
+Prefer **rigged** assets (AnimationMixer + procedural bone overlays). Static meshes remain as optional fallbacks.
 
 `manifest.json` gates loading:
 
 ```json
-{"camel":1,"eagle":1,"eagle_perch":1,"snake":1}
+{"camel_rigged":1,"eagle_rigged":1,"eagle_perch":1,"snake_rigged":1}
 ```
 
-| File | Fit | Notes |
-|------|-----|--------|
-| `camel.glb` | ~1.08 m tall | Pace / graze / drink via vertex deform |
-| `eagle.glb` | ~0.68 m (wings) | Glide + flap deform |
-| `eagle_perch.glb` | ~0.52 m tall | Swapped on cactus / lake landings |
-| `snake.glb` | ~0.55 m footprint | Travelling sine + sand tracks |
+| File | Notes |
+|------|--------|
+| `camel_rigged.glb` | 34 joints, clip `preset:quadruped:walk` — mixer walk + procedural neck for graze/drink |
+| `eagle_rigged.glb` | 26 joints, no clips — procedural wing flap / glide / flare / fold |
+| `eagle_perch.glb` | Static folded perch, swapped on cactus / lake |
+| `snake_rigged.glb` | 11 joints, clip `preset:serpentine:march` + travelling-wave overlay |
 
-All Y-up, origin at ground contact, metres. Service worker precaches these paths plus the vendor loader.
+Textures resized to **1024** JPEG. No Draco/meshopt. Loader: `assets/vendor/des-gltf.js` (+ SkeletonUtils). SW precaches models + vendor.

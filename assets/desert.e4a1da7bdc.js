@@ -2,7 +2,7 @@
    Lazy-loaded on camera layer 3; yards + sea never see this content. */
 (()=>{
 window.__desInit=getX=>{
-const X=getX(),T=X.T,{Jt,De,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
+const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
 const V3=T.V3,C3=T.Color,TAU=Math.PI*2,R=9.4,L3=8;
 let sd=20261112;const rnd=()=>{sd|=0;sd=sd+0x6D2B79F5|0;let t=Math.imul(sd^sd>>>15,1|sd);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 const rr=(a,b)=>a+(b-a)*rnd(),cl=(x,a,b)=>x<a?a:x>b?b:x;
@@ -13,126 +13,87 @@ const root=new T.Group();root.visible=false;Jt.add(root);
 const onDes=o=>{o.traverse(c=>{c.layers.mask=1|L3})};
 const M=(p,o)=>{const m=X.Wt(p,o||{snow:0,wet:0});return m};
 
-/* ---------------- Tripo GLB (self-hosted GLTFLoader) + procedural fallback ---------------- */
-const MODEL={camel:"assets/models/camel.glb",eagle:"assets/models/eagle.glb",eagle_perch:"assets/models/eagle_perch.glb",snake:"assets/models/snake.glb",tent:"assets/models/tent.glb",palm:"assets/models/palm.glb",cactus:"assets/models/cactus.glb"};
-/* Fit in metres: camel a bit under palm scale, eagle by height, snake by footprint */
-const MODEL_FIT={camel:1.08,eagle:.68,eagle_perch:.52,snake:.55,tent:1.5,palm:2.9,cactus:1.2};
-let _man=null,_gltfMod=null;
+/* ---------------- Tripo GLB — prefer rigged (AnimationMixer); procedural fallback ---------------- */
+const MODEL={
+  camel:"assets/models/camel_rigged.glb",
+  eagle:"assets/models/eagle_rigged.glb",
+  eagle_perch:"assets/models/eagle_perch.glb",
+  snake:"assets/models/snake_rigged.glb",
+  tent:"assets/models/tent.glb",palm:"assets/models/palm.glb",cactus:"assets/models/cactus.glb"};
+/* Fit metres: camel under palms; eagle by height; snake by footprint */
+const MODEL_FIT={camel:1.08,camel_rigged:1.08,eagle:.62,eagle_rigged:.62,eagle_perch:.48,snake:.55,snake_rigged:.55,tent:1.5,palm:2.9,cactus:1.2};
+let _man=null,_gltfMod=null,_VT=null;
 function modelsManifest(){if(_man)return _man;const url=((window.CY&&CY.root)||"")+"assets/models/manifest.json";
  _man=fetch(url).then(r=>r.ok?r.json():{}).catch(()=>({}));return _man}
 function gltfMod(){if(_gltfMod)return _gltfMod;
   const root=(window.CY&&CY.root)||"";
   const url=root?root+"assets/vendor/des-gltf.js":new URL("../assets/vendor/des-gltf.js",location.href).href;
-  _gltfMod=import(url).catch(()=>{_gltfMod=null;return Promise.reject(0)});return _gltfMod}
+  _gltfMod=import(url).then(m=>{_VT=m;return m}).catch(()=>{_gltfMod=null;return Promise.reject(0)});return _gltfMod}
 function worldBox(scene){
   const box={min:[1e9,1e9,1e9],max:[-1e9,-1e9,-1e9]};
   scene.updateMatrixWorld(true);
   scene.traverse(o=>{if(!o.isMesh||!o.geometry)return;const g=o.geometry;if(!g.boundingBox)g.computeBoundingBox();const b=g.boundingBox;if(!b)return;
+    const e=o.matrixWorld.elements;if(!e)return;
     for(let i=0;i<2;i++)for(let j=0;j<2;j++)for(let k=0;k<2;k++){
-      const p=new V3(i?b.max.x:b.min.x,j?b.max.y:b.min.y,k?b.max.z:b.min.z);o.localToWorld(p);
-      if(!Number.isFinite(p.x+p.y+p.z))continue;
-      box.min[0]=Math.min(box.min[0],p.x);box.min[1]=Math.min(box.min[1],p.y);box.min[2]=Math.min(box.min[2],p.z);
-      box.max[0]=Math.max(box.max[0],p.x);box.max[1]=Math.max(box.max[1],p.y);box.max[2]=Math.max(box.max[2],p.z)}});
+      const x=i?b.max.x:b.min.x,y=j?b.max.y:b.min.y,z=k?b.max.z:b.min.z;
+      const wx=e[0]*x+e[4]*y+e[8]*z+e[12],wy=e[1]*x+e[5]*y+e[9]*z+e[13],wz=e[2]*x+e[6]*y+e[10]*z+e[14];
+      if(!Number.isFinite(wx+wy+wz))continue;
+      box.min[0]=Math.min(box.min[0],wx);box.min[1]=Math.min(box.min[1],wy);box.min[2]=Math.min(box.min[2],wz);
+      box.max[0]=Math.max(box.max[0],wx);box.max[1]=Math.max(box.max[1],wy);box.max[2]=Math.max(box.max[2],wz)}});
   return box}
 function fitGLB(scene,key){
   const box=worldBox(scene);
   const sx=Math.max(1e-3,box.max[0]-box.min[0]),sy=Math.max(1e-3,box.max[1]-box.min[1]),sz=Math.max(1e-3,box.max[2]-box.min[2]);
   const target=MODEL_FIT[key]||1;
-  const span=key==="snake"?Math.max(sx,sz):key==="eagle"?Math.max(sx,sy*.85):sy;
-  const wrap=new T.Group();wrap.add(scene);
+  const span=key.indexOf("snake")>=0?Math.max(sx,sz):key.indexOf("eagle")>=0&&key.indexOf("perch")<0?Math.max(sx,sy*.9):sy;
+  let sc=target/Math.max(1e-3,span);if(!Number.isFinite(sc))sc=1;
+  const wrap=new T.Group();
   scene.position.set(-(box.min[0]+box.max[0])*.5,-box.min[1],-(box.min[2]+box.max[2])*.5);
-  const sc=target/Math.max(1e-3,span);
-  wrap.scale.setScalar(Number.isFinite(sc)?sc:1);wrap.userData.fitKey=key;return wrap}
+  wrap.add(scene);wrap.scale.setScalar(sc);wrap.userData.fitKey=key;wrap.userData.fitScale=sc;
+  return wrap}
 function loadGLB(url,key){
   return gltfMod().then(m=>m.loadGLB(url)).then(({scene,animations})=>{
-    if(!scene)throw 0;scene.userData.anims=animations||[];return fitGLB(scene,key)})}
+    if(!scene)throw 0;
+    scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}});
+    const wrap=fitGLB(scene,key);
+    wrap.userData.anims=animations||[];
+    wrap.userData.scene=scene;
+    return wrap})}
 function tryModel(rel,procedural){
   const key=(rel.split("/").pop()||"").replace(/\.glb$/,"");
   return modelsManifest().then(man=>{
     if(!man||!man[key])return {root:procedural(),src:"procedural"};
     const url=((window.CY&&CY.root)||"")+rel;
-    return loadGLB(url,key).then(g=>({root:g,src:"glb",key})).catch(()=>({root:procedural(),src:"procedural"}))
+    return loadGLB(url,key).then(g=>({root:g,src:"glb",key,anims:g.userData.anims||[]})).catch(()=>({root:procedural(),src:"procedural"}))
   }).catch(()=>({root:procedural(),src:"procedural"}))}
 function adoptGLB(host,glb){
   if(!host||!glb)return;
   host.children.slice().forEach(ch=>{ch.visible=false});
   glb.visible=true;host.add(glb);host.userData.glb=glb;host.userData.useGlb=1;onDes(glb)}
 
-/* Vertex-shader deformation for static Tripo meshes (no rig). Uniforms live on host.userData.deform */
-function meshLocalBounds(root){
-  let minX=1e9,minY=1e9,minZ=1e9,maxX=-1e9,maxY=-1e9,maxZ=-1e9;
-  root.traverse(o=>{if(!o.isMesh||!o.geometry)return;const g=o.geometry;if(!g.boundingBox)g.computeBoundingBox();const b=g.boundingBox;if(!b)return;
-    minX=Math.min(minX,b.min.x);minY=Math.min(minY,b.min.y);minZ=Math.min(minZ,b.min.z);
-    maxX=Math.max(maxX,b.max.x);maxY=Math.max(maxY,b.max.y);maxZ=Math.max(maxZ,b.max.z)});
-  if(!(maxY>minY)){minX=minY=minZ=-.5;maxX=maxY=maxZ=.5}
-  return {minX,minY,minZ,maxX,maxY,maxZ,h:Math.max(1e-3,maxY-minY),sx:Math.max(1e-3,maxX-minX),sz:Math.max(1e-3,maxZ-minZ)}}
-function patchDeform(root,kind,U){
-  const b=meshLocalBounds(root);
-  const y0=b.minY,ih=1/b.h,ix=1/b.sx,iz=1/b.sz;
+function mapBones(root){
+  const by={};
   root.traverse(o=>{
-    if(!o.isMesh||!o.material)return;
-    const mats=Array.isArray(o.material)?o.material:[o.material];
-    mats.forEach(mat=>{
-      if(!mat||mat.userData&&mat.userData.desDef)return;
-      mat.userData=mat.userData||{};mat.userData.desDef=kind;
-      const prev=mat.onBeforeCompile;
-      mat.onBeforeCompile=(sh)=>{
-        try{if(typeof prev==="function")prev(sh)}catch(_){}
-        Object.assign(sh.uniforms,U);
-        sh.vertexShader=sh.vertexShader
-          .replace("#include <common>",`#include <common>
-uniform float uStep,uNeck,uBob,uChew,uFlap,uBank,uSine,uAmp,uPhase;
-`)
-          .replace("#include <begin_vertex>",`#include <begin_vertex>
-{
-  float yn=clamp((transformed.y-(${y0.toFixed(5)}))*${ih.toFixed(6)},0.,1.);
-  float xn=transformed.x*${ix.toFixed(6)};
-  float zn=transformed.z*${iz.toFixed(6)};
-  ${kind==="camel"?`
-  float foot=smoothstep(0.02,0.18,yn);
-  float knee=smoothstep(0.12,0.42,yn)*(1.-smoothstep(0.48,0.72,yn));
-  float side=sign(transformed.x+1e-5);
-  float fore=smoothstep(-.15,.25,zn);
-  float hind=1.-fore;
-  float pace=uStep+(side>0.?0.:3.14159);
-  float swing=sin(pace)*.55*foot;
-  transformed.z+=swing*knee*.22;
-  transformed.y+=abs(swing)*knee*.06+uBob*yn*(1.-foot*.3);
-  float neckW=smoothstep(.45,.78,yn)*smoothstep(-.05,.55,zn);
-  float nd=uNeck*neckW;
-  float ca=cos(nd*1.15),sa=sin(nd*1.15);
-  vec3 np=transformed;
-  np.y-=.55;float ry=np.y*ca-np.z*sa;float rz=np.y*sa+np.z*ca;np.y=ry+.55;np.z=rz;
-  transformed=mix(transformed,np,neckW);
-  float headW=smoothstep(.72,.92,yn)*smoothstep(.2,.7,zn);
-  transformed.y+=sin(uChew)*headW*.012;
-  `:kind==="eagle"?`
-  float wing=smoothstep(.08,.55,abs(xn));
-  float flap=sin(uFlap)*wing*(.55+.45*smoothstep(.3,.9,abs(xn)));
-  transformed.y+=flap*.28*sign(transformed.y+.15);
-  transformed.z+=flap*.04*wing;
-  float bank=uBank*xn*.35;
-  transformed.y+=bank;transformed.x+=uBank*yn*.05;
-  `:kind==="snake"?`
-  float along=atan(transformed.z+1e-4,transformed.x+1e-4);
-  float rad=length(transformed.xz);
-  float wave=sin(along*3.2-uPhase)*uAmp*smoothstep(.02,.2,rad);
-  float nx=cos(along),nz=sin(along);
-  transformed.x+=(-nz)*wave;transformed.z+=nx*wave;
-  transformed.y+=abs(sin(along*1.6-uPhase*.7))*uAmp*.15;
-  `:``}
-}
-`);
-      };
-      mat.customProgramCacheKey=()=>"desDef_"+kind+"_v2";
-      mat.needsUpdate=true;
-    });
+    if(!o||!o.name)return;
+    const n=o.name;
+    if(!(o.isBone||/Head|Spine|Tail|Limb|Root|bone_|Armature/.test(n)))return;
+    by[n]=o;
+    if(!o.userData.restE)o.userData.restE={x:o.rotation.x,y:o.rotation.y,z:o.rotation.z};
   });
-  return b}
-function makeDeformU(kind){
-  const U={uStep:{value:0},uNeck:{value:0},uBob:{value:0},uChew:{value:0},uFlap:{value:0},uBank:{value:0},uSine:{value:0},uAmp:{value:0},uPhase:{value:0}};
-  return U}
-function setDef(host,k,v){const U=host&&host.userData&&host.userData.deform;if(U&&U[k]){const n=+v;U[k].value=Number.isFinite(n)?n:0}}
+  return by}
+function bonesMatching(by,re){const o=[];for(const k in by)if(re.test(k))o.push(by[k]);return o}
+function slerpRest(bone,t){if(!bone||!bone.userData.restE)return;const r=bone.userData.restE,k=cl(t,0,1);
+  bone.rotation.x=mix(bone.rotation.x,r.x,k);bone.rotation.y=mix(bone.rotation.y,r.y,k);bone.rotation.z=mix(bone.rotation.z,r.z,k)}
+function addRot(bone,ax,ay,az,w){if(!bone)return;const k=cl(w,0,1);
+  bone.rotation.x+=(ax-0)*k;bone.rotation.y+=(ay-0)*k;bone.rotation.z+=(az-0)*k}
+function cloneRig(wrap){
+  if(!_VT||!_VT.cloneSkinned)return wrap;
+  const scene=wrap.userData.scene;if(!scene)return wrap;
+  const cloned=_VT.cloneSkinned(scene);
+  const nw=fitGLB(cloned,wrap.userData.fitKey||"camel");
+  nw.userData.anims=wrap.userData.anims||[];
+  nw.userData.scene=cloned;
+  return nw}
 
 function canvasTex(S,fn,opts){
   const c=document.createElement("canvas");c.width=c.height=S;const g=c.getContext("2d");
@@ -424,16 +385,18 @@ function makeCactus(opts){
 const cacti=[];
 (function placeCacti(){
   const spots=[
-    {x:-5.0,z:2.2,h:1.25,r:.11,arms:2,perch:1},
+    {x:-6.2,z:3.4,h:1.35,r:.12,arms:2,perch:1}, /* clear of lake — eagle sits on this tip */
     {x:4.2,z:1.4,h:1.1,r:.1,arms:2},
     {x:3.8,z:-3.2,h:1.05,r:.1,arms:1},
     {x:-4.0,z:-2.8,h:1.15,r:.11,arms:2}
   ];
-  spots.forEach(sp=>{if(Math.hypot(sp.x,sp.z)>R-0.8)return;if(Math.hypot(sp.x-lakeC.x,sp.z-lakeC.z)<lakeR*1.5)return;
+  spots.forEach(sp=>{if(Math.hypot(sp.x,sp.z)>R-0.55)return;
+    if(!sp.perch&&Math.hypot(sp.x-lakeC.x,sp.z-lakeC.z)<lakeR*1.5)return;
     const c=makeCactus(sp);c.position.set(sp.x,hAt(sp.x,sp.z),sp.z);c.rotation.y=rr(0,TAU);onDes(c);root.add(c);cacti.push(c);
+    if(sp.perch)c.userData.isPerch=1;
     tryModel(MODEL.cactus,()=>null).then(r=>{if(r.src==="glb"&&r.root)adoptGLB(c,r.root)})});
 })();
-const eaglePerch=cacti[0];
+const eaglePerch=cacti.find(c=>c.userData.isPerch)||cacti[0];
 
 /* ---------------- A-frame canvas tent ---------------- */
 function makeTentProcedural(){
@@ -529,42 +492,100 @@ function plantFeet(cam,x,z,facing){
     const wz=z+Math.sin(facing)*lg.L.position.z-Math.cos(facing)*lg.L.position.x;
     lg.L.position.y=.92+(hAt(wx,wz)-base)*.3})}
 const camels=[];
+let _camelProto=null,_camelLoad=null,_camelAdopt=0;
+const CAMEL_STRIDE=.72; /* metres travelled per walk-cycle at timeScale 1 — tune vs clip */
+function setupCamelRig(st, wrap, anims){
+  if(!_VT)return;
+  const bones=mapBones(wrap);
+  const head=bones["tripoHead_0"]||bones["tripo::Head_0"]||bonesMatching(bones,/Head/)[0];
+  const spines=bonesMatching(bones,/Spine/).sort((a,b)=> (a.name>b.name?1:-1));
+  const neck=spines.length?spines[spines.length-1]:null;
+  const mixer=_VT.makeMixer(wrap.userData.scene||wrap);
+  let walkClip=null;
+  for(const a of (anims||wrap.userData.anims||[])){if(/walk|quadruped/i.test(a.name||""))walkClip=a}
+  if(!walkClip&&anims&&anims[0])walkClip=anims[0];
+  let walk=null;
+  if(walkClip){walk=mixer.clipAction(walkClip);walk.setLoop(_VT.LoopRepeat,Infinity);walk.clampWhenFinished=false;walk.enabled=true;walk.setEffectiveWeight(1);walk.play()}
+  st.rig={mixer,walk,bones,head,neck,spines,pose:"walk",fade:0};
+  st.glb=wrap}
+function ensureCamelProto(){
+  if(_camelProto)return Promise.resolve(_camelProto);
+  if(_camelLoad)return _camelLoad;
+  _camelLoad=tryModel(MODEL.camel,()=>null).then(r=>{
+    if(r.src==="glb"&&r.root){_camelProto=r.root;return _camelProto}
+    return null});
+  return _camelLoad}
 function spawnCamel(x,z,facing){
   const c=makeCamelProcedural();plantFeet(c,x,z,facing);onDes(c);root.add(c);
-  const st={o:c,x,z,facing,mode:"walk",t:rr(0,8),speed:.42,tx:x,tz:z,drink:0,graze:0,step:rnd()*TAU};
+  const st={o:c,x,z,facing,mode:"walk",t:rr(0,8),speed:.38,tx:x,tz:z,drink:0,graze:0,step:rnd()*TAU,rig:null};
   camels.push(st);
-  tryModel(MODEL.camel,()=>null).then(r=>{
-    if(r.src==="glb"&&r.root){
-      adoptGLB(c,r.root);st.glb=r.root;
-      const U=makeDeformU("camel");c.userData.deform=U;patchDeform(r.root,"camel",U)}});
+  ensureCamelProto().then(proto=>{
+    if(!proto||st.rig)return;
+    try{
+      const wrap=(_camelAdopt++===0)?proto:cloneRig(proto);
+      adoptGLB(c,wrap);setupCamelRig(st,wrap,wrap.userData.anims);
+      c.position.y=hAt(st.x,st.z)+.004}catch(_){}});
   return st}
 spawnCamel(-4.6,2.4,0.6);spawnCamel(-5.4,1.0,-2.1);
 
+function camelSetPose(st,pose,dt){
+  const r=st.rig;if(!r)return;
+  r.pose=pose;
+  if(r.walk){
+    const want=pose==="walk"?1:0;
+    const w=r.walk.getEffectiveWeight();
+    const nw=mix(w,want,ease(3.6,dt));
+    r.walk.setEffectiveWeight(nw);
+    if(pose==="walk"){if(!r.walk.isRunning())r.walk.play();r.walk.paused=false}
+    else if(nw<.015){r.walk.paused=true}}
+  if(pose!=="walk"){for(const k in r.bones){if(/Limb/.test(k))slerpRest(r.bones[k],ease(5.5,dt))}}
+}
+function camelBendNeck(rig,amt,chew,t,drink){
+  if(!rig||amt<.001&&Math.abs(chew)<.001)return;
+  const spines=rig.spines||[];
+  const n=spines.length;
+  const k=drink?1.55:1.15;
+  for(let i=0;i<n;i++){
+    const b=spines[i];if(!b)continue;const re=b.userData.restE||{x:0,y:0,z:0};
+    const u=n>1?i/(n-1):1; /* more bend toward head */
+    const pitch=amt*(.55+.9*u)*k;
+    b.rotation.x=re.x+pitch;b.rotation.y=re.y+Math.sin(t*.55+i)*.04*amt;b.rotation.z=re.z}
+  if(rig.head){const re=rig.head.userData.restE||{x:0,y:0,z:0};
+    rig.head.rotation.x=re.x+amt*(drink?.85:.6)+chew;
+    rig.head.rotation.y=re.y+Math.sin(t*.7)*.08;
+    rig.head.rotation.z=re.z+Math.sin(t*3.2)*.03*chew}}
 function camelUpdate(st,dt,t){
-  st.t+=dt;const c=st.o,ud=c.userData,glb=!!ud.useGlb;
-  if(st.mode==="walk"&&st.t>5.5){st.mode=rnd()<.45?"graze":rnd()<.5?"drink":"walk";st.t=0;
+  st.t+=dt;const c=st.o,ud=c.userData,glb=!!ud.useGlb,rig=st.rig;
+  if(st.mode==="walk"&&st.t>5.5){st.mode=rnd()<.45?"graze":rnd()<.5?"drink":"walk";st.t=0;st.graze=0;st.drink=0;
     if(st.mode==="graze"){const sh=shrubs[(Math.random()*shrubs.length)|0];if(sh){st.tx=sh.x;st.tz=sh.z}}
     else if(st.mode==="drink"){const a=rnd()*TAU;st.tx=lakeC.x+Math.cos(a)*lakeR*1.12;st.tz=lakeC.z+Math.sin(a)*lakeR*1.12}
     else{const a=rnd()*TAU,rad=rr(2.5,R*.6);st.tx=Math.cos(a)*rad;st.tz=Math.sin(a)*rad}}
-  let moving=0,neck=0,bob=0,chew=0;
+  let moving=0,neckAmt=0,chew=0;
   if(st.mode==="walk"||st.mode==="graze"||st.mode==="drink"){
     const dx=st.tx-st.x,dz=st.tz-st.z,dist=Math.hypot(dx,dz);
     if(dist>.28){const want=Math.atan2(dx,dz);let dth=((want-st.facing+Math.PI*3)%TAU)-Math.PI;st.facing+=dth*ease(3,dt);
-      const sp=st.speed*(st.mode==="walk"?1:.62);st.x+=Math.sin(st.facing)*sp*dt;st.z+=Math.cos(st.facing)*sp*dt;
-      st.step+=dt*sp*5.5;moving=1;bob=Math.sin(st.step*2)*.012;
+      const sp=st.speed*(st.mode==="walk"?1:.55);st.x+=Math.sin(st.facing)*sp*dt;st.z+=Math.cos(st.facing)*sp*dt;
+      st.step+=dt*sp*5.2;moving=1;
       if(!glb&&ud.legs)ud.legs.forEach(lg=>{const pace=st.step+(lg.side>0?0:Math.PI);const swing=Math.sin(pace);lg.L.rotation.x=swing*.45;lg.lo.rotation.x=Math.max(0,-swing)*.35});
       if(!glb&&ud.neck)ud.neck.rotation.x=ss(0,1,Math.sin(t*.7)*.08)}
     else{
       if(!glb&&ud.legs)ud.legs.forEach(lg=>{lg.L.rotation.x*=1-ease(6,dt);lg.lo.rotation.x*=1-ease(6,dt)});
-      if(st.mode==="graze"){st.graze+=dt;neck=ss(0,1,Math.min(1,st.graze*1.4))*1.05;chew=t*3.2;
-        if(!glb&&ud.neck){ud.neck.rotation.x=neck;ud.head.rotation.x=Math.sin(t*3)*.06}
-        if(st.graze>4){st.mode="walk";st.t=0;st.graze=0}}
-      else if(st.mode==="drink"){st.drink+=dt;neck=ss(0,1,Math.min(1,st.drink))*1.35;
-        if(!glb&&ud.neck)ud.neck.rotation.x=neck;if(st.drink>5){st.mode="walk";st.t=0;st.drink=0}}
+      if(st.mode==="graze"){st.graze+=dt;neckAmt=ss(0,1.1,Math.min(1.1,st.graze))*0.92;chew=Math.sin(t*3.4)*.1;
+        if(!glb&&ud.neck){ud.neck.rotation.x=neckAmt;ud.head.rotation.x=chew}
+        if(st.graze>4.5){st.mode="walk";st.t=0;st.graze=0}}
+      else if(st.mode==="drink"){st.drink+=dt;neckAmt=ss(0,1.2,Math.min(1.2,st.drink))*1.15;chew=Math.sin(t*2.2)*.05;
+        if(!glb&&ud.neck)ud.neck.rotation.x=neckAmt;if(st.drink>5){st.mode="walk";st.t=0;st.drink=0}}
       else{st.mode="walk";st.t=0}}}
-  if(glb){setDef(c,"uStep",moving?st.step:st.step*.15);setDef(c,"uNeck",neck);setDef(c,"uBob",bob);setDef(c,"uChew",chew)}
+  if(rig){
+    camelSetPose(st,moving?"walk":"idle",dt);
+    if(rig.walk){
+      const groundSp=moving?st.speed*(st.mode==="walk"?1:.55):0;
+      const ts=cl(groundSp/CAMEL_STRIDE,.0,1.4);
+      rig.walk.timeScale=Number.isFinite(ts)?ts:1}
+    if(rig.mixer)rig.mixer.update(dt);
+    camelBendNeck(rig,neckAmt,chew,t,st.mode==="drink");
+    if(!moving){for(const k in rig.bones)if(/Limb/.test(k))slerpRest(rig.bones[k],ease(6,dt))}}
   plantFeet(c,st.x,st.z,st.facing);
-  /* keep soles above sand — GLB origin is ground contact; neck reaches water via deform */
   const gy=hAt(st.x,st.z);
   if(glb)c.position.y=gy+.004;
   else if(st.mode==="drink"&&st.drink>0)c.position.y=gy-ss(0,1,Math.min(1,st.drink*.8))*.18}
@@ -585,24 +606,29 @@ function makeEagleProcedural(){
       p.position.set(side*(.55+i*.035),-.015,-.01-i*.012);p.rotation.z=side*(.12+i*.07);p.rotation.x=-.08;W.add(p)}
     return W}
   buildWing(-1);buildWing(1);
-  /* fanned tail */
   for(let i=-2;i<=2;i++){const t=new T.Mesh(new T.Plane(.06,.22),wingM);t.position.set(i*.04,0,-.28);t.rotation.x=.35;t.rotation.z=i*.08;g.add(t)}
   g.userData={wingL,wingR,head,body};return g}
-const eagle={o:makeEagleProcedural(),mode:"soar",t:0,th:rnd()*TAU,rad:5.0,alt:3.8,flap:0,cry:0,blend:0,landed:0};
+const eagle={o:makeEagleProcedural(),mode:"soar",t:0,th:rnd()*TAU,rad:5.0,alt:3.8,flap:0,cry:0,blend:0,landed:0,rig:null};
 eagle.o.scale.setScalar(.95);root.add(eagle.o);onDes(eagle.o);
 function eagleShowFly(on){
   const o=eagle.o;
   if(eagle.flyGlb)eagle.flyGlb.visible=!!on;
   if(eagle.perchGlb)eagle.perchGlb.visible=!on;
   if(!eagle.flyGlb&&!eagle.perchGlb)return;
-  /* hide procedural parts when any GLB is active */
   o.children.forEach(ch=>{if(ch===eagle.flyGlb||ch===eagle.perchGlb)return;ch.visible=!(eagle.flyGlb||eagle.perchGlb)})}
+function setupEagleRig(wrap){
+  const bones=mapBones(wrap);
+  const L=bonesMatching(bones,/0_Left_Limb/).sort((a,b)=>a.name.localeCompare(b.name));
+  const R=bonesMatching(bones,/0_Right_Limb/).sort((a,b)=>a.name.localeCompare(b.name));
+  const tail=bonesMatching(bones,/Tail/);
+  const legs=bonesMatching(bones,/1_Left_Limb|1_Right_Limb|Left_Limb|Right_Limb/).filter(b=>L.indexOf(b)<0&&R.indexOf(b)<0);
+  eagle.rig={bones,L,R,tail,legs,head:bones["tripoHead_0"]||bones["tripoHead_1"]||bones["tripo::Head_0"]||bonesMatching(bones,/Head/)[0]};
+}
 tryModel(MODEL.eagle,()=>null).then(r=>{
   if(r.src==="glb"&&r.root){
     eagle.o.children.slice().forEach(ch=>{ch.visible=false});
     eagle.flyGlb=r.root;eagle.o.add(r.root);eagle.o.userData.useGlb=1;onDes(r.root);
-    const U=makeDeformU("eagle");eagle.o.userData.deform=U;patchDeform(r.root,"eagle",U);
-    eagleShowFly(true)}});
+    setupEagleRig(r.root);eagleShowFly(true)}});
 tryModel(MODEL.eagle_perch,()=>null).then(r=>{
   if(r.src==="glb"&&r.root){
     eagle.perchGlb=r.root;r.root.visible=false;eagle.o.add(r.root);eagle.o.userData.useGlb=1;onDes(r.root);
@@ -616,52 +642,86 @@ function eaglePerchWorld(){
 function eagleLakeSpot(){
   const x=lakeC.x+lakeR*1.08,z=lakeC.z+.2;return {x,y:Math.max(hAt(x,z),lakeY)+.02,z}}
 
+/* Asymmetric flap: faster downstroke. phase in [0,1). */
+function flapAngle(phase){
+  const p=((phase%1)+1)%1;
+  if(p<.42){const u=p/.42;return mix(.55,-.75,u*u)} /* down */
+  const u=(p-.42)/.58;return mix(-.75,.55,Math.sqrt(u))} /* up */
+function driveEagleWings(mode,t,bank,flare){
+  const r=eagle.rig;if(!r)return;
+  const L=r.L,R=r.R;
+  const n=Math.max(L.length,R.length);
+  for(let i=0;i<n;i++){
+    const lb=L[i],rb=R[i];
+    const along=n>1?i/(n-1):0;
+    let ax=0,az=0,ay=0;
+    if(mode==="flap"){
+      const ph=t*1.35+along*.08;const a=flapAngle(ph);
+      ax=a*(.55+.45*along);az=(.12+along*.25)*Math.sign(a||1)*.15;ay=0}
+    else if(mode==="glide"){
+      ax=-.12-along*.06;az=Math.sin(t*.8+along)*along*.04;ay=bank*.15}
+    else if(mode==="flare"){
+      ax=-.35-along*.25-flare*.2;az=.2+along*.35;ay=0}
+    else if(mode==="fold"){
+      ax=.55+along*.4;az=-.05;ay=along*.1}
+    else{ax=-.08;az=0}
+    if(lb){const re=lb.userData.restE||{x:0,y:0,z:0};lb.rotation.x=re.x+ax;lb.rotation.y=re.y+ay;lb.rotation.z=re.z+az}
+    if(rb){const re=rb.userData.restE||{x:0,y:0,z:0};rb.rotation.x=re.x+ax;rb.rotation.y=re.y-ay;rb.rotation.z=re.z-az}}
+  /* tail fan on flare */
+  r.tail.forEach((b,i)=>{const re=b.userData.restE||{x:0,y:0,z:0};
+    const fan=mode==="flare"?(.45+i*.08):mode==="fold"?-.08:Math.sin(t*.9+i)*.03;
+    b.rotation.x=re.x+fan*.55;b.rotation.y=re.y+(i-1)*.06*fan});
+  /* legs: tuck in flight, extend on flare/land, fold on perch */
+  (r.legs||[]).forEach((b,i)=>{const re=b.userData.restE||{x:0,y:0,z:0};
+    let lx=0;if(mode==="flare")lx=.55;else if(mode==="fold")lx=.15;else if(mode==="flap"||mode==="glide")lx=-.35;
+    b.rotation.x=re.x+lx;b.rotation.z=re.z+(i%2?1:-1)*.04})}
+
 function eagleUpdate(dt,t){
   const e=eagle,o=e.o,ud=o.userData,glb=!!ud.useGlb;e.t+=dt;
   if(e.mode==="soar"){
     eagleShowFly(true);
     e.th+=dt*.18;e.rad=4.8+.4*Math.sin(t*.15);e.alt=3.4+.55*Math.sin(t*.2);
-    e.flap+=dt;const flapping=Math.sin(e.flap*8)>0&&(e.flap%6)<.35;
+    e.flap+=dt;const flapping=(e.flap%5.5)<.55;
     if(!glb&&ud.wingL){ud.wingL.rotation.z=flapping?Math.sin(e.flap*16)*.4:-.08;ud.wingR.rotation.z=flapping?-Math.sin(e.flap*16)*.4:.08}
     const x=Math.cos(e.th)*e.rad,z=Math.sin(e.th)*e.rad,y=e.alt;
     const px=o.position.x,pz=o.position.z;o.position.set(x,y,z);
     const yaw=Math.atan2(x-px,z-pz);o.rotation.y=Number.isFinite(yaw)?yaw:o.rotation.y;
     o.rotation.z=cl(Math.cos(e.th)*.22,-.4,.4);o.rotation.x=0;
-    if(glb){setDef(o,"uFlap",flapping?e.flap*16:e.flap*.4);setDef(o,"uBank",o.rotation.z)}
+    if(glb)driveEagleWings(flapping?"flap":"glide",e.flap,o.rotation.z,0);
     if(e.t>9){e.t=0;e.mode=rnd()<.65?"landPerch":"landDrink";e.blend=0}}
   else if(e.mode==="landPerch"||e.mode==="landDrink"){
     const spot=e.mode==="landPerch"?eaglePerchWorld():eagleLakeSpot();
     const tx=spot.x,ty=spot.y,tz=spot.z;
     const dist0=Math.hypot(tx-o.position.x,ty-o.position.y,tz-o.position.z);
-    /* flare: pull up then settle */
     const flare=ss(1.6,.35,dist0);
     const aimY=ty+flare*.55;
     const k=ease(1.35,dt);o.position.x+=(tx-o.position.x)*k;o.position.y+=(aimY-o.position.y)*k;o.position.z+=(tz-o.position.z)*k;
     const dist=Math.hypot(tx-o.position.x,ty-o.position.y,tz-o.position.z);
     o.rotation.z*=1-ease(4,dt);o.rotation.x=-flare*.35;
     if(!glb&&ud.wingL){ud.wingL.rotation.z=-.35-ss(1.2,0,dist)*.4;ud.wingR.rotation.z=.35+ss(1.2,0,dist)*.4}
-    if(glb){setDef(o,"uFlap",6+flare*10);setDef(o,"uBank",o.rotation.z);if(dist<.55)e.blend=Math.min(1,e.blend+dt*2.2)}
+    if(glb)driveEagleWings("flare",t,o.rotation.z,flare);
     if(dist<.16){
       e.mode=e.mode==="landPerch"?"perch":"drink";e.t=0;e.landed=1;e.blend=1;
       o.position.set(tx,ty,tz);o.rotation.set(0,o.rotation.y,0);
       eagleShowFly(false);
+      if(glb)driveEagleWings("fold",t,0,0);
       if(!glb&&ud.wingL){ud.wingL.rotation.set(.25,0,-.02);ud.wingR.rotation.set(.25,0,.02)}}}
   else if(e.mode==="perch"){
     const spot=eaglePerchWorld();o.position.set(spot.x,spot.y,spot.z);
     eagleShowFly(false);
     if(!glb&&ud.head)ud.head.rotation.y=Math.sin(t*.65)*.5;
-    if(glb){setDef(o,"uFlap",0);setDef(o,"uBank",0)}
+    if(glb){driveEagleWings("fold",t,0,0);if(e.rig&&e.rig.head){const re=e.rig.head.userData.restE||{x:0,y:0,z:0};e.rig.head.rotation.y=re.y+Math.sin(t*.65)*.4}}
     if(e.t>7){e.mode="takeoff";e.t=0;eagleShowFly(true)}}
   else if(e.mode==="drink"){
     const spot=eagleLakeSpot();o.position.set(spot.x,spot.y,spot.z);
     eagleShowFly(false);
     if(!glb&&ud.head)ud.head.rotation.x=ss(0,1,Math.min(1,e.t*2))*.75;
-    if(glb){setDef(o,"uFlap",0);setDef(o,"uBank",0)}
+    if(glb)driveEagleWings("fold",t,0,0);
     if(e.t>3.5){e.mode="takeoff";e.t=0;eagleShowFly(true)}}
   else if(e.mode==="takeoff"){
     eagleShowFly(true);
     if(!glb&&ud.wingL){ud.wingL.rotation.z=-Math.sin(e.t*14)*.6;ud.wingR.rotation.z=Math.sin(e.t*14)*.6;ud.wingL.rotation.x=0;ud.wingR.rotation.x=0}
-    if(glb){setDef(o,"uFlap",e.t*14);setDef(o,"uBank",0)}
+    if(glb)driveEagleWings("flap",e.t*2.2,0,0);
     o.position.y+=dt*2.4;o.position.x+=Math.sin(o.rotation.y)*dt*1.4;o.position.z+=Math.cos(o.rotation.y)*dt*1.4;
     if(e.t>1.3){e.mode="soar";e.t=0;e.th=Math.atan2(o.position.x,o.position.z);e.cry=1;e.landed=0}}
 }
@@ -675,14 +735,38 @@ function makeSnakeProcedural(){
     const s=new T.Mesh(new T.Sphere(r,6,5),m);s.castShadow=true;g.add(s);segs.push(s)}
   g.userData={segs,kind:"snake"};return g}
 const snakes=[];
+let _snakeProto=null,_snakeLoad=null,_snakeAdopt=0;
+function setupSnakeRig(st,wrap,anims){
+  if(!_VT)return;
+  const bones=mapBones(wrap);
+  /* Head→tail order: Spine, then bone_*, then Tail (loader strips '::' from tripo names) */
+  const byNum=(a,b)=>{const na=a.name.match(/(\d+)/),nb=b.name.match(/(\d+)/);return ((na&&+na[1])||0)-((nb&&+nb[1])||0)};
+  const spine=[
+    ...bonesMatching(bones,/Spine/).sort(byNum),
+    ...bonesMatching(bones,/^bone_/).sort(byNum),
+    ...bonesMatching(bones,/Tail/).sort(byNum)
+  ];
+  spine.forEach(b=>{if(!b.userData.restE)b.userData.restE={x:b.rotation.x,y:b.rotation.y,z:b.rotation.z}});
+  const mixer=_VT.makeMixer(wrap.userData.scene||wrap);
+  let march=null,clip=null;
+  for(const a of (anims||wrap.userData.anims||[])){if(/march|serpentine|slither|walk/i.test(a.name||""))clip=a}
+  if(!clip&&anims&&anims[0])clip=anims[0];
+  /* Tripo preset:serpentine:march kept for A/B — default procedural travelling wave (clip reads as rigid lateral wobble) */
+  if(clip){march=mixer.clipAction(clip);march.setLoop(_VT.LoopRepeat,Infinity);march.enabled=true;march.setEffectiveWeight(0);march.play();st.snakeClipName=clip.name||""}
+  st.rig={mixer,march,bones,spine,useClip:false,clipName:clip?clip.name:""};st.glb=wrap;st.snakeUseClip=false}
+function ensureSnakeProto(){
+  if(_snakeProto)return Promise.resolve(_snakeProto);
+  if(_snakeLoad)return _snakeLoad;
+  _snakeLoad=tryModel(MODEL.snake,()=>null).then(r=>{
+    if(r.src==="glb"&&r.root){_snakeProto=r.root;return _snakeProto}return null});
+  return _snakeLoad}
 function spawnSnake(){
-  const a=rnd()*TAU,rad=rr(2.8,R*.58);const s={o:makeSnakeProcedural(),x:Math.cos(a)*rad,z:Math.sin(a)*rad,th:rnd()*TAU,mode:"sidewind",t:0,pts:[],speed:.48};
+  const a=rnd()*TAU,rad=rr(2.8,R*.58);const s={o:makeSnakeProcedural(),x:Math.cos(a)*rad,z:Math.sin(a)*rad,th:rnd()*TAU,mode:"sidewind",t:0,pts:[],speed:.42,rig:null};
   root.add(s.o);onDes(s.o);snakes.push(s);
-  tryModel(MODEL.snake,()=>null).then(r=>{
-    if(r.src==="glb"&&r.root){
-      adoptGLB(s.o,r.root);s.glb=r.root;
-      const U=makeDeformU("snake");s.o.userData.deform=U;patchDeform(r.root,"snake",U);
-      setDef(s.o,"uAmp",.045)}})}
+  ensureSnakeProto().then(proto=>{
+    if(!proto||s.rig)return;
+    try{const wrap=(_snakeAdopt++===0)?proto:cloneRig(proto);
+      adoptGLB(s.o,wrap);setupSnakeRig(s,wrap,wrap.userData.anims)}catch(_){}})}
 spawnSnake();if(!MOB)spawnSnake();
 
 const TRN=180,trP=new Float32Array(TRN*3),trA=new Float32Array(TRN),trG=new T.BG();let trI=0;
@@ -692,22 +776,41 @@ const trM=new T.SM({transparent:true,depthWrite:false,uniforms:{col:{value:new C
  fragmentShader:`uniform vec3 col;varying float vA;void main(){float d=length(gl_PointCoord-.5);gl_FragColor=vec4(col,vA*smoothstep(.5,0.,d)*.4);}`});
 root.add(Object.assign(new T.Points(trG,trM),{frustumCulled:false}));
 
+function snakeWave(st,t,speed){
+  const r=st.rig;if(!r||!r.spine)return;
+  const n=r.spine.length;if(!n)return;
+  const freq=3.4+speed*.9;
+  for(let i=0;i<n;i++){
+    const b=r.spine[i];if(!b)continue;
+    const re=b.userData.restE||{x:0,y:0,z:0};
+    const u=n>1?i/(n-1):0;
+    /* Travelling lateral wave; keep amplitude modest to avoid bind explode */
+    const amp=.18*(1-u*.25);
+    b.rotation.y=re.y+Math.sin(t*freq-u*3.6)*amp;
+    b.rotation.x=re.x+Math.sin(t*freq*.35-u*1.6)*.03;
+    b.rotation.z=re.z}
+  if(st.glb&&st.glb.userData.scene)st.glb.userData.scene.updateMatrixWorld(true)}
 function snakeUpdate(st,dt,t){
-  st.t+=dt;const speed=.48;st.speed=speed;
+  st.t+=dt;const speed=.42;st.speed=speed;
   if(st.mode==="sidewind"){
-    st.th+=Math.sin(t*1.2+st.t)*.35*dt;st.x+=Math.sin(st.th)*speed*dt;st.z+=Math.cos(st.th)*speed*dt;
+    st.th+=Math.sin(t*1.2+st.t)*.28*dt;st.x+=Math.sin(st.th)*speed*dt;st.z+=Math.cos(st.th)*speed*dt;
     const r=Math.hypot(st.x,st.z);if(r>R*.8){st.th+=Math.PI*.5;st.x*=.94;st.z*=.94}
     if(Math.hypot(st.x-lakeC.x,st.z-lakeC.z)<lakeR*1.1)st.th+=1.1}
   const ud=st.o.userData,segs=ud.segs||[];
   if(ud.useGlb){
-    const y=hAt(st.x,st.z)+.012;
+    const y=hAt(st.x,st.z)+.002;
     const n=nAt(st.x,st.z);
     st.o.position.set(st.x,y,st.z);
     const yaw=st.th;st.o.rotation.set(0,Number.isFinite(yaw)?yaw:0,0);
-    /* slight pitch to hug slope without NaNs */
-    const pitch=cl(-n.z*.35,-.25,.25),roll=cl(n.x*.35,-.25,.25);
+    const pitch=cl(-n.z*.4,-.28,.28),roll=cl(n.x*.4,-.28,.28);
     st.o.rotation.x=Number.isFinite(pitch)?pitch:0;st.o.rotation.z=Number.isFinite(roll)?roll:0;
-    setDef(st.o,"uPhase",t*4.2+st.t*2.5);setDef(st.o,"uAmp",.04+.01*speed);setDef(st.o,"uSine",speed)}
+    if(st.rig){
+      if(st.rig.mixer&&st.rig.march&&st.snakeUseClip){
+        st.rig.march.setEffectiveWeight(1);st.rig.march.timeScale=cl(speed/.45,.5,1.3);
+        st.rig.mixer.update(dt)}
+      else{if(st.rig.march)st.rig.march.setEffectiveWeight(0);
+        if(st.rig.mixer)st.rig.mixer.update(dt);snakeWave(st,t,speed)}}
+  }
   else{
     st.pts.unshift({x:st.x,z:st.z});if(st.pts.length>segs.length)st.pts.length=segs.length;
     for(let i=0;i<segs.length;i++){const p=st.pts[Math.min(i,st.pts.length-1)];if(!p)continue;
@@ -859,11 +962,26 @@ function show(on){
   if(!on&&AU.master&&AU.ctx)AU.master.gain.setTargetAtTime(0,AU.ctx.currentTime,.25);
 }
 
-/* Lights + precip on L3; do NOT put default yard disk (vd) on desert — it fights the oasis sand */
-for(const o of[pi,dc,X.Dc])o&&o.traverse(c=>c.layers.enable(3));
-if(X.vd)X.vd.layers.disable(3);
+/* Sky dome, lights, stars on L3. Skip precip meshes (Dc/qc) — desert mutes rain/hail/snow. */
+for(const o of[X.vd,pi,dc,X.sr,...(X.Ca||[]).map(c=>c.m)])o&&o.traverse(c=>c.layers.enable(3));
 onDes(root);
 
+/* QA hooks for motion review */
+window.__desQA=()=>({camels,eagle,snakes,CAMEL_STRIDE,De,Ce,
+  get perch(){return eaglePerchWorld()},
+  lookAt:(px,py,pz,tx,ty,tz)=>{De.position.set(px,py,pz);Ce.target.set(tx,ty,tz);Ce.update()},
+  forceCamel:(i,mode)=>{const c=camels[i|0];if(!c)return;c.mode=mode||"walk";c.t=0;c.graze=0;c.drink=0;
+    if(mode==="graze"){c.tx=c.x;c.tz=c.z}else if(mode==="drink"){c.tx=lakeC.x+lakeR*1.12;c.tz=lakeC.z;c.x=c.tx;c.z=c.tz}
+    else{const a=Math.random()*TAU,rad=3.2;c.tx=Math.cos(a)*rad;c.tz=Math.sin(a)*rad}},
+  forceEagle:(mode)=>{eagle.mode=mode||"soar";eagle.t=0;eagle.blend=0;
+    if(mode==="perch"){const s=eaglePerchWorld();eagle.o.position.set(s.x,s.y,s.z);eagleShowFly(false)}
+    else if(mode==="landPerch"){eagleShowFly(true)}
+    else eagleShowFly(true)},
+  snakeClip:(on)=>{snakes.forEach(s=>{s.snakeUseClip=!!on;if(s.rig)s.rig.useClip=!!on})},
+  status:()=>({camel:camels.map(c=>({mode:c.mode,useGlb:!!c.o.userData.useGlb,rig:!!c.rig,walkW:c.rig&&c.rig.walk?c.rig.walk.getEffectiveWeight():0,x:c.x,z:c.z})),
+    eagle:{mode:eagle.mode,useGlb:!!eagle.o.userData.useGlb,rig:!!eagle.rig,fly:!!eagle.flyGlb,perch:!!eagle.perchGlb,pos:[eagle.o.position.x,eagle.o.position.y,eagle.o.position.z]},
+    snake:snakes.map(s=>({useGlb:!!s.o.userData.useGlb,rig:!!s.rig,clip:s.snakeUseClip,clipName:s.rig&&s.rig.clipName,x:s.x,z:s.z})),
+    perch:eaglePerchWorld()})});
 window.__desShow=show;window.__desU=update;
 window.__des={root,hAt,camels,eagle,snakes,cacti,palms,MODEL,lakeC,R,De,Ce:X.Ce};
 window.__desReady=true;

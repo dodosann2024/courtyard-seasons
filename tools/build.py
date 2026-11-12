@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """Build the static site from src/ into the repo root (served by GitHub Pages).
 
-Outputs: index.html, {jp,cn,kr,eu,sea}/index.html, sw.js and content-hashed files in assets/.
+Outputs: index.html, {jp,cn,kr,eu,sea,desert}/index.html, sw.js and content-hashed files in assets/.
 """
 import hashlib, json, os, re, shutil
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "src")
 ASSETS = os.path.join(ROOT, "assets")
-YARDS = ["def", "jp", "cn", "kr", "eu", "sea"]
-NAMES = {"def": "默认小院", "jp": "日式庭院", "cn": "中式小院", "kr": "韩式小院", "eu": "欧式小院", "sea": "空中海洋"}
+YARDS = ["def", "jp", "cn", "kr", "eu", "sea", "desert"]
+NAMES = {"def": "默认小院", "jp": "日式庭院", "cn": "中式小院", "kr": "韩式小院", "eu": "欧式小院", "sea": "空中海洋", "desert": "沙漠绿洲"}
 PREFETCH_AUDIO = ["loop", "pour", "clack", "fu"]
 written = set()
 
@@ -44,6 +44,11 @@ def main():
     # Audio never changes, so the hashed files in assets/audio are the only copy.
     audio = {}
     adir = os.path.join(ASSETS, "audio")
+    # keep Tripo GLBs and the models manifest
+    mdir=os.path.join(ASSETS,"models")
+    if os.path.isdir(mdir):
+        for fn in os.listdir(mdir):
+            written.add(os.path.normpath(os.path.join(mdir,fn)))
     for fn in sorted(os.listdir(adir)):
         k, h, ext = fn.rsplit(".", 2)
         path = os.path.join(adir, fn)
@@ -61,6 +66,7 @@ def main():
     app_rel = emit("", "app", "js", audio_refs(rd("app.js")))
     ui_rel = emit("", "ui", "js", rd("ui.js"))
     sea_rel = emit("", "sea", "js", audio_refs(rd("sea.js")))
+    desert_rel = emit("", "desert", "js", audio_refs(rd("desert.js")))
     thumbs = {y: emit("thumbs", y, "webp", rd(f"thumbs/{y}.webp", "rb")) for y in YARDS}
 
     css = rd("style.css") + rd("ui.css")
@@ -71,7 +77,7 @@ def main():
 
     for y in [None] + YARDS[1:]:
         p = "" if y is None else "../"
-        cy = {"p": p, "yard": y or "", "app": app_rel, "sea": sea_rel, "th": thumbs, "au": {k: audio[k] for k in PREFETCH_AUDIO}}
+        cy = {"p": p, "yard": y or "", "app": app_rel, "sea": sea_rel, "desert": desert_rel, "th": thumbs, "au": {k: audio[k] for k in PREFETCH_AUDIO}}
         title = "天空之境 | Sky Haven" if y is None else f"{NAMES[y]} · 天空之境 | Sky Haven"
         html = tpl
         for k, v in {
@@ -86,7 +92,7 @@ def main():
         write("index.html" if y is None else f"{y}/index.html", html)
 
     core = [app_rel, ui_rel] + list(thumbs.values())
-    version = hashlib.sha256("|".join(sorted(core + list(audio.values()))).encode()).hexdigest()[:10]
+    version = hashlib.sha256("|".join(sorted(core + [sea_rel, desert_rel] + list(audio.values()))).encode()).hexdigest()[:10]
     sw = rd("sw.js").replace("{{VERSION}}", version).replace("{{CORE}}", json.dumps(core))
     write("sw.js", sw)
 

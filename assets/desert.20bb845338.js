@@ -1,4 +1,4 @@
-/* 沙漠绿洲 · Desert Oasis (desert7) — kill orange discs, cloud-sea under island, prop polish.
+/* 沙漠绿洲 · Desert Oasis (desert8) — dark night restore, soft cloud-sea, seam/props.
    Lazy-loaded on camera layer 3; yards + sea never see this content. */
 (()=>{
 window.__desInit=getX=>{
@@ -113,7 +113,7 @@ const sandMats=[]; /* cliff + boulder mats waiting for sandstone.jpg */
 
 /* ---------------- irregular sandstone island + golden dunes ---------------- */
 const lakeC={x:-1.6,z:.55},lakeR=2.85;
-const tentAnchor={x:.55,z:-2.85};
+const tentAnchor={x:.2,z:-2.2};
 /* Cliff depth ≈0.6× island width (2R≈18.8 → tip ~−11.3) */
 const CLIFF_H=11.3;
 /* Integer angular harmonics only — avoids u=0/TAU seam in skirt mesh */
@@ -146,7 +146,10 @@ function hAt(x,z){
   h+=.38*Math.exp(-across*across/(2*.55*.55))*Math.exp(-along*along/(2*2.2*2.2));
   /* flatten pad under tent */
   const dt=Math.hypot(x-tentAnchor.x,z-tentAnchor.z);
-  h=mix(h,.015,ss(3.2,.3,dt)*.95);
+  h=mix(h,.01,ss(4.0,.25,dt)*.98);
+  /* also suppress nearby right-side dunes that bury the tent in close-ups */
+  const dDune=Math.exp(-Math.pow((z+1.2)/1.1,2))*Math.exp(-Math.pow((x-2.0)/2.0,2));
+  h-=.35*dDune*ss(-.5,2.5,x);
   /* soft wind ripples (height) */
   h+=.05*Math.sin(x*2.8+z*.4)*Math.sin(z*3.1-x*.5)*right;
   /* oasis bowl + wet band */
@@ -207,7 +210,7 @@ function buildUnderside(){
   /* near-white verts so sandstone.jpg albedo dominates; only AO/crevice darkens */
   const sunLit=new C3("#f5ebe0"),coolSh=new C3("#d8c4b0"),crevice=new C3("#8a6a50"),mid=new C3("#efe0d0");
   for(let j=0;j<=NV;j++)for(let i=0;i<=NR;i++){
-    const u=i/NR,v=j/NV,th=u*TAU;
+    const u=i/NR,v=j/NV,th=u*TAU+2.4; /* rotate seam away from common cameras */
     const pi0=Math.min(prof.length-2,(v*(prof.length-1))|0),fv=v*(prof.length-1)-pi0;
     const p0=prof[pi0],p1=prof[pi0+1];
     let pr=mix(p0[0],p1[0],fv),py=mix(p0[1],p1[1],fv);
@@ -218,8 +221,8 @@ function buildUnderside(){
     const n2=Math.sin(th*11-py*3.2)*.045+Math.sin(th*17+py*4.5)*.028+Math.sin(th*23-py*2.1)*.018;
     const crack=Math.pow(Math.abs(Math.sin(th*6)*.7+Math.sin(th*13)*.3),3);
     /* soft fractures only — strong ledge shelves read as orange pancake discs */
-    const ledge=(deep>.18&&deep<.75)?Math.pow(Math.max(0,Math.sin(th*2+deep*8)),2)*.12*Math.sin(deep*11):0;
-    let rad=pr*Rth*(1+(n1+n2)*.22*Math.max(.12,deep))-ledge*Rth*.05-crack*Rth*.05*deep;
+    const ledge=0; /* no shelf displacement — read as orange discs */
+    let rad=pr*Rth*(1+(n1+n2)*.18*Math.max(.12,deep))-crack*Rth*.04*deep;
     /* aggressive jagged inverted-cone tip */
     if(deep>.78){
       const tip=ss(.78,1,deep);
@@ -242,69 +245,89 @@ function buildUnderside(){
     const a=j*(NR+1),b=a+NR;
     pos[b*3]=pos[a*3];pos[b*3+1]=pos[a*3+1];pos[b*3+2]=pos[a*3+2];
     col[b*3]=col[a*3];col[b*3+1]=col[a*3+1];col[b*3+2]=col[a*3+2];ao[b]=ao[a];
-    uv[b*2+1]=uv[a*2+1]}
+    uv[b*2+1]=uv[a*2+1]
+    /* blend neighbor columns so lighting/color don't hard-step at wrap */
+    if(NR>2){const c1=a+1,c2=a+NR-1;
+      for(let k=0;k<3;k++){const avg=(col[c1*3+k]+col[c2*3+k])*.5;col[c1*3+k]=col[c2*3+k]=avg}}}
   for(let j=0;j<NV;j++)for(let i=0;i<NR;i++){const a=j*(NR+1)+i;idx.push(a,a+1,a+NR+1,a+1,a+NR+2,a+NR+1)}
   for(let i=0;i<ao.length;i++){const k=ao[i];col[i*3]*=k;col[i*3+1]*=k;col[i*3+2]*=k}
   const geo=new T.BG();geo.setAttribute("position",new T.BA(new Float32Array(pos),3));
   geo.setAttribute("uv",new T.BA(new Float32Array(uv),2));geo.setAttribute("color",new T.BA(new Float32Array(col),3));
   geo.setIndex(idx);geo.computeVertexNormals();
+  /* weld normals across lathe seam without merging verts (keep UV wrap intact) */
+  {const n=geo.attributes.normal.array;
+   for(let j=0;j<=NV;j++){
+     const a=j*(NR+1)*3, b=(j*(NR+1)+NR)*3;
+     const nx=(n[a]+n[b])*.5, ny=(n[a+1]+n[b+1])*.5, nz=(n[a+2]+n[b+2])*.5;
+     const len=Math.hypot(nx,ny,nz)||1;
+     const nxn=nx/len,nyn=ny/len,nzn=nz/len;
+     n[a]=n[b]=nxn;n[a+1]=n[b+1]=nyn;n[a+2]=n[b+2]=nzn;
+     /* soften neighbors so shade terminator isn't a hard vertical line */
+     const L=a+3,R=b-3;
+     for(const i of [L,R]){n[i]=(n[i]+nxn)*.5;n[i+1]=(n[i+1]+nyn)*.5;n[i+2]=(n[i+2]+nzn)*.5;
+       const ll=Math.hypot(n[i],n[i+1],n[i+2])||1;n[i]/=ll;n[i+1]/=ll;n[i+2]/=ll}}
+   geo.attributes.normal.needsUpdate=true}
   /* fallback canvas until sandstone.jpg loads — warm ochre grit, not maroon stripes */
   const rockMap=canvasTex(256,(x,y)=>{
     const strata=.5+.5*Math.sin(y*.18+Math.sin(x*.05)*2);
     const grit=Math.abs(Math.sin(x*.08+y*.05)*Math.sin(x*.03-y*.07));
     const v=165+strata*35+grit*22+(Math.random()*8-4);return [v*1.05,v*.78,v*.52]});
-  const rockM=M({map:rockMap,vertexColors:true,roughness:.94,color:new C3("#ffffff"),side:2});
+  const rockM=M({map:rockMap,vertexColors:true,roughness:.94,color:new C3("#ffffff"),side:0});
   sandMats.push(rockM);
-  /* light triplanar-ish crack darkening without overriding sandstone albedo */
-  rockM.onBeforeCompile=(sh)=>{
-    sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
-      `#include <map_fragment>
-       float crack=pow(abs(sin(vMapUv.x*28.)),.85)*pow(abs(sin(vMapUv.y*11.+vMapUv.x*3.)),.6);
-       diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.55,.42,.32),crack*.28);`);
-  };
+  /* no UV-space crack — sin(u) darkens the lathe wrap into a vertical crease */
   const cliff=new T.Mesh(geo,rockM);cliff.castShadow=cliff.receiveShadow=true;cliff.frustumCulled=false;gRoot.add(cliff);
   /* NO flat spill/ledge spheres — they read as bright orange pancake discs on the cliff */
   return gRoot}
 
-/* ---------------- painted cloud-sea: sky sphere + explicit sea disc BELOW island (overview) ---------------- */
+/* ---------------- painted sky + soft volumetric cloud-sea layers (no hard floor edge) ---------------- */
 function buildCloudSea(){
   const g=new T.Group();
-  /* sky dome — rotate so more of the painting's lower cumulus rises into view */
   const skyM=M({color:new C3("#ffffff"),emissive:new C3("#ffd0b0"),emissiveIntensity:1.05,roughness:1,metalness:0,fog:false,side:0,depthWrite:false});
   skyM.depthTest=false; skyM.toneMapped=true;
   const dome=new T.Mesh(new T.Sphere(80,64,48),skyM);
   dome.scale.set(-1,1,1);
-  /* tip X so horizon (mid painting) sits near island; yaw sun on right */
-  dome.rotation.set(-.38,Math.PI*.55,0);
+  dome.rotation.set(-.22,Math.PI*.55,0);
   dome.renderOrder=-100;dome.frustumCulled=false;dome.userData.isSky=1;dome.layers.mask=1|L3;
   g.add(dome);g.userData.skyM=skyM;g.userData.dome=dome;
-  /* cloud-sea discs under island — MeshStandard+emissiveMap (SM discs failed to composite) */
+  /* soft radial-alpha cloud layers — MeshStandard+alphaMap, emissive only (no specular floor) */
+  const radialAlpha=canvasTex(256,(x,y)=>{
+    const u=x/255-.5,v=y/255-.5,r=Math.hypot(u,v)*2;
+    const a=Math.floor(Math.pow(Math.max(0,1-r),1.85)*255);
+    return [a,a,a]},{repeat:[1,1]});
+  radialAlpha.colorSpace=""; /* data */
   const seaMats=[];
-  function addSeaDisc(y,sz,op,col){
-    const m=M({color:new C3(col),emissive:new C3(col),emissiveIntensity:.55,roughness:1,metalness:0,fog:false,side:2,transparent:true,opacity:op,depthWrite:false});
-    m.depthTest=true; seaMats.push(m);
+  function addCloudLayer(y,sz,op,col){
+    const m=M({color:new C3(col),emissive:new C3(col),emissiveIntensity:.45,roughness:1,metalness:0,
+      transparent:true,opacity:op,depthWrite:false,fog:false,side:2,alphaMap:radialAlpha});
+    m.depthTest=true;m.toneMapped=true;
     const pl=new T.Mesh(new T.Plane(sz,sz),m);
-    pl.rotation.x=-Math.PI/2;pl.position.y=y;pl.renderOrder=-90;pl.frustumCulled=false;pl.layers.mask=1|L3;
-    g.add(pl);return m}
-  addSeaDisc(-CLIFF_H-1.8,130,.85,"#e8b898");
-  addSeaDisc(-CLIFF_H-4.2,175,.62,"#d0a8b0");
-  addSeaDisc(-CLIFF_H-7.2,220,.42,"#a890b8");
+    pl.rotation.x=-Math.PI/2;pl.position.y=y;
+    pl.renderOrder=-90;pl.frustumCulled=false;pl.layers.mask=1|L3;
+    /* slight random yaw for parallax variety */
+    pl.rotation.z=rr(-.15,.15);
+    g.add(pl);seaMats.push({m,pl,baseOp:op});return m}
+  addCloudLayer(-CLIFF_H-2.4, 88,.5,"#ffd0b0");
+  addCloudLayer(-CLIFF_H-4.2,110,.38,"#f0c0c8");
+  addCloudLayer(-CLIFF_H-6.5,140,.28,"#d8b0d0");
+  addCloudLayer(-CLIFF_H-9.2,175,.18,"#c0a0c8");
   g.userData.seaMats=seaMats;
   return g}
 
 const island=buildIsland(),under=buildUnderside(),cloudSea=buildCloudSea();
 root.add(island);root.add(under);root.add(cloudSea);onDes(island);onDes(under);onDes(cloudSea);
-/* apply painted textures when ready */
 loadTex(TEX.sky,{clamp:1}).then(tex=>{
   skyTex=tex;tex.colorSpace="srgb";tex.flipY=true;
   const m=cloudSea.userData.skyM;if(m){m.map=tex;m.emissiveMap=tex;m.emissive.set("#ffffff");m.emissiveIntensity=1.1;m.color.set("#ffffff");m.needsUpdate=true}
-  /* crop lower 55% of painting as cloud-sea albedo for under-island discs */
+  /* crop cumulus band for cloud-sea layers */
   const img=tex.image; if(img&&img.width){
     const c=document.createElement("canvas");c.width=img.width;c.height=Math.floor(img.height*.55);
     const ctx=c.getContext("2d");
     ctx.drawImage(img,0,img.height-c.height,img.width,c.height,0,0,c.width,c.height);
-    const seaTex=new T.CTex(c);seaTex.colorSpace="srgb";seaTex.wrapS=seaTex.wrapT=1000;seaTex.repeat.set(1.4,1);seaTex.needsUpdate=true;
-    (cloudSea.userData.seaMats||[]).forEach(sm=>{sm.map=seaTex;sm.emissiveMap=seaTex;sm.emissive.set("#e8d0c0");sm.color.set("#ffffff");sm.emissiveIntensity=.55;sm.needsUpdate=true})}
+    const seaTex=new T.CTex(c);seaTex.colorSpace="srgb";seaTex.wrapS=seaTex.wrapT=1000;seaTex.repeat.set(1.35,1);seaTex.needsUpdate=true;
+    (cloudSea.userData.seaMats||[]).forEach((s,i)=>{
+      s.m.map=seaTex;s.m.emissiveMap=seaTex;s.m.emissive.set("#ffffff");s.m.color.set("#ffffff");
+      s.m.emissiveIntensity=.4;s.m.needsUpdate=true;
+      if(s.pl)s.pl.rotation.z=i*.11})}
 }).catch(()=>{});
 loadTex(TEX.sandstone).then(tex=>{
   sandTex=tex;tex.wrapS=tex.wrapT=1000;tex.colorSpace="srgb";
@@ -396,45 +419,29 @@ const reedG=new T.Group();root.add(reedG);
     g.userData.ph=rnd()*TAU;reedG.add(g)}
 })();
 
-/* sandstone rocks — chunky, half-buried, sandstone.jpg (no mint eggs / hex plates) */
+/* desert8: NO scatter rock eggs — they always read mint/white in stills */
 const rockG=new T.Group();root.add(rockG);window.__desRockMats=[];
-(function makeRocks(){
-  const spots=[[3.6,-.4],[5.2,2.2],[5.8,-2.8],[-4.2,-3.2],[-5.6,.3],[6.2,.5]];
-  const fallback=canvasTex(64,(x,y)=>{const v=150+((x^y)%9)*5;return [v*1.05,v*.72,v*.45]});
-  spots.forEach(([x,z],i)=>{
-    if(MOB&&i>4)return;
-    if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR*1.6)return;
-    const y=hAt(x,z),s=rr(.22,.5);
-    /* ochre tint even before map loads — never white/mint eggs */
-    const mat=M({map:sandTex||fallback,color:new C3("#c8955e"),roughness:.95,metalness:0,flatShading:false});
-    window.__desRockMats.push(mat);sandMats.push(mat);
-    const o=new T.Mesh(new T.Sphere(1,MOB?12:16,MOB?10:12),mat);
-    o.scale.set(s*rr(1.4,2.1),s*rr(.6,1.0),s*rr(1.3,1.9));
-    o.position.set(x,y-s*.62,z);
-    o.rotation.set(rr(0,.45),rr(0,TAU),rr(0,.35));o.castShadow=o.receiveShadow=true;rockG.add(o)});
-})();
+/* desert8: no shrub egg-spheres — graze targets use shore grass positions */
 const shrubs=[];
 (function makeShrubs(){
-  for(let i=0;i<(MOB?8:12);i++){
-    const a=rnd()*TAU,rad=lakeR*1.3+rnd()*2.2;const x=lakeC.x+Math.cos(a)*rad,z=lakeC.z+Math.sin(a)*rad*.9;
+  for(let i=0;i<10;i++){
+    const a=rnd()*TAU,rad=lakeR*1.15+rnd()*1.6;const x=lakeC.x+Math.cos(a)*rad,z=lakeC.z+Math.sin(a)*rad*.9;
     if(Math.hypot(x,z)>R-1)continue;
-    const y=hAt(x,z),g=new T.Group();
-    const m=M({color:new C3().setHSL(.18,rr(.35,.5),rr(.22,.3)),roughness:.92});
-    for(let k=0;k<5;k++){const b=new T.Mesh(new T.Sphere(rr(.04,.08),8,6),m);b.position.set(rr(-.08,.08),rr(.02,.1),rr(-.08,.08));g.add(b)}
-    g.position.set(x,y,z);root.add(g);shrubs.push({x,z,y,o:g})}
+    shrubs.push({x,z,y:hAt(x,z),o:null})}
 })();
 
 /* ---------------- date palms — ringed tapered trunk + dense drooping leaflets ---------------- */
 function makePalm(leanDir){
   const g=new T.Group();
-  /* strong ring bands + bark grit on tan-grey */
-  const ringMap=canvasTex(128,(x,y)=>{
-    const yy=y/128;const ring=Math.pow(Math.abs(Math.sin(yy*42*Math.PI)),4.5);
-    const grit=((x*11+y*5)%13)/13; const crack=Math.pow(Math.abs(Math.sin(x*.4+y*.02)),8)*.25;
-    const v=148-ring*78+grit*14-crack*30;return [v*.9,v*.78,v*.55]},{repeat:[2,22]});
+  /* high-contrast rings every ~15cm (~27 bands on 4m trunk) */
+  /* TubeGeometry: uv.x along path, uv.y around — rings must vary in X */
+  const ringMap=canvasTex(64,(x,y)=>{
+    const along=x/64;const ring=Math.pow(Math.abs(Math.sin(along*27*Math.PI)),2.0);
+    const grit=((x*11+y*5)%13)/13;
+    const dark=ring>.5;const v=dark?68:172+grit*16;return [v*.95,v*.78,v*.52]},{repeat:[1,1]});
   const bump=canvasTex(64,(x,y)=>{
-    const ring=Math.pow(Math.abs(Math.sin(y*.55)),4)*80;const v=128+ring-20;return [v,v,v]},{repeat:[2,22]});
-  const trunkM=M({map:ringMap,bumpMap:bump,bumpScale:.35,color:"#c8b090",roughness:.88});
+    const ring=Math.pow(Math.abs(Math.sin((x/64)*27*Math.PI)),1.6)*120;const v=85+ring;return [v,v,v]},{repeat:[1,1]});
+  const trunkM=M({map:ringMap,bumpMap:bump,bumpScale:1.4,color:"#d2b48c",roughness:.92,metalness:0});
   const lc=document.createElement("canvas");lc.width=64;lc.height=128;const lx=lc.getContext("2d");
   const lid=lx.createImageData(64,128);
   for(let y=0;y<128;y++)for(let x=0;x<64;x++){
@@ -453,12 +460,23 @@ function makePalm(leanDir){
   const pts=[];
   for(let i=0;i<=26;i++){const t=i/26; /* gentle S-curve lean */
     pts.push(new V3(lean*t*t*3.2+Math.sin(t*Math.PI)*.08,t*4.05,leanZ*t*t*3.0))}
-  const tube=new T.Tube(new T.Curve(pts),36,.16,14,false);
-  {const arr=tube.attributes.position.array;
-    for(let i=0;i<arr.length;i+=3){const yy=cl(arr[i+1]/4.05,0,1),rScale=1-yy*.55; /* strong base→tip taper */
-      arr[i]*=rScale;arr[i+2]*=rScale}
-    tube.computeVertexNormals()}
-  const trunkMesh=new T.Mesh(tube,trunkM);trunkMesh.castShadow=true;trunkMesh.receiveShadow=true;g.add(trunkMesh);
+  /* stacked scar rings along curve — UV-independent horizontal bands every ~15cm */
+  const Nring=28;
+  for(let i=0;i<Nring;i++){
+    const t0=i/Nring,t1=(i+1)/Nring;
+    const p0=pts[(t0*(pts.length-1))|0], p1=pts[Math.min(pts.length-1,(t1*(pts.length-1))|0)];
+    const mid=p0.clone().lerp(p1,.5);
+    const h=Math.max(.04,p1.distanceTo(p0)*1.05);
+    const rScale=1-t0*.58;
+    const R= (.17+.02*(i%2))*rScale; /* alternate fatter scar rings */
+    const dark=i%2===0;
+    const mat=dark?M({color:"#5a3e28",roughness:.92}):M({map:ringMap,bumpMap:bump,bumpScale:.8,color:"#d2b48c",roughness:.9});
+    const seg=new T.Mesh(new T.Cyl(R*.92,R,h,12,1,false),mat);
+    seg.position.copy(mid);
+    /* orient segment along local tangent */
+    const tang=p1.clone().sub(p0).normalize();
+    seg.quaternion.setFromUnitVectors(new V3(0,1,0),tang);
+    seg.castShadow=true;seg.receiveShadow=true;g.add(seg)}
   const tip=pts[pts.length-1];
   const crown=new T.Group();crown.position.copy(tip);crown.position.y+=.06;g.add(crown);
   const nFrond=MOB?22:32;
@@ -498,17 +516,17 @@ const palms=[];
 (function placePalms(){
   const spots=[{x:lakeC.x+.9,z:lakeC.z+.55,lean:.11},{x:lakeC.x+1.35,z:lakeC.z-.45,lean:-.1},{x:lakeC.x+.45,z:lakeC.z-.95,lean:.06}];
   spots.forEach(sp=>{const p=makePalm(sp.lean);p.scale.setScalar(1);p.position.set(sp.x,hAt(sp.x,sp.z),sp.z);p.rotation.y=rr(-.3,.3);onDes(p);root.add(p);palms.push(p);
-    tryModel(MODEL.palm,()=>null).then(r=>{if(r.src==="glb"&&r.root)adoptGLB(p,r.root)})})
+    /* keep procedural ringed trunks — do not adopt smooth palm.glb */})
 })();
 
 /* ---------------- saguaros — yellow-green #5f7d3a, rib shading, spine glints ---------------- */
 function makeCactus(opts){
   opts=opts||{};const g=new T.Group();
-  const col=new C3("#5f7d3a"); /* desaturated yellow-green */
+  const col=new C3("#7a9a4e"); /* lit yellow-green → #5f7d3a in shade */
   const ribMap=canvasTex(128,(x,y)=>{
     const th=(x/128)*Math.PI*2;const rib=.5+.5*Math.cos(th*12);
-    const v=110+rib*55+(Math.random()*6);return [v*.55,v*.72,v*.38]},{repeat:[1,4]});
-  const m=M({map:ribMap,color:col,roughness:.82});
+    const v=160+rib*75+(Math.random()*8);return [v*.5,v*.85,v*.32]},{repeat:[1,4]});
+  const m=M({map:ribMap,color:col,roughness:.78,emissive:new C3("#2a3a14"),emissiveIntensity:.18});
   m.onBeforeCompile=(sh)=>{
     sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
       `#include <map_fragment>
@@ -523,7 +541,7 @@ function makeCactus(opts){
   const pa=trunk.geometry.attributes.position.array;
   for(let i=0;i<pa.length;i+=3){const th=Math.atan2(pa[i+2],pa[i]);const rib=.018*Math.sin(th*12);const rr2=Math.hypot(pa[i],pa[i+2])+rib;pa[i]=Math.cos(th)*rr2;pa[i+2]=Math.sin(th)*rr2}
   trunk.geometry.computeVertexNormals();trunk.position.y=H*.5;trunk.castShadow=true;trunk.receiveShadow=true;g.add(trunk);
-  const top=new T.Mesh(new T.Sphere(R0*1.05,16,12),m);top.scale.set(1,.55,1);top.position.y=H;g.add(top);
+  const top=new T.Mesh(new T.Sphere(R0*1.08,18,14),m);top.scale.set(1,.92,1);top.position.y=H+.02;g.add(top); /* rounded dome, not cut pipe */
   g.userData.perch={x:0,y:H+.04,z:0};
   const arms=opts.arms!=null?opts.arms:2;
   for(let i=0;i<arms;i++){
@@ -538,7 +556,7 @@ function makeCactus(opts){
       c.geometry.computeVertexNormals();
       ax+=Math.sin(ang)*len;ay+=Math.cos(ang)*len;
       c.position.set(ax,ay,az);c.rotation.z=-ang;arm.add(c)}
-    const tip=new T.Mesh(new T.Sphere(R0*.5,12,10),m);tip.scale.set(1,.65,1);tip.position.set(ax,ay+.03,az);arm.add(tip);
+    const tip=new T.Mesh(new T.Sphere(R0*.52,12,10),m);tip.scale.set(1,.9,1);tip.position.set(ax,ay+.04,az);arm.add(tip);
     arm.rotation.y=rr(-.2,.2)+i*.15;g.add(arm)}
   return g}
 const cacti=[];
@@ -552,94 +570,88 @@ const cacti=[];
     if(!sp.perch&&Math.hypot(sp.x-lakeC.x,sp.z-lakeC.z)<lakeR*1.45)return;
     const c=makeCactus(sp);c.position.set(sp.x,hAt(sp.x,sp.z),sp.z);c.rotation.y=rr(0,TAU);onDes(c);root.add(c);cacti.push(c);
     if(sp.perch)c.userData.isPerch=1;
-    tryModel(MODEL.cactus,()=>null).then(r=>{if(r.src==="glb"&&r.root)adoptGLB(c,r.root)})});
+    /* keep procedural ribbed saguaro */});
 })();
 const eaglePerch=cacti.find(c=>c.userData.isPerch)||cacti[0];
 
 /* ---------------- Bedouin tent — low wide pitched roof, poles, striped cloth, open front, guys ---------------- */
 function makeTentProcedural(){
   const g=new T.Group();
+  /* horizontal fabric stripes — cream/camel, soft weave (never wood grain) */
   const clothMap=canvasTex(256,(x,y)=>{
-    /* soft fabric stripes — cream / camel, slight weave (not wood grain) */
-    const stripe=((x/22)|0)%2;const weave=Math.sin(x*.8)*.8+Math.sin(y*1.2)*.5;
-    const v=stripe?205+weave:108+weave;return stripe?[v,v*.9,v*.72]:[v*1.02,v*.7,v*.45]},{repeat:[5,1]});
-  const cloth=M({map:clothMap,color:"#e8d2b0",roughness:.9,side:2,metalness:0});
-  const poleM=M({color:"#4a3020",roughness:.9}),ropeM=M({color:"#6a5438",roughness:.95});
+    const stripe=((y/28)|0)%2; /* horizontal bands like Bedouin cloth */
+    const weave=Math.sin(x*1.1)*.6+Math.sin(y*.7)*.4;
+    const v=stripe?210+weave:115+weave;return stripe?[v,v*.9,v*.74]:[v*1.05,v*.72,v*.48]},{repeat:[1,3]});
+  const cloth=M({map:clothMap,color:"#f0e0c8",roughness:.95,side:2,metalness:0});
+  const poleM=M({color:"#3a2818",roughness:.9}),ropeM=M({color:"#5a4830",roughness:.95});
   const rugM=M({color:"#8b3a28",roughness:.9});
-  /* low, wide Bedouin — soft sagging roof, open front */
-  const w=2.35,d=1.85,ridge=.78,eave=.14;
-  function drapedPanel(sign, openFront){
-    const geo=new T.BG();
-    const Nu=8,Nv=7,pos=[],uvs=[],idx=[];
+  const w=2.5,d=2.0,ridge=.72,eave=.12;
+  function drapedRoof(sign){
+    const Nu=10,Nv=8,pos=[],uvs=[],idx=[];
     for(let j=0;j<=Nv;j++)for(let i=0;i<=Nu;i++){
       const u=i/Nu,v=j/Nv;
-      const x=sign*w*.5*u;
-      const sag=Math.sin(u*Math.PI)*.32*(.4+v*.7)+Math.sin(v*Math.PI)*.16+Math.sin(u*Math.PI*2)*.04;
+      const x=sign*(w*.08+u*w*.42);
+      const sag=Math.sin(u*Math.PI)*.38*(.45+v*.7)+Math.sin(v*Math.PI)*.2+Math.sin(u*Math.PI*2)*.05;
       const y=mix(ridge,eave,u)-sag;
-      const z=mix(d*.55,-d*.5,v);
-      /* flutter-ready loose edge at front */
-      const flutter=openFront&&v<.15?Math.sin(u*Math.PI)*.04:0;
-      pos.push(x,y+flutter,z);uvs.push(u*2,v)}
+      const z=mix(d*.55,-d*.48,v);
+      pos.push(x,y,z);uvs.push(u*1.5,v)}
     for(let j=0;j<Nv;j++)for(let i=0;i<Nu;i++){const a=j*(Nu+1)+i;idx.push(a,a+1,a+Nu+1,a+1,a+Nu+2,a+Nu+1)}
-    geo.setAttribute("position",new T.BA(new Float32Array(pos),3));
+    const geo=new T.BG();geo.setAttribute("position",new T.BA(new Float32Array(pos),3));
     geo.setAttribute("uv",new T.BA(new Float32Array(uvs),2));geo.setIndex(idx);geo.computeVertexNormals();
     const m=new T.Mesh(geo,cloth);m.castShadow=m.receiveShadow=true;return m}
-  const roofL=drapedPanel(-1,1),roofR=drapedPanel(1,1);g.add(roofL);g.add(roofR);
-  /* side walls — soft cloth sag, not fence boards */
-  [-1,1].forEach(side=>{
-    const wall=new T.Mesh(new T.Plane(d*.95,ridge*.7,10,8),cloth);
-    {const arr=wall.geometry.attributes.position.array;
-      for(let i=0;i<arr.length;i+=3){
-        const uu=(arr[i]/(d*.95))+.5,vv=(arr[i+1]/(ridge*.7))+.5;
-        arr[i+2]+=Math.sin(uu*Math.PI)*.12+Math.sin(vv*Math.PI)*.05;
-        arr[i+1]-=Math.sin(uu*Math.PI)*.06}}
-    wall.geometry.computeVertexNormals();
-    wall.position.set(side*w*.46,ridge*.32,0);wall.rotation.y=side*Math.PI/2;wall.castShadow=true;g.add(wall)});
-  /* back wall (front open) */
-  const back=new T.Mesh(new T.Plane(w*.95,ridge*.78,12,8),cloth);
-  {const arr=back.geometry.attributes.position.array;
-    for(let i=0;i<arr.length;i+=3){
-      const uu=(arr[i]/(w*.95))+.5;
-      arr[i+2]+=Math.sin(uu*Math.PI)*.14;arr[i+1]-=Math.sin(uu*Math.PI)*.08}}
-  back.geometry.computeVertexNormals();back.position.set(0,ridge*.34,-d*.48);back.castShadow=true;g.add(back);
-  g.userData.cloths=[roofL,roofR,back];
-  /* ridge + corner poles */
-  [[0,0,0],[-w*.28,0,d*.4],[w*.28,0,d*.4],[-w*.28,0,-d*.4],[w*.28,0,-d*.4],[-w*.42,0,0],[w*.42,0,0]].forEach(([x,_,z],i)=>{
-    const h=i===0?ridge*1.08:ridge*.92;const p=new T.Mesh(new T.Cyl(.018,.014,h,6),poleM);p.position.set(x,h*.5,z);p.castShadow=true;g.add(p)});
-  /* guy ropes to stakes */
-  [[-w*1.05,d*.95],[w*1.05,d*.95],[-w*1.05,-d*.85],[w*1.05,-d*.85],[-w*1.15,0],[w*1.15,0]].forEach(([x,z])=>{
-    const peg=new T.Mesh(new T.Cyl(.012,.012,.06,5),poleM);peg.position.set(x,.02,z);peg.rotation.x=.4;g.add(peg);
-    const mid=new V3(x*.4,ridge*.55,z*.4),end=new V3(x,.02,z);
+  const roofL=drapedRoof(-1),roofR=drapedRoof(1);g.add(roofL);g.add(roofR);
+  /* soft back cloth curtain only (front open) — no fence walls */
+  {const Nu=12,Nv=8,pos=[],uvs=[],idx=[];
+   for(let j=0;j<=Nv;j++)for(let i=0;i<=Nu;i++){
+     const u=i/Nu,v=j/Nv;
+     const x=(u-.5)*w*.9;
+     const sag=Math.sin(u*Math.PI)*.16;
+     const y=mix(.02,ridge*.85,v)-sag*(1-v);
+     const z=-d*.45+Math.sin(u*Math.PI)*.1;
+     pos.push(x,y,z);uvs.push(u*2,v)}
+   for(let j=0;j<Nv;j++)for(let i=0;i<Nu;i++){const a=j*(Nu+1)+i;idx.push(a,a+1,a+Nu+1,a+1,a+Nu+2,a+Nu+1)}
+   const geo=new T.BG();geo.setAttribute("position",new T.BA(new Float32Array(pos),3));
+   geo.setAttribute("uv",new T.BA(new Float32Array(uvs),2));geo.setIndex(idx);geo.computeVertexNormals();
+   const back=new T.Mesh(geo,cloth);back.castShadow=true;g.add(back);g.userData.cloths=[roofL,roofR,back]}
+  /* few thin poles only (not a fence row) */
+  [[0,0],[-w*.35,d*.35],[w*.35,d*.35],[-w*.35,-d*.35],[w*.35,-d*.35]].forEach(([x,z],i)=>{
+    const h=i===0?ridge*1.05:ridge*.9;
+    const p=new T.Mesh(new T.Cyl(.012,.01,h,6),poleM);p.position.set(x,h*.5,z);p.castShadow=true;g.add(p)});
+  /* guy ropes */
+  [[-w*1.0,d*.9],[w*1.0,d*.9],[-w*1.0,-d*.8],[w*1.0,-d*.8]].forEach(([x,z])=>{
+    const peg=new T.Mesh(new T.Cyl(.01,.01,.05,5),poleM);peg.position.set(x,.02,z);g.add(peg);
+    const mid=new V3(x*.35,ridge*.5,z*.35),end=new V3(x,.02,z);
     const len=mid.distanceTo(end);
-    const rope=new T.Mesh(new T.Cyl(.0035,.0035,len,4),ropeM);
+    const rope=new T.Mesh(new T.Cyl(.003,.003,len,4),ropeM);
     rope.position.copy(mid.clone().add(end).multiplyScalar(.5));
     rope.lookAt(end);rope.rotateX(Math.PI/2);g.add(rope)});
-  const rug=new T.Mesh(new T.Plane(1.1,.7),rugM);rug.rotation.x=-Math.PI/2;rug.position.set(0,.012,d*.55);rug.receiveShadow=true;g.add(rug);
+  const rug=new T.Mesh(new T.Plane(1.0,.65),rugM);rug.rotation.x=-Math.PI/2;rug.position.set(0,.01,d*.5);rug.receiveShadow=true;g.add(rug);
   return g}
 const tentY=hAt(tentAnchor.x,tentAnchor.z);
 let tent=makeTentProcedural();tent.position.set(tentAnchor.x,tentY,tentAnchor.z);tent.rotation.y=-.35;onDes(tent);root.add(tent);
-tryModel(MODEL.tent,()=>({skip:1})).then(r=>{if(r.src==="glb"&&r.root){adoptGLB(tent,r.root)}});
+/* keep procedural fabric tent — tent.glb was fence/board look */
 
 /* contact blob shadows — SwiftShader often skips real shadow maps; keep props grounded */
 /* unlit soft contact shadows (ShaderMaterial — MeshStandard lit them orange) */
 const blobM=new T.SM({transparent:true,depthWrite:false,fog:false,
-  uniforms:{col:{value:new C3(.03,.02,.015)},op:{value:.32}},
+  uniforms:{col:{value:new C3(.02,.015,.01)},op:{value:.22}},
   vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
   fragmentShader:`uniform vec3 col;uniform float op;varying vec2 vUv;
-    void main(){float r=length(vUv-.5)*2.;float a=op*pow(smoothstep(1.05,.1,r),1.8);gl_FragColor=vec4(col,a);}`});
+    void main(){float r=length(vUv-.5)*2.;float a=op*pow(smoothstep(1.0,.05,r),2.2);gl_FragColor=vec4(col,a);}`});
 function addBlob(x,z,sx,sz){
   const b=new T.Mesh(new T.Plane(sx,sz),blobM);b.rotation.x=-Math.PI/2;
-  b.position.set(x,hAt(x,z)+.014,z);b.renderOrder=1;onDes(b);root.add(b);return b}
-palms.forEach(p=>addBlob(p.position.x,p.position.z,.85,.65));
-cacti.forEach(c=>addBlob(c.position.x,c.position.z,.5,.42));
-addBlob(tentAnchor.x,tentAnchor.z,2.0,1.55);
+  b.position.set(x,hAt(x,z)+.01,z);b.renderOrder=1;onDes(b);root.add(b);return b}
+/* small soft grounding only — large orange ovals looked like discs */
+palms.forEach(p=>addBlob(p.position.x,p.position.z,.55,.42));
+cacti.forEach(c=>addBlob(c.position.x,c.position.z,.32,.28));
+addBlob(tentAnchor.x,tentAnchor.z,1.4,1.1);
 
 /* campfire + smoke */
 const fireG=new T.Group();const firePos={x:tentAnchor.x-.1,z:tentAnchor.z+1.05};
 fireG.position.set(firePos.x,hAt(firePos.x,firePos.z),firePos.z);root.add(fireG);
 (function makeFire(){
-  const stoneM=M({color:"#6a5a48",roughness:.95}),logM=M({color:"#3a2415",roughness:.95});
-  for(let i=0;i<6;i++){const s=new T.Mesh(new T.Sphere(rr(.05,.08),6,5),stoneM);const a=i/6*TAU;s.position.set(Math.cos(a)*.22,.03,Math.sin(a)*.22);s.scale.set(1,.5,1);fireG.add(s)}
+  const stoneM=M({color:"#3a2a20",roughness:.95}),logM=M({color:"#2a1810",roughness:.95});
+  for(let i=0;i<6;i++){const s=new T.Mesh(new T.Sphere(rr(.05,.08),8,6),stoneM);const a=i/6*TAU;s.position.set(Math.cos(a)*.22,.04,Math.sin(a)*.22);s.scale.set(1,.85,1);fireG.add(s)}
   for(let i=0;i<3;i++){const log=new T.Mesh(new T.Cyl(.03,.04,.28,5),logM);log.rotation.z=Math.PI/2;log.rotation.y=i*TAU/3;log.position.y=.04;fireG.add(log)}
   const glow=new T.Mesh(new T.Sphere(.1,8,6),M({color:"#ff8a3a",roughness:1,emissive:"#ff6a20",emissiveIntensity:1.3,transparent:true,opacity:.8}));
   glow.position.y=.16;fireG.add(glow);fireG.userData.glow=glow;
@@ -677,7 +689,7 @@ function makeCamelProcedural(){
     const up=new T.Mesh(new T.Cyl(.055,.048,.38,8),fur);up.position.y=-.16;up.castShadow=true;L.add(up);
     const knee=new T.Mesh(new T.Sphere(.055,7,6),dark);knee.position.y=-.36;L.add(knee);
     const lo=new T.Mesh(new T.Cyl(.042,.035,.4,7),fur);lo.position.y=-.58;L.add(lo);
-    const foot=new T.Mesh(new T.Sphere(.065,6,4),pad);foot.scale.set(1.4,.4,1.5);foot.position.y=-.8;L.add(foot);
+    const foot=new T.Mesh(new T.Sphere(.055,8,6),pad);foot.scale.set(1.15,.7,1.2);foot.position.y=-.78;L.add(foot);
     legs.push({L,up,lo,knee,foot,side:lx>0?1:-1,fore:lz>0?1:0})});
   const tail=new T.Mesh(new T.Cyl(.02,.006,.35,5),dark);tail.position.set(0,.9,-.7);tail.rotation.x=.7;g.add(tail);
   g.userData={neck,head,legs,body,kind:"camel"};
@@ -730,7 +742,7 @@ function spawnCamel(x,z,facing){
   return st}
 spawnCamel(-4.6,2.4,0.6);spawnCamel(-5.4,1.0,-2.1);
 camels.forEach(c=>{
-  const b=new T.Mesh(new T.Plane(.95,.55),blobM);b.rotation.x=-Math.PI/2;b.position.set(0,.018,0);b.renderOrder=1;
+  const b=new T.Mesh(new T.Plane(.35,.22),blobM);b.rotation.x=-Math.PI/2;b.position.set(0,.01,0);b.renderOrder=1;
   c.o.add(b);onDes(b);c.blob=b});
 
 function camelSetPose(st,pose,dt){
@@ -1190,13 +1202,13 @@ function update(dt){
     if(pi.target){pi.target.position.set(0,-1,0);pi.target.updateMatrixWorld()}
     const sunCol=wantNight>.5?new C3("#c8d8ff"):storm>.3?new C3("#c4a070"):isDay?new C3("#fff5e0"):new C3("#ff9a40");
     pi.color.lerp(sunCol,ease(3,dt));
-    const sunI=wantNight>.5?.45:storm>.3?1.1:isDay?3.4:3.6;
+    const sunI=wantNight>.5?.12:storm>.3?1.1:isDay?3.4:3.6;
     pi.intensity+=(sunI-pi.intensity)*ease(3,dt);
     pi.castShadow=true;pi.shadow.autoUpdate=true;
     if(dc){
-      dc.color.lerp(wantNight>.5?new C3("#1a2848"):storm>.3?new C3("#a88868"):isDay?new C3("#b0c8e8"):new C3("#d0a8c0"),ease(3,dt));
+      dc.color.lerp(wantNight>.5?new C3("#0a1428"):storm>.3?new C3("#a88868"):isDay?new C3("#b0c8e8"):new C3("#d0a8c0"),ease(3,dt));
       if(dc.groundColor)dc.groundColor.lerp(wantNight>.5?new C3("#0a1018"):storm>.3?new C3("#6a5038"):new C3("#8a6a48"),ease(3,dt));
-      dc.intensity+=((wantNight>.5?.22:storm>.3?.4:isDay?.85:.5)-dc.intensity)*ease(3,dt)}
+      dc.intensity+=((wantNight>.5?.08:storm>.3?.4:isDay?.85:.5)-dc.intensity)*ease(3,dt)}
     /* yard sky dome kept dark/hidden; painted backdrop carries the look */
     if(jt){
       if(wantNight>.5){jt.top&&jt.top.value.set("#030814");jt.bot&&jt.bot.value.set("#0a1428");
@@ -1209,20 +1221,31 @@ function update(dt){
       else{jt.top&&jt.top.value.set("#c890b0");jt.bot&&jt.bot.value.set("#f0a868");
         if(jt.uGlowA)jt.uGlowA.value=.9;if(jt.uSunVis)jt.uSunVis.value=1;if(jt.uNight)jt.uNight.value=0}}
     /* tint painted sky_cloudsea backdrop — must read dramatically different per mode */
-    const wantSky=wantNight>.5?new C3("#1a2848"):storm>.3?new C3("#a88860"):isDay?new C3("#c8d8f0"):new C3("#ffffff");
+    /* night: near-black sky (desert6 luminance); day/sunset keep painted tones */
+    const wantSky=wantNight>.5?new C3("#030810"):storm>.3?new C3("#a88860"):isDay?new C3("#c8d8f0"):new C3("#ffffff");
     const skyM=cloudSea&&cloudSea.userData.skyM;
-    if(skyM){skyM.emissive.lerp(wantSky,ease(2.5,dt));skyM.color.lerp(wantSky,ease(2.5,dt));
-      skyM.emissiveIntensity+=((wantNight>.5?.35:storm>.3?.7:isDay?.95:1.1)-skyM.emissiveIntensity)*ease(2.5,dt)}
-    ((cloudSea&&cloudSea.userData.seaMats)||[]).forEach((sm,i)=>{
-      sm.emissive.lerp(wantSky,ease(2.5,dt));sm.color.lerp(wantSky,ease(2.5,dt));
-      const baseOp=[.95,.7,.5][i]||.5;
-      const op=wantNight>.5?baseOp*.12:storm>.3?baseOp*.55:baseOp;
-      if(sm.opacity!=null)sm.opacity+=(op-sm.opacity)*ease(2.5,dt);
-      const wantE=wantNight>.5?.12:storm>.3?.35:.55;
-      sm.emissiveIntensity+=(wantE-sm.emissiveIntensity)*ease(2.5,dt)});
+    if(skyM){
+      if(wantNight>.5){
+        /* solid dark night — painted emissiveMap was the pink haze regression */
+        if(skyM.emissiveMap){skyM.userData._emap=skyM.emissiveMap;skyM.emissiveMap=null;skyM.map=null;skyM.needsUpdate=true}
+        skyM.emissive.set("#02060f");skyM.color.set("#02060f");
+        skyM.emissiveIntensity+=(.04-skyM.emissiveIntensity)*ease(2.5,dt)}
+      else{
+        if(skyM.userData._emap&&!skyM.emissiveMap){skyM.emissiveMap=skyM.userData._emap;skyM.map=skyM.userData._emap;skyM.needsUpdate=true}
+        skyM.emissive.lerp(wantSky,ease(2.5,dt));skyM.color.lerp(wantSky,ease(2.5,dt));
+        skyM.emissiveIntensity+=((storm>.3?.65:isDay?.95:1.05)-skyM.emissiveIntensity)*ease(2.5,dt)}}
+    ((cloudSea&&cloudSea.userData.seaMats)||[]).forEach((s)=>{
+      if(wantNight>.5){s.m.opacity=0;s.m.emissiveIntensity=0;s.m.emissive.set("#000000");if(s.pl)s.pl.visible=false}
+      else{
+        const op=storm>.3?s.baseOp*.45:s.baseOp;
+        s.m.opacity+=(op-s.m.opacity)*ease(2.5,dt);
+        s.m.emissive.lerp(wantSky,ease(2.5,dt));s.m.color.lerp(wantSky,ease(2.5,dt));
+        const wantE=storm>.3?.28:.42;
+        s.m.emissiveIntensity+=(wantE-s.m.emissiveIntensity)*ease(2.5,dt);
+        if(s.pl)s.pl.visible=s.m.opacity>.02}});
     if(wantNight>.5){
-      if(Jt.fog)Jt.fog.color.set("#030814");
-      if(Cn)Cn.toneMappingExposure=.38;
+      if(Jt.fog){Jt.fog.color.set("#01040a");Jt.fog.near=12;Jt.fog.far=55}
+      if(Cn){Cn.toneMappingExposure=.22; if(Cn.setClearColor)Cn.setClearColor(0x01040a,1)}
       if(X.sr)X.sr.visible=true}
     else{
       if(X.sr)X.sr.visible=isDay?false:true;
@@ -1283,7 +1306,7 @@ function show(on){
       if(jt.uSunVis)jt.uSunVis.value=1;if(jt.uGlowA)jt.uGlowA.value=.9;if(jt.uNight)jt.uNight.value=0;
       if(jt.uSunDisk)jt.uSunDisk.value.set(1,.75,.4)}
     if(cloudSea&&cloudSea.userData.skyM){cloudSea.userData.skyM.emissive.set("#ffffff");cloudSea.userData.skyM.color.set("#ffffff");cloudSea.userData.skyM.emissiveIntensity=1.1}
-    ((cloudSea&&cloudSea.userData.seaMats)||[]).forEach(sm=>{sm.emissive.set("#ffffff");sm.color.set("#ffffff")});
+    ((cloudSea&&cloudSea.userData.seaMats)||[]).forEach(s=>{s.m.emissive.set("#ffffff");s.m.color.set("#ffffff");s.m.opacity=s.baseOp;s.m.emissiveIntensity=.4;if(s.pl)s.pl.visible=true});
     if(Cn){Cn.shadowMap.enabled=true;Cn.toneMappingExposure=1}
     root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})
   }

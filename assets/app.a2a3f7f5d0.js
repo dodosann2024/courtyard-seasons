@@ -5274,7 +5274,7 @@ function XjpBridgeClear(G){G.updateMatrixWorld(!0);const br=[];G.traverse(o=>{if
 function XjpGravel(G){G.traverse(o=>{if(!o.isMesh||!o.geometry||o.geometry.type!=="CircleGeometry"||!(o.geometry.parameters.radius>8))return;const m=o.material,pv=m.onBeforeCompile;if(!pv||m.userData.grv)return;m.userData.grv=1;m.onBeforeCompile=(w,r)=>{pv.call(m,w,r);w.fragmentShader=w.fragmentShader.replace("vec3 grav=vec3(.87,.86,.81)*(.74+.26*grv)","vec3 grav=vec3(.36,.352,.33)*(.82+.18*grv)")};const ck=m.customProgramCacheKey;m.customProgramCacheKey=()=>(ck?ck.call(m):"")+"grv";m.roughness=1;m.needsUpdate=!0})}
 
 var CYseaCam=[[-8,12.6,29.5],[.2,1.1,0],[-5.3,8.9,20.2],[.2,1.1,0]];
-var CYdesCam=[[-9.5,12.5,18.5],[.2,.55,0],[-6.5,9.2,14.2],[.2,.55,0]];
+var CYdesCam=[[-14.2,3.8,15.5],[.2,-.6,0],[-11.2,3.4,12.4],[.3,-.2,0]];
 function CYdesert(on){CYdesert.on=on;if(on&&!CYdesert.p&&(window.CY||{}).desert){CYdesert.p=new Promise(res=>{const C=window.CY,s=document.createElement("script");s.src=(C.root||"")+(C.desert||"");s.onload=()=>{try{window.__desInit&&window.__desInit(CYX)}catch(e){}res()};s.onerror=()=>{CYdesert.p=null;res()};document.head.appendChild(s)})}
 if(CYdesert.p)CYdesert.p.then(()=>window.__desShow&&window.__desShow(CYdesert.on));window.__desShow&&window.__desShow(on)}
 function CYsea(on){CYsea.on=on;if(on&&!CYsea.p&&(window.CY||{}).sea){CYsea.p=new Promise(res=>{const C=window.CY,s=document.createElement("script");s.src=(C.root||"")+(C.sea||"");s.onload=()=>{try{window.__seaInit&&window.__seaInit(CYX)}catch(e){}res()};s.onerror=()=>{CYsea.p=null;res()};document.head.appendChild(s)})}

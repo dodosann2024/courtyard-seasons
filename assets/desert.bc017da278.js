@@ -20,8 +20,10 @@ const MODEL_FIT={camel:1.08,eagle:.68,eagle_perch:.52,snake:.55,tent:1.5,palm:2.
 let _man=null,_gltfMod=null;
 function modelsManifest(){if(_man)return _man;const url=((window.CY&&CY.root)||"")+"assets/models/manifest.json";
  _man=fetch(url).then(r=>r.ok?r.json():{}).catch(()=>({}));return _man}
-function gltfMod(){if(_gltfMod)return _gltfMod;const url=new URL(((window.CY&&CY.root)||"")+"assets/vendor/des-gltf.js",location.href).href;
- _gltfMod=import(url);return _gltfMod}
+function gltfMod(){if(_gltfMod)return _gltfMod;
+  const root=(window.CY&&CY.root)||"";
+  const url=root?root+"assets/vendor/des-gltf.js":new URL("../assets/vendor/des-gltf.js",location.href).href;
+  _gltfMod=import(url).catch(()=>{_gltfMod=null;return Promise.reject(0)});return _gltfMod}
 function worldBox(scene){
   const box={min:[1e9,1e9,1e9],max:[-1e9,-1e9,-1e9]};
   scene.updateMatrixWorld(true);
@@ -174,7 +176,7 @@ function nAt(x,z){const e=.06;const hx=hAt(x+e,z)-hAt(x-e,z),hz=hAt(x,z+e)-hAt(x
 /* ---------------- golden beige sand (#e6c48a lit / #b98d58 shade) ---------------- */
 function buildIsland(){
   const N=MOB?100:150,pos=[],nor=[],uv=[],idx=[],col=[];
-  const litC=new C3("#e6c48a"),shC=new C3("#b98d58"),wetC=new C3("#9a7548");
+  const litC=new C3("#e8cfa0"),shC=new C3("#c49a68"),wetC=new C3("#a07d52");
   for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){
     const u=i/N,v=j/N,th=u*TAU,rr0=Math.pow(v,.9)*rimR(th);
     const x=Math.cos(th)*rr0,z=Math.sin(th)*rr0,y=hAt(x,z);
@@ -196,7 +198,7 @@ function buildIsland(){
     const v=190+rip*12+grit*14+(Math.random()*6-3);return [Math.min(255,v),Math.min(255,v*.84),Math.min(255,v*.58)]},{repeat:[4,4]});
   const bump=canvasTex(128,(x,y)=>{
     const n=Math.sin(x*.09+y*.02)*6.28+Math.sin(x*.03-y*.1);const v=128+n*18+(Math.random()*6-3);return [v,v,v]},{repeat:[8,8]});
-  const m=M({map:sandMap,bumpMap:bump,bumpScale:.055,vertexColors:true,roughness:.9,metalness:0,color:new C3("#e8c992")});
+  const m=M({map:sandMap,bumpMap:bump,bumpScale:.045,vertexColors:true,roughness:.92,metalness:0,color:new C3("#e6c48a")});
   m.onBeforeCompile=(sh)=>{
     sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
       `#include <map_fragment>
@@ -210,7 +212,8 @@ function buildUnderside(){
   const gRoot=new T.Group();
   const NR=MOB?80:110,NV=MOB?22:28;
   /* deep taper profile — thick vertical cliff then jagged tip */
-  const prof=[[0,-4.4],[.12,-4.25],[.28,-3.85],[.42,-3.25],[.55,-2.55],[.66,-1.9],[.76,-1.25],[.85,-.7],[.92,-.28],[.97,-.06],[1.02,.04]];
+  /* thick vertical wall then jagged toe — keep mass under the rim for elevated views */
+  const prof=[[0,-4.8],[.1,-4.6],[.22,-4.15],[.34,-3.55],[.46,-2.9],[.56,-2.25],[.66,-1.65],[.76,-1.1],[.85,-.62],[.92,-.28],[.97,-.08],[1.0,.0],[1.03,.05]];
   const pos=[],uv=[],idx=[],col=[];
   for(let j=0;j<=NV;j++)for(let i=0;i<=NR;i++){
     const u=i/NR,v=j/NV,th=u*TAU;
@@ -719,7 +722,7 @@ const SND=MOB?2000:3600,snR=R*.96;
 const snG=new T.BG(),snP=new Float32Array(SND*3),snA=new Float32Array(SND),snA0=new Float32Array(SND),SNF=[];
 snG.setAttribute("position",new T.BA(snP,3));snG.setAttribute("a",new T.BA(snA,1));
 const snM=new T.SM({transparent:true,depthWrite:false,uniforms:{col:{value:new C3("#d4b07a")},scale:{value:1}},
- vertexShader:`attribute float a;varying float vA;uniform float scale;void main(){vA=a;vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;gl_PointSize=max(1.1,scale*(2+3*a)/max(.45,-mv.z));}`,
+ vertexShader:`attribute float a;varying float vA;uniform float scale;void main(){vA=a;vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;gl_PointSize=max(1.1,scale*(2.+3.*a)/max(.45,-mv.z));}`,
  fragmentShader:`uniform vec3 col;varying float vA;void main(){float d=length(gl_PointCoord-.5);gl_FragColor=vec4(col,vA*smoothstep(.5,0.,d));}`});
 root.add(Object.assign(new T.Points(snG,snM),{frustumCulled:false,renderOrder:4}));
 function snSeed(i){
@@ -856,7 +859,9 @@ function show(on){
   if(!on&&AU.master&&AU.ctx)AU.master.gain.setTargetAtTime(0,AU.ctx.currentTime,.25);
 }
 
-for(const o of[X.vd,pi,dc,X.Dc])o&&o.traverse(c=>c.layers.enable(3));
+/* Lights + precip on L3; do NOT put default yard disk (vd) on desert — it fights the oasis sand */
+for(const o of[pi,dc,X.Dc])o&&o.traverse(c=>c.layers.enable(3));
+if(X.vd)X.vd.layers.disable(3);
 onDes(root);
 
 window.__desShow=show;window.__desU=update;

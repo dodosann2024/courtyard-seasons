@@ -1,21 +1,19 @@
-# Reference element checklist (hard — do not merge until all PASS)
+# desert17 — reference element checklist (HOLD MERGE)
 
-Source: `desert/reference.png` / Tripo island preview. Every element must be present.
+Source: `artifacts/desert17/ref.png` (USER photoreal from `user-ref.tar.gz`). True SBS: `00-ref-side-by-side.png` / `true-sbs.png`.
 
-| # | Ref element | Status | Notes |
-|---|---|---|---|
-| 1 | Floating island over cloud sea | PASS | `island.glb` base + cumulus cloud sea |
-| 2 | Thick jagged rock cliff / rough underside | PASS | island cliff + tip spikes; sandstone grade |
-| 3 | Turquoise oasis lake with reflections | PASS | shader disc over baked pond (mirror, no fish) |
-| 4 | Two palms leaning apart (slender curved trunks, rounded feathery crowns) | PASS* | `palm.glb` is both ref palms as one model; match Tripo/ref look |
-| 5 | Two saguaros (one by lake, one front-right) | PASS | `saguaro.glb` ×2; left near lake / perch, second on right |
-| 6 | Bedouin tent with poles/ropes | PASS | `tent.glb` + stripes/flutter; procedural tent hidden |
-| 7 | Campfire with rising smoke column | PASS | fire + grey smoke next to tent |
-| 8 | Scattered sandstone rocks along the rim | PASS | rim rock scatter restored (warm sandstone) |
-| 9 | Grass/shrub clumps around the lake | PASS | shore green rebuilt at Tripo lake |
-| 10 | Dunes and ripples on the right | PASS | island.glb sand dunes + grade |
-| 11 | Low sun on the right | PASS | sunset lighting (sun right, long soft shadows) |
+| Element | Target | desert17 status |
+|--------|--------|-----------------|
+| Lake colour | Teal `#2f8f9a` centre / `#5fb8b5` shallow | Restored (no dead grey-purple) |
+| Lake surface | Calm mirror + fresnel | Fresnel kept mild so teal reads |
+| Green ellipse | Gone | Sink bowl + green→sand grade |
+| Cloud sea | Dense gold-top / lavender cumulus floor | Procedural fluffy puffs; no pink radial discs |
+| Sky | Blue→violet→orange + small sun UR | Procedural gradient dome + soft sun disc |
+| Underside | Tan-ochre sandstone strata, rocky tip | Soft strata shader; no checker/basket tip spikes |
+| Camel / tent | Never on roof | Exclusion zones + HF clamp + shore hAt |
+| Red crate | Hidden | Declutter + red→sand mute + tent secondary hide |
+| Fire stones | Small grey | Procedural grey pebbles |
+| Agave | Removed / &lt;0.6 m | Geometric crush + yellow→sand |
+| Sand | `#e0b77a` / `#b98a55` + ripples | Island grade remap |
 
-\*Palm crown silhouette follows Tripo `palm.glb` (ref pair). If a newer Tripo palm better matches the slender V-lean, swap via manifest without changing placement.
-
-**Hold merge:** do not merge desert13 (#90) or desert14 (#91) until this checklist is confirmed against the final Tripo assets.
+Keep: animals, sounds, weather, no console/CDN, iOS clamps, perf.

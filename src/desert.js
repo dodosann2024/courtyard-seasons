@@ -1,4 +1,4 @@
-/* 沙漠绿洲 · Desert Oasis (desert13) — desert12 base; no bloom streaks, isotropic cliff, cumulus, lake, saguaro.
+/* 沙漠绿洲 · Desert Oasis (desert14) — Tripo island/palm/saguaro/tent over desert13 polish.
    Lazy-loaded on camera layer 3; yards + sea never see this content. */
 (()=>{
 window.__desInit=getX=>{
@@ -19,9 +19,12 @@ const MODEL={
   eagle:"assets/models/eagle_rigged.glb",
   eagle_perch:"assets/models/eagle_perch.glb",
   snake:"assets/models/snake_rigged.glb",
-  tent:"assets/models/tent.glb",palm:"assets/models/palm.glb",cactus:"assets/models/cactus.glb"};
-/* Fit metres: camel under palms; eagle by height; snake by footprint */
-const MODEL_FIT={camel:1.08,camel_rigged:1.08,eagle:.62,eagle_rigged:.62,eagle_perch:.48,snake:.55,snake_rigged:.55,tent:1.5,palm:2.9,cactus:1.2};
+  island:"assets/models/island.glb",
+  tent:"assets/models/tent.glb",palm:"assets/models/palm.glb",saguaro:"assets/models/saguaro.glb",
+  cactus:"assets/models/saguaro.glb"};
+/* Fit metres: island by XZ diameter≈2R; palm pair height; saguaro; tent */
+const MODEL_FIT={camel:1.08,camel_rigged:1.08,eagle:.62,eagle_rigged:.62,eagle_perch:.48,snake:.55,snake_rigged:.55,
+  island:18.8,tent:1.85,palm:3.35,saguaro:2.15,cactus:2.15};
 let _man=null,_gltfMod=null,_VT=null;
 function modelsManifest(){if(_man)return _man;const url=((window.CY&&CY.root)||"")+"assets/models/manifest.json";
  _man=fetch(url).then(r=>r.ok?r.json():{}).catch(()=>({}));return _man}
@@ -45,11 +48,23 @@ function fitGLB(scene,key){
   const box=worldBox(scene);
   const sx=Math.max(1e-3,box.max[0]-box.min[0]),sy=Math.max(1e-3,box.max[1]-box.min[1]),sz=Math.max(1e-3,box.max[2]-box.min[2]);
   const target=MODEL_FIT[key]||1;
-  const span=key.indexOf("snake")>=0?Math.max(sx,sz):key.indexOf("eagle")>=0&&key.indexOf("perch")<0?Math.max(sx,sy*.9):sy;
+  let span=sy;
+  if(key==="island")span=Math.max(sx,sz);
+  else if(key.indexOf("snake")>=0)span=Math.max(sx,sz);
+  else if(key.indexOf("eagle")>=0&&key.indexOf("perch")<0)span=Math.max(sx,sy*.9);
+  else if(key==="palm"||key==="saguaro"||key==="cactus"||key==="tent")span=sy;
   let sc=target/Math.max(1e-3,span);if(!Number.isFinite(sc))sc=1;
   const wrap=new T.Group();
-  scene.position.set(-(box.min[0]+box.max[0])*.5,-box.min[1],-(box.min[2]+box.max[2])*.5);
-  wrap.add(scene);wrap.scale.setScalar(sc);wrap.userData.fitKey=key;wrap.userData.fitScale=sc;
+  /* island: keep tip below, centre XZ; others sit on y=0 */
+  if(key==="island"){
+    /* tip at y=0 before scale; sand+baked props sit above — alignIslandSand later pins sand≈0 */
+    scene.position.set(-(box.min[0]+box.max[0])*.5,-box.min[1],-(box.min[2]+box.max[2])*.5);
+    wrap.add(scene);wrap.scale.setScalar(sc);
+    wrap.position.y=0;
+  }else{
+    scene.position.set(-(box.min[0]+box.max[0])*.5,-box.min[1],-(box.min[2]+box.max[2])*.5);
+    wrap.add(scene);wrap.scale.setScalar(sc)}
+  wrap.userData.fitKey=key;wrap.userData.fitScale=sc;wrap.userData.fitBox={sx:sx*sc,sy:sy*sc,sz:sz*sc};
   return wrap}
 function loadGLB(url,key){
   return gltfMod().then(m=>m.loadGLB(url)).then(({scene,animations})=>{
@@ -131,7 +146,7 @@ const palmTrunkMats=[]; /* wait for palm_bark.jpg */
 const palmFrondMats=[]; /* wait for palm_frond.png */
 
 /* ---------------- irregular sandstone island + golden dunes ---------------- */
-const lakeC={x:-1.6,z:.55},lakeR=2.85;
+const lakeC={x:-1.6,z:.55}; let lakeR=2.85;
 const tentAnchor={x:.2,z:-2.2};
 /* Cliff depth ≈0.6× island width (2R≈18.8 → tip ~−11.3) */
 const CLIFF_H=11.3;
@@ -148,7 +163,7 @@ function hNoise(x,z){
        +.07*Math.sin(x*.55-z*.36+1.4)
        +.04*Math.sin(x*1.15+z*.9)
        +.018*Math.sin(x*2.3-z*1.7)}
-function hAt(x,z){
+function hAtProc(x,z){
   const th=Math.atan2(z,x),r=Math.hypot(x,z),Rth=rimR(th),edge=ss(Rth*.72,Rth,r);
   let h=.12+hNoise(x,z);
   /* sculpted dunes on the RIGHT half (ref) — taller crests */
@@ -176,6 +191,91 @@ function hAt(x,z){
   h=mix(h,-.08,ss(lakeR*1.3,lakeR*.25,dl));
   h=mix(h,.015,ss(lakeR*.9,lakeR*1.1,dl)*ss(lakeR*1.45,lakeR*1.15,dl)*.4);
   h*=1-edge;return Math.max(-.1,h)}
+let islandMesh=null,islandRoot=null,_hfReady=0,_hf=null,_hfN=96,_hfHalf=R*1.15,_hfFull=null,_sandMed=0;
+function alignIslandSand(wrap){
+  /* baked palms/tent sit above sand — pin sand median to ≈0, not bbox max */
+  const ys=[];
+  wrap.updateMatrixWorld(true);
+  wrap.traverse(o=>{
+    if(!o.isMesh||!o.geometry)return;
+    const g=o.geometry; if(!g.attributes.normal)g.computeVertexNormals();
+    const pos=g.attributes.position, nor=g.attributes.normal, e=o.matrixWorld.elements;
+    if(!pos||!nor)return;
+    for(let i=0;i<pos.count;i+=2){
+      const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+      const nx=nor.getX(i),ny=nor.getY(i),nz=nor.getZ(i);
+      const wy=e[1]*x+e[5]*y+e[9]*z+e[13];
+      const wny=e[1]*nx+e[5]*ny+e[9]*nz;
+      if(wny>0.5)ys.push(wy)}});
+  if(ys.length<50)return 0;
+  ys.sort((a,b)=>a-b);
+  /* drop tip/cliff lows and palm-crown highs — sand lives mid-upper */
+  const lo=ys[(ys.length*.35)|0], hi=ys[(ys.length*.78)|0];
+  const band=ys.filter(y=>y>=lo&&y<=hi);
+  const med=band[(band.length*.55)|0];
+  wrap.position.y-=med; _sandMed=0;
+  wrap.updateMatrixWorld(true); return med}
+function buildHeightField(mesh){
+  /* sand-only max-Y grid (exclude baked prop crowns) + full max for feature detect */
+  const N=_hfN, half=_hfHalf, cell=(half*2)/N;
+  const grid=new Float32Array(N*N), full=new Float32Array(N*N);
+  grid.fill(-1e9); full.fill(-1e9);
+  const sandYs=[];
+  mesh.updateMatrixWorld(true);
+  mesh.traverse(o=>{
+    if(!o.isMesh||!o.geometry)return;
+    const g=o.geometry; if(!g.attributes.normal)g.computeVertexNormals();
+    const pos=g.attributes.position, nor=g.attributes.normal; if(!pos)return;
+    const e=o.matrixWorld.elements;
+    for(let i=0;i<pos.count;i++){
+      const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+      const wx=e[0]*x+e[4]*y+e[8]*z+e[12], wy=e[1]*x+e[5]*y+e[9]*z+e[13], wz=e[2]*x+e[6]*y+e[10]*z+e[14];
+      const ix=((wx+half)/cell)|0, iz=((wz+half)/cell)|0;
+      if(ix<0||iz<0||ix>=N||iz>=N)continue;
+      const j=iz*N+ix; if(wy>full[j])full[j]=wy;
+      if(nor){
+        const wny=e[1]*nor.getX(i)+e[5]*nor.getY(i)+e[9]*nor.getZ(i);
+        if(wny>0.48)sandYs.push(wy)}}});
+  sandYs.sort((a,b)=>a-b);
+  const med=sandYs.length?sandYs[(sandYs.length*.55)|0]:0;
+  _sandMed=med;
+  mesh.traverse(o=>{
+    if(!o.isMesh||!o.geometry)return;
+    const g=o.geometry, pos=g.attributes.position, nor=g.attributes.normal; if(!pos||!nor)return;
+    const e=o.matrixWorld.elements;
+    for(let i=0;i<pos.count;i++){
+      const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+      const wx=e[0]*x+e[4]*y+e[8]*z+e[12], wy=e[1]*x+e[5]*y+e[9]*z+e[13], wz=e[2]*x+e[6]*y+e[10]*z+e[14];
+      const wny=e[1]*nor.getX(i)+e[5]*nor.getY(i)+e[9]*nor.getZ(i);
+      if(wny<0.45)continue;
+      if(wy>med+0.85)continue; /* skip palm/tent crowns */
+      if(wy<med-1.4)continue;
+      const ix=((wx+half)/cell)|0, iz=((wz+half)/cell)|0;
+      if(ix<0||iz<0||ix>=N||iz>=N)continue;
+      const j=iz*N+ix; if(wy>grid[j])grid[j]=wy}});
+  for(let pass=0;pass<3;pass++)for(let iz=0;iz<N;iz++)for(let ix=0;ix<N;ix++){
+    const j=iz*N+ix; if(grid[j]>-1e8)continue;
+    let s=0,c=0;
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+      const x=ix+dx,z=iz+dz; if(x<0||z<0||x>=N||z>=N)continue;
+      const v=grid[z*N+x]; if(v>-1e8){s+=v;c++}}
+    if(c)grid[j]=s/c}
+  for(let i=0;i<grid.length;i++)if(grid[i]<-1e8)grid[i]=med;
+  _hf={grid,N,half,cell}; _hfFull={grid:full,N,half,cell}; _hfReady=1; _hfCacheClear()}
+let _hfCache=new Map();
+function _hfCacheClear(){_hfCache.clear()}
+function hAt(x,z){
+  if(!_hfReady||!_hf)return hAtProc(x,z);
+  const key=((x*5)|0)+':'+(z*5|0);
+  if(_hfCache.has(key))return _hfCache.get(key);
+  const {grid,N,half,cell}=_hf;
+  const fx=(x+half)/cell, fz=(z+half)/cell;
+  const ix=cl(fx|0,0,N-2), iz=cl(fz|0,0,N-2);
+  const tx=fx-ix, tz=fz-iz;
+  const y00=grid[iz*N+ix], y10=grid[iz*N+ix+1], y01=grid[(iz+1)*N+ix], y11=grid[(iz+1)*N+ix+1];
+  const y=mix(mix(y00,y10,tx),mix(y01,y11,tx),tz);
+  if(_hfCache.size>5000)_hfCache.clear();
+  _hfCache.set(key,y);return y}
 function nAt(x,z){const e=.06;const hx=hAt(x+e,z)-hAt(x-e,z),hz=hAt(x,z+e)-hAt(x,z-e);return new V3(-hx,2*e,-hz).normalize()}
 
 /* ---------------- golden sand (#e6c48a lit / #b98d58 shade) ---------------- */
@@ -528,7 +628,7 @@ loadTex(TEX.palmFrond,{clamp:1}).then(tex=>{
 }).catch(()=>{});
 
 /* ---------------- oasis lake — larger irregular oval ---------------- */
-const lakeY=-.04;
+let lakeY=-.04;
 const lakeG=new T.BG();
 {const N=64,pos=[],uv=[];for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){
   const u=i/N,v=j/N,th=u*TAU;
@@ -539,7 +639,7 @@ const lakeG=new T.BG();
  const idx=[];for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=j*(N+1)+i;idx.push(a,a+1,a+N+1,a+1,a+N+2,a+N+1)}
  lakeG.setAttribute("position",new T.BA(new Float32Array(pos),3));lakeG.setAttribute("uv",new T.BA(new Float32Array(uv),2));lakeG.setIndex(idx);lakeG.computeVertexNormals()}
 /* saturated turquoise → teal (no pale cyan shore wash) */
-const lakeU={uT:{value:0},uWind:{value:.12},uNight:{value:0},uSunDir:{value:new V3(.85,.18,.15)},uSunCol:{value:new C3(1,.72,.4)},uMoonC:{value:new C3(.55,.68,.95)},uSky:{value:new C3(.98,.62,.42)},uDeep:{value:new C3("#046068")},uShal:{value:new C3("#0e8878")}};
+const lakeU={uT:{value:0},uWind:{value:.12},uNight:{value:0},uSunDir:{value:new V3(.85,.18,.15)},uSunCol:{value:new C3(1,.72,.4)},uMoonC:{value:new C3(.55,.68,.95)},uSky:{value:new C3(.98,.62,.42)},uDeep:{value:new C3("#035a62")},uShal:{value:new C3("#0a9a88")}};
 const lakeM=new T.SM({transparent:true,depthWrite:false,uniforms:lakeU,
  vertexShader:`varying vec3 vW;varying vec2 vUv;void main(){vUv=uv;vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
  fragmentShader:`uniform float uT,uWind,uNight;uniform vec3 uSunDir,uSunCol,uMoonC,uSky,uDeep,uShal;varying vec3 vW;varying vec2 vUv;
@@ -566,6 +666,7 @@ const lakeM=new T.SM({transparent:true,depthWrite:false,uniforms:lakeU,
   #include <colorspace_fragment>
  }`});
 const lake=new T.Mesh(lakeG,lakeM);lake.renderOrder=2;root.add(lake);onDes(lake);
+lake.userData.ox=lakeC.x;lake.userData.oz=lakeC.z;
 const lakeBed=new T.Mesh(lakeG.clone(),M({color:"#045a5e",roughness:1}));lakeBed.position.y=-.1;lakeBed.scale.set(1.04,1,1.04);root.add(lakeBed);onDes(lakeBed);
 /* darker damp sand ring at shoreline */
 (function wetRing(){
@@ -821,7 +922,7 @@ const cacti=[];
     if(sp.perch)c.userData.isPerch=1;
     /* keep procedural ribbed saguaro */});
 })();
-const eaglePerch=cacti.find(c=>c.userData.isPerch)||cacti[0];
+let eaglePerch=cacti.find(c=>c.userData.isPerch)||cacti[0];
 
 /* ---------------- Bedouin tent — closed form: ridge, catenary roof, back+sides, open front flap ---------------- */
 function makeTentProcedural(){
@@ -1171,9 +1272,11 @@ tryModel(MODEL.eagle_perch,()=>null).then(r=>{
     if(eagle.mode==="perch"||eagle.mode==="drink")eagleShowFly(false)}});
 
 function eaglePerchWorld(){
-  if(eaglePerch&&eaglePerch.userData&&eaglePerch.userData.perch){
-    const p=eaglePerch.position,tip=eaglePerch.userData.perch,s=eaglePerch.scale.x||1;
+  const perch=cacti.find(c=>c&&c.userData&&c.userData.isPerch&&c.visible!==false)||eaglePerch;
+  if(perch&&perch.userData&&perch.userData.perch){
+    const p=perch.position,tip=perch.userData.perch,s=perch.scale.x||1;
     return {x:p.x+tip.x*s,y:p.y+tip.y*s+.01,z:p.z+tip.z*s}}
+  if(perch){const box=worldBox(perch); return {x:perch.position.x,y:box.max[1]+.02,z:perch.position.z}}
   return {x:-5,y:hAt(-5,2.2)+1.3,z:2.2}}
 function eagleLakeSpot(){
   const x=lakeC.x+lakeR*1.08,z=lakeC.z+.2;return {x,y:Math.max(hAt(x,z),lakeY)+.02,z}}
@@ -1529,6 +1632,9 @@ function update(dt){
       pl.lookAt(De.position.x,pl.position.y,De.position.z);
       pl.rotateX(-.08+Math.sin(t*.09+u.ph)*.03)})}
 
+    /* Tripo prop wind uniforms */
+  palmFrondMats.forEach(m=>{if(m&&m.userData&&m.userData._windU)m.userData._windU.value=t});
+  if(tripo.tent)tripo.tent.traverse(o=>{const m=o.material; if(m&&m.userData&&m.userData._windU)m.userData._windU.value=t});
   sandUpdate(dt,t,wn,storm);
   /* desert lighting variants — painted sky tinted dramatically per mode */
   const isDay=Ct.mode==="day"||(Ct.mode==="manual"&&!Ct.night&&Ct.season===1&&Ct.weather==="sun"&&!storm);
@@ -1696,6 +1802,376 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_STRIDE,De,Ce,
     eagle:{mode:eagle.mode,useGlb:!!eagle.o.userData.useGlb,rig:!!eagle.rig,fly:!!eagle.flyGlb,perch:!!eagle.perchGlb,pos:[eagle.o.position.x,eagle.o.position.y,eagle.o.position.z]},
     snake:snakes.map(s=>({useGlb:!!s.o.userData.useGlb,rig:!!s.rig,clip:s.snakeUseClip,clipName:s.rig&&s.rig.clipName,x:s.x,z:s.z})),
     perch:eaglePerchWorld()})});
+
+/* ---------------- desert14: Tripo island + hi-detail props ---------------- */
+const tripo={island:null,palm:null,sag:[],tent:null,ready:0};
+function recolorIslandMap(tex){
+  /* bake warmer gold/sandstone into the Tripo albedo (JPEG often reads washed under pink sky) */
+  try{
+    const img=tex.image||(tex.source&&tex.source.data); if(!img||!img.width)return tex;
+    const w=img.width,h=img.height;
+    const c=document.createElement("canvas");c.width=w;c.height=h;
+    const ctx=c.getContext("2d");ctx.drawImage(img,0,0);
+    const id=ctx.getImageData(0,0,w,h),d=id.data;
+    for(let i=0;i<d.length;i+=4){
+      let r=d[i],g=d[i+1],b=d[i+2];
+      const lum=.299*r+.587*g+.114*b;
+      const teal=Math.max(0,Math.min(1,(g-r)/40))*Math.max(0,Math.min(1,(b-r)/40));
+      /* rock: stronger red channel → pull to sandstone; sand: lift toward #e6c48a */
+      const rock=Math.max(0,Math.min(1,(r-b)/90));
+      const sand=1-rock*.7;
+      const gr=230,gg=196,gb=138; /* #e6c48a */
+      const sr=210,sg=160,sb=110; /* warm sandstone */
+      const tr=sand*gr+rock*sr, tg=sand*gg+rock*sg, tb=sand*gb+rock*sb;
+      const k=.55;
+      r=r*(1-k)+tr*k; g=g*(1-k)+tg*k; b=b*(1-k)+tb*k;
+      /* keep dune contrast, bias a touch brighter toward gold */
+      const lum2=.299*r+.587*g+.114*b; const lift=(lum*.9+35)/Math.max(1,lum2);
+      r*=lift*1.05; g*=lift*1.02; b*=lift*.95;
+      if(teal>.05){r=r*(1-teal)+120*teal;g=g*(1-teal)+95*teal;b=b*(1-teal)+65*teal}
+      d[i]=r<0?0:r>255?255:r; d[i+1]=g<0?0:g>255?255:g; d[i+2]=b<0?0:b>255?255:b}
+    ctx.putImageData(id,0,0);
+    const t=new T.CTex(c); t.colorSpace="srgb"; t.wrapS=tex.wrapS; t.wrapT=tex.wrapT;
+    t.flipY=tex.flipY; t.needsUpdate=true; return t;
+  }catch(e){return tex}}
+function gradeIslandMat(m){
+  if(!m)return;
+  if(m.map&&!m.userData._recolored){m.map=recolorIslandMap(m.map);m.userData._recolored=1}
+  if(m.color)m.color.set("#e6c48a");
+  if(m.emissive){m.emissive.set("#000000");m.emissiveIntensity=0}
+  m.roughness=m.roughness!=null?Math.max(.88,m.roughness):.93;
+  m.metalness=0; m.envMapIntensity=0;
+  m.onBeforeCompile=(sh)=>{
+    if(!/vIslN/.test(sh.vertexShader)){
+      sh.vertexShader="varying vec3 vIslN;\n"+sh.vertexShader;
+      sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>',
+        `#include <begin_vertex>
+         vIslN=normalize(mat3(modelMatrix)*normal);`);
+      sh.fragmentShader="varying vec3 vIslN;\n"+sh.fragmentShader}
+    sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
+      `#include <map_fragment>
+       float up=smoothstep(.15,.65,vIslN.y);
+       vec3 gold=vec3(0.902,0.769,0.541);
+       vec3 stone=vec3(0.72,0.50,0.32);
+       diffuseColor.rgb=mix(mix(diffuseColor.rgb,stone,.7), mix(diffuseColor.rgb,gold,.55), up);
+       diffuseColor.rgb=min(diffuseColor.rgb, vec3(0.95,0.86,0.70));`);
+  };
+  m.customProgramCacheKey=()=>"desIslandGrade14d";
+  m.needsUpdate=true}
+function gradePalmMat(m){
+  if(!m)return;
+  if(m.color)m.color.set("#6f8f3a");
+  m.onBeforeCompile=(sh)=>{
+    sh.uniforms.uWindT={value:0};
+    sh.vertexShader="uniform float uWindT;\n"+sh.vertexShader;
+    sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>',
+      `#include <begin_vertex>
+       float wPalm=smoothstep(.35,1.2,position.y);
+       transformed.x+=sin(uWindT*1.1+position.y*2.2)*wPalm*.04;
+       transformed.z+=cos(uWindT*.9+position.y*1.7)*wPalm*.03;`);
+    sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
+      `#include <map_fragment>
+       vec3 want=vec3(0.435,0.561,0.227);
+       float g=diffuseColor.g;
+       diffuseColor.rgb=mix(diffuseColor.rgb, want, clamp(.35+(g-diffuseColor.r)*.8,0.,.7));
+       float lum=dot(diffuseColor.rgb,vec3(.3,.55,.15));
+       if(lum>.62)diffuseColor.rgb*=.62/lum;`);
+    m.userData._windU=sh.uniforms.uWindT;
+  };
+  m.customProgramCacheKey=()=>"desPalmWind";
+  m.needsUpdate=true;palmFrondMats.push(m)}
+function gradeSaguaroMat(m){
+  if(!m)return;
+  if(m.color)m.color.set("#5f7d3a");
+  m.onBeforeCompile=(sh)=>{
+    if(!/vSagW/.test(sh.vertexShader)){
+      sh.vertexShader="varying vec3 vSagW;\n"+sh.vertexShader;
+      sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>',
+        `#include <begin_vertex>\n vSagW=(modelMatrix*vec4(transformed,1.)).xyz;`);
+      sh.fragmentShader="varying vec3 vSagW;\n"+sh.fragmentShader}
+    sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
+      `#include <map_fragment>
+       vec3 want=vec3(0.373,0.490,0.227);
+       diffuseColor.rgb=mix(diffuseColor.rgb, want, .62);
+       float ang=atan(vSagW.x,vSagW.z);
+       float rib=pow(abs(sin(ang*10.0)),1.35);
+       diffuseColor.rgb=mix(diffuseColor.rgb*vec3(.7,.76,.62), diffuseColor.rgb, 1.-rib*.45);
+       float lum=dot(diffuseColor.rgb,vec3(.3,.55,.15));
+       if(lum>.52)diffuseColor.rgb*=.52/lum;`);
+  };
+  m.customProgramCacheKey=()=>"desSagRib14";
+  m.needsUpdate=true}
+function gradeTentMat(m){
+  if(!m)return;
+  if(m.color)m.color.set("#e4d2b4");
+  m.onBeforeCompile=(sh)=>{
+    sh.uniforms.uWindT={value:0};
+    sh.vertexShader="uniform float uWindT;\n"+sh.vertexShader;
+    sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>',
+      `#include <begin_vertex>
+       vec4 wpTent=modelMatrix*vec4(transformed,1.);
+       float edge=smoothstep(.4,1.1,abs(position.x))+smoothstep(.2,.9,position.y);
+       transformed.y+=sin(uWindT*2.2+wpTent.x*3.+wpTent.z*2.)*edge*.025;
+       transformed.x+=cos(uWindT*1.7+wpTent.z*2.5)*edge*.015;`);
+    sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
+      `#include <map_fragment>
+       float stripe=step(.5,fract((vMapUv.y*6.0)+(vMapUv.x*.4)));
+       float wstripe=step(.5,fract(vMapUv.x*5.5+vMapUv.y*.3));
+       stripe=max(stripe*.7,wstripe*.45);
+       vec3 beige=vec3(0.894,0.824,0.706);
+       vec3 brown=vec3(0.52,0.38,0.26);
+       diffuseColor.rgb=mix(beige,brown,stripe*.6);
+       diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.85,0.72,0.55), .2);`);
+    m.userData._windU=sh.uniforms.uWindT;
+  };
+  m.customProgramCacheKey=()=>"desTentFlutter14";
+  m.needsUpdate=true}
+function addTipSpikes(parent, tipY){
+  const spikeM=M({color:"#a88868",map:sandTex||null,roughness:.95,metalness:0,fog:false});
+  sandMats.push(spikeM);
+  const spikes=[
+    [0,tipY-.2,0,.9,1.8],[1.1,tipY-.5,.5,.65,1.4],[-1.0,tipY-.65,.4,.55,1.25],
+    [.5,tipY-1.0,-.85,.5,1.15],[-.7,tipY-1.25,-.3,.45,1.0],[.85,tipY-1.55,.25,.38,.9],
+    [-.35,tipY-1.9,.7,.32,.75],[.25,tipY-2.2,-.4,.28,.65]
+  ];
+  spikes.forEach(([x,y,z,r,h])=>{
+    const s=new T.Mesh(new T.Cyl(r*.28,r,h,8,1),spikeM);
+    s.position.set(x,y,z);s.rotation.z=rr(-.3,.3);s.rotation.x=rr(-.25,.25);
+    s.castShadow=true;s.frustumCulled=false;parent.add(s);
+    const tip=new T.Mesh(new T.Sphere(r*.45,7,6),spikeM);tip.position.set(x,y-h*.5,z);tip.scale.set(1,1.6,1);parent.add(tip)})}
+function detectPropPeaks(){
+  /* rise of full max over sand grid → palm / saguaros / tent */
+  if(!_hf||!_hfFull)return null;
+  const {grid,N,half,cell}=_hf, full=_hfFull.grid;
+  const raw=[];
+  for(let iz=2;iz<N-2;iz++)for(let ix=2;ix<N-2;ix++){
+    const j=iz*N+ix; if(full[j]<-1e8||grid[j]<-1e8)continue;
+    const rise=full[j]-grid[j];
+    if(rise<1.05)continue;
+    raw.push({x:-half+ix*cell+cell*.5,z:-half+iz*cell+cell*.5,rise,top:full[j],sand:grid[j]})}
+  raw.sort((a,b)=>b.rise-a.rise);
+  const merged=[];
+  raw.forEach(p=>{
+    const hit=merged.find(m=>Math.hypot(m.x-p.x,m.z-p.z)<1.45);
+    if(!hit)merged.push({x:p.x,z:p.z,rise:p.rise,top:p.top,sand:p.sand,n:1});
+    else{if(p.rise>hit.rise){hit.x=p.x;hit.z=p.z;hit.rise=p.rise;hit.top=p.top;hit.sand=p.sand}hit.n++}});
+  if(!merged.length)return null;
+  const palm=merged[0];
+  /* ignore canopy lobes around the palm pair */
+  const rest=merged.slice(1).filter(p=>Math.hypot(p.x-palm.x,p.z-palm.z)>2.15);
+  let sagL=null,sagR=null,tentP=null;
+  rest.forEach(p=>{
+    if(p.x<palm.x-2.2&&p.rise>1.4&&(!sagL||p.rise>sagL.rise))sagL=p;
+  });
+  rest.forEach(p=>{
+    if(p===sagL)return;
+    if(p.x>palm.x+1.8&&p.rise>=1.05&&p.rise<=2.0&&p.z<palm.z-0.4&&(!tentP||p.n>(tentP.n||0)))tentP=p;
+  });
+  rest.forEach(p=>{
+    if(p===sagL||p===tentP)return;
+    if(p.x>palm.x+2.0&&p.rise>=1.05&&(!sagR||p.rise>sagR.rise))sagR=p;
+  });
+  if(!sagL)sagL={x:palm.x-4.8,z:palm.z-.6,rise:2.1};
+  if(!sagR)sagR={x:palm.x+3.5,z:palm.z+1.1,rise:1.3};
+  if(!tentP)tentP={x:palm.x+2.6,z:palm.z-2.0,rise:1.4};
+  if(Math.hypot(sagR.x-tentP.x,sagR.z-tentP.z)<1.5){
+    /* keep higher-x as sag, lower-z as tent */
+    if(sagR.z<tentP.z){const t=sagR;sagR=tentP;tentP=t}
+    if(Math.hypot(sagR.x-tentP.x,sagR.z-tentP.z)<1.5)sagR={x:tentP.x+1.6,z:tentP.z+2.0,rise:1.25}}
+  return {palm,sagL,sagR,tent:tentP}}
+function findLakeOnIsland(){
+  /* JPEG often kills cyan — find sand bowl near tallest (palm) peak */
+  if(!_hf)return null;
+  const {grid,N,half,cell}=_hf;
+  const peaks=detectPropPeaks();
+  const px=peaks?peaks.palm.x:lakeC.x, pz=peaks?peaks.palm.z:lakeC.z;
+  let best=null;
+  for(let iz=3;iz<N-3;iz++)for(let ix=3;ix<N-3;ix++){
+    const j=iz*N+ix; if(grid[j]<-1e8)continue;
+    let ring=0,rc=0;
+    for(let dz=-3;dz<=3;dz++)for(let dx=-3;dx<=3;dx++){
+      const d=Math.hypot(dx,dz); if(d<1.2||d>3.5)continue;
+      const v=grid[(iz+dz)*N+ix+dx]; if(v<-1e8)continue; ring+=v; rc++}
+    if(rc<8)continue;
+    const dip=(ring/rc)-grid[j]; if(dip<.045)continue;
+    const x=-half+ix*cell+cell*.5, z=-half+iz*cell+cell*.5;
+    const dPalm=Math.hypot(x-px,z-pz);
+    /* pond sits beside palms, not under trunks */
+    if(dPalm>3.6||dPalm<1.1)continue;
+    const score=dip*3.4-dPalm*.12-(x>px?0.15:0);
+    if(!best||score>best.score)best={x,z,y:grid[j],dip,score,r:1.55}}
+  if(!best){
+    let sx=0,sz=0,sy=0,n=0,minY=1e9;
+    for(let a=0;a<16;a++){
+      const th=a/16*TAU;
+      for(const rad of[1.5,2.0,2.5,3.0]){
+        const x=px+Math.cos(th)*rad,z=pz+Math.sin(th)*rad,y=hAt(x,z);
+        if(y<minY+0.08){if(y<minY-0.04){sx=x;sz=z;sy=y;n=1;minY=y}else{sx+=x;sz+=z;sy+=y;n++;minY=Math.min(minY,y)}}}}
+    if(n)best={x:sx/n,z:sz/n,y:sy/n,dip:.2,score:1,r:1.55}}
+  if(!best)return null;
+  let maxR=1.1;
+  for(let iz=0;iz<N;iz++)for(let ix=0;ix<N;ix++){
+    const j=iz*N+ix; if(grid[j]<-1e8)continue;
+    if(grid[j]<=best.y+.08){
+      const x=-half+ix*cell+cell*.5,z=-half+iz*cell+cell*.5;
+      const d=Math.hypot(x-best.x,z-best.z); if(d<2.8)maxR=Math.max(maxR,d)}}
+  best.r=cl(maxR*.62,1.25,2.05);
+  return best}
+function rebuildLakeDisc(cx,cz,rad,y){
+  const N=64,pos=[],uv=[],idx=[];
+  for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){
+    const u=i/N,v=j/N,th=u*TAU;
+    const e=.88+.08*Math.sin(th*2.3)+.05*Math.sin(th*5.1+.7);
+    const rr0=v*rad*e*(1+.08*Math.sin(th*3.2));
+    pos.push(cx+Math.cos(th)*rr0*1.15,y,cz+Math.sin(th)*rr0*.88); uv.push(u,v)}
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=j*(N+1)+i;idx.push(a,a+1,a+N+1,a+1,a+N+2,a+N+1)}
+  lake.geometry.dispose();
+  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));
+  g.setAttribute("uv",new T.BA(new Float32Array(uv),2));g.setIndex(idx);g.computeVertexNormals();
+  lake.geometry=g; lake.position.set(0,0,0);
+  lake.userData.ox=cx; lake.userData.oz=cz;
+  if(lakeBed){
+    lakeBed.geometry.dispose();
+    const g2=g.clone(); lakeBed.geometry=g2; lakeBed.position.set(0,y-.05,0); lakeBed.scale.set(1.04,1,1.04)}}
+function sandCapAt(x,z,rad){
+  const m=M({color:"#d4b07a",roughness:.96,metalness:0}); sandMats.push(m);
+  const g=new T.Mesh(new T.Sphere(rad*.85,10,8),m); g.scale.set(1,.18,1);
+  g.position.set(x,hAt(x,z)+.01,z); g.receiveShadow=true; onDes(g); root.add(g); return g}
+function flattenBakedProps(mesh, anchors){
+  if(!anchors||!anchors.length)return;
+  mesh.traverse(o=>{
+    if(!o.isMesh||!o.geometry||!o.material)return;
+    if(o.geometry.attributes.position.count<1000)return;
+    const mats=[].concat(o.material);
+    mats.forEach(m=>{
+      if(!m||m.userData._flatProps)return;
+      m.userData._flatProps=1;
+      const prev=m.onBeforeCompile;
+      m.onBeforeCompile=(sh)=>{
+        if(typeof prev==="function")prev(sh);
+        sh.uniforms.uFlatN={value:Math.min(4,anchors.length)};
+        sh.uniforms.uFlatA={value:anchors.slice(0,4).map(a=>new V3(a.x,a.z,a.r))};
+        if(!/uFlatN/.test(sh.vertexShader)){
+          sh.vertexShader="uniform float uFlatN; uniform vec3 uFlatA[4];\n"+sh.vertexShader;
+          sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>',
+            `#include <begin_vertex>
+             vec4 wpF=modelMatrix*vec4(transformed,1.);
+             for(int i=0;i<4;i++){
+               if(float(i)>=uFlatN)break;
+               vec3 a=uFlatA[i];
+               float d=length(wpF.xz-a.xy);
+               float k=smoothstep(a.z,a.z*.4,d)*smoothstep(.35,1.4,wpF.y);
+               transformed.y=mix(transformed.y, .04, k*.78);
+             }`);}
+      };
+      const prevKey=m.customProgramCacheKey;
+      m.customProgramCacheKey=()=>((typeof prevKey==="function"?prevKey():"")+"|flat14");
+      m.needsUpdate=true})})}
+function installTripoIsland(){
+  return tryModel(MODEL.island,()=>null).then(r=>{
+    if(!r||!r.root||r.src!=="glb")return null;
+    const wrap=r.root; islandRoot=wrap; onDes(wrap); root.add(wrap);
+    if(island)island.visible=false; if(under)under.visible=false;
+    if(typeof reedG!=="undefined"&&reedG)reedG.visible=false;
+    alignIslandSand(wrap);
+    wrap.traverse(o=>{
+      if(o.isMesh){if(!islandMesh&&o.geometry&&o.geometry.attributes.position.count>1000)islandMesh=o;
+        gradeIslandMat(o.material); o.castShadow=o.receiveShadow=true}});
+    buildHeightField(wrap);
+    const box=worldBox(wrap);
+    addTipSpikes(wrap, box.min[1]+.15);
+    const found=findLakeOnIsland();
+    if(found){
+      const peaks=detectPropPeaks(); const px=peaks?peaks.palm.x:found.x, pz=peaks?peaks.palm.z:found.z;
+      const samples=[];
+      for(let a=0;a<24;a++){
+        const th=a/24*TAU;
+        for(const rad of[1.5,2.0,2.5,3.0]){
+          const x=px+Math.cos(th)*rad,z=pz+Math.sin(th)*rad;
+          samples.push({x,z,y:hAt(x,z)})}}
+      samples.sort((a,b)=>a.y-b.y);
+      const lows=samples.slice(0,Math.max(6,(samples.length*.22)|0));
+      let sx=0,sz=0,sy=0; lows.forEach(s=>{sx+=s.x;sz+=s.z;sy+=s.y});
+      lakeC.x=sx/lows.length; lakeC.z=sz/lows.length;
+      lakeR=cl(found.r*.85,1.2,1.75);
+      /* sit just above HF so turquoise disc stays visible in the bowl */
+      lakeY=hAt(lakeC.x,lakeC.z)+0.02;
+    }
+    rebuildLakeDisc(lakeC.x,lakeC.z,lakeR,lakeY);
+    lake.visible=true; if(lakeBed){lakeBed.visible=true;lakeBed.position.y=lakeY-.04}
+    tripo.island=wrap; tripo.ready=1; window.__desTripo=tripo;
+    return wrap}).catch(()=>null)}
+function installTripoProps(){
+  const peaks=detectPropPeaks()||{
+    palm:{x:lakeC.x+.4,z:lakeC.z+.9},
+    sagL:{x:lakeC.x-3.2,z:lakeC.z+1.2},
+    sagR:{x:lakeC.x+4.2,z:lakeC.z-1.0},
+    tent:{x:lakeC.x+3.2,z:lakeC.z-2.4}};
+  const flatA=[
+    {x:peaks.palm.x,z:peaks.palm.z,r:1.85},
+    {x:peaks.sagL.x,z:peaks.sagL.z,r:.85},
+    {x:peaks.sagR.x,z:peaks.sagR.z,r:.75},
+    {x:peaks.tent.x,z:peaks.tent.z,r:1.55}];
+  if(islandRoot)flattenBakedProps(islandRoot, flatA);
+  const jobs=[];
+  jobs.push(tryModel(MODEL.palm,()=>null).then(r=>{
+    if(!r||!r.root||r.src!=="glb")return;
+    const p=r.root; onDes(p);
+    p.traverse(o=>{if(o.isMesh)gradePalmMat(o.material)});
+    const px=peaks.palm.x,pz=peaks.palm.z;
+    /* match baked palm crown height so hi-detail covers without towering */
+    if(peaks.palm.rise&&p.userData.fitBox&&p.userData.fitBox.sy){
+      const want=cl(peaks.palm.rise*1.05,2.8,3.8);
+      const sc=want/p.userData.fitBox.sy; p.scale.multiplyScalar(sc)}
+    p.position.set(px,hAt(px,pz),pz); p.rotation.y=-.15;
+    root.add(p); tripo.palm=p; palms.length=0; palms.push(p);
+    sandCapAt(px,pz,.55); sandCapAt(px-.45,pz+.25,.35);
+  }));
+  const sagSpots=[
+    {x:peaks.sagL.x,z:peaks.sagL.z,yaw:.35,perch:1},
+    {x:peaks.sagR.x,z:peaks.sagR.z,yaw:-.45,perch:0}];
+  sagSpots.forEach((sp)=>{
+    jobs.push(tryModel(MODEL.saguaro,()=>null).then(r=>{
+      if(!r||!r.root||r.src!=="glb")return;
+      const obj=r.root;
+      onDes(obj); obj.traverse(o=>{if(o.isMesh)gradeSaguaroMat(Array.isArray(o.material)?o.material[0]:o.material)});
+      const x=sp.x,z=sp.z; obj.position.set(x,hAt(x,z),z); obj.rotation.y=sp.yaw;
+      root.add(obj); tripo.sag.push(obj); cacti.push(obj);
+      if(sp.perch){obj.userData.isPerch=1; const box=worldBox(obj); obj.userData.perch={x:0,y:(box.max[1]-obj.position.y)*.98,z:0}}
+      sandCapAt(x,z,.4);
+    }));
+  });
+  jobs.push(tryModel(MODEL.tent,()=>null).then(r=>{
+    if(!r||!r.root||r.src!=="glb")return;
+    const t=r.root; onDes(t); t.traverse(o=>{if(o.isMesh)gradeTentMat(o.material)});
+    tentAnchor.x=peaks.tent.x; tentAnchor.z=peaks.tent.z;
+    t.position.set(tentAnchor.x,hAt(tentAnchor.x,tentAnchor.z),tentAnchor.z); t.rotation.y=-.4;
+    root.add(t); tripo.tent=t;
+    if(tent)tent.visible=false;
+    sandCapAt(tentAnchor.x,tentAnchor.z,.95);
+    if(fireG){const fx=tentAnchor.x-1.15,fz=tentAnchor.z+.65; fireG.position.set(fx,hAt(fx,fz),fz)}
+  }));
+  return Promise.all(jobs)}
+function reanchorLife(){
+  eaglePerch=cacti.find(c=>c&&c.userData&&c.userData.isPerch&&c.visible!==false)||eaglePerch;
+  camels.forEach(c=>{
+    if(!c)return; c.x=lakeC.x+rr(2.5,4.5)* (rnd()<.5?-1:1); c.z=lakeC.z+rr(-2,3);
+    c.tx=c.x; c.tz=c.z; if(c.o)c.o.position.set(c.x,hAt(c.x,c.z),c.z)});
+  snakes.forEach(s=>{
+    if(!s)return; s.x=rr(-3,5); s.z=rr(-4,4); s.tx=s.x; s.tz=s.z;
+    if(s.o)s.o.position.set(s.x,hAt(s.x,s.z)+.02,s.z)});
+  _hfCacheClear()}
+
+
+/* kick Tripo island install — procedural remains until GLB ready */
+installTripoIsland().then(()=>{
+  return installTripoProps()}).then(()=>{
+  palms.forEach(p=>{if(p&&p!==tripo.palm)p.visible=false});
+  cacti.forEach(c=>{if(c&&tripo.sag.indexOf(c)<0)c.visible=false});
+  reanchorLife();
+  window.__desTripo=tripo;
+}).catch(e=>{console.warn("tripo island",e)});
+
 window.__desShow=show;window.__desU=update;
 window.__des={root,hAt,camels,eagle,snakes,cacti,palms,MODEL,lakeC,R,De,Ce:X.Ce};
 window.__desReady=true;

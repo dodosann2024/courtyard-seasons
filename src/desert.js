@@ -1,5 +1,5 @@
-/* 沙漠绿洲 · Desert Oasis (desert31) — from desert30: mixer+procedural limb pace, neck-only graze/drink,
-   spline snake, eagle flap/perch seat. Water/terrain/sky/props identical. HOLD MERGE. */
+/* 沙漠绿洲 · Desert Oasis (desert32) — from desert31: camel_v2 Tripo clips (walk/idle/graze/drink).
+   Eagle/snake/water/terrain/sky/props identical. HOLD MERGE. */
 (()=>{
 window.__desInit=getX=>{
 const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
@@ -15,7 +15,7 @@ const M=(p,o)=>{const m=X.Wt(p,o||{snow:0,wet:0});return m};
 
 /* ---------------- Tripo GLB — prefer rigged (AnimationMixer); procedural fallback ---------------- */
 const MODEL={
-  camel:"assets/models/camel_rigged.glb",
+  camel:"assets/models/camel_v2.glb",
   eagle:"assets/models/eagle_rigged.glb",
   eagle_perch:"assets/models/eagle_perch.glb",
   snake:"assets/models/snake_rigged.glb",
@@ -25,7 +25,8 @@ const MODEL={
   cactus:"assets/models/saguaro.glb"};
 /* Fit metres: island by XZ diameter≈2R; palm pair height; saguaro; tent */
 /* Island diam≈18.8m (native ~30m). Palm pair ~7m on 30m island → ~4.4m here. */
-const MODEL_FIT={camel:1.08,camel_rigged:1.08,eagle:.62,eagle_rigged:.62,eagle_perch:.48,snake:.55,snake_rigged:.55,
+/* camel_v2: native 1.98 m tall / 2.8 m long (metres baked) — keep natural scale */
+const MODEL_FIT={camel:1.98,camel_v2:1.98,camel_rigged:1.08,eagle:.62,eagle_rigged:.62,eagle_perch:.48,snake:.55,snake_rigged:.55,
   island:18.8,island_base:18.8,tent:1.75,palm:4.4,saguaro:2.0,cactus:2.0};
 /* island_base native ~1 unit wide (authoring ~30m); underside Y scale vs XZ */
 const ISLAND_Y_SCALE=.75;
@@ -1232,39 +1233,57 @@ function plantFeet(cam,x,z,facing){
     lg.L.position.y=.92+(sampleGroundY(wx,wz)-base)*.3})}
 const camels=[];
 let _camelProto=null,_camelLoad=null,_camelAdopt=0;
-const CAMEL_STRIDE=.85; /* metres per full pace cycle (2π phase) — root speed sync */
-const CAMEL_MAX_TURN=Math.PI/3; /* ~60°/s heading slerp cap — never snap */
-function camelStripRootMotion(clip){
-  if(!clip||!clip.tracks)return clip;
-  /* keep rotation/scale on root; drop position so host translation owns locomotion */
-  clip.tracks=clip.tracks.filter(t=>!/Root\.position$|Hips\.position$|hip\.position$/i.test(t.name||""));
-  return clip}
-function camelCollectLimbs(bones){
-  const rearL=bonesMatching(bones,/tripo0_Left_Limb/).sort((a,b)=>a.name.localeCompare(b.name));
-  const rearR=bonesMatching(bones,/tripo0_Right_Limb/).sort((a,b)=>a.name.localeCompare(b.name));
-  const frontL=[],frontR=[];
-  for(const k in bones){
-    if(/tripo1_.*Left|bone_[4-8]$/.test(k))frontL.push(bones[k]);
-    else if(/tripo1_.*Right|bone_(9|10|11|12|13)$/.test(k))frontR.push(bones[k])}
-  frontL.sort((a,b)=>a.name.localeCompare(b.name));
-  frontR.sort((a,b)=>a.name.localeCompare(b.name));
-  return {rearL,rearR,frontL,frontR}}
+/* camel_v2: in-place walk clip; root speed 1.026 m/s × fitScale × timeScale (no foot slide) */
+const CAMEL_WALK_MPS=1.026;
+const CAMEL_WALK_LOOP=1.1; /* seconds */
+const CAMEL_MAX_TURN=Math.PI/3; /* ~60°/s heading slerp — never snap */
+const CAMEL_XFADE=.5; /* 0.4–0.6 s crossFade between clips */
+const CAMEL_CLIP_NAMES=["walk","idle","graze","drink"];
+function camelWaterY(){return (lake&&lake.userData.waterY!=null)?lake.userData.waterY:lakeY}
+function camelFitScale(st){return (st&&st.rig&&st.rig.fitScale)||1}
+function camelWalkSpeed(st,ts){return CAMEL_WALK_MPS*camelFitScale(st)*(ts==null?1:ts)}
+function camelFindClip(anims,name){
+  if(!anims)return null;
+  for(let i=0;i<anims.length;i++){const a=anims[i];if((a.name||"")===name)return a}
+  for(let i=0;i<anims.length;i++){const a=anims[i];if(new RegExp("^"+name+"$","i").test(a.name||""))return a}
+  return null}
 function setupCamelRig(st, wrap, anims){
   if(!_VT)return;
   const bones=mapBones(wrap);
-  const head=bones["tripoHead_0"]||bones["tripo::Head_0"]||bonesMatching(bones,/Head/)[0];
+  const head=bones["tripoHead_2"]||bones["tripo::Head_2"]||bones["tripoHead_0"]||bonesMatching(bones,/Head/)[0];
   const spines=bonesMatching(bones,/Spine/).sort((a,b)=> (a.name>b.name?1:-1));
-  const neck=spines.length?spines[spines.length-1]:null;
-  const limbs=camelCollectLimbs(bones);
   const mixer=_VT.makeMixer(wrap.userData.scene||wrap);
-  let walkClip=null;
-  for(const a of (anims||wrap.userData.anims||[])){if(/walk|quadruped/i.test(a.name||""))walkClip=a}
-  if(!walkClip&&anims&&anims[0])walkClip=anims[0];
-  if(walkClip)walkClip=camelStripRootMotion(walkClip);
-  let walk=null;
-  if(walkClip){walk=mixer.clipAction(walkClip);walk.setLoop(_VT.LoopRepeat,Infinity);walk.clampWhenFinished=false;walk.enabled=true;walk.setEffectiveWeight(1);walk.play()}
-  st.rig={mixer,walk,bones,head,neck,spines,limbs,pose:"walk",fade:0};
+  const list=anims||wrap.userData.anims||[];
+  const actions={};
+  CAMEL_CLIP_NAMES.forEach(n=>{
+    const clip=camelFindClip(list,n); if(!clip)return;
+    const act=mixer.clipAction(clip);
+    act.setLoop(_VT.LoopRepeat,Infinity);
+    act.clampWhenFinished=false; act.enabled=true; act.setEffectiveWeight(0);
+    act.play(); act.paused=false; actions[n]=act});
+  const walk=actions.walk||null;
+  if(walk){walk.setEffectiveWeight(1); walk.timeScale=1}
+  const fitScale=(wrap.userData&&wrap.userData.fitScale)||1;
+  st.rig={mixer,walk,actions,bones,head,spines,pose:"walk",current:"walk",fitScale,fade:CAMEL_XFADE};
+  st.speed=camelWalkSpeed(st,1);
   st.glb=wrap}
+function camelPlay(st,pose,fade){
+  const r=st.rig; if(!r||!r.actions)return;
+  const next=r.actions[pose]; if(!next)return;
+  if(r.current===pose){
+    if(pose==="walk"){next.paused=false; next.timeScale=st.walkTs||1}
+    return}
+  const dur=fade!=null?fade:CAMEL_XFADE;
+  const cur=r.actions[r.current];
+  next.enabled=true; next.setEffectiveWeight(1); next.paused=false;
+  if(pose==="walk")next.timeScale=st.walkTs||1;
+  else next.timeScale=1;
+  next.reset().play();
+  if(cur&&cur!==next){
+    try{cur.crossFadeTo(next,dur,false)}catch(_){
+      cur.setEffectiveWeight(0); next.setEffectiveWeight(1)}}
+  else next.setEffectiveWeight(1);
+  r.current=pose; r.pose=pose}
 function ensureCamelProto(){
   if(_camelProto)return Promise.resolve(_camelProto);
   if(_camelLoad)return _camelLoad;
@@ -1272,134 +1291,36 @@ function ensureCamelProto(){
     if(r.src==="glb"&&r.root){_camelProto=r.root;return _camelProto}
     return null});
   return _camelLoad}
-function spawnCamel(x,z,facing){
+function spawnCamel(x,z,facing,opts){
   const c=makeCamelProcedural();plantFeet(c,x,z,facing);onDes(c);root.add(c);
-  const st={o:c,x,z,facing,mode:"walk",t:rr(0,8),speed:.38,tx:x,tz:z,drink:0,graze:0,step:rnd()*TAU,rig:null};
+  const canDrink=!!(opts&&opts.canDrink);
+  const idleFor=rr(4,10);
+  const st={o:c,x,z,facing,mode:"walk",t:rr(0,6),speed:CAMEL_WALK_MPS,walkTs:1,
+    tx:x,tz:z,drink:0,graze:0,idleFor,phase:rr(0,20),canDrink,rig:null};
   camels.push(st);
   ensureCamelProto().then(proto=>{
     if(!proto||st.rig)return;
     try{
       const wrap=(_camelAdopt++===0)?proto:cloneRig(proto);
       adoptGLB(c,wrap);setupCamelRig(st,wrap,wrap.userData.anims);
-      c.position.y=hAt(st.x,st.z)+.004}catch(_){}});
+      c.position.y=sampleGroundY(st.x,st.z)+.002}catch(_){}});
   return st}
-spawnCamel(-4.6,2.4,0.6);spawnCamel(-5.4,1.0,-2.1);
+/* 3 camels, desynchronised phases; only one may drink */
+spawnCamel(-4.6,2.4,0.6,{canDrink:1});
+spawnCamel(-5.4,1.0,-2.1,{canDrink:0});
+spawnCamel(3.2,-2.8,2.4,{canDrink:0});
 camels.forEach(c=>{
-  const b=new T.Mesh(new T.Plane(.35,.22),blobM);b.rotation.x=-Math.PI/2;b.position.set(0,.01,0);b.renderOrder=1;
+  const b=new T.Mesh(new T.Plane(.42,.28),blobM);b.rotation.x=-Math.PI/2;b.position.set(0,.01,0);b.renderOrder=1;
   c.o.add(b);onDes(b);c.blob=b});
 
-function camelCalibrateStand(rig){
-  /* pick walk frame with all feet most level (planted) — never freeze on bind spider */
-  if(!rig||!rig.walk||rig.standT!=null)return;
-  const clip=rig.walk.getClip(); if(!clip){rig.standT=.22;return}
-  const dur=clip.duration||1, tips=[];
-  for(const k in (rig.bones||{})){
-    if(/Limb_4$|bone_(8|13)$|Foot|foot|Toe/.test(k))tips.push(rig.bones[k]);
-    else if(/Limb_[0-3]$/.test(k))tips.push(rig.bones[k])}
-  if(!tips.length){for(const k in (rig.bones||{}))if(/Limb_|bone_/.test(k))tips.push(rig.bones[k])}
-  let bestT=.22, best=1e9;
-  const wasPaused=rig.walk.paused, wasT=rig.walk.time, wasW=rig.walk.getEffectiveWeight();
-  rig.walk.setEffectiveWeight(1); rig.walk.paused=true;
-  for(let i=0;i<=32;i++){
-    const tt=(i/32)*dur; rig.walk.time=tt; if(rig.mixer)rig.mixer.update(0);
-    const ys=[], xs=[];
-    tips.forEach(b=>{if(!b)return; b.updateWorldMatrix(true,false);
-      const e=b.matrixWorld.elements; ys.push(e[13]); xs.push(e[12])});
-    if(ys.length<2)continue;
-    const meanY=ys.reduce((a,b)=>a+b,0)/ys.length;
-    let yVar=0; ys.forEach(y=>{yVar+=(y-meanY)*(y-meanY)}); yVar/=ys.length;
-    const lat=Math.max(...xs.map(Math.abs))-Math.min(...xs.map(Math.abs));
-    const score=yVar*40+lat*.15+meanY*.02; /* prefer level low feet, modest stance */
-    if(score<best){best=score;bestT=tt}}
-  rig.standT=bestT;
-  /* snapshot stand euler for limbs + secondary / graze overlays */
-  rig.walk.time=bestT; if(rig.mixer)rig.mixer.update(0);
-  const snap=b=>{if(!b)return; b.userData.standE={x:b.rotation.x,y:b.rotation.y,z:b.rotation.z}};
-  (rig.spines||[]).forEach(snap); snap(rig.head);
-  if(rig.limbs){[].concat(rig.limbs.frontL||[],rig.limbs.frontR||[],rig.limbs.rearL||[],rig.limbs.rearR||[]).forEach(snap)}
-  for(const k in (rig.bones||{})){if(/Tail|Ear|ear|bone_33|Limb|bone_/.test(k))snap(rig.bones[k])}
-  rig.walk.time=wasT; rig.walk.paused=wasPaused; rig.walk.setEffectiveWeight(wasW);
-  if(rig.mixer)rig.mixer.update(0)}
-function camelRestoreLimbStand(rig){
-  const L=rig.limbs;if(!L)return;
-  const apply=chain=>{(chain||[]).forEach(b=>{
-    if(!b)return; const re=b.userData.standE||b.userData.restE; if(!re)return;
-    b.rotation.x=re.x; b.rotation.y=re.y; b.rotation.z=re.z})};
-  apply(L.frontL);apply(L.frontR);apply(L.rearL);apply(L.rearR)}
-function camelDrivePace(rig, phase){
-  /* camel PACE: same-side legs move together. Applied AFTER mixer so incomplete
-     Tripo front-leg tracks still show motion. Swing relative to stand euler. */
-  const L=rig.limbs;if(!L)return;
-  const swingChain=(chain,swing)=>{
-    (chain||[]).forEach((b,i)=>{
-      if(!b)return; const re=b.userData.standE||b.userData.restE||{x:0,y:0,z:0};
-      const w=i===0?1:i===1?.75:i===2?.45:.25;
-      b.rotation.x=re.x+swing*w*.62;
-      b.rotation.y=re.y;
-      b.rotation.z=re.z+swing*w*.04})};
-  /* left phase, right opposite */
-  const sL=Math.sin(phase), sR=Math.sin(phase+Math.PI);
-  swingChain(L.frontL,sL); swingChain(L.rearL,sL*.95);
-  swingChain(L.frontR,sR); swingChain(L.rearR,sR*.95)}
-function camelIdleSecondary(rig,t,dt,mode){
-  /* true standing idle — breath / head / tail / ears; limbs stay on stand pose */
-  if(!rig)return;
-  camelRestoreLimbStand(rig);
-  const breath=.014*Math.sin(t*1.35);
-  /* ONLY upper spine (never spines[0] — that pitches the whole body into sand) */
-  const spines=rig.spines||[];
-  if(spines.length>1&&mode!=="graze"&&mode!=="drink"){
-    const b=spines[spines.length-1]; const re=b.userData.standE||b.userData.restE||{x:0,y:0,z:0};
-    b.rotation.x=re.x+breath*.55; b.rotation.y=re.y+Math.sin(t*.45)*.02; b.rotation.z=re.z}
-  if(rig.head&&mode!=="graze"&&mode!=="drink"){
-    const re=rig.head.userData.standE||rig.head.userData.restE||{x:0,y:0,z:0};
-    rig.head.rotation.x=re.x+breath*.7+Math.sin(t*.9)*.025;
-    rig.head.rotation.y=re.y+Math.sin(t*.55)*.14;
-    rig.head.rotation.z=re.z+Math.sin(t*2.4)*.02}
-  for(const k in (rig.bones||{})){
-    if(!/bone_33|Ear|ear|Tail/.test(k))continue;
-    const b=rig.bones[k]; if(!b)continue; const re=b.userData.standE||b.userData.restE||{x:0,y:0,z:0};
-    if(/Tail/.test(k)){b.rotation.x=re.x+.1*Math.sin(t*1.7); b.rotation.z=re.z+.14*Math.sin(t*1.3); continue}
-    b.rotation.z=re.z+.1*Math.sin(t*2.4+(k.length))}}
-function camelSetPose(st,pose,dt){
-  /* Walk: play clip (spine/tail) + procedural limb pace after mixer.
-     Idle/graze/drink: freeze clip on stand frame — never in-place walk. */
-  const r=st.rig;if(!r)return;
-  r.pose=pose;
-  if(!r.walk)return;
-  camelCalibrateStand(r);
-  const w=r.walk.getEffectiveWeight();
-  r.walk.setEffectiveWeight(mix(w,1,ease(4.2,dt)));
-  if(!r.walk.isRunning())r.walk.play();
-  if(pose==="walk"){r.walk.paused=false}
-  else{
-    r.walk.paused=true; r.walk.timeScale=0;
-    if(r.standT!=null&&Math.abs(r.walk.time-r.standT)>.01)r.walk.time=r.standT}}
-function camelBendNeck(rig,amt,chew,t,drink){
-  /* NEVER rotate root / spines[0] — that pitches the whole camel into the sand.
-     Only upper neck (last spine) + head, from stand euler. */
-  if(!rig||amt<.001&&Math.abs(chew)<.001)return;
-  const spines=rig.spines||[];
-  const amtC=Math.min(amt, drink?.65:.9);
-  if(spines.length){
-    const b=spines[spines.length-1];
-    const re=b.userData.standE||b.userData.restE||{x:0,y:0,z:0};
-    const pitch=amtC*(drink?.55:.85);
-    b.rotation.x=re.x+pitch;
-    b.rotation.y=re.y+Math.sin(t*.55)*.02*amtC;
-    b.rotation.z=re.z}
-  if(rig.head){const re=rig.head.userData.standE||rig.head.userData.restE||{x:0,y:0,z:0};
-    rig.head.rotation.x=re.x+amtC*(drink?.5:.7)+chew*.85;
-    rig.head.rotation.y=re.y+Math.sin(t*.7)*.04;
-    rig.head.rotation.z=re.z+Math.sin(t*3.2)*.03*chew}}
 function camelBlocked(x,z,drinkOk){
   /* never walk onto tent / palms / cactus / lake interior (drink only at shore) */
   if(Math.hypot(x,z)>R-1.1)return 1;
   const dLake=Math.hypot(x-lakeC.x,z-lakeC.z);
-  if(drinkOk){if(dLake<lakeR*.88)return 1} /* too deep */
+  if(drinkOk){if(dLake<lakeR*.92)return 1} /* too deep — feet must stay on sand */
   else if(dLake<lakeR*1.28)return 1;
   const tentX=(typeof tentAnchor!=="undefined"?tentAnchor.x:0), tentZ=(typeof tentAnchor!=="undefined"?tentAnchor.z:0);
-  if(Math.hypot(x-tentX,z-tentZ)<2.85)return 1; /* wide tent exclusion — no roof camel */
+  if(Math.hypot(x-tentX,z-tentZ)<2.85)return 1;
   if(fireG&&Math.hypot(x-fireG.position.x,z-fireG.position.z)<1.25)return 1;
   for(let i=0;i<palms.length;i++){const p=palms[i];if(!p||p.visible===false)continue;
     if(Math.hypot(x-p.position.x,z-p.position.z)<1.85)return 1}
@@ -1417,70 +1338,105 @@ function camelPickWalk(){
     const x=Math.cos(a)*rad,z=Math.sin(a)*rad;
     if(!camelBlocked(x,z,0))return {x,z}}
   return {x:lakeC.x+lakeR*2.2,z:lakeC.z+1.5}}
+function camelPickGraze(){
+  for(let k=0;k<10;k++){
+    const sh=shrubs.length?shrubs[(Math.random()*shrubs.length)|0]:null;
+    if(sh&&!camelBlocked(sh.x,sh.z,0))return {x:sh.x,z:sh.z}}
+  return camelPickWalk()}
+function camelPickDrink(st){
+  /* Feet on shore sand; drink clip brings muzzle to ~0.15 m above feet (= water).
+     Muzzle ~0.91 m ahead of root along +Z — place so muzzle reaches water edge. */
+  const sc=camelFitScale(st), muzzleFwd=.91*sc, mouthH=.15*sc;
+  const wy=camelWaterY();
+  let best=null,bestScore=1e9;
+  for(let i=0;i<24;i++){
+    const a=(i/24)*TAU+rr(-.05,.05);
+    const rad=lakeR+.18+rr(0,.35); /* feet just outside water */
+    const x=lakeC.x+Math.cos(a)*rad, z=lakeC.z+Math.sin(a)*rad;
+    if(camelBlocked(x,z,1))continue;
+    const gy=sampleGroundY(x,z);
+    const face=Math.atan2(lakeC.x-x,lakeC.z-z);
+    const mx=x+Math.sin(face)*muzzleFwd, mz=z+Math.cos(face)*muzzleFwd;
+    const md=Math.hypot(mx-lakeC.x,mz-lakeC.z);
+    const yErr=Math.abs((gy+mouthH)-wy);
+    const edgeErr=Math.abs(md-lakeR);
+    const score=yErr*8+edgeErr*1.4+(gy<wy-.02?2:0);
+    if(score<bestScore){bestScore=score;best={x,z,facing:face}}}
+  if(best)return best;
+  const a=Math.atan2(-1,0.2);
+  return {x:lakeC.x+Math.cos(a)*(lakeR+.35),z:lakeC.z+Math.sin(a)*(lakeR+.35),
+    facing:Math.atan2(lakeC.x-(lakeC.x+Math.cos(a)*(lakeR+.35)),lakeC.z-(lakeC.z+Math.sin(a)*(lakeR+.35)))}}
+function camelBeginMode(st,mode){
+  st.mode=mode; st.t=0; st.graze=0; st.drink=0;
+  if(mode==="walk"){
+    const p=camelPickWalk(); st.tx=p.x; st.tz=p.z; st.walkTs=1; st.speed=camelWalkSpeed(st,1)}
+  else if(mode==="idle"){st.tx=st.x; st.tz=st.z; st.idleFor=rr(4,10)}
+  else if(mode==="graze"){const p=camelPickGraze(); st.tx=p.x; st.tz=p.z}
+  else if(mode==="drink"){const p=camelPickDrink(st); st.tx=p.x; st.tz=p.z;
+    /* face lake via slerp during approach — seed facing toward target */
+    if(p.facing!=null){/* keep current; update will slerp */}}
+}
 function camelUpdate(st,dt,t){
-  st.t+=dt;const c=st.o,ud=c.userData,glb=!!ud.useGlb,rig=st.rig;
-  if(st.mode==="walk"&&st.t>5.5){st.mode=rnd()<.45?"graze":rnd()<.5?"drink":"walk";st.t=0;st.graze=0;st.drink=0;
-    if(st.mode==="graze"){let found=0;for(let k=0;k<8;k++){const sh=shrubs[(Math.random()*shrubs.length)|0];
-      if(sh&&!camelBlocked(sh.x,sh.z,0)){st.tx=sh.x;st.tz=sh.z;found=1;break}}
-      if(!found){const p=camelPickWalk();st.tx=p.x;st.tz=p.z}}
-    else if(st.mode==="drink"){const a=rnd()*TAU;st.tx=lakeC.x+Math.cos(a)*lakeR*1.18;st.tz=lakeC.z+Math.sin(a)*lakeR*1.18;
-      if(camelBlocked(st.tx,st.tz,1)){st.tx=lakeC.x+lakeR*1.25;st.tz=lakeC.z}}
-    else{const p=camelPickWalk();st.tx=p.x;st.tz=p.z}}
-  let moving=0,neckAmt=0,chew=0;
-  /* graze/drink: once arrived, stay planted — never slide along shore */
-  const seekModes=st.mode==="walk"||((st.mode==="graze"||st.mode==="drink")&&(st.mode==="graze"?st.graze:st.drink)<.02);
+  st.t+=dt; st.phase=(st.phase||0)+dt;
+  const c=st.o,ud=c.userData,glb=!!ud.useGlb,rig=st.rig;
+  /* behaviour: walk → idle(4–10s) → graze; one drinker walks to shore + drink clip */
+  if(st.walkFor==null)st.walkFor=5.5+((st.phase||0)%2.2);
+  if(st.mode==="walk"&&st.t>st.walkFor){
+    const roll=((st.phase*1.7+st.t*.3)%1);
+    if(st.canDrink&&roll>.72&&!camels.some(o=>o!==st&&o.mode==="drink"))camelBeginMode(st,"drink");
+    else if(roll>.38)camelBeginMode(st,"idle");
+    else camelBeginMode(st,"graze");
+    st.walkFor=5.5+((st.phase||0)%2.2)}
+  else if(st.mode==="idle"&&st.t>(st.idleFor||6)){
+    camelBeginMode(st, ((st.phase*3.1)%1)<.55?"graze":"walk")}
+  else if(st.mode==="graze"&&st.graze>6.2){camelBeginMode(st,"walk")}
+  else if(st.mode==="drink"&&st.drink>6.2){camelBeginMode(st,"walk")}
+
+  let moving=0;
+  const seeking=(st.mode==="walk")||((st.mode==="graze"||st.mode==="drink")&&(st.mode==="graze"?st.graze:st.drink)<.02);
   if(st.mode==="walk"||st.mode==="graze"||st.mode==="drink"){
     const dx=st.tx-st.x,dz=st.tz-st.z,dist=Math.hypot(dx,dz);
-    const atGoal=dist<=.28||(st.mode!=="walk"&&(st.graze>.02||st.drink>.02));
-    if(!atGoal&&(st.mode==="walk"||seekModes)){
+    const atGoal=dist<=.32||(st.mode!=="walk"&&(st.graze>.02||st.drink>.02));
+    if(!atGoal&&seeking){
       const want=Math.atan2(dx,dz);
       let dth=((want-st.facing+Math.PI*3)%TAU)-Math.PI;
       const maxT=CAMEL_MAX_TURN*dt; st.facing+=cl(dth,-maxT,maxT);
-      const sp=st.speed*(st.mode==="walk"?1:.55);
-      const nx=st.x+Math.sin(st.facing)*sp*dt, nz=st.z+Math.cos(st.facing)*sp*dt;
-      if(camelBlocked(nx,nz,st.mode==="drink")){
-        const p=camelPickWalk();st.tx=p.x;st.tz=p.z;st.mode="walk";st.t=0}
+      const ts=st.mode==="walk"?1:.72;
+      st.walkTs=ts; st.speed=camelWalkSpeed(st,ts);
+      const nx=st.x+Math.sin(st.facing)*st.speed*dt, nz=st.z+Math.cos(st.facing)*st.speed*dt;
+      if(camelBlocked(nx,nz,st.mode==="drink"?1:0)){
+        if(st.mode==="drink"){const p=camelPickDrink(st);st.tx=p.x;st.tz=p.z}
+        else{const p=camelPickWalk();st.tx=p.x;st.tz=p.z;if(st.mode!=="walk")camelBeginMode(st,"walk")}}
       else{st.x=nx;st.z=nz}
-      /* phase advance synced to stride: one cycle covers CAMEL_STRIDE metres */
-      st.step+=dt*sp*(TAU/CAMEL_STRIDE); moving=1;
-      if(!glb&&ud.legs)ud.legs.forEach(lg=>{
-        const pace=st.step+(lg.side>0?0:Math.PI);
-        const swing=Math.sin(pace)*(lg.fore?.9:1);
-        lg.L.rotation.x=swing*.48; lg.lo.rotation.x=Math.max(0,-swing)*.38});
-      if(!glb&&ud.neck)ud.neck.rotation.x=ss(0,1,Math.sin(t*.7)*.08)}
-    else{
+      moving=1;
+      if(!glb&&ud.legs){
+        const pace=t*(TAU/CAMEL_WALK_LOOP)*ts;
+        ud.legs.forEach(lg=>{
+          const swing=Math.sin(pace+(lg.side>0?0:Math.PI))*(lg.fore?.9:1);
+          lg.L.rotation.x=swing*.48; lg.lo.rotation.x=Math.max(0,-swing)*.38})}
+    }else{
       if(!glb&&ud.legs)ud.legs.forEach(lg=>{lg.L.rotation.x*=1-ease(6,dt);lg.lo.rotation.x*=1-ease(6,dt)});
-      if(st.mode==="graze"){st.graze+=dt;neckAmt=ss(0,1.05,Math.min(1.05,st.graze))*0.95;chew=Math.sin(t*3.4)*.12;
-        if(!glb&&ud.neck){ud.neck.rotation.x=neckAmt;ud.head.rotation.x=chew}
-        if(st.graze>4.5){st.mode="walk";st.t=0;st.graze=0}}
-      else if(st.mode==="drink"){st.drink+=dt;neckAmt=ss(0,.9,Math.min(.9,st.drink))*0.9;chew=Math.sin(t*2.2)*.05;
-        if(!glb&&ud.neck)ud.neck.rotation.x=neckAmt;
-        /* face lake smoothly — never snap */
+      if(st.mode==="graze"){st.graze+=dt;
+        if(!glb&&ud.neck){ud.neck.rotation.x=ss(0,1.2,Math.min(1.2,st.graze))*.9;ud.head.rotation.x=Math.sin(t*3.2)*.1}}
+      else if(st.mode==="drink"){st.drink+=dt;
         const want=Math.atan2(lakeC.x-st.x,lakeC.z-st.z);
         let dth=((want-st.facing+Math.PI*3)%TAU)-Math.PI;
         const maxT=CAMEL_MAX_TURN*dt; st.facing+=cl(dth,-maxT,maxT);
-        if(st.drink>5){st.mode="walk";st.t=0;st.drink=0}}
-      else{st.mode="idle"; st.t=0}}}
-  else if(st.mode==="idle"){
-    if(st.t>3.2){const p=camelPickWalk();st.tx=p.x;st.tz=p.z;st.mode="walk";st.t=0}}
+        if(!glb&&ud.neck)ud.neck.rotation.x=ss(0,1.0,Math.min(1,st.drink))*.75}
+      else if(st.mode==="walk"){/* arrived walk target → idle */ camelBeginMode(st,"idle")}}
+  }
+
   if(rig){
-    camelSetPose(st,moving?"walk":(st.mode==="graze"||st.mode==="drink"?st.mode:"idle"),dt);
-    if(rig.walk){
-      if(moving){
-        const groundSp=st.speed*(st.mode==="walk"?1:.55);
-        /* clip timeScale matches metres/sec → cycles/sec for spine/tail only */
-        const ts=cl(groundSp/CAMEL_STRIDE,.5,1.4);
-        rig.walk.timeScale=Number.isFinite(ts)?ts:1; rig.walk.paused=false}
-      else{rig.walk.timeScale=0; rig.walk.paused=true;
-        if(rig.standT!=null)rig.walk.time=rig.standT}}
+    const wantPose=moving?"walk":(st.mode==="graze"||st.mode==="drink"||st.mode==="idle"?st.mode:"idle");
+    camelPlay(st,wantPose,CAMEL_XFADE);
+    if(rig.actions&&rig.actions.walk&&moving){
+      rig.actions.walk.timeScale=st.walkTs||1; rig.actions.walk.paused=false}
     /* ALWAYS update mixer every frame (live + capture clock stepping) */
     if(rig.mixer)rig.mixer.update(dt);
-    if(moving)camelDrivePace(rig, st.step);
-    else{camelIdleSecondary(rig,t,dt,st.mode); camelBendNeck(rig,neckAmt,chew,t,st.mode==="drink")}}
-  else if(!moving&&!glb){
+  }else if(!moving&&!glb){
     if(ud.neck)ud.neck.rotation.x=mix(ud.neck.rotation.x||0, .04*Math.sin(t*1.3), ease(3,dt));
     if(ud.head)ud.head.rotation.y=.1*Math.sin(t*.55)}
-  /* yaw only via facing — never pitch/roll the root */
+  /* yaw only via facing — never pitch/roll the host root (clips own body dip) */
   c.rotation.x=0; c.rotation.z=0;
   plantFeet(c,st.x,st.z,st.facing);
   if(glb)c.position.y=sampleGroundY(st.x,st.z)+.002}
@@ -2077,21 +2033,23 @@ for(const o of[X.vd,pi,dc,X.sr,...(X.Ca||[]).map(c=>c.m)])o&&o.traverse(c=>c.lay
 onDes(root);
 
 /* QA hooks for motion review */
-window.__desQA=()=>({camels,eagle,snakes,CAMEL_STRIDE,De,Ce,
+window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XFADE,De,Ce,
   get perch(){return eaglePerchWorld()},
   lookAt:(px,py,pz,tx,ty,tz)=>{De.position.set(px,py,pz);Ce.target.set(tx,ty,tz);Ce.update()},
-  forceCamel:(i,mode)=>{const c=camels[i|0];if(!c)return;c.mode=mode||"walk";c.t=0;c.graze=0;c.drink=0;
-    if(mode==="idle"){c.tx=c.x;c.tz=c.z}
-    else if(mode==="graze"){const p=camelPickWalk();c.tx=p.x;c.tz=p.z;c.x=p.x;c.z=p.z;c.graze=.05}
-    else if(mode==="drink"){
-      let tx=lakeC.x-lakeR*1.22, tz=lakeC.z+0.2;
-      if(camelBlocked(tx,tz,1)){tx=lakeC.x+lakeR*1.25;tz=lakeC.z-0.6}
-      if(camelBlocked(tx,tz,1)){const p=camelPickWalk();tx=p.x;tz=p.z;c.mode="walk"}
-      c.tx=tx;c.tz=tz;c.x=tx;c.z=tz;c.drink=.05;
-      /* face lake but do not snap — drink update slerps ≤60°/s */}
-    else{const p=camelPickWalk();c.x=p.x;c.z=p.z;
-      c.tx=p.x+Math.sin(c.facing)*4.2;c.tz=p.z+Math.cos(c.facing)*4.2;
-      if(camelBlocked(c.tx,c.tz,0)){const q=camelPickWalk();c.tx=q.x;c.tz=q.z}}},
+  forceCamel:(i,mode)=>{const c=camels[i|0];if(!c)return;
+    const m=mode||"walk"; c.graze=0; c.drink=0; c.t=0;
+    if(m==="idle"){c.mode="idle"; c.tx=c.x; c.tz=c.z; c.idleFor=rr(4,10); camelPlay(c,"idle",.05)}
+    else if(m==="graze"){const p=camelPickGraze(); c.x=p.x; c.z=p.z; c.tx=p.x; c.tz=p.z;
+      c.mode="graze"; c.graze=.05; camelPlay(c,"graze",.05)}
+    else if(m==="drink"){const p=camelPickDrink(c); c.x=p.x; c.z=p.z; c.tx=p.x; c.tz=p.z;
+      if(p.facing!=null)c.facing=p.facing; /* QA plant already facing lake */
+      c.mode="drink"; c.drink=.05; camelPlay(c,"drink",.05)}
+    else{const p=camelPickWalk(); c.x=p.x; c.z=p.z; c.mode="walk"; c.walkTs=1; c.speed=camelWalkSpeed(c,1);
+      c.tx=p.x+Math.sin(c.facing)*5.5; c.tz=p.z+Math.cos(c.facing)*5.5;
+      if(camelBlocked(c.tx,c.tz,0)){const q=camelPickWalk();c.tx=q.x;c.tz=q.z}
+      camelPlay(c,"walk",.05)}
+    plantFeet(c.o,c.x,c.z,c.facing);
+    if(c.o.userData.useGlb)c.o.position.y=sampleGroundY(c.x,c.z)+.002},
   forceEagle:(mode)=>{eagle.mode=mode||"soar";eagle.t=0;eagle.blend=0;eagle.landed=0;
     if(mode==="perch"){eagleSeatOnTip(eaglePerchTip());driveEagleWings("fold",0,0,0)}
     else if(mode==="landPerch"||mode==="landDrink"){eagleShowFly(true)}
@@ -2100,15 +2058,17 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_STRIDE,De,Ce,
   step:(dt)=>{if(typeof update==="function")update(dt||1/30)},
   followCamel:(i,dist,h)=>{
     const c=camels[i|0];if(!c)return;
-    const d=dist||3.2, hh=h||1.45;
+    const d=dist||4.2, hh=h||1.85;
     const x=c.x-Math.sin(c.facing)*d, z=c.z-Math.cos(c.facing)*d;
     De.position.set(x, sampleGroundY(c.x,c.z)+hh, z);
-    Ce.target.set(c.x, sampleGroundY(c.x,c.z)+.75, c.z); Ce.update()},
+    Ce.target.set(c.x, sampleGroundY(c.x,c.z)+1.05, c.z); Ce.update()},
   boneSnap:(which)=>{
-    /* return key bone transforms for motion-diff checks across frames */
     if(which==="camel"){const c=camels[0];if(!c||!c.rig)return null;
-      const keys=["tripo0_Left_Limb_0","tripo0_Left_Limb_3","tripo0_Right_Limb_0","tripo0_Right_Limb_3","bone_4","bone_9","tripoSpine_1","tripoHead_0"];
-      const o={walkT:c.rig.walk&&c.rig.walk.time,paused:c.rig.walk&&c.rig.walk.paused,mode:c.mode,step:c.step};
+      /* GLTFLoader strips '::' from Tripo names → tripo0_Left_Limb_0 etc. */
+      const keys=["tripo0_Left_Limb_0","tripo0_Left_Limb_3","tripo0_Right_Limb_0","tripo0_Right_Limb_3",
+        "tripo1_Left_Limb_0","tripo1_Right_Limb_0","tripoSpine_4","tripoHead_0","tripoHead_2"];
+      const act=c.rig.actions&&c.rig.actions[c.rig.current];
+      const o={clip:c.rig.current,clipT:act&&act.time,mode:c.mode,walkTs:c.walkTs,speed:c.speed};
       keys.forEach(k=>{const b=c.rig.bones[k];if(b)o[k]=[b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w,b.rotation.x]});
       return o}
     if(which==="eagle"){const r=eagle.rig;if(!r)return null;
@@ -2119,8 +2079,9 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_STRIDE,De,Ce,
       const segs=(s.o.userData.segs||[]).slice(0,6).map(sg=>[sg.position.x,sg.position.y,sg.position.z]);
       return {x:s.x,z:s.z,th:s.th,segs}}
     return null},
-  status:()=>({camel:camels.map(c=>({mode:c.mode,useGlb:!!c.o.userData.useGlb,rig:!!c.rig,walkW:c.rig&&c.rig.walk?c.rig.walk.getEffectiveWeight():0,
-      paused:c.rig&&c.rig.walk&&c.rig.walk.paused, standT:c.rig&&c.rig.standT, x:c.x,z:c.z,facing:c.facing,step:c.step})),
+  status:()=>({camel:camels.map(c=>({mode:c.mode,useGlb:!!c.o.userData.useGlb,rig:!!c.rig,
+      clip:c.rig&&c.rig.current, walkW:c.rig&&c.rig.actions&&c.rig.actions.walk?c.rig.actions.walk.getEffectiveWeight():0,
+      fitScale:c.rig&&c.rig.fitScale, speed:c.speed, walkTs:c.walkTs, x:c.x,z:c.z,facing:c.facing,canDrink:!!c.canDrink})),
     eagle:{mode:eagle.mode,useGlb:!!eagle.o.userData.useGlb,rig:!!eagle.rig,fly:!!eagle.flyGlb,perch:!!eagle.perchGlb,pos:[eagle.o.position.x,eagle.o.position.y,eagle.o.position.z]},
     snake:snakes.map(s=>({useGlb:false,procedural:1,x:s.x,z:s.z,segs:(s.o.userData.segs||[]).length})),
     perch:eaglePerchWorld(), lakeY, waterY:lake&&lake.userData.waterY})});

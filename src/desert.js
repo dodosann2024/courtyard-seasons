@@ -724,9 +724,31 @@ const reedG=new T.Group();root.add(reedG);
     reedG.add(g)}
 })();
 
-/* desert8: NO scatter rock eggs — they always read mint/white in stills */
+/* rim sandstone rocks — warm brown (never mint/white eggs) */
 const rockG=new T.Group();root.add(rockG);window.__desRockMats=[];
-/* desert8: no shrub egg-spheres — graze targets use shore grass positions */
+function placeRimRocks(){
+  while(rockG.children.length)rockG.remove(rockG.children[0]);
+  const rockM=M({color:"#a88868",map:sandTex||null,roughness:.95,metalness:0}); sandMats.push(rockM); window.__desRockMats.push(rockM);
+  for(let i=0;i<(MOB?14:22);i++){
+    const th=rnd()*TAU, rad=R*(.72+rr(0,.22));
+    const x=Math.cos(th)*rad, z=Math.sin(th)*rad;
+    if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR*1.35)continue;
+    const y=hAt(x,z);
+    const s=rr(.12,.38);
+    const rk=new T.Mesh(new T.Box(s,s*.7,s*rr(.7,1.2)),rockM);
+    rk.position.set(x,y+s*.22,z);
+    rk.rotation.set(rr(0,1),rr(0,TAU),rr(0,1));
+    rk.scale.set(1,rr(.55,.95),1);
+    rk.castShadow=rk.receiveShadow=true; onDes(rk); rockG.add(rk)}
+  /* a few mid-rim pebbles near dunes (right side) */
+  for(let i=0;i<8;i++){
+    const x=rr(2.5,7.2),z=rr(-4.5,3.5); if(Math.hypot(x,z)>R-0.8)continue;
+    const y=hAt(x,z),s=rr(.08,.2);
+    const rk=new T.Mesh(new T.Box(s,s*.55,s),rockM);
+    rk.position.set(x,y+s*.18,z); rk.rotation.set(rnd(),rnd()*TAU,rnd());
+    rk.scale.set(1,rr(.5,.8),1); onDes(rk); rockG.add(rk)}}
+placeRimRocks();
+/* graze targets use shore grass positions */
 const shrubs=[];
 (function makeShrubs(){
   for(let i=0;i<10;i++){
@@ -2072,7 +2094,6 @@ function installTripoIsland(){
     if(!r||!r.root||r.src!=="glb")return null;
     const wrap=r.root; islandRoot=wrap; onDes(wrap); root.add(wrap);
     if(island)island.visible=false; if(under)under.visible=false;
-    if(typeof reedG!=="undefined"&&reedG)reedG.visible=false;
     alignIslandSand(wrap);
     wrap.traverse(o=>{
       if(o.isMesh){if(!islandMesh&&o.geometry&&o.geometry.attributes.position.count>1000)islandMesh=o;
@@ -2152,8 +2173,55 @@ function installTripoProps(){
     if(fireG){const fx=tentAnchor.x-1.15,fz=tentAnchor.z+.65; fireG.position.set(fx,hAt(fx,fz),fz)}
   }));
   return Promise.all(jobs)}
+function rebuildShoreGreen(){
+  /* clear + rebuild grass/shrubs at Tripo lake + tent (ref: clumps around water) */
+  while(reedG.children.length)reedG.remove(reedG.children[0]);
+  reedG.visible=true;
+  const lc=document.createElement("canvas");lc.width=lc.height=64;const lctx=lc.getContext("2d");
+  const lid=lctx.createImageData(64,64);
+  for(let y=0;y<64;y++)for(let x=0;x<64;x++){
+    const u=x/64,v=y/64,edge=Math.min(u,1-u)*2;
+    const a=Math.floor(ss(0,.2,edge)*ss(1,.02,v)*(1-Math.abs(u-.5)*1.2)*255);
+    const dry=v>.7;const o=(y*64+x)*4;
+    lid.data[o]=dry?170:90;lid.data[o+1]=dry?150:130;lid.data[o+2]=dry?60:40;lid.data[o+3]=a}
+  lctx.putImageData(lid,0,0);
+  const bladeMap=new T.CTex(lc);bladeMap.colorSpace="srgb";
+  const tuftM=M({map:bladeMap,color:"#7a8a3a",roughness:.92,side:2,transparent:true,alphaTest:.35,depthWrite:false});
+  const reedM=M({color:"#5a6a30",roughness:.9,side:2});
+  for(let i=0;i<(MOB?32:56);i++){
+    const a=rnd()*TAU,r=lakeR*(.95+rr(0,.35));
+    const e=.9+.07*Math.sin(a*2.2);
+    const x=lakeC.x+Math.cos(a)*r*e*1.15,z=lakeC.z+Math.sin(a)*r*e*.92;
+    if(Math.hypot(x,z)>R-0.45)continue;
+    const y=Math.max(hAt(x,z),lakeY+.01);
+    const g=new T.Group();g.position.set(x,y,z);
+    const n=5+((rnd()*5)|0);
+    for(let k=0;k<n;k++){
+      const h=rr(.06,.16),w=rr(.008,.018);
+      const blade=new T.Mesh(new T.Plane(w,h),tuftM);
+      blade.position.set(rr(-.04,.04),h*.45,rr(-.04,.04));
+      blade.rotation.y=rnd()*TAU;blade.rotation.z=rr(-.5,.5);blade.rotation.x=rr(.15,.55);
+      g.add(blade)}
+    if(rnd()<.28){const rh=rr(.2,.42);const reed=new T.Mesh(new T.Cyl(.0035,.0012,rh,4),reedM);reed.position.y=rh*.5;reed.rotation.z=rr(-.12,.12);g.add(reed)}
+    g.userData.ph=rnd()*TAU;onDes(g);reedG.add(g)}
+  for(let i=0;i<7;i++){
+    const x=tentAnchor.x+rr(.5,1.5),z=tentAnchor.z+rr(.3,1.2);
+    const g=new T.Group();g.position.set(x,hAt(x,z),z);
+    for(let k=0;k<4;k++){
+      const h=rr(.05,.13),blade=new T.Mesh(new T.Plane(rr(.007,.015),h),tuftM);
+      blade.position.set(rr(-.03,.03),h*.45,rr(-.03,.03));
+      blade.rotation.y=rnd()*TAU;blade.rotation.z=rr(-.45,.45);blade.rotation.x=rr(.1,.45);g.add(blade)}
+    onDes(g);reedG.add(g)}
+  shrubs.length=0;
+  for(let i=0;i<12;i++){
+    const a=rnd()*TAU,rad=lakeR*1.1+rnd()*1.5;const x=lakeC.x+Math.cos(a)*rad,z=lakeC.z+Math.sin(a)*rad*.9;
+    if(Math.hypot(x,z)>R-1)continue;
+    shrubs.push({x,z,y:hAt(x,z),o:null})}
+}
 function reanchorLife(){
   eaglePerch=cacti.find(c=>c&&c.userData&&c.userData.isPerch&&c.visible!==false)||eaglePerch;
+  rebuildShoreGreen();
+  placeRimRocks();
   camels.forEach(c=>{
     if(!c)return; c.x=lakeC.x+rr(2.5,4.5)* (rnd()<.5?-1:1); c.z=lakeC.z+rr(-2,3);
     c.tx=c.x; c.tz=c.z; if(c.o)c.o.position.set(c.x,hAt(c.x,c.z),c.z)});

@@ -1,5 +1,5 @@
-/* 沙漠绿洲 · Desert Oasis (desert32) — from desert31: camel_v2 Tripo clips (walk/idle/graze/drink).
-   Eagle/snake/water/terrain/sky/props identical. HOLD MERGE. */
+/* 沙漠绿洲 · Desert Oasis (desert33) — from desert32: camel_v3 (level height, 0.989 m/s,
+   graze 9s / drink 7s). Eagle/snake/water/terrain/sky/props identical. HOLD MERGE. */
 (()=>{
 window.__desInit=getX=>{
 const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
@@ -15,7 +15,7 @@ const M=(p,o)=>{const m=X.Wt(p,o||{snow:0,wet:0});return m};
 
 /* ---------------- Tripo GLB — prefer rigged (AnimationMixer); procedural fallback ---------------- */
 const MODEL={
-  camel:"assets/models/camel_v2.glb",
+  camel:"assets/models/camel_v3.glb",
   eagle:"assets/models/eagle_rigged.glb",
   eagle_perch:"assets/models/eagle_perch.glb",
   snake:"assets/models/snake_rigged.glb",
@@ -25,8 +25,8 @@ const MODEL={
   cactus:"assets/models/saguaro.glb"};
 /* Fit metres: island by XZ diameter≈2R; palm pair height; saguaro; tent */
 /* Island diam≈18.8m (native ~30m). Palm pair ~7m on 30m island → ~4.4m here. */
-/* camel_v2: native 1.98 m tall / 2.8 m long (metres baked) — keep natural scale */
-const MODEL_FIT={camel:1.98,camel_v2:1.98,camel_rigged:1.08,eagle:.62,eagle_rigged:.62,eagle_perch:.48,snake:.55,snake_rigged:.55,
+/* camel_v3: native 1.98 m tall / 2.8 m long (metres baked) — keep natural scale */
+const MODEL_FIT={camel:1.98,camel_v3:1.98,camel_v2:1.98,camel_rigged:1.08,eagle:.62,eagle_rigged:.62,eagle_perch:.48,snake:.55,snake_rigged:.55,
   island:18.8,island_base:18.8,tent:1.75,palm:4.4,saguaro:2.0,cactus:2.0};
 /* island_base native ~1 unit wide (authoring ~30m); underside Y scale vs XZ */
 const ISLAND_Y_SCALE=.75;
@@ -1233,11 +1233,14 @@ function plantFeet(cam,x,z,facing){
     lg.L.position.y=.92+(sampleGroundY(wx,wz)-base)*.3})}
 const camels=[];
 let _camelProto=null,_camelLoad=null,_camelAdopt=0;
-/* camel_v2: in-place walk clip; root speed 1.026 m/s × fitScale × timeScale (no foot slide) */
-const CAMEL_WALK_MPS=1.026;
+/* camel_v3: in-place walk; root speed 0.989 m/s × fitScale × timeScale (no foot slide).
+   Body height identical across clips — no walk-sink compensation. */
+const CAMEL_WALK_MPS=.989;
 const CAMEL_WALK_LOOP=1.1; /* seconds */
+const CAMEL_GRAZE_DUR=9;
+const CAMEL_DRINK_DUR=7;
 const CAMEL_MAX_TURN=Math.PI/3; /* ~60°/s heading slerp — never snap */
-const CAMEL_XFADE=.5; /* 0.4–0.6 s crossFade between clips */
+const CAMEL_XFADE=.4; /* 0.3–0.5 s crossFade (walk↔idle hoof spots differ slightly) */
 const CAMEL_CLIP_NAMES=["walk","idle","graze","drink"];
 function camelWaterY(){return (lake&&lake.userData.waterY!=null)?lake.userData.waterY:lakeY}
 function camelFitScale(st){return (st&&st.rig&&st.rig.fitScale)||1}
@@ -1273,7 +1276,11 @@ function camelPlay(st,pose,fade){
   if(r.current===pose){
     if(pose==="walk"){next.paused=false; next.timeScale=st.walkTs||1}
     return}
-  const dur=fade!=null?fade:CAMEL_XFADE;
+  /* walk↔idle needs 0.3–0.5 s (hooves land in slightly different spots); others 0.35 s */
+  let dur=fade;
+  if(dur==null){
+    const wi=(r.current==="walk"&&pose==="idle")||(r.current==="idle"&&pose==="walk");
+    dur=wi?CAMEL_XFADE:.35}
   const cur=r.actions[r.current];
   next.enabled=true; next.setEffectiveWeight(1); next.paused=false;
   if(pose==="walk")next.timeScale=st.walkTs||1;
@@ -1346,7 +1353,8 @@ function camelPickGraze(){
 function camelPickDrink(st){
   /* Feet on shore sand; drink clip brings muzzle to ~0.15 m above feet (= water).
      Muzzle ~0.91 m ahead of root along +Z — place so muzzle reaches water edge. */
-  const sc=camelFitScale(st), muzzleFwd=.91*sc, mouthH=.15*sc;
+  /* drink: muzzle ~0.52 m ahead of front toes (~0.9 m ahead of root) at y≈0.15 */
+  const sc=camelFitScale(st), muzzleFwd=.9*sc, mouthH=.15*sc;
   const wy=camelWaterY();
   let best=null,bestScore=1e9;
   for(let i=0;i<24;i++){
@@ -1389,8 +1397,8 @@ function camelUpdate(st,dt,t){
     st.walkFor=5.5+((st.phase||0)%2.2)}
   else if(st.mode==="idle"&&st.t>(st.idleFor||6)){
     camelBeginMode(st, ((st.phase*3.1)%1)<.55?"graze":"walk")}
-  else if(st.mode==="graze"&&st.graze>6.2){camelBeginMode(st,"walk")}
-  else if(st.mode==="drink"&&st.drink>6.2){camelBeginMode(st,"walk")}
+  else if(st.mode==="graze"&&st.graze>CAMEL_GRAZE_DUR+.15){camelBeginMode(st,"walk")}
+  else if(st.mode==="drink"&&st.drink>CAMEL_DRINK_DUR+.15){camelBeginMode(st,"walk")}
 
   let moving=0;
   const seeking=(st.mode==="walk")||((st.mode==="graze"||st.mode==="drink")&&(st.mode==="graze"?st.graze:st.drink)<.02);
@@ -2033,7 +2041,7 @@ for(const o of[X.vd,pi,dc,X.sr,...(X.Ca||[]).map(c=>c.m)])o&&o.traverse(c=>c.lay
 onDes(root);
 
 /* QA hooks for motion review */
-window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XFADE,De,Ce,
+window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XFADE,CAMEL_GRAZE_DUR,CAMEL_DRINK_DUR,De,Ce,
   get perch(){return eaglePerchWorld()},
   lookAt:(px,py,pz,tx,ty,tz)=>{De.position.set(px,py,pz);Ce.target.set(tx,ty,tz);Ce.update()},
   forceCamel:(i,mode)=>{const c=camels[i|0];if(!c)return;

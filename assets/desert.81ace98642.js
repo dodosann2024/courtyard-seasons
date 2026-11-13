@@ -1,5 +1,5 @@
-/* 沙漠绿洲 · Desert Oasis (desert33) — from desert32: camel_v3 (level height, 0.989 m/s,
-   graze 9s / drink 7s). Eagle/snake/water/terrain/sky/props identical. HOLD MERGE. */
+/* 沙漠绿洲 · Desert Oasis (desert34) — from desert33: eagle_v3 + perch_v2 + snake_v3.
+   Camel_v3 / water / terrain / sky / props identical. HOLD MERGE. */
 (()=>{
 window.__desInit=getX=>{
 const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
@@ -16,17 +16,18 @@ const M=(p,o)=>{const m=X.Wt(p,o||{snow:0,wet:0});return m};
 /* ---------------- Tripo GLB — prefer rigged (AnimationMixer); procedural fallback ---------------- */
 const MODEL={
   camel:"assets/models/camel_v3.glb",
-  eagle:"assets/models/eagle_rigged.glb",
-  eagle_perch:"assets/models/eagle_perch.glb",
-  snake:"assets/models/snake_rigged.glb",
+  eagle:"assets/models/eagle_v3.glb",
+  eagle_perch:"assets/models/eagle_perch_v2.glb",
+  snake:"assets/models/snake_v3.glb",
   island:"assets/models/island.glb",
   island_base:"assets/models/island_base.glb", /* clean top + sandstone underside (drop-in when ready) */
   tent:"assets/models/tent.glb",palm:"assets/models/palm.glb",saguaro:"assets/models/saguaro.glb",
   cactus:"assets/models/saguaro.glb"};
 /* Fit metres: island by XZ diameter≈2R; palm pair height; saguaro; tent */
-/* Island diam≈18.8m (native ~30m). Palm pair ~7m on 30m island → ~4.4m here. */
-/* camel_v3: native 1.98 m tall / 2.8 m long (metres baked) — keep natural scale */
-const MODEL_FIT={camel:1.98,camel_v3:1.98,camel_v2:1.98,camel_rigged:1.08,eagle:.62,eagle_rigged:.62,eagle_perch:.48,snake:.55,snake_rigged:.55,
+/* camel_v3 1.98 m; eagle_v3 span 2.1 m; perch_v2 ~0.85 m tall; snake_v3 length 1.23 m */
+const MODEL_FIT={camel:1.98,camel_v3:1.98,camel_v2:1.98,camel_rigged:1.08,
+  eagle:2.1,eagle_v3:2.1,eagle_rigged:.62,eagle_perch:.85,eagle_perch_v2:.85,
+  snake:1.23,snake_v3:1.23,snake_rigged:.55,
   island:18.8,island_base:18.8,tent:1.75,palm:4.4,saguaro:2.0,cactus:2.0};
 /* island_base native ~1 unit wide (authoring ~30m); underside Y scale vs XZ */
 const ISLAND_Y_SCALE=.75;
@@ -1449,212 +1450,263 @@ function camelUpdate(st,dt,t){
   plantFeet(c,st.x,st.z,st.facing);
   if(glb)c.position.y=sampleGroundY(st.x,st.z)+.002}
 
-/* ---------------- eagle — body, beak, fingered primaries, fanned tail ---------------- */
+/* ---------------- eagle_v3 (fly) + eagle_perch_v2 (perch/drink) ---------------- */
 function makeEagleProcedural(){
   const g=new T.Group();
   const bodyM=M({color:"#6b4a32",roughness:.85}),wingM=M({color:"#4a3424",roughness:.88,side:2});
-  const headM=M({color:"#cfc6b8",roughness:.8}),beakM=M({color:"#d4a03a",roughness:.7}),primM=M({color:"#2a1c14",roughness:.9,side:2});
-  const body=new T.Mesh(new T.Sphere(.14,8,6),bodyM);body.scale.set(1,.65,1.6);body.castShadow=true;g.add(body);
-  const head=new T.Mesh(new T.Sphere(.08,6,5),headM);head.position.set(0,.03,.2);g.add(head);
-  const beak=new T.Mesh(new T.Cone(.028,.09,5),beakM);beak.rotation.x=Math.PI/2;beak.position.set(0,-.01,.3);g.add(beak);
+  const body=new T.Mesh(new T.Sphere(.14,8,6),bodyM);body.scale.set(1,.65,1.6);g.add(body);
   const wingL=new T.Group(),wingR=new T.Group();
-  function buildWing(side){
-    const W=side<0?wingL:wingR;W.position.set(0,.03,0);g.add(W);
-    const wl=new T.Mesh(new T.Plane(.55,.2),wingM);wl.position.set(side*.3,0,0);W.add(wl);
-    for(let i=0;i<7;i++){const p=new T.Mesh(new T.Plane(.04,.2),primM);
-      p.position.set(side*(.55+i*.035),-.015,-.01-i*.012);p.rotation.z=side*(.12+i*.07);p.rotation.x=-.08;W.add(p)}
-    return W}
-  buildWing(-1);buildWing(1);
-  for(let i=-2;i<=2;i++){const t=new T.Mesh(new T.Plane(.06,.22),wingM);t.position.set(i*.04,0,-.28);t.rotation.x=.35;t.rotation.z=i*.08;g.add(t)}
-  g.userData={wingL,wingR,head,body};return g}
-const eagle={o:makeEagleProcedural(),mode:"soar",t:0,th:rnd()*TAU,rad:5.0,alt:3.8,flap:0,cry:0,blend:0,landed:0,rig:null};
-eagle.o.scale.setScalar(.95);root.add(eagle.o);onDes(eagle.o);
-function eagleShowFly(on){
-  /* Always keep flyGlb visible so procedural wing fold/flap works on perch too.
-     perchGlb stays hidden until eagle_v2 (spread wings caused "always open" perch). */
+  [[-1,wingL],[1,wingR]].forEach(([side,W])=>{W.position.set(0,.03,0);g.add(W);
+    const wl=new T.Mesh(new T.Plane(.55,.2),wingM);wl.position.set(side*.3,0,0);W.add(wl)});
+  g.userData={wingL,wingR,body};return g}
+const EAGLE_XFADE=.35;
+const EAGLE_FLARE_FWD=1.0, EAGLE_FLARE_DROP=.6, EAGLE_TO_FWD=1.4, EAGLE_TO_UP=.95;
+const eagle={o:makeEagleProcedural(),mode:"soar",t:0,th:rnd()*TAU,rad:12,alt:5.5,flap:0,cry:0,
+  blend:0,landed:0,rig:null,flyMixer:null,perchMixer:null,flyAct:{},perchAct:{},flyClip:"glide",
+  perchFor:rr(8,15),facing:0,landTarget:null,climb:0};
+root.add(eagle.o);onDes(eagle.o);
+
+function eagleFindClip(anims,name){
+  if(!anims)return null;
+  for(let i=0;i<anims.length;i++)if((anims[i].name||"")===name)return anims[i];
+  return null}
+function eagleSetupFly(wrap){
+  if(!_VT)return;
+  const scene=wrap.userData.scene||wrap;
+  const mixer=_VT.makeMixer(scene);
+  const anims=wrap.userData.anims||[];
+  const act={};
+  ["flap","glide","landing_flare","take_off"].forEach(n=>{
+    const c=eagleFindClip(anims,n); if(!c)return;
+    const a=mixer.clipAction(c);
+    if(n==="landing_flare"||n==="take_off"){
+      a.setLoop(_VT.LoopOnce,1); a.clampWhenFinished=true}
+    else a.setLoop(_VT.LoopRepeat,Infinity);
+    a.enabled=true; a.setEffectiveWeight(0); a.play(); a.paused=true; act[n]=a});
+  if(act.glide){act.glide.setEffectiveWeight(1); act.glide.paused=false}
+  eagle.flyMixer=mixer; eagle.flyAct=act; eagle.flyClip="glide";
+  eagle.rig={bones:mapBones(wrap), head:null};
+  const bones=eagle.rig.bones;
+  eagle.rig.head=bones["Head"]||bones["tripoHead_0"]||bonesMatching(bones,/Head/)[0]}
+function eagleSetupPerch(wrap){
+  if(!_VT)return;
+  const scene=wrap.userData.scene||wrap;
+  const mixer=_VT.makeMixer(scene);
+  const anims=wrap.userData.anims||[];
+  const act={};
+  ["perch_idle","drink"].forEach(n=>{
+    const c=eagleFindClip(anims,n); if(!c)return;
+    const a=mixer.clipAction(c);
+    if(n==="drink"){a.setLoop(_VT.LoopOnce,1); a.clampWhenFinished=true}
+    else a.setLoop(_VT.LoopRepeat,Infinity);
+    a.enabled=true; a.setEffectiveWeight(0); a.play(); a.paused=true; act[n]=a});
+  eagle.perchMixer=mixer; eagle.perchAct=act}
+function eagleShowFly(fly){
   const o=eagle.o;
-  if(eagle.flyGlb)eagle.flyGlb.visible=true;
-  if(eagle.perchGlb)eagle.perchGlb.visible=false;
-  if(!eagle.flyGlb&&!eagle.perchGlb)return;
-  o.children.forEach(ch=>{if(ch===eagle.flyGlb||ch===eagle.perchGlb)return;ch.visible=!eagle.flyGlb});
-  eagle._wingsOpen=!!on}
-function setupEagleRig(wrap){
-  const bones=mapBones(wrap);
-  const L=bonesMatching(bones,/0_Left_Limb/).sort((a,b)=>a.name.localeCompare(b.name));
-  const R=bonesMatching(bones,/0_Right_Limb/).sort((a,b)=>a.name.localeCompare(b.name));
-  const tail=bonesMatching(bones,/Tail/);
-  const legs=bonesMatching(bones,/1_Left_Limb|1_Right_Limb/).filter(b=>L.indexOf(b)<0&&R.indexOf(b)<0);
-  eagle.rig={bones,L,R,tail,legs,head:bones["tripoHead_0"]||bones["tripoHead_1"]||bones["tripo::Head_0"]||bonesMatching(bones,/Head/)[0]};
-}
+  if(eagle.flyGlb)eagle.flyGlb.visible=!!fly;
+  if(eagle.perchGlb)eagle.perchGlb.visible=!fly;
+  o.children.forEach(ch=>{if(ch===eagle.flyGlb||ch===eagle.perchGlb)return; ch.visible=!eagle.flyGlb});
+  eagle._flying=!!fly}
+function eaglePlayFly(name, fade){
+  const act=eagle.flyAct; if(!act||!act[name])return;
+  const next=act[name], cur=act[eagle.flyClip];
+  const dur=fade!=null?fade:EAGLE_XFADE;
+  next.enabled=true; next.paused=false; next.setEffectiveWeight(1);
+  if(name==="landing_flare"||name==="take_off")next.reset();
+  else if(eagle.flyClip!==name)next.reset();
+  next.play();
+  if(cur&&cur!==next){try{cur.crossFadeTo(next,dur,false)}catch(_){cur.setEffectiveWeight(0)}}
+  eagle.flyClip=name}
+function eaglePlayPerch(name, fade){
+  const act=eagle.perchAct; if(!act||!act[name])return;
+  Object.keys(act).forEach(k=>{if(k!==name)act[k].setEffectiveWeight(0)});
+  const next=act[name];
+  next.enabled=true; next.paused=false; next.reset(); next.setEffectiveWeight(1); next.play();
+  eagle.perchClip=name}
+
 tryModel(MODEL.eagle,()=>null).then(r=>{
   if(r.src==="glb"&&r.root){
     eagle.o.children.slice().forEach(ch=>{ch.visible=false});
-    eagle.flyGlb=r.root;eagle.o.add(r.root);eagle.o.userData.useGlb=1;onDes(r.root);
-    setupEagleRig(r.root);eagleShowFly(true)}});
+    eagle.flyGlb=r.root; eagle.o.add(r.root); eagle.o.userData.useGlb=1; onDes(r.root);
+    eagleSetupFly(r.root); eagleShowFly(true); eaglePlayFly("glide",.05)}});
 tryModel(MODEL.eagle_perch,()=>null).then(r=>{
-  /* keep asset loaded but unused for pose — fly mesh + fold covers perch */
   if(r.src==="glb"&&r.root){
-    eagle.perchGlb=r.root;r.root.visible=false;eagle.o.add(r.root);onDes(r.root)}});
+    eagle.perchGlb=r.root; r.root.visible=false; eagle.o.add(r.root); onDes(r.root);
+    eagleSetupPerch(r.root)}});
 
 function eaglePerchTip(){
-  /* always use live world AABB top of perch saguaro — tip userdata was often too low */
   const perch=cacti.find(c=>c&&c.userData&&c.userData.isPerch&&c.visible!==false)||eaglePerch;
   if(perch){
     perch.updateMatrixWorld(true);
     const box=worldBox(perch);
     return {x:perch.position.x, y:box.max[1], z:perch.position.z}}
   return {x:-5,y:hAt(-5,2.2)+1.55,z:2.2}}
-function eagleSeatOnTip(tip){
-  /* fold first so spread wings don't inflate bbox; then seat feet on tip */
-  const o=eagle.o;
-  if(eagle.rig)driveEagleWings("fold",0,0,0);
-  o.position.set(tip.x, tip.y+.55, tip.z);
-  o.rotation.x=0; o.rotation.z=0;
-  o.updateMatrixWorld(true);
-  const box=worldBox(o);
-  /* seat estimated foot band on tip (wings folded/scaled so bbox is tighter) */
-  const footY=mix(box.min[1], box.max[1], .08);
-  o.position.y += (tip.y+.04) - footY;
-  return {x:o.position.x,y:o.position.y,z:o.position.z}}
 function eaglePerchWorld(){
   const tip=eaglePerchTip();
-  return {x:tip.x,y:tip.y+.2,z:tip.z, tip}}
+  return {x:tip.x,y:tip.y,z:tip.z, tip}}
 function eagleLakeSpot(){
-  const x=lakeC.x+lakeR*1.08,z=lakeC.z+.2;return {x,y:Math.max(hAt(x,z),lakeY)+.02,z}}
-
-/* Asymmetric flap: faster downstroke. phase in [0,1). */
-function flapAngle(phase){
-  const p=((phase%1)+1)%1;
-  if(p<.42){const u=p/.42;return mix(.55,-.75,u*u)} /* down */
-  const u=(p-.42)/.58;return mix(-.75,.55,Math.sqrt(u))} /* up */
-function driveEagleWings(mode,t,bank,flare){
-  const r=eagle.rig;if(!r)return;
-  const L=r.L,R=r.R;
-  const n=Math.max(L.length,R.length);
-  for(let i=0;i<n;i++){
-    const lb=L[i],rb=R[i];
-    const along=n>1?i/(n-1):0;
-    let ax=0,az=0,ay=0;
-    if(mode==="flap"){
-      const ph=t*1.55+along*.1;const a=flapAngle(ph);
-      /* primary flap on Z (shoulder raise/lower) — X alone barely reads on Tripo wing axes */
-      az=a*(1.15+.7*along); ax=a*(.35+.25*along); ay=a*.12}
-    else if(mode==="glide"){
-      ax=-.12-along*.08; az=-.22-along*.12+Math.sin(t*.9+along)*along*.1; ay=bank*.2}
-    else if(mode==="flare"){
-      ax=-.35-along*.25-flare*.2; az=-.55-along*.35-flare*.3; ay=0}
-    else if(mode==="fold"){
-      /* tuck: rotate wings down/back against body */
-      ax=.45+along*.35; az=1.05+along*.55; ay=along*.2}
-    else{ax=-.08;az=-.15}
-    if(lb){const re=lb.userData.restE||{x:0,y:0,z:0};lb.rotation.x=re.x+ax;lb.rotation.y=re.y+ay;lb.rotation.z=re.z+az;
-      /* Tripo wing axes barely fold visually — shrink wing bones when perched */
-      const sc=mode==="fold"?(.22+.15*along):1; lb.scale.set(sc,sc,mode==="fold"?.4:1)}
-    if(rb){const re=rb.userData.restE||{x:0,y:0,z:0};rb.rotation.x=re.x+ax;rb.rotation.y=re.y-ay;rb.rotation.z=re.z-az;
-      const sc=mode==="fold"?(.22+.15*along):1; rb.scale.set(sc,sc,mode==="fold"?.4:1)}}
-  /* tail fan on flare */
-  r.tail.forEach((b,i)=>{const re=b.userData.restE||{x:0,y:0,z:0};
-    const fan=mode==="flare"?(.45+i*.08):mode==="fold"?-.08:Math.sin(t*.9+i)*.03;
-    b.rotation.x=re.x+fan*.55;b.rotation.y=re.y+(i-1)*.06*fan});
-  /* legs: tuck in flight, extend on flare/land, fold on perch */
-  (r.legs||[]).forEach((b,i)=>{const re=b.userData.restE||{x:0,y:0,z:0};
-    let lx=0;if(mode==="flare")lx=.55;else if(mode==="fold")lx=.15;else if(mode==="flap"||mode==="glide")lx=-.35;
-    b.rotation.x=re.x+lx;b.rotation.z=re.z+(i%2?1:-1)*.04})}
+  /* feet on shore sand; perch drink beak ≈0.107 m above feet → water ≈ feet+0.107 */
+  const wy=(lake&&lake.userData.waterY!=null)?lake.userData.waterY:lakeY;
+  let best=null,bestScore=1e9;
+  for(let i=0;i<16;i++){
+    const a=(i/16)*TAU;
+    const rad=lakeR+.35+rr(0,.25);
+    const x=lakeC.x+Math.cos(a)*rad, z=lakeC.z+Math.sin(a)*rad;
+    const gy=sampleGroundY(x,z);
+    const score=Math.abs((gy+.107)-wy)+Math.abs(Math.hypot(x-lakeC.x,z-lakeC.z)-lakeR)*.3;
+    if(score<bestScore){bestScore=score;best={x,y:gy,z,facing:Math.atan2(lakeC.x-x,lakeC.z-z)}}}
+  return best||{x:lakeC.x+lakeR*1.1,y:Math.max(hAt(lakeC.x+lakeR*1.1,lakeC.z),lakeY)+.02,z:lakeC.z,facing:Math.PI}}
+function eagleSeatHost(spot,facing){
+  const o=eagle.o;
+  o.position.set(spot.x, spot.y, spot.z);
+  o.rotation.set(0, facing!=null?facing:o.rotation.y, 0);
+  eagle.facing=o.rotation.y}
+function eagleBeginLand(kind){
+  /* kind: perch | drink — place host at landing end so flare's baked −0.6y/+1z ends on tip */
+  const tip=kind==="perch"?eaglePerchTip():eagleLakeSpot();
+  const face=kind==="drink"&&tip.facing!=null?tip.facing:Math.atan2(tip.x-eagle.o.position.x, tip.z-eagle.o.position.z);
+  eagle.landTarget={x:tip.x,y:tip.y,z:tip.z,kind};
+  eagle.facing=face;
+  eagleShowFly(true);
+  eagleSeatHost(tip, face);
+  eaglePlayFly("landing_flare",.3);
+  eagle.mode=kind==="perch"?"landPerch":"landDrink";
+  eagle.t=0; eagle.landed=0}
+function eagleTouchdown(){
+  const kind=eagle.landTarget&&eagle.landTarget.kind||"perch";
+  const tip=eagle.landTarget||eaglePerchTip();
+  eagleSeatHost(tip, eagle.facing);
+  eagleShowFly(false);
+  if(kind==="perch"){
+    eagle.mode="perch"; eagle.t=0; eagle.landed=1; eagle.perchFor=rr(8,15);
+    eaglePlayPerch("perch_idle",.05)}
+  else{
+    eagle.mode="drink"; eagle.t=0; eagle.landed=1;
+    eaglePlayPerch("drink",.05)}}
+function eagleBeginTakeoff(){
+  eagleShowFly(true);
+  eagleSeatHost({x:eagle.o.position.x,y:eagle.o.position.y,z:eagle.o.position.z}, eagle.facing);
+  eaglePlayFly("take_off",.25);
+  eagle.mode="takeoff"; eagle.t=0; eagle.landed=0}
+function eagleFinishTakeoff(){
+  const o=eagle.o, face=eagle.facing||o.rotation.y;
+  o.position.x+=Math.sin(face)*EAGLE_TO_FWD;
+  o.position.z+=Math.cos(face)*EAGLE_TO_FWD;
+  o.position.y+=EAGLE_TO_UP;
+  o.rotation.x=0; o.rotation.z=0;
+  eagle.th=Math.atan2(o.position.x,o.position.z);
+  eagle.rad=Math.hypot(o.position.x,o.position.z)||12;
+  eagle.alt=o.position.y;
+  eagle.mode="soar"; eagle.t=0; eagle.cry=1; eagle.climb=1;
+  eaglePlayFly("flap",.3)}
 
 function eagleUpdate(dt,t){
-  const e=eagle,o=e.o,ud=o.userData,glb=!!ud.useGlb;e.t+=dt;
+  const e=eagle,o=e.o; e.t+=dt;
+  if(e.flyMixer)e.flyMixer.update(dt);
+  if(e.perchMixer&&!e._flying)e.perchMixer.update(dt);
+
   if(e.mode==="soar"){
     eagleShowFly(true);
-    e.th+=dt*.18;e.rad=4.8+.4*Math.sin(t*.15);e.alt=3.4+.55*Math.sin(t*.2);
-    e.flap+=dt;
-    /* flap often — ~1.1s flap / 0.9s glide so strips catch beats */
-    const flapping=(e.flap%2.0)<1.15;
-    if(!glb&&ud.wingL){ud.wingL.rotation.z=flapping?Math.sin(e.flap*14)*.55:-.08;ud.wingR.rotation.z=flapping?-Math.sin(e.flap*14)*.55:.08}
-    const x=Math.cos(e.th)*e.rad,z=Math.sin(e.th)*e.rad,y=e.alt;
-    const px=o.position.x,pz=o.position.z;o.position.set(x,y,z);
-    const yaw=Math.atan2(x-px,z-pz);o.rotation.y=Number.isFinite(yaw)?yaw:o.rotation.y;
-    o.rotation.z=cl(Math.cos(e.th)*.22,-.4,.4);o.rotation.x=0;
-    if(glb)driveEagleWings(flapping?"flap":"glide",e.flap,o.rotation.z,0);
-    if(e.t>9){e.t=0;e.mode=rnd()<.65?"landPerch":"landDrink";e.blend=0}}
+    /* lazy thermals — island-scale circles (~10–16 m); bank into turn; flap when climbing */
+    e.rad=mix(e.rad, 10+6*((Math.sin(t*.07)+1)*.5), ease(.4,dt));
+    e.alt=mix(e.alt, 4.2+1.6*Math.sin(t*.12), ease(.35,dt));
+    const wantClimb=e.alt>o.position.y+.15||e.climb>0;
+    if(e.climb>0)e.climb-=dt;
+    const omega=.14; /* rad/s */
+    e.th+=dt*omega;
+    const x=Math.cos(e.th)*e.rad, z=Math.sin(e.th)*e.rad, y=e.alt;
+    const px=o.position.x, pz=o.position.z, py=o.position.y;
+    o.position.x=mix(px,x,ease(1.8,dt)); o.position.z=mix(pz,z,ease(1.8,dt));
+    o.position.y=mix(py,y,ease(1.2,dt));
+    const yaw=Math.atan2(o.position.x-px,o.position.z-pz);
+    if(Number.isFinite(yaw)){let d=((yaw-o.rotation.y+Math.PI*3)%TAU)-Math.PI;
+      const maxT=CAMEL_MAX_TURN*1.4*dt; o.rotation.y+=cl(d,-maxT,maxT); e.facing=o.rotation.y}
+    o.rotation.z=cl(-Math.sin(e.th)*.35,-.45,.45); /* bank into turn */
+    o.rotation.x=0;
+    const climbing=wantClimb||(o.position.y<e.alt-.2);
+    if(climbing)eaglePlayFly("flap",EAGLE_XFADE); else eaglePlayFly("glide",EAGLE_XFADE);
+    if(e.t>11){e.t=0; eagleBeginLand(rnd()<.62?"perch":"drink")}}
   else if(e.mode==="landPerch"||e.mode==="landDrink"){
     eagleShowFly(true);
-    const tip=e.mode==="landPerch"?eaglePerchTip():null;
-    const spot=e.mode==="landPerch"?eaglePerchWorld():eagleLakeSpot();
-    const tx=spot.x,ty=spot.y,tz=spot.z;
-    const dist0=Math.hypot(tx-o.position.x,ty-o.position.y,tz-o.position.z);
-    const flare=ss(1.6,.35,dist0);
-    const aimY=ty+flare*.55;
-    const k=ease(1.35,dt);o.position.x+=(tx-o.position.x)*k;o.position.y+=(aimY-o.position.y)*k;o.position.z+=(tz-o.position.z)*k;
-    const dist=Math.hypot(tx-o.position.x,ty-o.position.y,tz-o.position.z);
-    o.rotation.z*=1-ease(4,dt);o.rotation.x=-flare*.35;
-    if(!glb&&ud.wingL){ud.wingL.rotation.z=-.35-ss(1.2,0,dist)*.4;ud.wingR.rotation.z=.35+ss(1.2,0,dist)*.4}
-    if(glb)driveEagleWings("flare",t,o.rotation.z,flare);
-    if(dist<.2){
-      e.mode=e.mode==="landPerch"?"perch":"drink";e.t=0;e.landed=1;e.blend=1;
-      o.rotation.set(0,o.rotation.y,0);
-      if(e.mode==="perch"&&tip)eagleSeatOnTip(tip);
-      else o.position.set(tx,ty,tz);
-      if(glb)driveEagleWings("fold",t,0,0);
-      if(!glb&&ud.wingL){ud.wingL.rotation.set(.25,0,-.02);ud.wingR.rotation.set(.25,0,.02)}}}
+    /* host already at tip; flare clip supplies approach; wait for finished */
+    const a=e.flyAct.landing_flare;
+    if(a&&a.time>=(a.getClip().duration||2)-.02)eagleTouchdown();
+    else if(e.t>2.4)eagleTouchdown()}
   else if(e.mode==="perch"){
-    const tip=eaglePerchTip(); eagleSeatOnTip(tip);
-    if(!glb&&ud.head)ud.head.rotation.y=Math.sin(t*.65)*.5;
-    if(glb){driveEagleWings("fold",t,0,0);if(e.rig&&e.rig.head){const re=e.rig.head.userData.restE||{x:0,y:0,z:0};e.rig.head.rotation.y=re.y+Math.sin(t*.65)*.4}}
-    if(e.t>7){e.mode="takeoff";e.t=0;eagleShowFly(true)}}
+    eagleShowFly(false);
+    const tip=eaglePerchTip(); eagleSeatHost(tip, e.facing);
+    if(e.t>(e.perchFor||10))eagleBeginTakeoff()}
   else if(e.mode==="drink"){
-    const spot=eagleLakeSpot();o.position.set(spot.x,spot.y,spot.z);
-    if(!glb&&ud.head)ud.head.rotation.x=ss(0,1,Math.min(1,e.t*2))*.75;
-    if(glb){
-      driveEagleWings("fold",t,0,0);
-      if(e.rig&&e.rig.head){const re=e.rig.head.userData.restE||{x:0,y:0,z:0};
-        e.rig.head.rotation.x=re.x+ss(0,1,Math.min(1,e.t*2))*.55}}
-    if(e.t>3.5){e.mode="takeoff";e.t=0;eagleShowFly(true)}}
+    eagleShowFly(false);
+    const spot=eagle.landTarget||eagleLakeSpot();
+    eagleSeatHost(spot, spot.facing!=null?spot.facing:e.facing);
+    const a=e.perchAct.drink;
+    if((a&&a.time>=(a.getClip().duration||7)-.05)||e.t>7.4)eagleBeginTakeoff()}
   else if(e.mode==="takeoff"){
     eagleShowFly(true);
-    if(!glb&&ud.wingL){ud.wingL.rotation.z=-Math.sin(e.t*14)*.6;ud.wingR.rotation.z=Math.sin(e.t*14)*.6;ud.wingL.rotation.x=0;ud.wingR.rotation.x=0}
-    if(glb)driveEagleWings("flap",e.t*2.2,0,0);
-    o.position.y+=dt*2.4;o.position.x+=Math.sin(o.rotation.y)*dt*1.4;o.position.z+=Math.cos(o.rotation.y)*dt*1.4;
-    if(e.t>1.3){e.mode="soar";e.t=0;e.th=Math.atan2(o.position.x,o.position.z);e.cry=1;e.landed=0}}
+    const a=e.flyAct.take_off;
+    if(a&&a.time>=(a.getClip().duration||1.8)-.02)eagleFinishTakeoff();
+    else if(e.t>2.0)eagleFinishTakeoff()}
 }
 
-/* ---------------- snake — fully procedural spline body (no Tripo GLB until elongated re-export) ---------------- */
-const SNAKE_SEGS=56, SNAKE_LEN=2.45, SNAKE_SPACING=SNAKE_LEN/(SNAKE_SEGS-1);
+/* ---------------- snake_v3 — slither / sidewind / idle_coiled (no strike) ---------------- */
+const SNAKE_SLITHER_MPS=.425, SNAKE_SIDEWIND_MPS=.55, SNAKE_XFADE=.4;
 function makeSnakeProcedural(){
-  const g=new T.Group();const segs=[];
-  const skin=canvasTex(128,(x,y)=>{
-    const nx=x/128,ny=y/128;
-    const blotch=Math.sin(nx*18+ny*7)*Math.cos(nx*9-ny*14)+Math.sin(nx*31+ny*22)*.45;
-    const spot=blotch>.35?1:blotch<-.25?.35:0;
-    const base=170+Math.sin(nx*6+ny*3)*12;
-    const v=mix(base,base*(spot>.5?.42:.7),spot>0?1:0);
-    return [v,v*(spot>.5?.55:.72),v*(spot>.5?.28:.42)]});
-  for(let i=0;i<SNAKE_SEGS;i++){
-    const u=i/(SNAKE_SEGS-1);
-    const r=mix(.038,.012,Math.pow(u,1.15));
-    const m=M({map:skin,color:new C3("#c9a060"),roughness:.82});
-    const s=new T.Mesh(new T.Sphere(r,10,8),m);
-    s.scale.set(1.05,.58,2.15);
-    if(i===0){
-      s.scale.set(1.15,.7,1.9);
-      const eyeM=M({color:"#120c08",roughness:.5});
-      [[.018,.01,.05],[-.018,.01,.05]].forEach(([x,y,z])=>{const e=new T.Mesh(new T.Sphere(.006,4,3),eyeM);e.position.set(x,y,z);s.add(e)});
-      const tongue=new T.Mesh(new T.Cyl(.003,.001,.045,4),M({color:"#c44a4a",roughness:.7}));
-      tongue.rotation.x=Math.PI/2;tongue.position.set(0,-.005,.07);tongue.visible=false;s.add(tongue);s.userData.tongue=tongue}
-    s.castShadow=true;g.add(s);segs.push(s)}
-  g.userData={segs,kind:"snake"};return g}
+  const g=new T.Group();
+  const m=M({color:"#c9a060",roughness:.82});
+  const body=new T.Mesh(new T.Cyl(.04,.02,1.2,8),m); body.rotation.x=Math.PI/2; body.position.z=.1; g.add(body);
+  g.userData={kind:"snake",segs:[]}; return g}
 const snakes=[];
+let _snakeProto=null,_snakeLoad=null,_snakeAdopt=0;
+function snakeFindClip(anims,name){
+  if(!anims)return null;
+  for(let i=0;i<anims.length;i++)if((anims[i].name||"")===name)return anims[i];
+  return null}
+function setupSnakeRig(st, wrap){
+  if(!_VT)return;
+  const scene=wrap.userData.scene||wrap;
+  const mixer=_VT.makeMixer(scene);
+  const anims=wrap.userData.anims||[];
+  const act={};
+  /* DO NOT use strike — being reworked */
+  ["slither","sidewind","idle_coiled"].forEach(n=>{
+    const c=snakeFindClip(anims,n); if(!c)return;
+    const a=mixer.clipAction(c);
+    a.setLoop(_VT.LoopRepeat,Infinity); a.enabled=true; a.setEffectiveWeight(0);
+    a.play(); a.paused=true; act[n]=a});
+  if(act.slither){act.slither.setEffectiveWeight(1); act.slither.paused=false}
+  st.rig={mixer,act,current:"slither",fitScale:(wrap.userData&&wrap.userData.fitScale)||1};
+  st.glb=wrap; st.o.userData.useGlb=1}
+function snakePlay(st,pose,fade){
+  const r=st.rig; if(!r||!r.act||!r.act[pose])return;
+  if(r.current===pose){r.act[pose].paused=false; return}
+  const next=r.act[pose], cur=r.act[r.current];
+  const dur=fade!=null?fade:SNAKE_XFADE;
+  next.enabled=true; next.paused=false; next.reset(); next.setEffectiveWeight(1); next.play();
+  if(cur&&cur!==next){try{cur.crossFadeTo(next,dur,false)}catch(_){cur.setEffectiveWeight(0)}}
+  r.current=pose}
+function ensureSnakeProto(){
+  if(_snakeProto)return Promise.resolve(_snakeProto);
+  if(_snakeLoad)return _snakeLoad;
+  _snakeLoad=tryModel(MODEL.snake,()=>null).then(r=>{
+    if(r.src==="glb"&&r.root){_snakeProto=r.root;return _snakeProto}
+    return null});
+  return _snakeLoad}
 function spawnSnake(){
   const spots=[{x:1.2,z:3.4,th:1.2},{x:3.8,z:.6,th:-.4},{x:-.5,z:3.8,th:2.1}];
   const sp=spots[snakes.length%spots.length]||{x:2,z:3,th:0};
-  const s={o:makeSnakeProcedural(),x:sp.x,z:sp.z,th:sp.th,mode:"slither",t:0,path:[],speed:.42,rig:null,wave:rnd()*TAU};
-  for(let i=0;i<SNAKE_SEGS*3;i++){
-    const u=i/(SNAKE_SEGS*3-1);
-    const along=-u*SNAKE_LEN;
-    const side=.12*Math.sin(u*Math.PI*1.2+s.wave);
-    const x=sp.x+Math.sin(sp.th)*along+Math.cos(sp.th)*side;
-    const z=sp.z+Math.cos(sp.th)*along-Math.sin(sp.th)*side;
-    s.path.push({x,z,th:sp.th})}
-  root.add(s.o);onDes(s.o);snakes.push(s)}
+  const host=makeSnakeProcedural();
+  const s={o:host,x:sp.x,z:sp.z,th:sp.th,mode:"slither",t:rr(0,4),speed:SNAKE_SLITHER_MPS,
+    rig:null,wave:rnd()*TAU,idleFor:rr(3,6),phase:rr(0,10)};
+  host.position.set(sp.x,sampleGroundY(sp.x,sp.z),sp.z); host.rotation.y=sp.th;
+  root.add(host); onDes(host); snakes.push(s);
+  ensureSnakeProto().then(proto=>{
+    if(!proto||s.rig)return;
+    try{
+      const wrap=(_snakeAdopt++===0)?proto:cloneRig(proto);
+      adoptGLB(host,wrap); setupSnakeRig(s,wrap);
+      snakePlay(s,"slither",.05)}catch(_){}});
+  return s}
 spawnSnake();if(!MOB)spawnSnake();
 
 const TRN=180,trP=new Float32Array(TRN*3),trA=new Float32Array(TRN),trG=new T.BG();let trI=0;
@@ -1664,53 +1716,53 @@ const trM=new T.SM({transparent:true,depthWrite:false,uniforms:{col:{value:new C
  fragmentShader:`uniform vec3 col;varying float vA;void main(){float d=length(gl_PointCoord-.5);gl_FragColor=vec4(col*.7,vA*smoothstep(.5,0.,d)*.65);}`});
 root.add(Object.assign(new T.Points(trG,trM),{frustumCulled:false,renderOrder:3}));
 
-function snakeSamplePath(path, dist){
-  if(!path.length)return null;
-  if(dist<=0)return path[0];
-  let left=dist;
-  for(let i=0;i<path.length-1;i++){
-    const a=path[i],b=path[i+1];
-    const d=Math.hypot(b.x-a.x,b.z-a.z);
-    if(d<1e-5)continue;
-    if(left<=d){
-      const u=left/d;
-      const th=a.th!=null?a.th:Math.atan2(b.x-a.x,b.z-a.z);
-      return {x:a.x+(b.x-a.x)*u, z:a.z+(b.z-a.z)*u, th}}
-    left-=d}
-  return path[path.length-1]}
+function snakeSlope(x,z){
+  const e=.18; const hx=sampleGroundY(x+e,z)-sampleGroundY(x-e,z);
+  const hz=sampleGroundY(x,z+e)-sampleGroundY(x,z-e);
+  return Math.hypot(hx,hz)/(2*e)}
 function snakeUpdate(st,dt,t){
-  st.t+=dt;const speed=st.speed||.42;
-  const turn=Math.sin(t*1.05+st.wave)*.55;
-  st.th+=turn*dt;
-  let maxT=CAMEL_MAX_TURN*1.2*dt;
+  st.t+=dt; st.phase=(st.phase||0)+dt;
+  const o=st.o, rig=st.rig;
+  /* behaviour: slither / sidewind on dune faces / idle_coiled rests */
+  if(st.mode==="slither"&&st.t>5.5){
+    const slope=snakeSlope(st.x,st.z);
+    if(slope>.18&&((st.phase*1.3)%1)>.45){st.mode="sidewind"; st.t=0}
+    else if(((st.phase*2.1)%1)>.55){st.mode="idle"; st.t=0; st.idleFor=rr(3,6)}
+    else st.t=0}
+  else if(st.mode==="sidewind"&&st.t>4.2){st.mode="slither"; st.t=0}
+  else if(st.mode==="idle"&&st.t>(st.idleFor||5)){st.mode="slither"; st.t=0}
+
+  const wantPose=st.mode==="idle"?"idle_coiled":(st.mode==="sidewind"?"sidewind":"slither");
+  if(rig)snakePlay(st,wantPose,SNAKE_XFADE);
+
+  /* smooth heading */
+  let wantTh=st.th+Math.sin(t*.9+st.wave)*.35*dt;
+  const maxT=CAMEL_MAX_TURN*dt;
   const r=Math.hypot(st.x,st.z);
-  if(r>R*.72){const out=Math.atan2(st.x,st.z); let d=((out+Math.PI)-st.th+Math.PI*3)%TAU-Math.PI; st.th+=cl(d,-maxT,maxT)}
-  if(Math.hypot(st.x-lakeC.x,st.z-lakeC.z)<lakeR*1.2){
-    const away=Math.atan2(st.x-lakeC.x,st.z-lakeC.z); let d=((away)-st.th+Math.PI*3)%TAU-Math.PI; st.th+=cl(d,-maxT,maxT)}
-  st.x+=Math.sin(st.th)*speed*dt; st.z+=Math.cos(st.th)*speed*dt;
-  const head=st.path[0];
-  if(!head||Math.hypot(st.x-head.x,st.z-head.z)>SNAKE_SPACING*.35){
-    st.path.unshift({x:st.x,z:st.z,th:st.th});
-    const maxPts=SNAKE_SEGS*4+8; if(st.path.length>maxPts)st.path.length=maxPts}
-  const ud=st.o.userData,segs=ud.segs||[];
-  for(let i=0;i<segs.length;i++){
-    const along=i*SNAKE_SPACING;
-    const p=snakeSamplePath(st.path, along); if(!p)continue;
-    const u=i/(segs.length-1||1);
-    const side=Math.sin(t*4.2-u*3.8+st.wave)*.1*(1-u*.4);
-    const px=p.x+Math.cos(p.th)*side, pz=p.z-Math.sin(p.th)*side;
-    const yy=hAt(px,pz)+.018;
-    segs[i].position.set(px, Number.isFinite(yy)?yy:.02, pz);
-    if(i>0){
-      const q=segs[i-1].position;
-      segs[i].lookAt(q.x,q.y,q.z);
-      const sc=segs[i].scale; segs[i].scale.set(1.05,.58,2.15)}
-    else{
-      segs[0].rotation.set(0,p.th,0);
-      const tongue=segs[0].userData.tongue;
-      if(tongue){const flick=(Math.sin(t*9.5)>.55); tongue.visible=flick; if(flick)tongue.scale.z=1+.4*Math.sin(t*28)}}}
-  st.o.position.set(0,0,0); st.o.rotation.set(0,0,0);
-  if((st.t*28|0)!==((st.t-dt)*28|0)){const i=trI%TRN;const yy=hAt(st.x,st.z)+.01;trP[i*3]=st.x;trP[i*3+1]=Number.isFinite(yy)?yy:.01;trP[i*3+2]=st.z;trA[i]=1;trI++}
+  if(r>R*.7){const out=Math.atan2(st.x,st.z); let d=((out+Math.PI)-st.th+Math.PI*3)%TAU-Math.PI; wantTh=st.th+cl(d,-maxT,maxT)}
+  if(Math.hypot(st.x-lakeC.x,st.z-lakeC.z)<lakeR*1.25){
+    const away=Math.atan2(st.x-lakeC.x,st.z-lakeC.z); let d=(away-st.th+Math.PI*3)%TAU-Math.PI; wantTh=st.th+cl(d,-maxT,maxT)}
+  let dth=((wantTh-st.th+Math.PI*3)%TAU)-Math.PI;
+  st.th+=cl(dth,-maxT,maxT);
+
+  const sc=rig&&rig.fitScale||1;
+  if(st.mode==="slither"){
+    const sp=SNAKE_SLITHER_MPS*sc;
+    st.x+=Math.sin(st.th)*sp*dt; st.z+=Math.cos(st.th)*sp*dt; st.speed=sp}
+  else if(st.mode==="sidewind"){
+    /* local +X travel: (cos, -sin) when facing +Z with yaw=th */
+    const sp=SNAKE_SIDEWIND_MPS*sc;
+    st.x+=Math.cos(st.th)*sp*dt; st.z+=-Math.sin(st.th)*sp*dt; st.speed=sp}
+  else st.speed=0;
+
+  /* terrain hug via raycast */
+  const gy=sampleGroundY(st.x,st.z);
+  o.position.set(st.x, gy+.002, st.z);
+  o.rotation.set(0, st.th, 0);
+  if(rig&&rig.mixer)rig.mixer.update(dt);
+
+  if(st.mode!=="idle"&&(st.t*20|0)!==((st.t-dt)*20|0)){
+    const i=trI%TRN; trP[i*3]=st.x; trP[i*3+1]=gy+.01; trP[i*3+2]=st.z; trA[i]=1; trI++}
   for(let i=0;i<TRN;i++)trA[i]=Math.max(0,trA[i]-dt*.06);
   trG.attributes.position.needsUpdate=trG.attributes.a.needsUpdate=true}
 
@@ -2058,11 +2110,19 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XF
       camelPlay(c,"walk",.05)}
     plantFeet(c.o,c.x,c.z,c.facing);
     if(c.o.userData.useGlb)c.o.position.y=sampleGroundY(c.x,c.z)+.002},
-  forceEagle:(mode)=>{eagle.mode=mode||"soar";eagle.t=0;eagle.blend=0;eagle.landed=0;
-    if(mode==="perch"){eagleSeatOnTip(eaglePerchTip());driveEagleWings("fold",0,0,0)}
-    else if(mode==="landPerch"||mode==="landDrink"){eagleShowFly(true)}
-    else eagleShowFly(true)},
-  snakeClip:()=>{},
+  forceEagle:(mode)=>{
+    const m=mode||"soar"; eagle.t=0; eagle.blend=0; eagle.landed=0; eagle.climb=0;
+    if(m==="perch"){eagleBeginLand("perch"); eagleTouchdown()}
+    else if(m==="drink"||m==="landDrink"){eagleBeginLand("drink")}
+    else if(m==="landPerch"){eagleBeginLand("perch")}
+    else if(m==="takeoff"){eagleBeginTakeoff()}
+    else{eagleShowFly(true); eagle.mode="soar"; eagle.rad=12; eagle.alt=5.5;
+      eagle.th=rnd()*TAU; eaglePlayFly("glide",.05);
+      eagle.o.position.set(Math.cos(eagle.th)*eagle.rad,eagle.alt,Math.sin(eagle.th)*eagle.rad)}},
+  snakeClip:(i,mode)=>{const s=snakes[i|0];if(!s)return; s.mode=mode||"slither"; s.t=0;
+    if(mode==="idle")snakePlay(s,"idle_coiled",.2);
+    else if(mode==="sidewind")snakePlay(s,"sidewind",.2);
+    else snakePlay(s,"slither",.2)},
   step:(dt)=>{if(typeof update==="function")update(dt||1/30)},
   followCamel:(i,dist,h)=>{
     const c=camels[i|0];if(!c)return;
@@ -2070,28 +2130,36 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XF
     const x=c.x-Math.sin(c.facing)*d, z=c.z-Math.cos(c.facing)*d;
     De.position.set(x, sampleGroundY(c.x,c.z)+hh, z);
     Ce.target.set(c.x, sampleGroundY(c.x,c.z)+1.05, c.z); Ce.update()},
+  followEagle:(dist)=>{
+    const p=eagle.o.position; const d=dist||6;
+    De.position.set(p.x-d*.7, p.y+2.2, p.z+d*.7);
+    Ce.target.set(p.x,p.y,p.z); Ce.update()},
   boneSnap:(which)=>{
     if(which==="camel"){const c=camels[0];if(!c||!c.rig)return null;
-      /* GLTFLoader strips '::' from Tripo names → tripo0_Left_Limb_0 etc. */
       const keys=["tripo0_Left_Limb_0","tripo0_Left_Limb_3","tripo0_Right_Limb_0","tripo0_Right_Limb_3",
         "tripo1_Left_Limb_0","tripo1_Right_Limb_0","tripoSpine_4","tripoHead_0","tripoHead_2"];
       const act=c.rig.actions&&c.rig.actions[c.rig.current];
       const o={clip:c.rig.current,clipT:act&&act.time,mode:c.mode,walkTs:c.walkTs,speed:c.speed};
       keys.forEach(k=>{const b=c.rig.bones[k];if(b)o[k]=[b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w,b.rotation.x]});
       return o}
-    if(which==="eagle"){const r=eagle.rig;if(!r)return null;
-      const o={mode:eagle.mode,flap:eagle.flap};
-      (r.L||[]).concat(r.R||[]).forEach(b=>{if(b)o[b.name]=[b.rotation.x,b.rotation.y,b.rotation.z]});
+    if(which==="eagle"){
+      const o={mode:eagle.mode,flyClip:eagle.flyClip,perchClip:eagle.perchClip,flying:!!eagle._flying,
+        pos:[eagle.o.position.x,eagle.o.position.y,eagle.o.position.z]};
+      const bones=(eagle._flying?eagle.flyGlb:eagle.perchGlb);
+      if(bones){let n=0; bones.traverse(b=>{if(b.isBone&&n<6){o[b.name]=[b.rotation.x,b.rotation.y,b.rotation.z];n++}})}
       return o}
     if(which==="snake"){const s=snakes[0];if(!s)return null;
-      const segs=(s.o.userData.segs||[]).slice(0,6).map(sg=>[sg.position.x,sg.position.y,sg.position.z]);
-      return {x:s.x,z:s.z,th:s.th,segs}}
+      const o={x:s.x,z:s.z,th:s.th,mode:s.mode,clip:s.rig&&s.rig.current,speed:s.speed};
+      if(s.rig&&s.glb){let n=0; s.glb.traverse(b=>{if(b.isBone&&n<6){o[b.name]=[b.rotation.x,b.rotation.y,b.rotation.z];n++}})}
+      return o}
     return null},
   status:()=>({camel:camels.map(c=>({mode:c.mode,useGlb:!!c.o.userData.useGlb,rig:!!c.rig,
       clip:c.rig&&c.rig.current, walkW:c.rig&&c.rig.actions&&c.rig.actions.walk?c.rig.actions.walk.getEffectiveWeight():0,
       fitScale:c.rig&&c.rig.fitScale, speed:c.speed, walkTs:c.walkTs, x:c.x,z:c.z,facing:c.facing,canDrink:!!c.canDrink})),
-    eagle:{mode:eagle.mode,useGlb:!!eagle.o.userData.useGlb,rig:!!eagle.rig,fly:!!eagle.flyGlb,perch:!!eagle.perchGlb,pos:[eagle.o.position.x,eagle.o.position.y,eagle.o.position.z]},
-    snake:snakes.map(s=>({useGlb:false,procedural:1,x:s.x,z:s.z,segs:(s.o.userData.segs||[]).length})),
+    eagle:{mode:eagle.mode,useGlb:!!eagle.o.userData.useGlb,fly:!!eagle.flyGlb,perch:!!eagle.perchGlb,
+      flyClip:eagle.flyClip,perchClip:eagle.perchClip,flying:!!eagle._flying,
+      pos:[eagle.o.position.x,eagle.o.position.y,eagle.o.position.z]},
+    snake:snakes.map(s=>({useGlb:!!s.o.userData.useGlb,rig:!!s.rig,clip:s.rig&&s.rig.current,mode:s.mode,x:s.x,z:s.z,speed:s.speed})),
     perch:eaglePerchWorld(), lakeY, waterY:lake&&lake.userData.waterY})});
 
 /* ---------------- desert15: Tripo island + hi-detail props (ref-match) ---------------- */
@@ -2950,12 +3018,8 @@ function reanchorLife(){
   if(tripo&&tripo.palm)bumpLifeOrder(tripo.palm);
   (tripo&&tripo.sag||[]).forEach(bumpLifeOrder);
   snakes.forEach(s=>{
-    if(!s)return; s.x=rr(-3,5); s.z=rr(-4,4); s.path=[];
-    for(let i=0;i<SNAKE_SEGS*3;i++){
-      const u=i/(SNAKE_SEGS*3-1), along=-u*SNAKE_LEN, side=.12*Math.sin(u*Math.PI*1.2+(s.wave||0));
-      s.path.push({x:s.x+Math.sin(s.th||0)*along+Math.cos(s.th||0)*side,
-        z:s.z+Math.cos(s.th||0)*along-Math.sin(s.th||0)*side, th:s.th||0})}
-    if(s.o)bumpLifeOrder(s.o)});
+    if(!s)return; s.x=rr(-3,5); s.z=rr(-4,4); s.mode="slither"; s.t=0;
+    if(s.o){s.o.position.set(s.x,sampleGroundY(s.x,s.z),s.z); s.o.rotation.y=s.th||0; bumpLifeOrder(s.o)}});
   _hfCacheClear()}
 
 

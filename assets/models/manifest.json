@@ -7,6 +7,7 @@
   "eagle": 0,
   "snake": 0,
   "island": 1,
+  "island_base": 0,
   "palm": 1,
   "saguaro": 1,
   "tent": 1

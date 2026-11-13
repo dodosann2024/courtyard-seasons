@@ -1,0 +1,61 @@
+{
+  "camel": {
+    "tripo0_Left_Limb_0": 0.44813072638753165,
+    "tripo0_Left_Limb_3": 0.5168967482712863,
+    "tripo0_Right_Limb_0": 0.45521419915628153,
+    "tripo0_Right_Limb_3": 0.571498992256841,
+    "tripo1_Left_Limb_0": 0.5499066056520256,
+    "tripo1_Right_Limb_0": 0.624761209932484,
+    "tripoSpine_4": 0.07082636525069234,
+    "tripoHead_0": 0.0669933410107739,
+    "tripoHead_2": 0.026520740800212793
+  },
+  "pass": true,
+  "mps": 0.989,
+  "grazeDur": 9,
+  "drinkDur": 7,
+  "status": [
+    {
+      "mode": "walk",
+      "useGlb": true,
+      "rig": true,
+      "clip": "walk",
+      "walkW": 1,
+      "fitScale": 0.9994677007967816,
+      "speed": 0.988473556088017,
+      "walkTs": 1,
+      "x": 2.4961795136871423,
+      "z": -2.342226442991032,
+      "facing": -0.21749796311346942,
+      "canDrink": true
+    },
+    {
+      "mode": "idle",
+      "useGlb": true,
+      "rig": true,
+      "clip": "idle",
+      "walkW": 0,
+      "fitScale": 0.9994677007967816,
+      "speed": 0.988473556088017,
+      "walkTs": 1,
+      "x": -0.5637045540594965,
+      "z": -4.8752519786591595,
+      "facing": -2.1,
+      "canDrink": false
+    },
+    {
+      "mode": "idle",
+      "useGlb": true,
+      "rig": true,
+      "clip": "idle",
+      "walkW": 0,
+      "fitScale": 0.9994677007967816,
+      "speed": 0.988473556088017,
+      "walkTs": 1,
+      "x": 4.6599874017650285,
+      "z": -2.098619330750704,
+      "facing": 2.4,
+      "canDrink": false
+    }
+  ]
+}

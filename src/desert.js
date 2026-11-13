@@ -1,4 +1,4 @@
-/* 沙漠绿洲 · Desert Oasis (desert14) — Tripo island/palm/saguaro/tent over desert13 polish.
+/* 沙漠绿洲 · Desert Oasis (desert15) — ref-match polish on desert14 Tripo island.
    Lazy-loaded on camera layer 3; yards + sea never see this content. */
 (()=>{
 window.__desInit=getX=>{
@@ -23,8 +23,9 @@ const MODEL={
   tent:"assets/models/tent.glb",palm:"assets/models/palm.glb",saguaro:"assets/models/saguaro.glb",
   cactus:"assets/models/saguaro.glb"};
 /* Fit metres: island by XZ diameter≈2R; palm pair height; saguaro; tent */
+/* Island diam≈18.8m (native ~30m). Palm pair ~7m on 30m island → ~4.4m here. */
 const MODEL_FIT={camel:1.08,camel_rigged:1.08,eagle:.62,eagle_rigged:.62,eagle_perch:.48,snake:.55,snake_rigged:.55,
-  island:18.8,tent:1.85,palm:3.35,saguaro:2.15,cactus:2.15};
+  island:18.8,tent:1.75,palm:4.4,saguaro:2.0,cactus:2.0};
 let _man=null,_gltfMod=null,_VT=null;
 function modelsManifest(){if(_man)return _man;const url=((window.CY&&CY.root)||"")+"assets/models/manifest.json";
  _man=fetch(url).then(r=>r.ok?r.json():{}).catch(()=>({}));return _man}
@@ -1670,15 +1671,15 @@ function update(dt){
     const want=new V3(Math.cos(rad)*Math.sin(azr),Math.sin(rad),Math.cos(rad)*Math.cos(azr)).multiplyScalar(dist);
     pi.position.lerp(want,ease(2.5,dt));
     if(pi.target){pi.target.position.set(0,-1,0);pi.target.updateMatrixWorld()}
-    const sunCol=wantNight>.5?new C3("#c8d8ff"):storm>.3?new C3("#c4a070"):isDay?new C3("#fff5e0"):new C3("#ff9a40");
+    const sunCol=wantNight>.5?new C3("#c8d8ff"):storm>.3?new C3("#c4a070"):isDay?new C3("#fff5e0"):new C3("#ffb060");
     pi.color.lerp(sunCol,ease(3,dt));
-    const sunI=wantNight>.5?.12:storm>.3?1.0:isDay?2.6:2.4;
+    const sunI=wantNight>.5?.12:storm>.3?1.0:isDay?2.8:3.2;
     pi.intensity+=(sunI-pi.intensity)*ease(3,dt);
     pi.castShadow=true;pi.shadow.autoUpdate=true;
     if(dc){
-      dc.color.lerp(wantNight>.5?new C3("#0a1428"):storm>.3?new C3("#a88868"):isDay?new C3("#b0c8e8"):new C3("#d0a8c0"),ease(3,dt));
-      if(dc.groundColor)dc.groundColor.lerp(wantNight>.5?new C3("#0a1018"):storm>.3?new C3("#6a5038"):new C3("#8a6a48"),ease(3,dt));
-      dc.intensity+=((wantNight>.5?.08:storm>.3?.4:isDay?.85:.5)-dc.intensity)*ease(3,dt)}
+      dc.color.lerp(wantNight>.5?new C3("#0a1428"):storm>.3?new C3("#a88868"):isDay?new C3("#b0c8e8"):new C3("#b890a8"),ease(3,dt));
+      if(dc.groundColor)dc.groundColor.lerp(wantNight>.5?new C3("#0a1018"):storm>.3?new C3("#6a5038"):new C3("#5a4030"),ease(3,dt));
+      dc.intensity+=((wantNight>.5?.08:storm>.3?.35:isDay?.7:.26)-dc.intensity)*ease(3,dt)}
     /* yard sky dome hidden; kill glow/sunVis so no ray streaks leak through */
     if(jt){
       if(jt.uGlowA)jt.uGlowA.value=0;if(jt.uSunVis)jt.uSunVis.value=0;
@@ -1775,17 +1776,18 @@ function show(on){
       window.__bloom.threshold=window.__bloom._desSave.t;window.__bloom.strength=window.__bloom._desSave.s;
       window.__bloom.enabled=window.__bloom._desSave.en!==false;window.__bloom._desSave=null}}
   if(on){
-    /* low warm sunset by default — matches reference */
-    if(Ct.mode==="manual"||Ct.mode==="sunset"||!Ct.mode){Ct.mode="sunset";Ct.night=false}
+    /* keep sunset unless caller set day/night/storm; never leave mode="day" (Ui/Ad blacks desert) */
+    if(Ct.mode==="day"){Ct.mode="manual";Ct.night=false}
+    else if(Ct.mode==="manual"||Ct.mode==="sunset"||!Ct.mode){Ct.mode="sunset";Ct.night=false}
     if(Jt.fog){Jt.fog.near=Math.max(R*3,80);Jt.fog.far=400;Jt.fog.color.set("#f0d2b0")}
     if(pi){
-      pi.position.set(22,4.2,5);pi.intensity=2.35;pi.color.set("#ff9a40");
+      pi.position.set(26,3.6,8);pi.intensity=3.15;pi.color.set("#ffb060");
       pi.castShadow=true;pi.shadow.autoUpdate=true;
       Object.assign(pi.shadow.camera,{left:-28,right:28,top:28,bottom:-28,near:.5,far:110});
-      pi.shadow.mapSize.set(2048,2048);pi.shadow.bias=-.0005;pi.shadow.normalBias=.035;pi.shadow.radius=2.5;
+      pi.shadow.mapSize.set(2048,2048);pi.shadow.bias=-.0005;pi.shadow.normalBias=.035;pi.shadow.radius=2.2;
       pi.shadow.camera.updateProjectionMatrix();
       if(pi.target){pi.target.position.set(0,-.5,0);pi.target.updateMatrixWorld()}}
-    if(dc){dc.color.set("#d0a8c0");dc.groundColor&&dc.groundColor.set("#6a5040");dc.intensity=.48}
+    if(dc){dc.color.set("#b890a8");dc.groundColor&&dc.groundColor.set("#5a4030");dc.intensity=.28}
     if(jt){jt.top&&jt.top.value.set("#c890b0");jt.bot&&jt.bot.value.set("#f0a868");
       /* yard sky glow OFF — was a source of white diagonal ray ghosts */
       if(jt.uSunVis)jt.uSunVis.value=0;if(jt.uGlowA)jt.uGlowA.value=0;if(jt.uNight)jt.uNight.value=0;
@@ -1825,44 +1827,15 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_STRIDE,De,Ce,
     snake:snakes.map(s=>({useGlb:!!s.o.userData.useGlb,rig:!!s.rig,clip:s.snakeUseClip,clipName:s.rig&&s.rig.clipName,x:s.x,z:s.z})),
     perch:eaglePerchWorld()})});
 
-/* ---------------- desert14: Tripo island + hi-detail props ---------------- */
+/* ---------------- desert15: Tripo island + hi-detail props (ref-match) ---------------- */
 const tripo={island:null,palm:null,sag:[],tent:null,ready:0};
-function recolorIslandMap(tex){
-  /* bake warmer gold/sandstone into the Tripo albedo (JPEG often reads washed under pink sky) */
-  try{
-    const img=tex.image||(tex.source&&tex.source.data); if(!img||!img.width)return tex;
-    const w=img.width,h=img.height;
-    const c=document.createElement("canvas");c.width=w;c.height=h;
-    const ctx=c.getContext("2d");ctx.drawImage(img,0,0);
-    const id=ctx.getImageData(0,0,w,h),d=id.data;
-    for(let i=0;i<d.length;i+=4){
-      let r=d[i],g=d[i+1],b=d[i+2];
-      const lum=.299*r+.587*g+.114*b;
-      const teal=Math.max(0,Math.min(1,(g-r)/40))*Math.max(0,Math.min(1,(b-r)/40));
-      /* rock: stronger red channel → pull to sandstone; sand: lift toward #e6c48a */
-      const rock=Math.max(0,Math.min(1,(r-b)/90));
-      const sand=1-rock*.7;
-      const gr=230,gg=196,gb=138; /* #e6c48a */
-      const sr=210,sg=160,sb=110; /* warm sandstone */
-      const tr=sand*gr+rock*sr, tg=sand*gg+rock*sg, tb=sand*gb+rock*sb;
-      const k=.55;
-      r=r*(1-k)+tr*k; g=g*(1-k)+tg*k; b=b*(1-k)+tb*k;
-      /* keep dune contrast, bias a touch brighter toward gold */
-      const lum2=.299*r+.587*g+.114*b; const lift=(lum*.9+35)/Math.max(1,lum2);
-      r*=lift*1.05; g*=lift*1.02; b*=lift*.95;
-      if(teal>.05){r=r*(1-teal)+120*teal;g=g*(1-teal)+95*teal;b=b*(1-teal)+65*teal}
-      d[i]=r<0?0:r>255?255:r; d[i+1]=g<0?0:g>255?255:g; d[i+2]=b<0?0:b>255?255:b}
-    ctx.putImageData(id,0,0);
-    const t=new T.CTex(c); t.colorSpace="srgb"; t.wrapS=tex.wrapS; t.wrapT=tex.wrapT;
-    t.flipY=tex.flipY; t.needsUpdate=true; return t;
-  }catch(e){return tex}}
 function gradeIslandMat(m){
   if(!m)return;
-  if(m.map&&!m.userData._recolored){m.map=recolorIslandMap(m.map);m.userData._recolored=1}
-  if(m.color)m.color.set("#e6c48a");
+  /* KEEP Tripo albedo detail — multiply-tint only; never replace map */
+  if(m.color)m.color.set("#ffffff");
   if(m.emissive){m.emissive.set("#000000");m.emissiveIntensity=0}
-  m.roughness=m.roughness!=null?Math.max(.88,m.roughness):.93;
-  m.metalness=0; m.envMapIntensity=0;
+  m.roughness=m.roughness!=null?Math.max(.82,Math.min(.95,m.roughness)):.9;
+  m.metalness=0; m.envMapIntensity=.15;
   m.onBeforeCompile=(sh)=>{
     if(!/vIslN/.test(sh.vertexShader)){
       sh.vertexShader="varying vec3 vIslN;\n"+sh.vertexShader;
@@ -1872,17 +1845,36 @@ function gradeIslandMat(m){
       sh.fragmentShader="varying vec3 vIslN;\n"+sh.fragmentShader}
     sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
       `#include <map_fragment>
-       float up=smoothstep(.15,.65,vIslN.y);
-       vec3 gold=vec3(0.902,0.769,0.541);
-       vec3 stone=vec3(0.72,0.50,0.32);
-       diffuseColor.rgb=mix(mix(diffuseColor.rgb,stone,.7), mix(diffuseColor.rgb,gold,.55), up);
-       diffuseColor.rgb=min(diffuseColor.rgb, vec3(0.95,0.86,0.70));`);
+       /* sand (up) vs rock (steep) by normal.y — keep Tripo detail, remap to golden warmth */
+       float up=smoothstep(.18,.68,vIslN.y);
+       vec3 sandLit=vec3(0.910,0.761,0.494); /* #e8c27e */
+       vec3 sandSh=vec3(0.769,0.604,0.361);  /* #c49a5c */
+       vec3 stone=vec3(0.78,0.58,0.40);
+       vec3 stoneDeep=vec3(0.42,0.28,0.18);
+       float lum=max(dot(diffuseColor.rgb,vec3(.299,.587,.114)), .04);
+       /* relative detail (ripples/crevices) then multiply onto warm target */
+       vec3 detail=diffuseColor.rgb/lum;
+       float shade=smoothstep(.12,.78,lum);
+       vec3 sandT=mix(sandSh,sandLit,shade);
+       vec3 rockT=mix(stoneDeep,stone,shade);
+       vec3 target=mix(rockT,sandT,up);
+       diffuseColor.rgb=target*mix(vec3(.72), detail, .55)*1.12;
+       /* mute leftover baked pond cyan toward wet sand */
+       float teal=smoothstep(.02,.14,diffuseColor.g-diffuseColor.r)*smoothstep(.0,.16,diffuseColor.b-diffuseColor.r);
+       diffuseColor.rgb=mix(diffuseColor.rgb, sandSh*vec3(.9,.75,.55), teal*.85);
+       /* mute cream/white sand discs that survive flatten */
+       float cream=smoothstep(.78,.95,lum)*up;
+       diffuseColor.rgb=mix(diffuseColor.rgb, sandT, cream*.75);`);
   };
-  m.customProgramCacheKey=()=>"desIslandGrade14d";
+  m.customProgramCacheKey=()=>"desIslandGrade15c";
   m.needsUpdate=true}
 function gradePalmMat(m){
   if(!m)return;
-  if(m.color)m.color.set("#6f8f3a");
+  /* trunk vs frond: keep bark brown; lift fronds to fresh green + sunlit yellow tips */
+  const hex=m.color?m.color.getHexString():"";
+  const isFrond=(m.map&&m.map.image)||hex==="6f8f3a"||(m.color&&m.color.g>m.color.r&&m.color.g>m.color.b);
+  if(isFrond){if(m.color)m.color.set("#8fbc4a")}
+  else if(m.color)m.color.set("#c4a070");
   m.onBeforeCompile=(sh)=>{
     sh.uniforms.uWindT={value:0};
     sh.vertexShader="uniform float uWindT;\n"+sh.vertexShader;
@@ -1893,18 +1885,26 @@ function gradePalmMat(m){
        transformed.z+=cos(uWindT*.9+position.y*1.7)*wPalm*.03;`);
     sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
       `#include <map_fragment>
-       vec3 want=vec3(0.435,0.561,0.227);
-       float g=diffuseColor.g;
-       diffuseColor.rgb=mix(diffuseColor.rgb, want, clamp(.35+(g-diffuseColor.r)*.8,0.,.7));
+       float g=diffuseColor.g, r=diffuseColor.r, b=diffuseColor.b;
+       float leaf=smoothstep(.02,.12,g-r)*smoothstep(-.02,.1,g-b);
+       vec3 fresh=vec3(0.45,0.62,0.22);
+       vec3 tip=vec3(0.78,0.72,0.28);
+       float tipK=smoothstep(.45,.85,g)*leaf;
+       diffuseColor.rgb=mix(diffuseColor.rgb, mix(fresh,tip,tipK*.65), leaf*.55);
+       /* don't crush highlights — keep sunlit tips */
        float lum=dot(diffuseColor.rgb,vec3(.3,.55,.15));
-       if(lum>.62)diffuseColor.rgb*=.62/lum;`);
+       if(lum>.78&&leaf<.3)diffuseColor.rgb*=.78/lum;`);
     m.userData._windU=sh.uniforms.uWindT;
   };
-  m.customProgramCacheKey=()=>"desPalmWind";
-  m.needsUpdate=true;palmFrondMats.push(m)}
+  m.customProgramCacheKey=()=>"desPalmWind15";
+  m.needsUpdate=true; if(isFrond)palmFrondMats.push(m)}
 function gradeSaguaroMat(m){
   if(!m)return;
-  if(m.color)m.color.set("#5f7d3a");
+  /* both saguaros: same mint-olive green (kill brown albedo / dark maps) */
+  if(m.map){m.userData._sagMap=m.map; /* keep map for ribs but tint hard */}
+  if(m.color)m.color.set("#6a8a45");
+  if(m.emissive){m.emissive.set("#000000");m.emissiveIntensity=0}
+  m.metalness=0; m.roughness=Math.max(.78,m.roughness||.88); m.envMapIntensity=.12;
   m.onBeforeCompile=(sh)=>{
     if(!/vSagW/.test(sh.vertexShader)){
       sh.vertexShader="varying vec3 vSagW;\n"+sh.vertexShader;
@@ -1913,40 +1913,47 @@ function gradeSaguaroMat(m){
       sh.fragmentShader="varying vec3 vSagW;\n"+sh.fragmentShader}
     sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
       `#include <map_fragment>
-       vec3 want=vec3(0.373,0.490,0.227);
-       diffuseColor.rgb=mix(diffuseColor.rgb, want, .62);
+       vec3 want=vec3(0.42,0.55,0.28);
+       float lum=max(dot(diffuseColor.rgb,vec3(.3,.5,.2)),.04);
+       vec3 detail=diffuseColor.rgb/lum;
+       diffuseColor.rgb=want*mix(vec3(.85), detail, .35);
        float ang=atan(vSagW.x,vSagW.z);
        float rib=pow(abs(sin(ang*10.0)),1.35);
-       diffuseColor.rgb=mix(diffuseColor.rgb*vec3(.7,.76,.62), diffuseColor.rgb, 1.-rib*.45);
-       float lum=dot(diffuseColor.rgb,vec3(.3,.55,.15));
-       if(lum>.52)diffuseColor.rgb*=.52/lum;`);
+       diffuseColor.rgb=mix(diffuseColor.rgb*vec3(.72,.78,.64), diffuseColor.rgb, 1.-rib*.4);`);
   };
-  m.customProgramCacheKey=()=>"desSagRib14";
+  m.customProgramCacheKey=()=>"desSagRib15b";
   m.needsUpdate=true}
 function gradeTentMat(m){
   if(!m)return;
-  if(m.color)m.color.set("#e4d2b4");
+  /* force tan canvas — Tripo albedo is near-white; drop map, paint stripes in shader */
+  if(m.map){m.userData._tentMap=m.map; m.map=null}
+  if(m.color)m.color.set("#d8c19a");
+  if(m.emissive){m.emissive.set("#000000");m.emissiveIntensity=0}
+  m.metalness=0; m.roughness=.94; m.envMapIntensity=.1;
   m.onBeforeCompile=(sh)=>{
     sh.uniforms.uWindT={value:0};
-    sh.vertexShader="uniform float uWindT;\n"+sh.vertexShader;
-    sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>',
-      `#include <begin_vertex>
-       vec4 wpTent=modelMatrix*vec4(transformed,1.);
-       float edge=smoothstep(.4,1.1,abs(position.x))+smoothstep(.2,.9,position.y);
-       transformed.y+=sin(uWindT*2.2+wpTent.x*3.+wpTent.z*2.)*edge*.025;
-       transformed.x+=cos(uWindT*1.7+wpTent.z*2.5)*edge*.015;`);
+    if(!/vTentW/.test(sh.vertexShader)){
+      sh.vertexShader="uniform float uWindT; varying vec3 vTentW; varying vec3 vTentN;\n"+sh.vertexShader;
+      sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>',
+        `#include <begin_vertex>
+         vec4 wpTent=modelMatrix*vec4(transformed,1.); vTentW=wpTent.xyz;
+         vTentN=normalize(mat3(modelMatrix)*normal);
+         float edge=smoothstep(.4,1.1,abs(position.x))+smoothstep(.2,.9,position.y);
+         transformed.y+=sin(uWindT*2.2+wpTent.x*3.+wpTent.z*2.)*edge*.025;
+         transformed.x+=cos(uWindT*1.7+wpTent.z*2.5)*edge*.015;`);
+      sh.fragmentShader="varying vec3 vTentW; varying vec3 vTentN;\n"+sh.fragmentShader}
     sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
       `#include <map_fragment>
-       float stripe=step(.5,fract((vMapUv.y*6.0)+(vMapUv.x*.4)));
-       float wstripe=step(.5,fract(vMapUv.x*5.5+vMapUv.y*.3));
-       stripe=max(stripe*.7,wstripe*.45);
-       vec3 beige=vec3(0.894,0.824,0.706);
-       vec3 brown=vec3(0.52,0.38,0.26);
-       diffuseColor.rgb=mix(beige,brown,stripe*.6);
-       diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.85,0.72,0.55), .2);`);
+       /* beige/tan Bedouin stripes (ref) */
+       float stripe=step(.52,fract(vTentW.y*3.4+vTentW.x*.12+vTentW.z*.08));
+       vec3 beige=vec3(0.86,0.74,0.56);
+       vec3 brown=vec3(0.55,0.40,0.26);
+       diffuseColor.rgb=mix(beige,brown,stripe*.62);
+       float shade=smoothstep(-.2,.85,vTentN.y);
+       diffuseColor.rgb*=mix(.78,1.08,shade);`);
     m.userData._windU=sh.uniforms.uWindT;
   };
-  m.customProgramCacheKey=()=>"desTentFlutter14";
+  m.customProgramCacheKey=()=>"desTentFlutter15b";
   m.needsUpdate=true}
 function addTipSpikes(parent, tipY){
   const spikeM=M({color:"#a88868",map:sandTex||null,roughness:.95,metalness:0,fog:false});
@@ -2037,7 +2044,8 @@ function findLakeOnIsland(){
     if(grid[j]<=best.y+.08){
       const x=-half+ix*cell+cell*.5,z=-half+iz*cell+cell*.5;
       const d=Math.hypot(x-best.x,z-best.z); if(d<2.8)maxR=Math.max(maxR,d)}}
-  best.r=cl(maxR*.62,1.25,2.05);
+  /* allow larger bowl so disc can cover baked pond (~⅕ island width) */
+  best.r=cl(maxR*.75,1.45,2.55);
   return best}
 function rebuildLakeDisc(cx,cz,rad,y){
   const N=64,pos=[],uv=[],idx=[];
@@ -2056,11 +2064,17 @@ function rebuildLakeDisc(cx,cz,rad,y){
     lakeBed.geometry.dispose();
     const g2=g.clone(); lakeBed.geometry=g2; lakeBed.position.set(0,y-.05,0); lakeBed.scale.set(1.04,1,1.04)}}
 function sandCapAt(x,z,rad){
-  const m=M({color:"#d4b07a",roughness:.96,metalness:0}); sandMats.push(m);
-  const g=new T.Mesh(new T.Sphere(rad*.85,10,8),m); g.scale.set(1,.18,1);
-  g.position.set(x,hAt(x,z)+.01,z); g.receiveShadow=true; onDes(g); root.add(g); return g}
+  /* desert15: no cream discs — hide baked props via flatten only */
+  return null}
 function flattenBakedProps(mesh, anchors){
   if(!anchors||!anchors.length)return;
+  /* shader arrays sized 4 — keep strongest unique sites */
+  const uniq=[];
+  anchors.forEach(a=>{
+    if(!a)return;
+    if(uniq.some(u=>Math.hypot(u.x-a.x,u.z-a.z)<.55))return;
+    uniq.push(a)});
+  const use=uniq.slice(0,4);
   mesh.traverse(o=>{
     if(!o.isMesh||!o.geometry||!o.material)return;
     if(o.geometry.attributes.position.count<1000)return;
@@ -2071,10 +2085,10 @@ function flattenBakedProps(mesh, anchors){
       const prev=m.onBeforeCompile;
       m.onBeforeCompile=(sh)=>{
         if(typeof prev==="function")prev(sh);
-        sh.uniforms.uFlatN={value:Math.min(4,anchors.length)};
-        sh.uniforms.uFlatA={value:anchors.slice(0,4).map(a=>new V3(a.x,a.z,a.r))};
+        sh.uniforms.uFlatN={value:Math.min(4,use.length)};
+        sh.uniforms.uFlatA={value:use.slice(0,4).map(a=>new V3(a.x,a.z,a.r))};
         if(!/uFlatN/.test(sh.vertexShader)){
-          sh.vertexShader="uniform float uFlatN; uniform vec3 uFlatA[4];\n"+sh.vertexShader;
+          sh.vertexShader="uniform float uFlatN; uniform vec3 uFlatA[4]; varying vec3 vFlatWp;\n"+sh.vertexShader;
           sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>',
             `#include <begin_vertex>
              vec4 wpF=modelMatrix*vec4(transformed,1.);
@@ -2082,12 +2096,29 @@ function flattenBakedProps(mesh, anchors){
                if(float(i)>=uFlatN)break;
                vec3 a=uFlatA[i];
                float d=length(wpF.xz-a.xy);
-               float k=smoothstep(a.z,a.z*.4,d)*smoothstep(.35,1.4,wpF.y);
-               transformed.y=mix(transformed.y, .04, k*.78);
+               /* crush baked trunks/crowns + cream sand discs into the ground plane */
+               float k=smoothstep(a.z,a.z*.25,d)*smoothstep(.08,1.6,wpF.y);
+               transformed.y=mix(transformed.y, .02, k*.92);
+             }
+             vFlatWp=(modelMatrix*vec4(transformed,1.)).xyz;`);}
+        /* also mute bright disc albedo near anchors (cream sand caps in bake) */
+        if(!/flatDisc/.test(sh.fragmentShader)){
+          if(!/varying vec3 vFlatWp/.test(sh.fragmentShader))
+            sh.fragmentShader="uniform float uFlatN; uniform vec3 uFlatA[4]; varying vec3 vFlatWp;\n"+sh.fragmentShader;
+          sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
+            `#include <map_fragment>
+             /* flatDisc: kill cream/white circular patches under baked props */
+             for(int i=0;i<4;i++){
+               if(float(i)>=uFlatN)break;
+               vec3 a=uFlatA[i];
+               float d=length(vFlatWp.xz-a.xy);
+               float k=smoothstep(a.z*1.05,a.z*.2,d);
+               float bright=smoothstep(.55,.85,dot(diffuseColor.rgb,vec3(.3,.5,.2)));
+               diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.78,0.62,0.40), k*bright*.9);
              }`);}
       };
       const prevKey=m.customProgramCacheKey;
-      m.customProgramCacheKey=()=>((typeof prevKey==="function"?prevKey():"")+"|flat14");
+      m.customProgramCacheKey=()=>((typeof prevKey==="function"?prevKey():"")+"|flat15");
       m.needsUpdate=true})})}
 function installTripoIsland(){
   return tryModel(MODEL.island,()=>null).then(r=>{
@@ -2114,9 +2145,11 @@ function installTripoIsland(){
       const lows=samples.slice(0,Math.max(6,(samples.length*.22)|0));
       let sx=0,sz=0,sy=0; lows.forEach(s=>{sx+=s.x;sz+=s.z;sy+=s.y});
       lakeC.x=sx/lows.length; lakeC.z=sz/lows.length;
-      lakeR=cl(found.r*.85,1.2,1.75);
-      /* sit just above HF so turquoise disc stays visible in the bowl */
-      lakeY=hAt(lakeC.x,lakeC.z)+0.02;
+      /* ref: lake ≈⅕ island width → diameter ~3.8m → radius ~1.9–2.8; cover baked pond fully */
+      lakeR=cl(Math.max(found.r*1.55, R*.24), 2.45, 3.35);
+      lakeY=hAt(lakeC.x,lakeC.z)+0.025;
+    }else{
+      lakeR=Math.max(lakeR, 2.55);
     }
     rebuildLakeDisc(lakeC.x,lakeC.z,lakeR,lakeY);
     lake.visible=true; if(lakeBed){lakeBed.visible=true;lakeBed.position.y=lakeY-.04}
@@ -2124,53 +2157,64 @@ function installTripoIsland(){
     return wrap}).catch(()=>null)}
 function installTripoProps(){
   const peaks=detectPropPeaks()||{
-    palm:{x:lakeC.x+.4,z:lakeC.z+.9},
-    sagL:{x:lakeC.x-3.2,z:lakeC.z+1.2},
-    sagR:{x:lakeC.x+4.2,z:lakeC.z-1.0},
-    tent:{x:lakeC.x+3.2,z:lakeC.z-2.4}};
+    palm:{x:lakeC.x+.2,z:lakeC.z+1.1},
+    sagL:{x:lakeC.x-3.0,z:lakeC.z+.8},
+    sagR:{x:lakeC.x+5.2,z:lakeC.z+2.4},
+    tent:{x:lakeC.x+2.8,z:lakeC.z-1.6}};
+  /* palm at lake's back edge (between pond and tent), as in user ref */
+  const palmX=lakeC.x+lakeR*.15, palmZ=lakeC.z-lakeR*.55;
+  const tentX=lakeC.x+lakeR*1.35+1.1, tentZ=lakeC.z-lakeR*.35;
+  const sagLX=lakeC.x-lakeR*1.15-0.6, sagLZ=lakeC.z+lakeR*.2;
+  const sagRX=Math.max(peaks.sagR.x, lakeC.x+4.2), sagRZ=Math.max(peaks.sagR.z, lakeC.z+2.0);
+  /* flatten BOTH placement sites and baked peak sites so leftover crowns/discs die */
   const flatA=[
-    {x:peaks.palm.x,z:peaks.palm.z,r:1.85},
-    {x:peaks.sagL.x,z:peaks.sagL.z,r:.85},
-    {x:peaks.sagR.x,z:peaks.sagR.z,r:.75},
-    {x:peaks.tent.x,z:peaks.tent.z,r:1.55}];
+    {x:palmX,z:palmZ,r:2.4},
+    {x:peaks.palm.x,z:peaks.palm.z,r:2.2},
+    {x:sagLX,z:sagLZ,r:1.15},
+    {x:sagRX,z:sagRZ,r:1.0},
+    {x:peaks.sagL.x,z:peaks.sagL.z,r:1.1},
+    {x:peaks.sagR.x,z:peaks.sagR.z,r:1.0},
+    {x:tentX,z:tentZ,r:1.85},
+    {x:peaks.tent.x,z:peaks.tent.z,r:1.7}];
   if(islandRoot)flattenBakedProps(islandRoot, flatA);
+  /* hide ALL procedural palms/cacti/tent before hi-detail lands */
+  palms.forEach(p=>{if(p)p.visible=false});
+  cacti.forEach(c=>{if(c)c.visible=false});
+  if(tent)tent.visible=false;
   const jobs=[];
+  /* palm.glb is already a V-pair in one mesh (~7m native → MODEL_FIT 4.4 on 18.8m island) */
   jobs.push(tryModel(MODEL.palm,()=>null).then(r=>{
     if(!r||!r.root||r.src!=="glb")return;
     const p=r.root; onDes(p);
-    p.traverse(o=>{if(o.isMesh)gradePalmMat(o.material)});
-    const px=peaks.palm.x,pz=peaks.palm.z;
-    /* match baked palm crown height so hi-detail covers without towering */
-    if(peaks.palm.rise&&p.userData.fitBox&&p.userData.fitBox.sy){
-      const want=cl(peaks.palm.rise*1.05,2.8,3.8);
-      const sc=want/p.userData.fitBox.sy; p.scale.multiplyScalar(sc)}
-    p.position.set(px,hAt(px,pz),pz); p.rotation.y=-.15;
+    p.traverse(o=>{if(o.isMesh){
+      const mats=[].concat(o.material); mats.forEach(gradePalmMat)}});
+    p.position.set(palmX,hAt(palmX,palmZ),palmZ); p.rotation.y=-.25;
     root.add(p); tripo.palm=p; palms.length=0; palms.push(p);
-    sandCapAt(px,pz,.55); sandCapAt(px-.45,pz+.25,.35);
   }));
   const sagSpots=[
-    {x:peaks.sagL.x,z:peaks.sagL.z,yaw:.35,perch:1},
-    {x:peaks.sagR.x,z:peaks.sagR.z,yaw:-.45,perch:0}];
+    {x:sagLX,z:sagLZ,yaw:.35,perch:1},
+    {x:sagRX,z:sagRZ,yaw:-.45,perch:0}];
   sagSpots.forEach((sp)=>{
     jobs.push(tryModel(MODEL.saguaro,()=>null).then(r=>{
       if(!r||!r.root||r.src!=="glb")return;
       const obj=r.root;
-      onDes(obj); obj.traverse(o=>{if(o.isMesh)gradeSaguaroMat(Array.isArray(o.material)?o.material[0]:o.material)});
+      onDes(obj); obj.traverse(o=>{if(o.isMesh){
+        const mats=[].concat(o.material); mats.forEach(mm=>gradeSaguaroMat(mm))}});
       const x=sp.x,z=sp.z; obj.position.set(x,hAt(x,z),z); obj.rotation.y=sp.yaw;
       root.add(obj); tripo.sag.push(obj); cacti.push(obj);
       if(sp.perch){obj.userData.isPerch=1; const box=worldBox(obj); obj.userData.perch={x:0,y:(box.max[1]-obj.position.y)*.98,z:0}}
-      sandCapAt(x,z,.4);
     }));
   });
   jobs.push(tryModel(MODEL.tent,()=>null).then(r=>{
     if(!r||!r.root||r.src!=="glb")return;
-    const t=r.root; onDes(t); t.traverse(o=>{if(o.isMesh)gradeTentMat(o.material)});
-    tentAnchor.x=peaks.tent.x; tentAnchor.z=peaks.tent.z;
-    t.position.set(tentAnchor.x,hAt(tentAnchor.x,tentAnchor.z),tentAnchor.z); t.rotation.y=-.4;
+    const t=r.root; onDes(t); t.traverse(o=>{if(o.isMesh){
+      const mats=[].concat(o.material); mats.forEach(gradeTentMat)}});
+    tentAnchor.x=tentX; tentAnchor.z=tentZ;
+    t.position.set(tentAnchor.x,hAt(tentAnchor.x,tentAnchor.z),tentAnchor.z); t.rotation.y=-.55;
     root.add(t); tripo.tent=t;
     if(tent)tent.visible=false;
-    sandCapAt(tentAnchor.x,tentAnchor.z,.95);
-    if(fireG){const fx=tentAnchor.x-1.15,fz=tentAnchor.z+.65; fireG.position.set(fx,hAt(fx,fz),fz)}
+    /* campfire + smoke in front of tent entrance (toward lake/camera) */
+    if(fireG){const fx=tentAnchor.x-0.85,fz=tentAnchor.z+1.05; fireG.position.set(fx,hAt(fx,fz),fz)}
   }));
   return Promise.all(jobs)}
 function rebuildShoreGreen(){
@@ -2241,7 +2285,7 @@ installTripoIsland().then(()=>{
 }).catch(e=>{console.warn("tripo island",e)});
 
 window.__desShow=show;window.__desU=update;
-window.__des={root,hAt,camels,eagle,snakes,cacti,palms,MODEL,lakeC,R,De,Ce:X.Ce};
+window.__des={root,hAt,camels,eagle,snakes,cacti,palms,MODEL,lakeC,get lakeR(){return lakeR},R,De,Ce:X.Ce,tripo};
 window.__desReady=true;
 };
 })();

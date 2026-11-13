@@ -1,5 +1,5 @@
-/* 沙漠绿洲 · Desert Oasis (desert34) — from desert33: eagle_v3 + perch_v2 + snake_v3.
-   Camel_v3 / water / terrain / sky / props identical. HOLD MERGE. */
+/* 沙漠绿洲 · Desert Oasis (desert34) — from desert33: eagle_v3 + perch_v2 + snake_v3
+   (incl. finished strike). Camel_v3 / water / terrain / sky / props identical. HOLD MERGE. */
 (()=>{
 window.__desInit=getX=>{
 const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
@@ -1649,13 +1649,21 @@ function eagleUpdate(dt,t){
     else if(e.t>2.0)eagleFinishTakeoff()}
 }
 
-/* ---------------- snake_v3 — slither / sidewind / idle_coiled (no strike) ---------------- */
-const SNAKE_SLITHER_MPS=.425, SNAKE_SIDEWIND_MPS=.55, SNAKE_XFADE=.4;
+/* ---------------- snake_v3 — slither / sidewind / idle_coiled / strike ---------------- */
+const SNAKE_SLITHER_MPS=.425, SNAKE_SIDEWIND_MPS=.55, SNAKE_XFADE=.4, SNAKE_STRIKE_DUR=3;
 function makeSnakeProcedural(){
   const g=new T.Group();
   const m=M({color:"#c9a060",roughness:.82});
   const body=new T.Mesh(new T.Cyl(.04,.02,1.2,8),m); body.rotation.x=Math.PI/2; body.position.z=.1; g.add(body);
   g.userData={kind:"snake",segs:[]}; return g}
+function makeSnakeTrigger(){
+  /* small beetle/lizard pebble the coiled snake can aim at */
+  const g=new T.Group();
+  const rock=new T.Mesh(new T.Sphere(.028,6,5),M({color:"#6a5040",roughness:.95}));
+  rock.scale.set(1.2,.55,1.6); g.add(rock);
+  const spot=new T.Mesh(new T.Sphere(.012,5,4),M({color:"#3a2a1c",roughness:.9}));
+  spot.position.set(.01,.01,.02); g.add(spot);
+  g.visible=true; return g}
 const snakes=[];
 let _snakeProto=null,_snakeLoad=null,_snakeAdopt=0;
 function snakeFindClip(anims,name){
@@ -1668,20 +1676,25 @@ function setupSnakeRig(st, wrap){
   const mixer=_VT.makeMixer(scene);
   const anims=wrap.userData.anims||[];
   const act={};
-  /* DO NOT use strike — being reworked */
-  ["slither","sidewind","idle_coiled"].forEach(n=>{
+  ["slither","sidewind","idle_coiled","strike"].forEach(n=>{
     const c=snakeFindClip(anims,n); if(!c)return;
     const a=mixer.clipAction(c);
-    a.setLoop(_VT.LoopRepeat,Infinity); a.enabled=true; a.setEffectiveWeight(0);
+    if(n==="strike"){a.setLoop(_VT.LoopOnce,1); a.clampWhenFinished=true}
+    else a.setLoop(_VT.LoopRepeat,Infinity);
+    a.enabled=true; a.setEffectiveWeight(0);
     a.play(); a.paused=true; act[n]=a});
   if(act.slither){act.slither.setEffectiveWeight(1); act.slither.paused=false}
   st.rig={mixer,act,current:"slither",fitScale:(wrap.userData&&wrap.userData.fitScale)||1};
   st.glb=wrap; st.o.userData.useGlb=1}
 function snakePlay(st,pose,fade){
   const r=st.rig; if(!r||!r.act||!r.act[pose])return;
-  if(r.current===pose){r.act[pose].paused=false; return}
+  if(r.current===pose&&pose!=="strike"){r.act[pose].paused=false; return}
   const next=r.act[pose], cur=r.act[r.current];
-  const dur=fade!=null?fade:SNAKE_XFADE;
+  /* idle↔strike poses match — near-zero fade; others use SNAKE_XFADE */
+  let dur=fade;
+  if(dur==null){
+    const match=(r.current==="idle_coiled"&&pose==="strike")||(r.current==="strike"&&pose==="idle_coiled");
+    dur=match?.05:SNAKE_XFADE}
   next.enabled=true; next.paused=false; next.reset(); next.setEffectiveWeight(1); next.play();
   if(cur&&cur!==next){try{cur.crossFadeTo(next,dur,false)}catch(_){cur.setEffectiveWeight(0)}}
   r.current=pose}
@@ -1692,12 +1705,36 @@ function ensureSnakeProto(){
     if(r.src==="glb"&&r.root){_snakeProto=r.root;return _snakeProto}
     return null});
   return _snakeLoad}
+function snakeAimYaw(fromX,fromZ,toX,toZ){
+  /* strike heads toward model −X; yaw so −X points at target */
+  const dx=toX-fromX, dz=toZ-fromZ;
+  const len=Math.hypot(dx,dz)||1;
+  const ax=dx/len, az=dz/len;
+  return Math.atan2(az, -ax)}
+function snakePlaceTrigger(st){
+  if(!st.trigger){
+    st.trigger=makeSnakeTrigger(); root.add(st.trigger); onDes(st.trigger)}
+  /* place pebble ~0.55 m along strike −X from coil (camera-facing side by default) */
+  const face=st.th, reach=.55;
+  const tx=st.x+Math.cos(face)*reach, tz=st.z-Math.sin(face)*reach;
+  const gy=sampleGroundY(tx,tz);
+  st.trigger.position.set(tx, gy+.012, tz);
+  st.trigger.visible=true;
+  st.strikeTarget={x:tx,z:tz};
+  return st.strikeTarget}
+function snakeBeginStrike(st){
+  /* only from coiled idle; aim −X at trigger / camera-facing side */
+  const tgt=snakePlaceTrigger(st);
+  st.th=snakeAimYaw(st.x,st.z,tgt.x,tgt.z);
+  st.mode="strike"; st.t=0; st.speed=0;
+  snakePlay(st,"strike",.05);
+  st.strikeCD=rr(40,90)}
 function spawnSnake(){
   const spots=[{x:1.2,z:3.4,th:1.2},{x:3.8,z:.6,th:-.4},{x:-.5,z:3.8,th:2.1}];
   const sp=spots[snakes.length%spots.length]||{x:2,z:3,th:0};
   const host=makeSnakeProcedural();
   const s={o:host,x:sp.x,z:sp.z,th:sp.th,mode:"slither",t:rr(0,4),speed:SNAKE_SLITHER_MPS,
-    rig:null,wave:rnd()*TAU,idleFor:rr(3,6),phase:rr(0,10)};
+    rig:null,wave:rnd()*TAU,idleFor:rr(3,6),phase:rr(0,10),strikeCD:rr(40,90),trigger:null};
   host.position.set(sp.x,sampleGroundY(sp.x,sp.z),sp.z); host.rotation.y=sp.th;
   root.add(host); onDes(host); snakes.push(s);
   ensureSnakeProto().then(proto=>{
@@ -1722,46 +1759,58 @@ function snakeSlope(x,z){
   return Math.hypot(hx,hz)/(2*e)}
 function snakeUpdate(st,dt,t){
   st.t+=dt; st.phase=(st.phase||0)+dt;
+  if(st.strikeCD==null)st.strikeCD=rr(40,90);
+  st.strikeCD-=dt;
   const o=st.o, rig=st.rig;
-  /* behaviour: slither / sidewind on dune faces / idle_coiled rests */
-  if(st.mode==="slither"&&st.t>5.5){
+
+  if(st.mode==="strike"){
+    /* hold position; wait for one-shot strike to finish → idle_coiled */
+    const a=rig&&rig.act&&rig.act.strike;
+    if((a&&a.time>=(a.getClip().duration||SNAKE_STRIKE_DUR)-.04)||st.t>SNAKE_STRIKE_DUR+.2){
+      st.mode="idle"; st.t=0; st.idleFor=rr(3,6);
+      snakePlay(st,"idle_coiled",.05);
+      if(st.trigger)st.trigger.visible=false}
+  }else if(st.mode==="slither"&&st.t>5.5){
     const slope=snakeSlope(st.x,st.z);
     if(slope>.18&&((st.phase*1.3)%1)>.45){st.mode="sidewind"; st.t=0}
-    else if(((st.phase*2.1)%1)>.55){st.mode="idle"; st.t=0; st.idleFor=rr(3,6)}
+    else if(((st.phase*2.1)%1)>.55){st.mode="idle"; st.t=0; st.idleFor=rr(4,8)}
     else st.t=0}
   else if(st.mode==="sidewind"&&st.t>4.2){st.mode="slither"; st.t=0}
-  else if(st.mode==="idle"&&st.t>(st.idleFor||5)){st.mode="slither"; st.t=0}
+  else if(st.mode==="idle"){
+    /* occasional strike only while coiled, every 40–90 s */
+    if(st.strikeCD<=0&&st.t>.8)snakeBeginStrike(st);
+    else if(st.t>(st.idleFor||5)){st.mode="slither"; st.t=0}}
 
-  const wantPose=st.mode==="idle"?"idle_coiled":(st.mode==="sidewind"?"sidewind":"slither");
-  if(rig)snakePlay(st,wantPose,SNAKE_XFADE);
+  if(st.mode!=="strike"){
+    const wantPose=st.mode==="idle"?"idle_coiled":(st.mode==="sidewind"?"sidewind":"slither");
+    if(rig)snakePlay(st,wantPose,SNAKE_XFADE)}
 
-  /* smooth heading */
-  let wantTh=st.th+Math.sin(t*.9+st.wave)*.35*dt;
-  const maxT=CAMEL_MAX_TURN*dt;
-  const r=Math.hypot(st.x,st.z);
-  if(r>R*.7){const out=Math.atan2(st.x,st.z); let d=((out+Math.PI)-st.th+Math.PI*3)%TAU-Math.PI; wantTh=st.th+cl(d,-maxT,maxT)}
-  if(Math.hypot(st.x-lakeC.x,st.z-lakeC.z)<lakeR*1.25){
-    const away=Math.atan2(st.x-lakeC.x,st.z-lakeC.z); let d=(away-st.th+Math.PI*3)%TAU-Math.PI; wantTh=st.th+cl(d,-maxT,maxT)}
-  let dth=((wantTh-st.th+Math.PI*3)%TAU)-Math.PI;
-  st.th+=cl(dth,-maxT,maxT);
+  /* smooth heading — frozen during strike (aim set at begin) */
+  if(st.mode!=="strike"&&st.mode!=="idle"){
+    let wantTh=st.th+Math.sin(t*.9+st.wave)*.35*dt;
+    const maxT=CAMEL_MAX_TURN*dt;
+    const r=Math.hypot(st.x,st.z);
+    if(r>R*.7){const out=Math.atan2(st.x,st.z); let d=((out+Math.PI)-st.th+Math.PI*3)%TAU-Math.PI; wantTh=st.th+cl(d,-maxT,maxT)}
+    if(Math.hypot(st.x-lakeC.x,st.z-lakeC.z)<lakeR*1.25){
+      const away=Math.atan2(st.x-lakeC.x,st.z-lakeC.z); let d=(away-st.th+Math.PI*3)%TAU-Math.PI; wantTh=st.th+cl(d,-maxT,maxT)}
+    let dth=((wantTh-st.th+Math.PI*3)%TAU)-Math.PI;
+    st.th+=cl(dth,-maxT,maxT)}
 
   const sc=rig&&rig.fitScale||1;
   if(st.mode==="slither"){
     const sp=SNAKE_SLITHER_MPS*sc;
     st.x+=Math.sin(st.th)*sp*dt; st.z+=Math.cos(st.th)*sp*dt; st.speed=sp}
   else if(st.mode==="sidewind"){
-    /* local +X travel: (cos, -sin) when facing +Z with yaw=th */
     const sp=SNAKE_SIDEWIND_MPS*sc;
     st.x+=Math.cos(st.th)*sp*dt; st.z+=-Math.sin(st.th)*sp*dt; st.speed=sp}
   else st.speed=0;
 
-  /* terrain hug via raycast */
   const gy=sampleGroundY(st.x,st.z);
   o.position.set(st.x, gy+.002, st.z);
   o.rotation.set(0, st.th, 0);
   if(rig&&rig.mixer)rig.mixer.update(dt);
 
-  if(st.mode!=="idle"&&(st.t*20|0)!==((st.t-dt)*20|0)){
+  if(st.mode!=="idle"&&st.mode!=="strike"&&(st.t*20|0)!==((st.t-dt)*20|0)){
     const i=trI%TRN; trP[i*3]=st.x; trP[i*3+1]=gy+.01; trP[i*3+2]=st.z; trA[i]=1; trI++}
   for(let i=0;i<TRN;i++)trA[i]=Math.max(0,trA[i]-dt*.06);
   trG.attributes.position.needsUpdate=trG.attributes.a.needsUpdate=true}
@@ -2119,7 +2168,9 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XF
     else{eagleShowFly(true); eagle.mode="soar"; eagle.rad=12; eagle.alt=5.5;
       eagle.th=rnd()*TAU; eaglePlayFly("glide",.05);
       eagle.o.position.set(Math.cos(eagle.th)*eagle.rad,eagle.alt,Math.sin(eagle.th)*eagle.rad)}},
-  snakeClip:(i,mode)=>{const s=snakes[i|0];if(!s)return; s.mode=mode||"slither"; s.t=0;
+  snakeClip:(i,mode)=>{const s=snakes[i|0];if(!s)return;
+    if(mode==="strike"){s.mode="idle"; s.t=1; snakePlay(s,"idle_coiled",.05); snakeBeginStrike(s); return}
+    s.mode=mode||"slither"; s.t=0;
     if(mode==="idle")snakePlay(s,"idle_coiled",.2);
     else if(mode==="sidewind")snakePlay(s,"sidewind",.2);
     else snakePlay(s,"slither",.2)},

@@ -1,1 +1,13 @@
-{}
+{
+  "camel_rigged": 1,
+  "eagle_rigged": 1,
+  "eagle_perch": 1,
+  "snake_rigged": 0,
+  "camel": 0,
+  "eagle": 0,
+  "snake": 0,
+  "island": 1,
+  "palm": 1,
+  "saguaro": 1,
+  "tent": 1
+}

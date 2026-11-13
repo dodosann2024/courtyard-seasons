@@ -1,5 +1,5 @@
-/* 沙漠绿洲 · Desert Oasis (desert27) — from desert26: deep lake bowl, soft smoke, greener fringe.
-   HOLD MERGE. Three tiny fixes only. */
+/* 沙漠绿洲 · Desert Oasis (desert28) — from desert27: full-disc lake bowl + camel idle clear of tent.
+   HOLD MERGE. Two fixes only. */
 (()=>{
 window.__desInit=getX=>{
 const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
@@ -685,7 +685,7 @@ const lakeG=new T.BG();
 /* soft shore: wet sand → light teal shallows → #2e7f86 centre; fog:false */
 /* centre #237a82 → shore #6fb3ae by distance from shore — no muddy blob, no noise blotches */
 const lakeU={uT:{value:0},uWind:{value:.04},uNight:{value:0},uSunDir:{value:new V3(.85,.18,.15)},uSunCol:{value:new C3(1,.72,.4)},uMoonC:{value:new C3(.55,.68,.95)},uSky:{value:new C3(.55,.48,.62)},uDeep:{value:new C3("#237a82")},uShal:{value:new C3("#6fb3ae")}};
-const lakeM=new T.SM({transparent:true,depthWrite:false,fog:false,uniforms:lakeU,
+const lakeM=new T.SM({transparent:true,depthWrite:true,fog:false,uniforms:lakeU,
  vertexShader:`varying vec3 vW;varying vec2 vUv;void main(){vUv=uv;vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
  fragmentShader:`uniform float uT,uWind,uNight;uniform vec3 uSunDir,uSunCol,uMoonC,uSky,uDeep,uShal;varying vec3 vW;varying vec2 vUv;
  void main(){
@@ -709,9 +709,9 @@ const lakeM=new T.SM({transparent:true,depthWrite:false,fog:false,uniforms:lakeU
   col+=uMoonC*uNight*(.01+.03*fres);
   float sunSpec=pow(max(1e-4,dot(reflect(-normalize(uSunDir),N),V)),320.)*(.01+.03*(1.-uNight))*lip;
   col+=uSunCol*sunSpec;
-  /* fully opaque inside the lake (soft alpha only on outermost lip) */
-  float a=edge*smoothstep(.0,.55,lip);
-  a=max(a, fromShore>.08?edge:0.);
+  /* fully opaque over basin — soft alpha only on outermost lip (no sand show-through) */
+  float a=edge*mix(.35,1.,smoothstep(.0,.7,lip));
+  if(fromShore>.05)a=edge;
   gl_FragColor=vec4(col,a);
  }`});
 const lake=new T.Mesh(lakeG,lakeM);lake.renderOrder=2;lake.frustumCulled=false;root.add(lake);onDes(lake);
@@ -788,16 +788,18 @@ function placeRimRocks(){
     rk.position.set(x,y+s*.06,z);
     rk.rotation.set(rr(0,1),rr(0,TAU),rr(0,1));
     rk.castShadow=rk.receiveShadow=true; onDes(rk); rockG.add(rk)}
-  /* small rocks near oasis + a few on sand (ref) */
+  /* small rocks near oasis — never inside water disc (no spit rocks) */
   for(let i=0;i<(MOB?7:12);i++){
-    const a=rnd()*TAU, rad=lakeR+rr(.5,1.7);
+    const a=rnd()*TAU, rad=lakeR+rr(.55,1.8);
     const x=lakeC.x+Math.cos(a)*rad, z=lakeC.z+Math.sin(a)*rad*.95;
     if(Math.hypot(x,z)>R-0.7)continue;
+    if(lakeCoverFrac(x,z,lakeC.x,lakeC.z,lakeR)<1.05)continue;
     placeAt(x,z,rr(.04,.1))}
   for(let i=0;i<(MOB?4:8);i++){
     const a=rnd()*TAU, rad=lakeR*1.5+rnd()*(R*.5);
     const x=Math.cos(a)*rad, z=Math.sin(a)*rad*.9;
     if(Math.hypot(x,z)>R-0.8||Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR+.3)continue;
+    if(lakeCoverFrac(x,z,lakeC.x,lakeC.z,lakeR)<1.05)continue;
     placeAt(x,z,rr(.035,.09))}
   for(let i=0;i<(MOB?2:4);i++){
     const th=rnd()*TAU, rad=R*(.78+rr(0,.12));
@@ -1305,24 +1307,38 @@ function camelBlocked(x,z,drinkOk){
   if(drinkOk){if(dLake<lakeR*.88)return 1} /* too deep */
   else if(dLake<lakeR*1.28)return 1;
   const tentX=(typeof tentAnchor!=="undefined"?tentAnchor.x:0), tentZ=(typeof tentAnchor!=="undefined"?tentAnchor.z:0);
-  if(Math.hypot(x-tentX,z-tentZ)<2.85)return 1; /* wide tent exclusion — no roof camel */
+  if(Math.hypot(x-tentX,z-tentZ)<3.1)return 1; /* wide tent exclusion — no roof camel */
+  /* behind-tent dune (close-tent camera looks from +Z) — prevents visual stack on roof */
+  if(z<tentZ-0.15&&z>tentZ-5.8&&Math.abs(x-tentX)<5.2&&Math.hypot(x-tentX,z-tentZ)<6.2)return 1;
   if(fireG&&Math.hypot(x-fireG.position.x,z-fireG.position.z)<1.25)return 1;
   for(let i=0;i<palms.length;i++){const p=palms[i];if(!p||p.visible===false)continue;
     if(Math.hypot(x-p.position.x,z-p.position.z)<1.85)return 1}
   for(let i=0;i<cacti.length;i++){const p=cacti[i];if(!p||p.visible===false)continue;
     if(Math.hypot(x-p.position.x,z-p.position.z)<1.4)return 1}
   if(typeof tripo!=="undefined"&&tripo){
-    if(tripo.tent&&Math.hypot(x-tripo.tent.position.x,z-tripo.tent.position.z)<2.9)return 1;
+    if(tripo.tent&&Math.hypot(x-tripo.tent.position.x,z-tripo.tent.position.z)<3.15)return 1;
     if(tripo.palm&&Math.hypot(x-tripo.palm.position.x,z-tripo.palm.position.z)<1.9)return 1;
     for(let i=0;i<(tripo.sag||[]).length;i++){
       const s=tripo.sag[i];if(s&&Math.hypot(x-s.position.x,z-s.position.z)<1.45)return 1}}
   return 0}
-function camelPickWalk(){
-  for(let k=0;k<14;k++){
+function camelPickWalk(avoid){
+  /* prefer lateral spots on +Z / +X of tent — clear of close-tent roof stack */
+  const tentX=tentAnchor.x, tentZ=tentAnchor.z;
+  const preferred=[
+    {x:tentX+2.6,z:tentZ+2.8},{x:tentX+3.4,z:tentZ+1.6},{x:tentX+1.8,z:tentZ+3.2},
+    {x:tentX+3.8,z:tentZ+2.2},{x:lakeC.x-lakeR*1.7,z:lakeC.z+1.4},{x:lakeC.x+lakeR*1.9,z:lakeC.z+2.0}];
+  const farEnough=(x,z)=>{
+    if(!avoid||!avoid.length)return 1;
+    for(let i=0;i<avoid.length;i++){if(Math.hypot(x-avoid[i].x,z-avoid[i].z)<1.6)return 0}
+    return 1};
+  for(let i=0;i<preferred.length;i++){
+    const p=preferred[i], x=p.x+rr(-.3,.3), z=p.z+rr(-.3,.3);
+    if(!camelBlocked(x,z,0)&&farEnough(x,z))return {x,z}}
+  for(let k=0;k<22;k++){
     const a=rnd()*TAU,rad=rr(2.2,R*.55);
     const x=Math.cos(a)*rad,z=Math.sin(a)*rad;
-    if(!camelBlocked(x,z,0))return {x,z}}
-  return {x:lakeC.x+lakeR*2.2,z:lakeC.z+1.5}}
+    if(!camelBlocked(x,z,0)&&farEnough(x,z))return {x,z}}
+  return {x:tentX+2.8+rr(0,1.2),z:tentZ+2.6+rr(0,.8)}}
 function camelUpdate(st,dt,t){
   st.t+=dt;const c=st.o,ud=c.userData,glb=!!ud.useGlb,rig=st.rig;
   if(st.mode==="walk"&&st.t>5.5){st.mode=rnd()<.45?"graze":rnd()<.5?"drink":"walk";st.t=0;st.graze=0;st.drink=0;
@@ -1950,14 +1966,16 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_STRIDE,De,Ce,
   get perch(){return eaglePerchWorld()},
   lookAt:(px,py,pz,tx,ty,tz)=>{De.position.set(px,py,pz);Ce.target.set(tx,ty,tz);Ce.update()},
   forceCamel:(i,mode)=>{const c=camels[i|0];if(!c)return;c.mode=mode||"walk";c.t=0;c.graze=0;c.drink=0;
-    if(mode==="graze"){const p=camelPickWalk();c.tx=p.x;c.tz=p.z;c.x=p.x;c.z=p.z}
+    const others=camels.filter((o,j)=>j!==(i|0)&&o).map(o=>({x:o.x,z:o.z}));
+    if(mode==="graze"){const p=camelPickWalk(others);c.tx=p.x;c.tz=p.z;c.x=p.x;c.z=p.z}
     else if(mode==="drink"){
       /* shoreline only — never near tent */
       let tx=lakeC.x-lakeR*1.22, tz=lakeC.z+0.2;
       if(camelBlocked(tx,tz,1)){tx=lakeC.x+lakeR*1.25;tz=lakeC.z-0.6}
-      if(camelBlocked(tx,tz,1)){const p=camelPickWalk();tx=p.x;tz=p.z;c.mode="walk"}
+      if(camelBlocked(tx,tz,1)){const p=camelPickWalk(others);tx=p.x;tz=p.z;c.mode="walk"}
       c.tx=tx;c.tz=tz;c.x=tx;c.z=tz}
-    else{const p=camelPickWalk();c.tx=p.x;c.tz=p.z;c.x=p.x;c.z=p.z}},
+    else{const p=camelPickWalk(others);c.tx=p.x;c.tz=p.z;c.x=p.x;c.z=p.z}
+    plantFeet(c.o,c.x,c.z,c.facing)},
   forceEagle:(mode)=>{eagle.mode=mode||"soar";eagle.t=0;eagle.blend=0;
     if(mode==="perch"){const s=eaglePerchWorld();eagle.o.position.set(s.x,s.y,s.z);eagleShowFly(false)}
     else if(mode==="landPerch"){eagleShowFly(true)}
@@ -2225,12 +2243,22 @@ function findLakeOnIsland(){
   /* allow larger bowl so disc can cover baked pond (~⅕ island width) */
   best.r=cl(maxR*.75,1.45,2.55);
   return best}
+function lakeCoverFrac(wx,wz,cx,cz,rad){
+  /* cover soft water disc + fade band (softR*1.15) so spit verts at d≈lakeR*1.1 are included */
+  const softR=(rad||lakeR)*1.08*1.12;
+  const dx=(wx-cx)/1.02, dz=(wz-cz)/1.0;
+  const th=Math.atan2(dz,dx);
+  const e=.98+.015*Math.sin(th*2.1)+.01*Math.sin(th*4.7+.5);
+  const rim=softR*e;
+  return Math.hypot(dx,dz)/Math.max(1e-4,rim); /* <1 = under / in fade band */
+}
 function sinkLakeBowl(mesh,cx,cz,rad,yFloor){
-  /* smooth bowl INSIDE lake only — centre ≥1.2 m below water, falloff to shoreline (no deck cliffs) */
+  /* smooth bowl under water disc + soft band — centre ≥1.2 m; outer falloff keeps shoreline contour */
   if(!mesh)return;
   try{
   mesh.updateMatrixWorld(true);
-  const deep=Math.min(yFloor, lakeY-1.2);
+  const deep=Math.min(yFloor!=null?yFloor:lakeY-1.4, lakeY-1.3);
+  const R0=rad||lakeR;
   mesh.traverse(o=>{
     if(!o.isMesh||!o.geometry||!o.geometry.attributes.position)return;
     const pos=o.geometry.attributes.position, e=o.matrixWorld.elements;
@@ -2242,12 +2270,18 @@ function sinkLakeBowl(mesh,cx,cz,rad,yFloor){
       const wy=e[1]*lx+e[5]*ly+e[9]*lz+e[13];
       const wz=e[2]*lx+e[6]*ly+e[10]*lz+e[14];
       const d=Math.hypot(wx-cx,wz-cz);
-      if(d>=rad)continue; /* strictly inside lake polygon — never touch deck rim */
-      /* k: 0 at shoreline, 1 at centre */
-      const k=ss(rad, rad*.12, d);
-      const want=mix(lakeY-0.05, deep, Math.pow(k,1.15));
+      const f=lakeCoverFrac(wx,wz,cx,cz,R0);
+      if(f>=1&&d>R0*1.2)continue; /* far outside — keep deck */
+      /* k: 0 at outer falloff, 1 at centre */
+      const k=d>R0*1.2?0:ss(R0*1.2, R0*.12, d);
+      if(k<=0&&f>=1)continue;
+      let want=mix(lakeY-0.08, deep, Math.pow(Math.max(k,1-f), .85));
+      /* no sand spit inside / under water — force well below surface */
+      if(d<R0*1.12)want=Math.min(want, lakeY-0.55);
+      if(d<R0*.95)want=Math.min(want, lakeY-0.85);
+      if(d<R0*.6)want=Math.min(want, lakeY-1.3);
       if(wy>want){
-        const dy=(want-wy)*.99;
+        const dy=(want-wy)*.995;
         pos.setY(i, ly+dy/yScale); dirty=1}}
     if(dirty){pos.needsUpdate=true; o.geometry.computeVertexNormals()}})}
   catch(e){console.warn("sinkLakeBowl",e)}}
@@ -2564,16 +2598,19 @@ function installTripoIsland(){
       lakeR=Math.max(lakeR, 3.2);
       lakeY=hAt(lakeC.x,lakeC.z)+0.06}
     rebuildLakeDisc(lakeC.x,lakeC.z,lakeR,lakeY);
-    /* deep smooth bowl under water (≥1.2 m at centre) — lake polygon only */
-    try{sinkLakeBowl(wrap, lakeC.x, lakeC.z, lakeR*.98, lakeY-1.25)}catch(e){}
+    /* deep smooth bowl under FULL water disc (incl. softR spit band) */
+    try{sinkLakeBowl(wrap, lakeC.x, lakeC.z, lakeR, lakeY-1.35)}catch(e){}
     if(_hf&&_hf.grid){
       const {grid,N,half,cell}=_hf;
       for(let iz=0;iz<N;iz++)for(let ix=0;ix<N;ix++){
         const x=-half+ix*cell+cell*.5, z=-half+iz*cell+cell*.5;
-        const d=Math.hypot(x-lakeC.x,z-lakeC.z);
-        if(d<lakeR*.98){
-          const k=ss(lakeR*.98, lakeR*.12, d);
-          grid[iz*N+ix]=Math.min(grid[iz*N+ix], mix(lakeY-0.05, lakeY-1.25, Math.pow(k,1.15)))}}
+        const f=lakeCoverFrac(x,z,lakeC.x,lakeC.z,lakeR);
+        if(f<1){
+          const k=ss(1,.1,f);
+          let want=mix(lakeY-0.18, lakeY-1.35, Math.pow(k,.9));
+          if(f<.92)want=Math.min(want, lakeY-0.45);
+          if(f<.55)want=Math.min(want, lakeY-1.25);
+          grid[iz*N+ix]=Math.min(grid[iz*N+ix], want)}}
       _hfCacheClear()}
     lake.visible=true; lake.renderOrder=4;
     if(lakeBed){lakeBed.visible=false}
@@ -2620,13 +2657,14 @@ function installTripoProps(){
       paintOutRedCrate(islandRoot);
       sinkLakeBowl(islandRoot, lakeC.x, lakeC.z, lakeR, lakeY);
       crushBakedSpikes(islandRoot, [{x:lakeC.x,z:lakeC.z,r:lakeR*1.15}], _sandMed||0)}
-    /* clean island_base: nothing baked — no flatten/sink/crush */
-    /* raise HF cells in lake so animals never fall into bowl */
+    /* clean island_base: re-sink full water disc (spit fix) — no flatten/crush */
+    try{sinkLakeBowl(islandRoot, lakeC.x, lakeC.z, lakeR, lakeY-1.35)}catch(e){}
+    /* raise HF cells in lake so animals never fall into bowl (visual mesh stays deep) */
     if(_hf&&_hf.grid){
       const {grid,N,half,cell}=_hf;
       for(let iz=0;iz<N;iz++)for(let ix=0;ix<N;ix++){
         const x=-half+ix*cell+cell*.5, z=-half+iz*cell+cell*.5;
-        if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR*1.15)grid[iz*N+ix]=Math.max(grid[iz*N+ix], lakeY+0.02)}
+        if(lakeCoverFrac(x,z,lakeC.x,lakeC.z,lakeR)<1.05)grid[iz*N+ix]=Math.max(grid[iz*N+ix], lakeY+0.02)}
       _hfCacheClear()}
     else{_hfCacheClear(); buildHeightField(islandRoot)}}
   /* hide ALL procedural palms/cacti/tent before hi-detail lands */
@@ -2794,11 +2832,15 @@ function reanchorLife(){
   eaglePerch=cacti.find(c=>c&&c.userData&&c.userData.isPerch&&c.visible!==false)||eaglePerch;
   rebuildShoreGreen();
   placeRimRocks();
+  const placed=[];
   camels.forEach(c=>{
     if(!c)return;
-    const p=camelPickWalk();
+    const p=camelPickWalk(placed);
+    placed.push(p);
     c.x=p.x; c.z=p.z; c.tx=p.x; c.tz=p.z; c.mode="walk";
-    if(c.o)c.o.position.set(c.x,hAt(c.x,c.z),c.z)});
+    if(c.o)c.o.position.set(c.x,sampleGroundY(c.x,c.z),c.z)});
+  /* re-plant after bowl/HF update */
+  camels.forEach(c=>{if(c&&c.o)plantFeet(c.o,c.x,c.z,c.facing)});
   snakes.forEach(s=>{
     if(!s)return; s.x=rr(-3,5); s.z=rr(-4,4); s.tx=s.x; s.tz=s.z;
     if(s.o)s.o.position.set(s.x,hAt(s.x,s.z)+.02,s.z)});

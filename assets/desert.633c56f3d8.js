@@ -99,11 +99,13 @@ function gradeAnimalMat(m, kind){
   if(!m)return;
   if(m.map){
     try{m.map.colorSpace="srgb"; m.map.needsUpdate=true}catch(_){}
-    if(m.color)m.color.set("#ffffff")}
+    /* snake: warm multiply keeps Tripo saddles, lifts pale wash under desert sun */
+    if(m.color)m.color.set(kind==="snake"?"#e2c08a":"#ffffff")}
   if(m.emissive){m.emissive.set("#000000"); m.emissiveIntensity=0}
   m.metalness=0;
   if(m.roughness==null||m.roughness>0.95)m.roughness=.82;
-  m.envMapIntensity=kind==="snake"?.06:.1;
+  else if(kind==="snake")m.roughness=Math.max(.78, Math.min(.9, m.roughness||.85));
+  m.envMapIntensity=kind==="snake"?.04:.1;
   m.needsUpdate=true}
 function gradeAnimalGLB(root, kind){
   if(!root)return;

@@ -606,7 +606,7 @@ for(let r=0;r<3;r++){
   const SEG=56,n=SEG+1,aT=new Float32Array(n*2),aS=new Float32Array(n*2),pos=new Float32Array(n*6),idx=[];
   for(let i=0;i<n;i++){aT[i*2]=aT[i*2+1]=i/SEG;aS[i*2]=-1;aS[i*2+1]=1;if(i<SEG){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}}
   const g=new T.BG();g.setAttribute("position",new T.BA(pos,3));g.setAttribute("aT",new T.BA(aT,1));g.setAttribute("aS",new T.BA(aS,1));g.setIndex(idx);
-  const u=Object.assign({},smokeU,{uSeed:{value:r*7.31+1.7},uW:{value:[1,.72,.55][r]},uA:{value:[.5,.36,.26][r]}});
+  const u=Object.assign({},smokeU,{uSeed:{value:r*7.31+1.7},uW:{value:[1,.72,.55][r]},uA:{value:[.4,.29,.21][r]}});
   const mat=new T.SM({transparent:true,depthWrite:false,side:2,uniforms:u,
     vertexShader:`attribute float aT,aS;uniform float uT,uSeed,uW;uniform vec3 uBase,uWind,uCamL;varying float vT,vS;varying vec2 vN;
       vec3 spine(float t){float h=t*${SMOKE_H.toFixed(1)};vec3 side=normalize(cross(uWind,vec3(0.,1.,0.)));
@@ -625,7 +625,7 @@ for(let r=0;r<3;r++){
         float across=1.-abs(vS+(d-.5)*.7*smoothstep(.05,.5,vT));float core=pow(max(across,0.),1.5);
         float a=uA*uOp*core*mix(.35,1.,wisp)*mix(.45,1.15,fil)*mix(1.,wisp,smoothstep(.2,.8,vT));
         float puff=dn2(vec2(uSeed*3.1,vN.y*.25-uT*.4));a*=mix(1.,.45+.55*smoothstep(.15,.6,puff),smoothstep(.15,.5,vT));
-        a*=smoothstep(0.,.07,vT)*(1.-smoothstep(.45,1.,vT))*mix(1.1,.5,vT);
+        a*=smoothstep(0.,.13,vT)*(1.-smoothstep(.45,1.,vT))*mix(1.1,.5,vT);
         if(a<.01)discard;gl_FragColor=vec4(uCol*mix(.92,1.06,vT),a);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -986,8 +986,15 @@ function eagleTakeoff(e){
   const tg=new V3(-Math.sin(e.th),0,Math.cos(e.th)).multiplyScalar(8);
   e.seg={p0,m0:fw.multiplyScalar(5).add(new V3(0,9,0)),p1,m1:tg.multiplyScalar(7),T:6.5,t:0,land:false};
   play(e.fr,"take_off",.15,1);e.cry=1}
+const GROVE=new V3((PALMS[0].x+PALMS[1].x+PALMS[2].x)/3,0,(PALMS[0].z+PALMS[1].z+PALMS[2].z)/3);
 function eagleLand(e,spot){
-  e.mode="land";e.spot=spot;const p1=spot.p.clone().add(new V3(0,e.footY,0));
+  const out=new V3(spot.p.x-GROVE.x,0,spot.p.z-GROVE.z).normalize();
+  const A=spot.p.clone().addScaledVector(out,10).add(new V3(0,7,0));
+  e.mode="land";e.spot=spot;e.final=false;e.appr=A;
+  const d0=e.pos.distanceTo(A),dirA=new V3(-out.x,-.35,-out.z).normalize();
+  e.seg={p0:e.pos.clone(),m0:e.vel.clone().multiplyScalar(Math.max(2.5,d0/7)),p1:A,m1:dirA.multiplyScalar(d0*.6),T:cl(d0/8,2.5,8),t:0,land:false,appr:true};
+  play(e.fr,"glide",.5,1)}
+function eagleFinal(e){const spot=e.spot;e.final=true;const p1=spot.p.clone().add(new V3(0,e.footY,0));
   const p0=e.pos.clone(),dir=new V3(p1.x-p0.x,0,p1.z-p0.z);const dist=p0.distanceTo(p1);dir.normalize();
   spot.yaw=Math.atan2(dir.x,dir.z);
   e.seg={p0,m0:e.vel.clone().multiplyScalar(Math.max(2.5,dist/7)),p1,m1:dir.multiplyScalar(dist*.35).add(new V3(0,-1.2,0)),T:cl(dist/6.5,3.2,9),t:0,land:true};
@@ -1007,8 +1014,8 @@ function eagleUpdate(e,dt){
   else{const s=e.seg;s.t+=dt/s.T;const t=Math.min(1,s.t);herm(s.p0,s.m0,s.p1,s.m1,t,_e0);
     e.vel.copy(_e0).sub(e.pos).divideScalar(Math.max(dt,1e-3));e.pos.copy(_e0);e.bank+=(0-e.bank)*ease(2,dt);
     if(s.land&&(1-t)*s.T<2&&e.fr.cur!=="landing_flare")play(e.fr,"landing_flare",.25,1);
-    if(!s.land){if(s.t*s.T>1.7&&e.fr.cur==="take_off")play(e.fr,"flap",.3,1);if(s.t*s.T>3.6&&e.fr.cur==="flap")play(e.fr,"glide",.6,1)}
-    if(t>=1){if(s.land)eaglePerchAt(e,e.spot);else{e.mode="soar";e.timer=wantPerch?0:rr(25,40)}}}
+    if(!s.land&&!s.appr){if(s.t*s.T>1.7&&e.fr.cur==="take_off")play(e.fr,"flap",.3,1);if(s.t*s.T>3.6&&e.fr.cur==="flap")play(e.fr,"glide",.6,1)}
+    if(t>=1){if(s.land)eaglePerchAt(e,e.spot);else if(s.appr)eagleFinal(e);else{e.mode="soar";e.timer=wantPerch?0:rr(25,40)}}}
   if(e.mode!=="perch"){const hv=Math.hypot(e.vel.x,e.vel.z);
     const yaw=hv>.3?Math.atan2(e.vel.x,e.vel.z):e.fg.rotation.y,pit=hv>.3?cl(-Math.atan2(e.vel.y,hv),-.5,.5):0;
     e.fg.position.copy(e.pos);e.fg.rotation.set(pit*.6,yaw,e.bank);e.fr.mx.update(dt)}}

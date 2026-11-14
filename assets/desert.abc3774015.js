@@ -1708,8 +1708,8 @@ function eagleUpdate(dt,t){
     o.rotation.x=cl(-(dy/dist)*.25,-.35,.1); o.rotation.z=0;
     eaglePlayFly(dy<-.05||dist>3?"flap":"glide",EAGLE_XFADE);
     const dTip=Math.hypot(tip.x-o.position.x, tip.y-o.position.y, tip.z-o.position.z);
-    /* flare only when host is already on the tip — seat jump stays <0.5 m */
-    if(dist<.35||dTip<.4)eagleStartFlare()}
+    /* flare only when host is already on the tip — seat jump stays <0.45 m */
+    if(dist<.25||dTip<.28)eagleStartFlare()}
   else if(e.mode==="landPerch"||e.mode==="landDrink"){
     eagleShowFly(true);
     /* host fixed at tip; flare Root track is the approach */
@@ -1798,10 +1798,13 @@ function snakeAimYaw(fromX,fromZ,toX,toZ){
   const ax=dx/len, az=dz/len;
   return Math.atan2(az, -ax)}
 function snakeOpenSand(x,z){
-  /* avoid lake, tent, firepit/logs, cactus — open dune only */
+  /* avoid lake, tent, firepit, bone props, cactus — open dune only */
   if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR+1.1)return 0;
   if(typeof tentAnchor!=="undefined"&&tentAnchor&&Math.hypot(x-tentAnchor.x,z-tentAnchor.z)<2.2)return 0;
   if(typeof fireG!=="undefined"&&fireG&&Math.hypot(x-fireG.position.x,z-fireG.position.z)<1.6)return 0;
+  /* bleached rib props (desert props) */
+  if(Math.hypot(x-(-5.8),z-3.6)<2.0)return 0;
+  if(Math.hypot(x-4.6,z-1.6)<2.0)return 0;
   for(let i=0;i<(cacti||[]).length;i++){
     const c=cacti[i]; if(c&&Math.hypot(x-c.position.x,z-c.position.z)<1.2)return 0}
   return 1}
@@ -1912,7 +1915,7 @@ function snakeUpdate(st,dt,t){
   const yB=sampleGroundY(st.x-Math.sin(st.th)*eT, st.z-Math.cos(st.th)*eT);
   const yR=sampleGroundY(st.x+Math.cos(st.th)*eT, st.z-Math.sin(st.th)*eT);
   const yL=sampleGroundY(st.x-Math.cos(st.th)*eT, st.z+Math.sin(st.th)*eT);
-  o.position.set(st.x, gy+.01, st.z);
+  o.position.set(st.x, gy+.035, st.z);
   o.rotation.order="YXZ";
   o.rotation.y=st.th;
   o.rotation.x=cl(Math.atan2(yB-yF, 2*eT),-.35,.35)*.8;
@@ -1925,18 +1928,18 @@ function snakeUpdate(st,dt,t){
   for(let i=0;i<TRN;i++)trA[i]=Math.max(0,trA[i]-dt*.06);
   trG.attributes.position.needsUpdate=trG.attributes.a.needsUpdate=true}
 function snakeHugBones(st){
-  /* after mixer: lift any bone that digs into sand (keep authored height above ground) */
+  /* after mixer: only push up when a segment digs >2 cm into sand (avoid float) */
   const wrap=st.glb; if(!wrap)return;
   wrap.updateMatrixWorld(true);
-  const half=.055*(st.rig&&st.rig.fitScale||1);
+  const half=.04*(st.rig&&st.rig.fitScale||1);
   const _p=new V3();
   wrap.traverse(b=>{
     if(!b.isBone)return;
-    if(!(b.name==="Head"||b.name==="Root"||/^Body_/.test(b.name)))return;
+    if(!(b.name==="Head"||/^Body_/.test(b.name)))return;
     b.getWorldPosition(_p);
     const gy=sampleGroundY(_p.x,_p.z)+half;
     const dy=gy-_p.y;
-    if(dy>0.002)b.position.y+=dy*.85;
+    if(dy>0.02)b.position.y+=Math.min(dy*.7, .08);
   });
   wrap.updateMatrixWorld(true)}
 
@@ -2314,20 +2317,14 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XF
     Ce.target.set(c.x, sampleGroundY(c.x,c.z)+1.05, c.z); Ce.update()},
   followEagle:(dist)=>{
     const p=eagleWorldPos(); const d=dist||6.5;
-    const wantX=p.x-d*.75, wantY=p.y+2.4, wantZ=p.z+d*.55;
-    /* continuous camera — ease toward follow point, never hard-cut */
-    De.position.x=mix(De.position.x,wantX,.22);
-    De.position.y=mix(De.position.y,wantY,.22);
-    De.position.z=mix(De.position.z,wantZ,.22);
+    /* hard-lock follow — continuous as eagle moves; no lag that reads as cuts */
+    De.position.set(p.x-d*.75, p.y+2.4, p.z+d*.55);
     Ce.target.set(p.x,p.y+.05,p.z); Ce.update()},
   followSnake:(i,dist,h)=>{
     const s=snakes[i|0];if(!s)return;
     const d=dist||2.2, hh=h||0.95;
     const y=sampleGroundY(s.x,s.z);
-    const bx=s.x-Math.sin(s.th)*d, bz=s.z-Math.cos(s.th)*d;
-    De.position.x=mix(De.position.x,bx,.28);
-    De.position.y=mix(De.position.y,y+hh,.28);
-    De.position.z=mix(De.position.z,bz,.28);
+    De.position.set(s.x-Math.sin(s.th)*d, y+hh, s.z-Math.cos(s.th)*d);
     Ce.target.set(s.x, y+0.06, s.z); Ce.update()},
   eagleWorld:()=>{const p=eagleWorldPos(); return [p.x,p.y,p.z]},
   boneSnap:(which)=>{

@@ -64,7 +64,7 @@ const TENT={x:4.6,z:-9.6,yaw:-.32,L:6,D:4,H:2.2};
 const tentFwd={x:Math.sin(TENT.yaw),z:Math.cos(TENT.yaw)};
 const FIRE={x:TENT.x+tentFwd.x*(TENT.D*.5+3),z:TENT.z+tentFwd.z*(TENT.D*.5+3)};
 const RACK={x:TENT.x-Math.cos(TENT.yaw)*5.4,z:TENT.z+Math.sin(TENT.yaw)*5.4+.8,yaw:TENT.yaw};
-const PALMS=[{x:-8.4,z:-9.2,h:13.2,lean:[.05,-.06],ry:.4},{x:-4.6,z:-10.8,h:12,lean:[.07,.05],ry:2.1},{x:-12.4,z:-7.2,h:8.4,lean:[-.06,.04],ry:4.0}];
+const PALMS=[{x:-8.4,z:-9.2,h:11.8,lean:[.05,-.06],ry:.4},{x:-4.6,z:-10.8,h:10.8,lean:[.07,.05],ry:2.1},{x:-12.4,z:-7.2,h:7.6,lean:[-.06,.04],ry:4.0}];
 const SAG=[{x:-21,z:-9.8,h:5.2,ry:.6},{x:9.2,z:10.8,h:2.0,ry:2.4}];
 const PADS=[{x:TENT.x,z:TENT.z,rx:5.2,rz:4.2,yaw:TENT.yaw},{x:FIRE.x,z:FIRE.z,rx:2.2,rz:2.2,yaw:0},{x:RACK.x,z:RACK.z,rx:2.4,rz:1.6,yaw:RACK.yaw}];
 
@@ -124,7 +124,7 @@ function cleanMat(m){if(m.map){m.map.colorSpace="srgb";m.map.anisotropy=MOB?4:8;
 /* ---------------- island: one coherent mass — sand plateau + stratified sandstone underside ---------------- */
 const NT=MOB?200:320,NSR=MOB?70:120;
 const sandU={uWy:{value:POND.wy},uRipDir:{value:new T.V2(WIND.x,WIND.z)},uRip:{value:1},uNight:{value:0},
-  uSandA:{value:new C3("#eab266")},uSandB:{value:new C3("#d09050")},uWet:{value:new C3("#8a6c4c")},uSoil:{value:new C3("#a39457")},
+  uSandA:{value:new C3("#e8a95c")},uSandB:{value:new C3("#c98444")},uWet:{value:new C3("#8a6c4c")},uSoil:{value:new C3("#a39457")},
   uPond:{value:new T.V4(POND.x,POND.z,POND.rx,POND.rz)}};
 function sandMat(){
   const m=new T.MSM({color:0xffffff,roughness:.93,metalness:0});
@@ -216,7 +216,7 @@ function rockMat(extra){
   return m}
 const ROCK_M=rockMat(),ROCK_MI=rockMat({inst:1});
 let rockMesh=null;
-const islandDepth=th=>17+3.2*Math.sin(th*1+.8)+2.2*Math.sin(th*2-1.1)+2.5*(fbm2(Math.cos(th)*2.1+5,Math.sin(th)*2.1)-.5);
+const islandDepth=th=>21+3.2*Math.sin(th*1+.8)+2.2*Math.sin(th*2-1.1)+2.5*(fbm2(Math.cos(th)*2.1+5,Math.sin(th)*2.1)-.5);
 (function buildRock(){
   const rows=[];
   /* each row: [s, yFn(th,x,z,edgeY), wall/underside weight, t(depth fraction)] */
@@ -415,6 +415,7 @@ function scatter(geo,mat,list){const im=new T.IM(geo,mat,list.length),m=new T.M4
   sm.customProgramCacheKey=()=>"des44shrub";
   const SH=[];
   for(let i=0;i<14;i++){const th=Math.PI*(1.05+i/14*.95)+rr(-.1,.1),[x,z]=pondEdge(th,rr(1.18,1.5));if(beachGap(th)<.4)continue;SH.push({x,z,s:rr(.9,1.6)})}
+  for(let i=0;i<9;i++){const th=.5+i/8*1.55+rr(-.08,.08),[x,z]=pondEdge(th,rr(1.2,1.42));SH.push({x,z,s:rr(.65,1.05)})}
   PALMS.forEach((p,i)=>{for(let k=0;k<3;k++){const a=rnd()*TAU,r=rr(1.6,3.2);SH.push({x:p.x+Math.cos(a)*r,z:p.z+Math.sin(a)*r,s:rr(.8,1.4)})}});
   const sg=[shrubGeo(3),shrubGeo(7),shrubGeo(11)];
   SH.forEach((p,i)=>{if(pN(p.x,p.z)<1.1)return;const m=new T.Mesh(sg[i%3],sm);m.position.set(p.x,hTop(p.x,p.z)-.08,p.z);m.scale.set(p.s,p.s*rr(.75,1),p.s);m.rotation.y=rnd()*TAU;m.castShadow=m.receiveShadow=true;W.add(m);addOb(p.x,p.z,p.s*.7,"shrub")});
@@ -1126,7 +1127,7 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,
   tod(p){st.tod=p||null;const ph=phaseNow();for(const k in LK)LK[k]=k===ph?1:0;applyLighting(0)},
   /* camera helpers in island metres */
   lookAt(px,py,pz,tx,ty,tz){De.position.copy(toW(px,py,pz));const t=toW(tx,ty,tz);if(Ce){Ce.target.copy(t);Ce.update()}De.lookAt(t)},
-  Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV};
+  Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,snakeGo,play}};
 animalsReady.then(()=>{QA.ready=true});
 window.__desReady=true;
 }

@@ -1,0 +1,32 @@
+{
+  "eagle": {
+    "maxPerFrameJump_m": 0.5086,
+    "jumpsOver_0_5": 1,
+    "jumps": [
+      {
+        "i": 197,
+        "d": 0.5085555978275195
+      }
+    ]
+  },
+  "snake": {
+    "maxPerFrameJump_m": 0.284,
+    "jumpsOver_0_5": 0,
+    "jumps": []
+  },
+  "snake-strike": {
+    "maxPerFrameJump_m": 0,
+    "jumpsOver_0_5": 0,
+    "jumps": []
+  },
+  "camel-walk": {
+    "maxPerFrameJump_m": 0,
+    "jumpsOver_0_5": 0,
+    "jumps": []
+  },
+  "overview": {
+    "maxPerFrameJump_m": 0.3915,
+    "jumpsOver_0_5": 0,
+    "jumps": []
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "camel": {
+    "tripo0_Left_Limb_0": 0.27568084550462846,
+    "tripo0_Left_Limb_3": 0.5147981184320781,
+    "tripo0_Right_Limb_0": 0.28358235831087575,
+    "tripo0_Right_Limb_3": 0.4828394773516875,
+    "tripo1_Left_Limb_0": 0.23873490334064912,
+    "tripo1_Right_Limb_0": 0.21840795933060228,
+    "tripoSpine_4": 0.09604851101753652,
+    "tripoHead_0": 0.08818418390499451,
+    "tripoHead_2": 0.031464731823009594
+  },
+  "samples": [
+    {
+      "clip": "walk",
+      "clipT": 0,
+      "mode": "walk"
+    },
+    {
+      "clip": "walk",
+      "clipT": 0.26666666666666666,
+      "mode": "walk"
+    },
+    {
+      "clip": "walk",
+      "clipT": 0.5333333333333333,
+      "mode": "walk"
+    },
+    {
+      "clip": "walk",
+      "clipT": 0.7999999999999999,
+      "mode": "walk"
+    },
+    {
+      "clip": "walk",
+      "clipT": 1.0666666666666667,
+      "mode": "walk"
+    },
+    {
+      "clip": "walk",
+      "clipT": 0.23333330949147557,
+      "mode": "walk"
+    },
+    {
+      "clip": "walk",
+      "clipT": 0.4999999761581422,
+      "mode": "walk"
+    },
+    {
+      "clip": "walk",
+      "clipT": 0.7666666428248088,
+      "mode": "walk"
+    }
+  ],
+  "pass": true,
+  "status": [
+    {
+      "mode": "walk",
+      "useGlb": true,
+      "rig": true,
+      "clip": "walk",
+      "walkW": 1,
+      "fitScale": 0.9994677007967816,
+      "speed": 1.025453861017498,
+      "walkTs": 1,
+      "x": 0.11591920599940592,
+      "z": -3.616902541883405,
+      "facing": 1.0616476513107613,
+      "canDrink": true
+    },
+    {
+      "mode": "idle",
+      "useGlb": true,
+      "rig": true,
+      "clip": "idle",
+      "walkW": 0,
+      "fitScale": 0.9994677007967816,
+      "speed": 1.025453861017498,
+      "walkTs": 1,
+      "x": 1.1898917303230552,
+      "z": -2.369613365047996,
+      "facing": -2.1,
+      "canDrink": false
+    },
+    {
+      "mode": "idle",
+      "useGlb": true,
+      "rig": true,
+      "clip": "idle",
+      "walkW": 0,
+      "fitScale": 0.9994677007967816,
+      "speed": 1.025453861017498,
+      "walkTs": 1,
+      "x": -2.8354604910812795,
+      "z": -4.244009101074332,
+      "facing": 2.4,
+      "canDrink": false
+    }
+  ]
+}

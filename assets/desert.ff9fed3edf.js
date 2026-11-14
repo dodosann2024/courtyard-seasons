@@ -105,8 +105,9 @@ function gradeAnimalMat(m, kind){
   if(m.emissive){m.emissive.set("#000000"); m.emissiveIntensity=0}
   m.metalness=0;
   if(m.roughness==null||m.roughness>0.95)m.roughness=.82;
-  else if(kind==="snake")m.roughness=Math.max(.78, Math.min(.9, m.roughness||.85));
-  m.envMapIntensity=kind==="snake"?.06:.1;
+  else if(kind==="snake")m.roughness=Math.max(.72, Math.min(.88, m.roughness||.8));
+  /* snake: slightly higher env fill so Tripo saddle blotches read under desert sunset (no albedo tint) */
+  m.envMapIntensity=kind==="snake"?.28:.1;
   /* snake body: FrontSide only — DoubleSide would show hollow interior if clipped */
   if(kind==="snake"&&m.side!==undefined){
     const hex=m.color&&m.color.getHex?m.color.getHex():0;
@@ -2448,7 +2449,13 @@ onDes(root);
 /* QA hooks for motion review */
 window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XFADE,CAMEL_GRAZE_DUR,CAMEL_DRINK_DUR,De,Ce,
   get perch(){return eaglePerchWorld()},
-  lookAt:(px,py,pz,tx,ty,tz)=>{De.position.set(px,py,pz);Ce.target.set(tx,ty,tz);Ce.update()},
+  lookAt:(px,py,pz,tx,ty,tz)=>{
+    /* hard lock — OrbitControls damping would otherwise keep prior high orbit */
+    const damp=Ce.enableDamping, en=Ce.enabled;
+    Ce.enableDamping=false; Ce.enabled=false;
+    De.position.set(px,py,pz); Ce.target.set(tx,ty,tz);
+    De.up.set(0,1,0); De.lookAt(Ce.target); De.updateMatrixWorld(true);
+    Ce.enableDamping=damp; Ce.enabled=en},
   forceCamel:(i,mode)=>{const c=camels[i|0];if(!c)return;
     const m=mode||"walk"; c.graze=0; c.drink=0; c.t=0;
     if(m==="idle"){c.mode="idle"; c.tx=c.x; c.tz=c.z; c.idleFor=rr(4,10); camelPlay(c,"idle",.05)}
@@ -2500,16 +2507,33 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XF
     const y=sampleGroundY(s.x,s.z);
     De.position.set(s.x-Math.sin(s.th)*d, y+hh, s.z-Math.cos(s.th)*d);
     Ce.target.set(s.x, y+0.06, s.z); Ce.update()},
-  /* true low side: ~1.5 m height, 3–4 m away, near-horizontal, snake ~1/3 frame */
+  /* true low side: ~1.2–1.5 m height, 2.5–3.5 m away, near-horizontal, snake ~1/3 frame */
   followSnakeLow:(i,dist,h)=>{
     const s=snakes[i|0];if(!s)return;
-    const d=dist!=null?dist:3.5, hh=h!=null?h:1.5;
+    const d=dist!=null?dist:3.0, hh=h!=null?h:1.2;
     const y=sampleSnakeGroundY(s.x,s.z);
-    /* keep camera on dry side of snake, facing inland (away from lake) */
-    const away=Math.atan2(s.x-lakeC.x, s.z-lakeC.z);
-    const side=away; /* stand inland looking toward snake/lake */
-    De.position.set(s.x+Math.sin(side)*d, y+hh, s.z+Math.cos(side)*d);
-    Ce.target.set(s.x, y+0.22, s.z); Ce.update()},
+    /* stand perpendicular to heading (true side profile); pick the dry side */
+    let side=s.th+Math.PI/2;
+    const a1=s.x+Math.sin(side)*d, b1=s.z+Math.cos(side)*d;
+    const a2=s.x+Math.sin(side+Math.PI)*d, b2=s.z+Math.cos(side+Math.PI)*d;
+    const dry1=!pointInLakePoly(a1,b1)&&Math.hypot(a1-lakeC.x,b1-lakeC.z)>=lakeR+0.6;
+    const dry2=!pointInLakePoly(a2,b2)&&Math.hypot(a2-lakeC.x,b2-lakeC.z)>=lakeR+0.6;
+    if(!dry1&&dry2)side+=Math.PI;
+    else if(dry1&&dry2){
+      /* prefer the side farther from lake centre so lake stays out of the hero plane */
+      if(Math.hypot(a2-lakeC.x,b2-lakeC.z)>Math.hypot(a1-lakeC.x,b1-lakeC.z))side+=Math.PI}
+    else if(!dry1&&!dry2){
+      /* fallback: inland (away from lake) */
+      side=Math.atan2(s.x-lakeC.x, s.z-lakeC.z)}
+    const px=s.x+Math.sin(side)*d, pz=s.z+Math.cos(side)*d;
+    /* look near sand so belly-to-sand contact reads; pitch ~10–18° */
+    const ty=y+0.16;
+    const damp=Ce.enableDamping, en=Ce.enabled;
+    Ce.enableDamping=false; Ce.enabled=false;
+    De.position.set(px, y+hh, pz);
+    Ce.target.set(s.x, ty, s.z);
+    De.up.set(0,1,0); De.lookAt(Ce.target); De.updateMatrixWorld(true);
+    Ce.enableDamping=damp; Ce.enabled=en},
   eagleWorld:()=>{const p=eagleWorldPos(); return [p.x,p.y,p.z]},
   /* camel host/root world position (not logical x/hAt/z — that hid a stuck walk) */
   camelWorld:(i)=>{const c=camels[i|0];if(!c||!c.o)return null;

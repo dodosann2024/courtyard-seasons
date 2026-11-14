@@ -1,6 +1,6 @@
-/* 沙漠绿洲 · Desert Oasis (desert36) — from desert35: snake belly on sand (max
-   ground under coil), reed/prop path clearance, soft eagle approach→flare,
-   camel root continuity. HOLD MERGE. */
+/* 沙漠绿洲 · Desert Oasis (desert37) — from desert36: keep snake off lake
+   (≥1.5 m dry margin + head/tail PIP assert), restore Tripo albedo (no tint),
+   true low-side camera. HOLD MERGE. */
 (()=>{
 window.__desInit=getX=>{
 const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
@@ -95,20 +95,22 @@ function adoptGLB(host,glb){
   if(!host||!glb)return;
   host.children.slice().forEach(ch=>{ch.visible=false});
   glb.visible=true;host.add(glb);host.userData.glb=glb;host.userData.useGlb=1;onDes(glb)}
-/* Force Tripo animal albedo to read as authored (sRGB map, no metal wash / emissive). */
+/* Force Tripo animal albedo to read as authored (sRGB map, no metal wash / emissive).
+   Snake: leave baseColor texture unmodified — only colorSpace + lighting. No tint. */
 function gradeAnimalMat(m, kind){
   if(!m)return;
   if(m.map){
     try{m.map.colorSpace="srgb"; m.map.needsUpdate=true}catch(_){}
-    /* snake: warm multiply keeps Tripo saddles, lifts pale wash under desert sun */
-    if(m.color)m.color.set(kind==="snake"?"#e2c08a":"#ffffff")}
+    if(m.color)m.color.set("#ffffff")}
   if(m.emissive){m.emissive.set("#000000"); m.emissiveIntensity=0}
   m.metalness=0;
   if(m.roughness==null||m.roughness>0.95)m.roughness=.82;
   else if(kind==="snake")m.roughness=Math.max(.78, Math.min(.9, m.roughness||.85));
-  m.envMapIntensity=kind==="snake"?.04:.1;
+  m.envMapIntensity=kind==="snake"?.06:.1;
   /* snake body: FrontSide only — DoubleSide would show hollow interior if clipped */
-  if(kind==="snake"&&m.side!==undefined&&m.color&&m.color.getHex&&m.color.getHex()!==0xc43845)m.side=0;
+  if(kind==="snake"&&m.side!==undefined){
+    const hex=m.color&&m.color.getHex?m.color.getHex():0;
+    if(hex!==0xc43845)m.side=0}
   m.needsUpdate=true}
 function gradeAnimalGLB(root, kind){
   if(!root)return;
@@ -1811,10 +1813,32 @@ function snakeAimYaw(fromX,fromZ,toX,toZ){
   const len=Math.hypot(dx,dz)||1;
   const ax=dx/len, az=dz/len;
   return Math.atan2(az, -ax)}
+/* Shoreline polygon (XZ) rebuilt with the lake disc — for PIP dry-sand asserts */
+let lakePoly=null;
+const SNAKE_LAKE_MARGIN=1.5; /* metres outside shoreline polygon */
+function rebuildLakePoly(cx,cz,rad,n){
+  const N=n||48, pts=[];
+  for(let i=0;i<N;i++){
+    const a=(i/N)*TAU;
+    pts.push({x:cx+Math.cos(a)*rad, z:cz+Math.sin(a)*rad})}
+  lakePoly=pts; return pts}
+function pointInLakePoly(x,z){
+  /* even-odd PIP against shoreline polygon (false = dry sand) */
+  const pts=lakePoly;
+  if(!pts||!pts.length){
+    return Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR}
+  let inside=0;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const xi=pts[i].x, zi=pts[i].z, xj=pts[j].x, zj=pts[j].z;
+    const hit=((zi>z)!==(zj>z))&&(x<(xj-xi)*(z-zi)/((zj-zi)||1e-12)+xi);
+    if(hit)inside^=1}
+  return !!inside}
+function snakeDryMargin(x,z){
+  /* ≥1.5 m outside shoreline — circle proxy matches disc lake */
+  return Math.hypot(x-lakeC.x,z-lakeC.z)>=lakeR+SNAKE_LAKE_MARGIN}
 function snakeOpenSand(x,z){
-  /* avoid lake, tent, firepit, bones, cactus, palms, shore reeds —
-     reed PlaneGeometry edge-on reads as a thin cream/beige pole in snake.mp4 */
-  if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR+1.45)return 0;
+  /* dry dune only: ≥1.5 m outside lake polygon, clear of tent/reeds/props */
+  if(!snakeDryMargin(x,z)||pointInLakePoly(x,z))return 0;
   if(typeof tentAnchor!=="undefined"&&tentAnchor&&Math.hypot(x-tentAnchor.x,z-tentAnchor.z)<2.4)return 0;
   if(typeof fireG!=="undefined"&&fireG&&Math.hypot(x-fireG.position.x,z-fireG.position.z)<1.6)return 0;
   /* bleached rib props (desert props) */
@@ -1827,8 +1851,34 @@ function snakeOpenSand(x,z){
   /* tripo const is declared later — never touch it here (TDZ); tent/palms cover it */
   for(let i=0;i<reedG.children.length;i++){
     const g=reedG.children[i];
-    if(g&&Math.hypot(x-g.position.x,z-g.position.z)<.55)return 0}
+    if(g&&Math.hypot(x-g.position.x,z-g.position.z)<.7)return 0}
   return 1}
+function snakeEndsWorld(st){
+  /* head + tip-of-tail world XZ for lake PIP assertion */
+  const out={head:null,tail:null};
+  const wrap=st.glb||st.o; if(!wrap)return out;
+  wrap.updateMatrixWorld(true);
+  let head=null, tip=null, tipI=-1;
+  wrap.traverse(b=>{
+    if(!b.isBone)return;
+    if(b.name==="Head"||/Head/i.test(b.name))head=b;
+    const m=/^Body_(\d+)$/.exec(b.name);
+    if(m){const i=+m[1]; if(i>tipI){tipI=i; tip=b}}});
+  const _p=new V3();
+  if(head){head.getWorldPosition(_p); out.head={x:_p.x,z:_p.z,y:_p.y}}
+  else out.head={x:st.x,z:st.z,y:st.o?st.o.position.y:0};
+  if(tip){tip.getWorldPosition(_p); out.tail={x:_p.x,z:_p.z,y:_p.y}}
+  else out.tail={x:st.x,z:st.z,y:st.o?st.o.position.y:0};
+  return out}
+function snakeAssertDry(st){
+  /* every frame: head + tail must be outside the lake polygon */
+  const ends=snakeEndsWorld(st);
+  const bad=[];
+  if(ends.head&&pointInLakePoly(ends.head.x,ends.head.z))bad.push("head");
+  if(ends.tail&&pointInLakePoly(ends.tail.x,ends.tail.z))bad.push("tail");
+  if(!snakeDryMargin(st.x,st.z))bad.push("root");
+  return {ok:!bad.length, bad, ends, lakeR, lakeC:{x:lakeC.x,z:lakeC.z}, margin:SNAKE_LAKE_MARGIN}}
+rebuildLakePoly(lakeC.x,lakeC.z,lakeR,48);
 function snakePlaceTrigger(st){
   if(!st.trigger){
     st.trigger=makeSnakeTrigger(); root.add(st.trigger); onDes(st.trigger)}
@@ -1854,11 +1904,12 @@ function snakeBeginStrike(st){
   snakePlay(st,"strike",.05);
   st.strikeCD=rr(40,90)}
 function spawnSnake(){
-  const spots=[{x:3.8,z:3.0,th:1.2},{x:4.2,z:2.2,th:-.4},{x:2.6,z:3.6,th:2.1}];
-  let sp=spots[snakes.length%spots.length]||{x:3.5,z:3.2,th:0};
+  /* firmly dry dune SE/NE of lake — never near shoreline */
+  const spots=[{x:5.4,z:3.6,th:.4},{x:5.8,z:2.4,th:-.3},{x:4.6,z:4.2,th:1.0}];
+  let sp=spots[snakes.length%spots.length]||{x:5.2,z:3.4,th:0};
   if(!snakeOpenSand(sp.x,sp.z)){
-    for(let k=0;k<12;k++){
-      const a=rnd()*TAU,r=rr(2.8,R*.55),x=Math.cos(a)*r,z=Math.sin(a)*r;
+    for(let k=0;k<24;k++){
+      const a=rnd()*TAU,r=rr(lakeR+SNAKE_LAKE_MARGIN+1.2,R*.62),x=Math.cos(a)*r,z=Math.sin(a)*r;
       if(snakeOpenSand(x,z)){sp={x,z,th:sp.th};break}}}
   const host=makeSnakeProcedural();
   const s={o:host,x:sp.x,z:sp.z,th:sp.th,mode:"slither",t:rr(0,4),speed:SNAKE_SLITHER_MPS,
@@ -1968,7 +2019,7 @@ function snakeUpdate(st,dt,t){
     const maxT=CAMEL_MAX_TURN*dt;
     const r=Math.hypot(st.x,st.z);
     if(r>R*.7){const out=Math.atan2(st.x,st.z); let d=((out+Math.PI)-st.th+Math.PI*3)%TAU-Math.PI; wantTh=st.th+cl(d,-maxT,maxT)}
-    if(Math.hypot(st.x-lakeC.x,st.z-lakeC.z)<lakeR*1.25){
+    if(!snakeDryMargin(st.x,st.z)){
       const away=Math.atan2(st.x-lakeC.x,st.z-lakeC.z); let d=(away-st.th+Math.PI*3)%TAU-Math.PI; wantTh=st.th+cl(d,-maxT,maxT)}
     let dth=((wantTh-st.th+Math.PI*3)%TAU)-Math.PI;
     st.th+=cl(dth,-maxT,maxT)}
@@ -1981,9 +2032,15 @@ function snakeUpdate(st,dt,t){
     else{nx=st.x+Math.sin(st.th)*sp*dt; nz=st.z+Math.cos(st.th)*sp*dt}
     if(snakeOpenSand(nx,nz)){st.x=nx; st.z=nz; st.speed=sp}
     else{
-      /* steer clear of reeds/props/lake — same clearance for all props */
+      /* steer onto open dry sand — try away-from-lake then compass */
       const away=Math.atan2(st.x-lakeC.x, st.z-lakeC.z);
-      st.th=away+rr(-.4,.4); st.speed=0}
+      let found=0;
+      for(let k=0;k<8;k++){
+        const th=away+(k?((k%2?1:-1)*Math.ceil(k/2)*0.45):0);
+        const tx=st.x+Math.sin(th)*sp*dt*4, tz=st.z+Math.cos(th)*sp*dt*4;
+        if(snakeOpenSand(tx,tz)){st.th=th; found=1; break}}
+      if(!found)st.th=away+rr(-.3,.3);
+      st.speed=0}
   }else st.speed=0;
 
   /* plant on MAX visual ground under the whole coil/body */
@@ -2443,18 +2500,25 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XF
     const y=sampleGroundY(s.x,s.z);
     De.position.set(s.x-Math.sin(s.th)*d, y+hh, s.z-Math.cos(s.th)*d);
     Ce.target.set(s.x, y+0.06, s.z); Ce.update()},
-  /* low side cam ~1.5 m — belly-to-sand contact visible, snake centred */
+  /* true low side: ~1.5 m height, 3–4 m away, near-horizontal, snake ~1/3 frame */
   followSnakeLow:(i,dist,h)=>{
     const s=snakes[i|0];if(!s)return;
-    const d=dist||2.4, hh=h!=null?h:1.5;
-    const y=sampleGroundY(s.x,s.z);
-    const side=s.th+Math.PI*.55;
+    const d=dist!=null?dist:3.5, hh=h!=null?h:1.5;
+    const y=sampleSnakeGroundY(s.x,s.z);
+    /* keep camera on dry side of snake, facing inland (away from lake) */
+    const away=Math.atan2(s.x-lakeC.x, s.z-lakeC.z);
+    const side=away; /* stand inland looking toward snake/lake */
     De.position.set(s.x+Math.sin(side)*d, y+hh, s.z+Math.cos(side)*d);
-    Ce.target.set(s.x, y+0.08, s.z); Ce.update()},
+    Ce.target.set(s.x, y+0.22, s.z); Ce.update()},
   eagleWorld:()=>{const p=eagleWorldPos(); return [p.x,p.y,p.z]},
   /* camel host/root world position (not logical x/hAt/z — that hid a stuck walk) */
   camelWorld:(i)=>{const c=camels[i|0];if(!c||!c.o)return null;
     const p=c.o.position; return [p.x,p.y,p.z]},
+  snakeAssertDry:(i)=>snakeAssertDry(snakes[i|0]||snakes[0]),
+  pointInLakePoly:(x,z)=>pointInLakePoly(x,z),
+  snakeEnds:(i)=>snakeEndsWorld(snakes[i|0]||snakes[0]),
+  get lakePoly(){return lakePoly},
+  SNAKE_LAKE_MARGIN,
   boneSnap:(which)=>{
     if(which==="camel"){const c=camels[0];if(!c||!c.rig)return null;
       const keys=["tripo0_Left_Limb_0","tripo0_Left_Limb_3","tripo0_Right_Limb_0","tripo0_Right_Limb_3",
@@ -2902,6 +2966,7 @@ function syncIslandLakeU(){
         if(u.uLakeC)u.uLakeC.value.set(lakeC.x,0,lakeC.z);
         if(u.uLakeR)u.uLakeR.value=lakeR})})})}
 function rebuildLakeDisc(cx,cz,rad,y){
+  rebuildLakePoly(cx,cz,rad,48);
   /* shoreline fan at water height — stop at shore (no overspill onto grass).
      Spit verts sit below waterY so depthTest:true still hides them. */
   const N=72, softR=rad*0.995;

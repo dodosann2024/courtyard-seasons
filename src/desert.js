@@ -1,6 +1,6 @@
-/* 沙漠绿洲 · Desert Oasis (desert37) — from desert36: keep snake off lake
-   (≥1.5 m dry margin + head/tail PIP assert), restore Tripo albedo (no tint),
-   true low-side camera. HOLD MERGE. */
+/* 沙漠绿洲 · Desert Oasis (desert38) — from desert37 (snake ok): scene fidelity
+   vs reference — smoke, dunes, rim rocks, deep jagged underside, puff cloud sea,
+   tent drying-rack (not stick-figure). HOLD MERGE. */
 (()=>{
 window.__desInit=getX=>{
 const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
@@ -30,8 +30,8 @@ const MODEL_FIT={camel:1.98,camel_v3:1.98,camel_v2:1.98,camel_rigged:1.08,
   eagle:2.1,eagle_v3:2.1,eagle_rigged:.62,eagle_perch:.85,eagle_perch_v2:.85,
   snake:1.23,snake_v3:1.23,snake_rigged:.55,
   island:18.8,island_base:18.8,tent:1.75,palm:4.4,saguaro:2.0,cactus:2.0};
-/* island_base native ~1 unit wide (authoring ~30m); underside Y scale vs XZ */
-const ISLAND_Y_SCALE=.75;
+/* island_base native ~1 unit wide; Y scale deepens sandstone tip (~0.6× width) */
+const ISLAND_Y_SCALE=1.15;
 let _man=null,_gltfMod=null,_VT=null;
 function modelsManifest(){if(_man)return _man;const url=((window.CY&&CY.root)||"")+"assets/models/manifest.json";
  _man=fetch(url).then(r=>r.ok?r.json():{}).catch(()=>({}));return _man}
@@ -183,9 +183,8 @@ const palmFrondMats=[]; /* wait for palm_frond.png */
 /* ---------------- irregular sandstone island + golden dunes ---------------- */
 const lakeC={x:-1.6,z:.55}; let lakeR=2.85;
 const tentAnchor={x:.2,z:-2.2};
-/* Cliff depth ≈0.6× island width (2R≈18.8 → tip ~−11.3) */
-/* underside depth ≈ island width * 0.4 → ~7.5m; keep slightly deeper for tip readability */
-const CLIFF_H=9.0; /* ≈ island width*0.4 deep sandstone cone (ref) */
+/* underside depth ≈ island width × 0.6 (ref) → tip ~−11.3 m */
+const CLIFF_H=11.3;
 /* Integer angular harmonics only — avoids u=0/TAU seam in skirt mesh */
 function rimR(th){
   const c=Math.cos(th),s=Math.sin(th);
@@ -199,29 +198,30 @@ function hNoise(x,z){
        +.07*Math.sin(x*.55-z*.36+1.4)
        +.04*Math.sin(x*1.15+z*.9)
        +.018*Math.sin(x*2.3-z*1.7)}
+/* dune lift only (metres) — crescent behind tent + secondary ridge; used to sculpt Tripo sand */
+function duneLift(x,z){
+  let h=0;
+  /* big crescent behind/right of tent (ref) */
+  {const cx=3.6,cz=-4.0, dx=x-cx,dz=z-cz;
+   const along=dx*.9+dz*.25, across=-dx*.25+dz*.9;
+   const crest=Math.exp(-across*across/(2*.7*.7))*Math.exp(-along*along/(2*2.8*2.8));
+   const face=ss(-.15,.55,across); /* lit face vs shadowed lee */
+   h+=1.05*crest*mix(.55,1.15,face)}
+  /* secondary ridge toward far rim */
+  {const cx=5.2,cz=1.2, dx=x-cx,dz=z-cz;
+   const along=dx*.55+dz*.8, across=-dx*.8+dz*.55;
+   h+=.55*Math.exp(-across*across/(2*.55*.55))*Math.exp(-along*along/(2*2.0*2.0))}
+  /* soft wind ripples */
+  h+=.045*Math.sin(x*3.1+z*.45)*Math.sin(z*2.8-x*.55)*ss(1.0,4.5,Math.hypot(x,z));
+  /* keep tent pad + lake bowl flat */
+  const dt=Math.hypot(x-tentAnchor.x,z-tentAnchor.z);
+  h*=1-ss(3.2,.35,dt)*.98;
+  const dl=Math.hypot(x-lakeC.x,z-lakeC.z);
+  h*=1-ss(lakeR*1.35,lakeR*.55,dl)*.95;
+  return Math.max(0,h)}
 function hAtProc(x,z){
   const th=Math.atan2(z,x),r=Math.hypot(x,z),Rth=rimR(th),edge=ss(Rth*.72,Rth,r);
-  let h=.12+hNoise(x,z);
-  /* sculpted dunes on the RIGHT half (ref) — taller crests */
-  const right=ss(-1.2,3.2,x);
-  const d1=Math.exp(-Math.pow((z-x*.15+1.2)/1.05,2))*Math.exp(-Math.pow((x-3.2)/2.5,2));
-  const d2=Math.exp(-Math.pow((z+x*.2-2.0)/.8,2))*Math.exp(-Math.pow((x-4.5)/1.9,2));
-  const d3=Math.exp(-Math.pow((z-x*.1+.4)/1.35,2))*Math.exp(-Math.pow((x-5.5)/3.0,2));
-  const d4=Math.exp(-Math.pow((z+1.8)/1.2,2))*Math.exp(-Math.pow((x-2.4)/2.2,2));
-  h+=(.85*d1+.65*d2+.5*d3+.4*d4)*right;
-  /* low crescent dune away from tent pad (ref: tent on flat sand near lake) */
-  const cx=4.2,cz=-3.2;
-  const dx=x-cx,dz=z-cz;
-  const along=dx*.85+dz*.3,across=-dx*.3+dz*.85;
-  h+=.38*Math.exp(-across*across/(2*.55*.55))*Math.exp(-along*along/(2*2.2*2.2));
-  /* flatten pad under tent */
-  const dt=Math.hypot(x-tentAnchor.x,z-tentAnchor.z);
-  h=mix(h,.01,ss(4.0,.25,dt)*.98);
-  /* also suppress nearby right-side dunes that bury the tent in close-ups */
-  const dDune=Math.exp(-Math.pow((z+1.2)/1.1,2))*Math.exp(-Math.pow((x-2.0)/2.0,2));
-  h-=.35*dDune*ss(-.5,2.5,x);
-  /* soft wind ripples (height) */
-  h+=.05*Math.sin(x*2.8+z*.4)*Math.sin(z*3.1-x*.5)*right;
+  let h=.08+hNoise(x,z)+duneLift(x,z);
   /* oasis bowl + wet band */
   const dl=Math.hypot(x-lakeC.x,z-lakeC.z);
   h=mix(h,-.08,ss(lakeR*1.3,lakeR*.25,dl));
@@ -598,8 +598,35 @@ function buildCloudSea(){
 function placeSoftDepthCards(){ /* no vertical billboards */ }
 function addCloudFloorLayers(){ /* far horizontal disc only */ }
 
+/* puff cumulus bank below island — sea-style soft Points impostors */
+function buildPuffCloudBank(){
+  const n=MOB?28:48;
+  const can=document.createElement("canvas");can.width=can.height=128;
+  {const g=can.getContext("2d");
+    for(let i=0;i<16;i++){const x=rr(30,98),y=rr(30,98),s=rr(14,34);
+      const r=g.createRadialGradient(x,y,0,x,y,s);r.addColorStop(0,"rgba(255,255,255,.38)");r.addColorStop(1,"rgba(255,255,255,0)");
+      g.fillStyle=r;g.fillRect(0,0,128,128)}}
+  const tex=new T.CTex(can);tex.colorSpace="srgb";
+  const p=new Float32Array(n*3),a=new Float32Array(n),s=new Float32Array(n);
+  const g=new T.BG();g.setAttribute("position",new T.BA(p,3));g.setAttribute("aA",new T.BA(a,1));g.setAttribute("aS",new T.BA(s,1));
+  const uC={value:new C3(.92,.78,.68)};
+  const m=new T.SM({transparent:true,depthWrite:false,fog:false,blending:1,
+    uniforms:{tS:{value:tex},uSc:{value:480},uC},
+    vertexShader:`attribute float aA,aS;uniform float uSc;varying float vA;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;float d=max(.5,-mv.z);gl_PointSize=aA<.003?0.:min(aS*uSc/d,520.);vA=aA;}`,
+    fragmentShader:`uniform sampler2D tS;uniform vec3 uC;varying float vA;void main(){float a=texture2D(tS,gl_PointCoord).a*vA;if(a<.01)discard;gl_FragColor=vec4(uC,a);}`});
+  const o=new T.Points(g,m);o.frustumCulled=false;o.renderOrder=-40;o.layers.mask=1|L3;
+  const CB=[];
+  for(let i=0;i<n;i++){
+    const th=i/n*TAU+rr(-.08,.08), rad=rr(R*.55,R*2.4), y=rr(-CLIFF_H-2.5,-CLIFF_H*.35);
+    CB.push({th,rad,y,sz:rr(7,14),ph:rnd()*TAU,w:rr(.003,.01)});
+    p[i*3]=Math.cos(th)*rad;p[i*3+1]=y;p[i*3+2]=Math.sin(th)*rad;a[i]=.28;s[i]=CB[i].sz}
+  root.add(o);onDes(o);
+  window.__desPuffBank={o,p,a,s,g,m,uC,CB,n};
+  return o}
+
 const island=buildIsland(),under=buildUnderside(),cloudSea=buildCloudSea();
 root.add(island);root.add(under);root.add(cloudSea);onDes(island);onDes(under);onDes(cloudSea);
+buildPuffCloudBank();
 /* ONE large horizontal cloud-sea disc FAR below island — never intersects deck.
    y ≈ underside tip − 25 m; radius ≥ 400 m; depthWrite false; draw before island. */
 (function buildFarCloudSeaDisc(){
@@ -802,34 +829,35 @@ function reseatShoreGreen(){
 }
 reseatShoreGreen();
 
-/* modest rocks near oasis + a few on rim */
+/* sandstone boulders — rim cluster + a few on sand (ref); cliff sandstone mat */
 const rockG=new T.Group();root.add(rockG);window.__desRockMats=[];
 function placeRimRocks(){
   while(rockG.children.length)rockG.remove(rockG.children[0]);
-  const rockM=M({color:"#a88868",map:sandTex||null,roughness:.96,metalness:0}); sandMats.push(rockM); window.__desRockMats.push(rockM);
+  const rockM=M({color:"#b88958",map:sandTex||null,roughness:.96,metalness:0}); sandMats.push(rockM); window.__desRockMats.push(rockM);
   function rockMesh(s){
-    const rk=new T.Mesh(new T.Sphere(s*.55,7,5),rockM);
-    rk.scale.set(rr(.9,1.25),rr(.4,.65),rr(.85,1.2));
+    const rk=new T.Mesh(new T.Sphere(s*.55,8,6),rockM);
+    rk.scale.set(rr(.85,1.35),rr(.38,.72),rr(.8,1.3));
     return rk}
   function placeAt(x,z,s){
+    if(Math.hypot(x,z)>R-0.35)return;
+    if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR+.15)return;
+    if(Math.hypot(x-tentAnchor.x,z-tentAnchor.z)<1.6)return;
     const y=hAt(x,z); const rk=rockMesh(s);
-    rk.position.set(x,y+s*.06,z);
-    rk.rotation.set(rr(0,1),rr(0,TAU),rr(0,1));
+    rk.position.set(x,y+s*.08,z);
+    rk.rotation.set(rr(0,1.1),rr(0,TAU),rr(0,1.1));
     rk.castShadow=rk.receiveShadow=true; onDes(rk); rockG.add(rk)}
-  /* small rocks near oasis + a few on sand (ref) */
-  for(let i=0;i<(MOB?7:12);i++){
-    const a=rnd()*TAU, rad=lakeR+rr(.5,1.7);
-    const x=lakeC.x+Math.cos(a)*rad, z=lakeC.z+Math.sin(a)*rad*.95;
-    if(Math.hypot(x,z)>R-0.7)continue;
-    placeAt(x,z,rr(.04,.1))}
-  for(let i=0;i<(MOB?4:8);i++){
-    const a=rnd()*TAU, rad=lakeR*1.5+rnd()*(R*.5);
-    const x=Math.cos(a)*rad, z=Math.sin(a)*rad*.9;
-    if(Math.hypot(x,z)>R-0.8||Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR+.3)continue;
-    placeAt(x,z,rr(.035,.09))}
+  /* rim boulders (varied) */
+  const rimN=MOB?8:12;
+  for(let i=0;i<rimN;i++){
+    const th=(i/rimN)*TAU+rr(-.12,.12), rad=R*(.72+rr(0,.16));
+    placeAt(Math.cos(th)*rad, Math.sin(th)*rad, rr(.18,.55))}
+  /* a few mid-sand + near oasis */
+  for(let i=0;i<(MOB?3:6);i++){
+    const a=rnd()*TAU, rad=lakeR+rr(.55,2.2);
+    placeAt(lakeC.x+Math.cos(a)*rad, lakeC.z+Math.sin(a)*rad*.95, rr(.1,.28))}
   for(let i=0;i<(MOB?2:4);i++){
-    const th=rnd()*TAU, rad=R*(.78+rr(0,.12));
-    placeAt(Math.cos(th)*rad, Math.sin(th)*rad, rr(.06,.12))}}
+    const a=rnd()*TAU, rad=rr(R*.35,R*.65);
+    placeAt(Math.cos(a)*rad, Math.sin(a)*rad*.9, rr(.12,.32))}}
 placeRimRocks();
 const shrubs=[];
 (function makeShrubs(){
@@ -1186,14 +1214,26 @@ fireG.position.set(firePos.x,hAt(firePos.x,firePos.z),firePos.z);root.add(fireG)
   const fireL=new T.PL(new C3("#ff9a4a"),0,6,2);fireL.position.set(0,.35,0);fireL.layers.mask=1|L3;fireG.add(fireL);fireG.userData.light=fireL;
   const tentL=new T.PL(new C3("#ffb070"),0,3.2,2);tentL.position.set(1.0,.4,-.5);tentL.layers.mask=1|L3;fireG.add(tentL);fireG.userData.tentL=tentL;
 })();
-/* soft campfire smoke — wide diffuse wisps (never a hard white vertical pole) */
-const SMN=MOB?70:100,smP=new Float32Array(SMN*3),smA=new Float32Array(SMN),smG=new T.BG();
-smG.setAttribute("position",new T.BA(smP,3));smG.setAttribute("a",new T.BA(smA,1));
-const smM=new T.SM({transparent:true,depthWrite:false,fog:false,uniforms:{col:{value:new C3(.5,.48,.46)},scale:{value:3.4}},
- vertexShader:`attribute float a;varying float vA;uniform float scale;void main(){vA=a;vec4 mv=modelViewMatrix*vec4(position,1.);float dist=max(.5,-mv.z);vA*=smoothstep(28.,10.,dist); /* fade in overview — no hard white pole */ gl_Position=projectionMatrix*mv;gl_PointSize=max(10.,scale*(22.+a*42.)/dist);}`,
- fragmentShader:`uniform vec3 col;varying float vA;void main(){float d=length(gl_PointCoord-.5);float soft=smoothstep(.5,.0,d);gl_FragColor=vec4(col,vA*soft*.22);}`});
-{const smPts=new T.Points(smG,smM);smPts.frustumCulled=false;smPts.renderOrder=5;smPts.layers.mask=1|L3;root.add(smPts)}
-const SMF=[];for(let i=0;i<SMN;i++)SMF.push({x:0,y:rr(0,2.5),z:0,v:rr(.22,.55),life:rnd(),jx:rr(-1,1),jz:rr(-1,1)});
+/* campfire smoke — soft grey-white column, visible at overview, fades with height */
+const SMN=MOB?90:140,smP=new Float32Array(SMN*3),smA=new Float32Array(SMN),smS=new Float32Array(SMN),smG=new T.BG();
+smG.setAttribute("position",new T.BA(smP,3));smG.setAttribute("a",new T.BA(smA,1));smG.setAttribute("aS",new T.BA(smS,1));
+const smPuffCan=document.createElement("canvas");smPuffCan.width=smPuffCan.height=64;
+{const g=smPuffCan.getContext("2d");
+  for(let i=0;i<10;i++){const x=rr(18,46),y=rr(18,46),s=rr(10,22);
+    const r=g.createRadialGradient(x,y,0,x,y,s);r.addColorStop(0,"rgba(255,255,255,.55)");r.addColorStop(1,"rgba(255,255,255,0)");
+    g.fillStyle=r;g.fillRect(0,0,64,64)}}
+const smPuffTex=new T.CTex(smPuffCan);smPuffTex.colorSpace="srgb";
+const smM=new T.SM({transparent:true,depthWrite:false,fog:false,blending:1,
+ uniforms:{map:{value:smPuffTex},col:{value:new C3(.78,.76,.74)},scale:{value:520}},
+ vertexShader:`attribute float a,aS;uniform float scale;varying float vA;
+  void main(){vA=a;vec4 mv=modelViewMatrix*vec4(position,1.);float dist=max(.8,-mv.z);
+   /* stay readable at overview (~25–45 m) — grow with distance, not fade */
+   gl_PointSize=clamp(aS*scale/dist, 6., 140.);
+   gl_Position=projectionMatrix*mv;}`,
+ fragmentShader:`uniform sampler2D map;uniform vec3 col;varying float vA;
+  void main(){float a=texture2D(map,gl_PointCoord).a*vA;if(a<.02)discard;gl_FragColor=vec4(col,a);}`});
+{const smPts=new T.Points(smG,smM);smPts.frustumCulled=false;smPts.renderOrder=7;smPts.layers.mask=1|L3;root.add(smPts);window.__desSmoke=smPts}
+const SMF=[];for(let i=0;i<SMN;i++)SMF.push({x:0,y:rr(0,4.5),z:0,v:rr(.45,.85),life:rnd(),jx:rr(-1,1),jz:rr(-1,1),sz:rr(.55,1.35)});
 
 /* ---------------- camel — barrel body, S-neck, knobby legs ---------------- */
 function makeCamelProcedural(){
@@ -2248,11 +2288,16 @@ function update(dt){
       pos.array[o]=base[o]+wiggle;pos.array[o+1]=base[o+1]+wiggle*.55;pos.array[o+2]=base[o+2]+wiggle*.4}
     pos.needsUpdate=true});
 
-  const fp=fireG.position;for(let i=0;i<SMN;i++){const k=SMF[i];k.life+=dt*.12;if(k.life>1){k.life=0;k.x=fp.x+rr(-.12,.12);k.z=fp.z+rr(-.12,.12);k.y=fp.y+.12;k.v=rr(.28,.55);k.jx=rr(-1,1);k.jz=rr(-1,1)}
-    /* soft billow — lateral spread so overview never reads a hard white pole */
-    k.y+=k.v*dt;k.x+=wn*.55*dt+k.jx*.35*dt;k.z+=wn*.2*dt+k.jz*.35*dt;
-    smP[i*3]=k.x;smP[i*3+1]=k.y;smP[i*3+2]=k.z;smA[i]=(1-k.life)*(.32+night*.15)*(1-ss(1.6,3.4,k.y-fp.y))}
-  smG.attributes.position.needsUpdate=smG.attributes.a.needsUpdate=true;
+  const fp=fireG.position;for(let i=0;i<SMN;i++){const k=SMF[i];k.life+=dt*.085;if(k.life>1){k.life=0;k.x=fp.x+rr(-.08,.08);k.z=fp.z+rr(-.08,.08);k.y=fp.y+.14;k.v=rr(.5,.95);k.jx=rr(-1,1);k.jz=rr(-1,1);k.sz=rr(.6,1.4)}
+    /* thin column rising then drifting with wind; fade by height (~5–6 m) */
+    const rise=k.y-fp.y;
+    k.y+=k.v*dt;k.x+=wn*.7*dt+k.jx*.22*dt*(.4+rise*.15);k.z+=wn*.25*dt+k.jz*.22*dt*(.4+rise*.15);
+    smP[i*3]=k.x;smP[i*3+1]=k.y;smP[i*3+2]=k.z;
+    const hFade=1-ss(2.4,6.0,rise);
+    const birth=ss(0,.06,k.life); const death=1-ss(.72,1,k.life);
+    smA[i]=Math.max(0,(.62+night*.18)*hFade*birth*death);
+    smS[i]=k.sz*(.75+rise*.2)}
+  smG.attributes.position.needsUpdate=smG.attributes.a.needsUpdate=smG.attributes.aS.needsUpdate=true;
   (fireG.userData.flames||[]).forEach((fl,i)=>{
     const bob=.85+.15*Math.sin(t*14+i*1.7)+.08*Math.sin(t*23+i);
     fl.scale.set(bob,bob*1.1,1);
@@ -2285,6 +2330,18 @@ function update(dt){
       pl.position.y=u.y0+Math.sin(t*.1+u.ph)*.22;
       pl.lookAt(De.position.x,pl.position.y,De.position.z);
       pl.rotateX(-.08+Math.sin(t*.09+u.ph)*.03)})}
+  /* puff cumulus bank under island */
+  if(window.__desPuffBank){
+    const B=window.__desPuffBank;
+    for(let i=0;i<B.n;i++){
+      const b=B.CB[i]; b.th+=b.w*dt;
+      B.p[i*3]=Math.cos(b.th)*b.rad; B.p[i*3+2]=Math.sin(b.th)*b.rad;
+      B.p[i*3+1]=b.y+.35*Math.sin(t*.08+b.ph);
+      B.a[i]=.26+.07*Math.sin(t*.05+b.ph*2); B.s[i]=b.sz}
+    B.g.attributes.position.needsUpdate=B.g.attributes.aA.needsUpdate=B.g.attributes.aS.needsUpdate=true;
+    /* sunset-lit warm grey (night from outer update scope) */
+    const lit=night>.5?.4:1;
+    B.uC.value.set(.92*lit*(1-night*.5)+.4*night, .76*lit*(1-night*.4)+.48*night, .64*lit*(1-night*.25)+.6*night)}
 
     /* Tripo prop wind uniforms */
   palmFrondMats.forEach(m=>{if(m&&m.userData&&m.userData._windU)m.userData._windU.value=t});
@@ -3121,6 +3178,73 @@ function flattenBakedProps(mesh, anchors){
       const prevKey=m.customProgramCacheKey;
       m.customProgramCacheKey=()=>((typeof prevKey==="function"?prevKey():"")+"|flat15");
       m.needsUpdate=true})})}
+/* sculpt wind dunes into Tripo sand deck (upward faces only); refresh HF after */
+function sculptIslandDunes(wrap){
+  if(!wrap||!T.Matrix4)return;
+  wrap.updateMatrixWorld(true);
+  const inv=new T.Matrix4();
+  wrap.traverse(o=>{
+    if(!o.isMesh||!o.geometry||!o.geometry.attributes.position)return;
+    const g=o.geometry; if(!g.attributes.normal)g.computeVertexNormals();
+    const pos=g.attributes.position, nor=g.attributes.normal;
+    if(pos.count<500)return;
+    const e=o.matrixWorld.elements;
+    inv.copy(o.matrixWorld).invert(); const ie=inv.elements;
+    let n=0;
+    for(let i=0;i<pos.count;i++){
+      const lx=pos.getX(i),ly=pos.getY(i),lz=pos.getZ(i);
+      const wx=e[0]*lx+e[4]*ly+e[8]*lz+e[12];
+      const wy=e[1]*lx+e[5]*ly+e[9]*lz+e[13];
+      const wz=e[2]*lx+e[6]*ly+e[10]*lz+e[14];
+      const wny=e[1]*nor.getX(i)+e[5]*nor.getY(i)+e[9]*nor.getZ(i);
+      if(wny<.52)continue;
+      if(Math.hypot(wx,wz)>R*.94)continue;
+      const dh=duneLift(wx,wz);
+      if(dh<.025)continue;
+      const ny=wy+dh;
+      const nlx=ie[0]*wx+ie[4]*ny+ie[8]*wz+ie[12];
+      const nly=ie[1]*wx+ie[5]*ny+ie[9]*wz+ie[13];
+      const nlz=ie[2]*wx+ie[6]*ny+ie[10]*wz+ie[14];
+      pos.setXYZ(i,nlx,nly,nlz); n++}
+    if(n){pos.needsUpdate=true; g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere()}
+  });
+  wrap.updateMatrixWorld(true)}
+/* push Tripo underside verts deeper + jagged so tip ≈ −CLIFF_H; procedural under fills gaps */
+function deepenTripoUnderside(wrap){
+  if(!wrap)return;
+  wrap.updateMatrixWorld(true);
+  const inv=new T.Matrix4();
+  const tipY=-CLIFF_H;
+  wrap.traverse(o=>{
+    if(!o.isMesh||!o.geometry||!o.geometry.attributes.position)return;
+    const g=o.geometry; if(!g.attributes.normal)g.computeVertexNormals();
+    const pos=g.attributes.position, nor=g.attributes.normal;
+    if(pos.count<500)return;
+    const e=o.matrixWorld.elements;
+    inv.copy(o.matrixWorld).invert(); const ie=inv.elements;
+    let n=0;
+    for(let i=0;i<pos.count;i++){
+      const lx=pos.getX(i),ly=pos.getY(i),lz=pos.getZ(i);
+      const wx=e[0]*lx+e[4]*ly+e[8]*lz+e[12];
+      const wy=e[1]*lx+e[5]*ly+e[9]*lz+e[13];
+      const wz=e[2]*lx+e[6]*ly+e[10]*lz+e[14];
+      const wny=e[1]*nor.getX(i)+e[5]*nor.getY(i)+e[9]*nor.getZ(i);
+      if(wny>.18&&wy>-0.4)continue; /* keep deck */
+      const th=Math.atan2(wz,wx), rr0=Math.hypot(wx,wz);
+      const deep=cl((-Math.min(wy,0))/Math.max(1,Math.abs(tipY)*.55),0,1);
+      const jag=.55+.45*Math.pow(Math.max(0,Math.sin(th*3.1+1.2),Math.sin(th*5.2-.7),Math.sin(th*2.4+2)),1.1);
+      const target=mix(wy, tipY*deep*jag - Math.sin(th*4.2)*deep*.6, ss(.05,.85,deep));
+      if(target>=wy-.02)continue;
+      const ny=target;
+      const radScale=mix(1, .12+jag*.7, ss(.55,1,deep));
+      const nwx=wx*radScale, nwz=wz*radScale;
+      const nlx=ie[0]*nwx+ie[4]*ny+ie[8]*nwz+ie[12];
+      const nly=ie[1]*nwx+ie[5]*ny+ie[9]*nwz+ie[13];
+      const nlz=ie[2]*nwx+ie[6]*ny+ie[10]*nwz+ie[14];
+      pos.setXYZ(i,nlx,nly,nlz); n++}
+    if(n){pos.needsUpdate=true; g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere()}
+  });
+  wrap.updateMatrixWorld(true)}
 function resolveIslandModel(){
   /* desert21: island_base.glb permanently — never load baked island.glb */
   return Promise.resolve({rel:MODEL.island_base, key:"island_base", clean:1})}
@@ -3157,15 +3281,17 @@ function installTripoIsland(){
     const wrap=r.root; islandRoot=wrap; onDes(wrap); root.add(wrap);
     wrap.userData.islandKey=spec.key; wrap.userData.cleanBase=1;
     tripo.islandKey=spec.key; tripo.cleanBase=1;
-    /* remove procedural island + underside entirely — clean base has sandstone skirt */
+    /* hide procedural deck; KEEP jagged procedural underside (ref depth) — Tripo tip is shallow */
     if(island){island.visible=false; island.traverse(o=>{o.visible=false})}
-    if(under){under.visible=false; under.traverse(o=>{o.visible=false})}
+    if(under){under.visible=true; under.traverse(o=>{o.visible=true})}
     alignIslandSand(wrap);
     wrap.traverse(o=>{
       if(o.isMesh){
         if(!islandMesh&&o.geometry&&o.geometry.attributes.position.count>1000)islandMesh=o;
         [].concat(o.material||[]).forEach(m=>{gradeIslandMat(m)});
         o.castShadow=o.receiveShadow=true; o.frustumCulled=false}});
+    try{sculptIslandDunes(wrap)}catch(e){}
+    try{deepenTripoUnderside(wrap)}catch(e){}
     buildHeightField(wrap);
     const basin=findCleanBasin()||findLakeOnIsland();
     if(basin){
@@ -3304,7 +3430,7 @@ function installTripoProps(){
     root.add(t); tripo.tent=t;
     if(tent){tent.visible=false; tent.traverse(o=>{o.visible=false})}
     if(fireG){const fx=tentAnchor.x-0.95,fz=tentAnchor.z+1.15; fireG.position.set(fx,hAt(fx,fz),fz)}
-    /* hide island-baked red crate / black fire balls near tent */
+    /* hide island-baked red crate / black fire balls / stick-figure pole clusters near tent */
     if(islandRoot){
       islandRoot.updateMatrixWorld(true);
       islandRoot.traverse(o=>{
@@ -3317,10 +3443,42 @@ function installTripoProps(){
         if(Math.hypot(wx-tentX,wz-tentZ)>3.4)return;
         const sx=b.max.x-b.min.x,sy=b.max.y-b.min.y,sz=b.max.z-b.min.z,n=o.geometry.attributes.position.count;
         if(n>8000)return; /* keep main shell */
-        if(sy<1.5&&sx*sy*sz<6)o.visible=false});
+        if(sy<1.5&&sx*sy*sz<6)o.visible=false;
+        /* thin upright poles / T-frames that read as stick figures */
+        if(n<4000&&sy>.6&&sy<2.4&&Math.max(sx,sz)<.55&&Math.min(sx,sz)<.35)o.visible=false});
     }
+    /* also hide thin leftover poles still inside the tent GLB hierarchy */
+    t.traverse(o=>{
+      if(!o.isMesh||!o.geometry||!o.visible)return;
+      if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();
+      const b=o.geometry.boundingBox;
+      const sx=b.max.x-b.min.x,sy=b.max.y-b.min.y,sz=b.max.z-b.min.z,n=o.geometry.attributes.position.count;
+      if(n<3500&&sy>.5&&Math.max(sx,sz)<.45)o.visible=false});
+    try{placeDryingRack(tentAnchor.x+1.35, tentAnchor.z+.55)}catch(e){}
   }));
   return Promise.all(jobs)}
+/* simple tent awning / drying rack — two posts + crossbar + hanging cloth (ref), never humanoid */
+function placeDryingRack(x,z){
+  if(window.__desRack){root.remove(window.__desRack); window.__desRack=null}
+  const g=new T.Group();
+  const wood=M({color:"#5a4030",roughness:.92,metalness:0});
+  const cloth=M({color:"#c4a882",roughness:.88,side:2,transparent:true,opacity:.88});
+  const y0=hAt(x,z);
+  const h=1.35, span=1.05;
+  [[-span*.5,0],[span*.5,0]].forEach(([px,pz])=>{
+    const p=new T.Mesh(new T.Cyl(.028,.022,h,6),wood);
+    p.position.set(px,y0+h*.5,pz); p.castShadow=true; g.add(p)});
+  const bar=new T.Mesh(new T.Cyl(.018,.018,span*1.05,5),wood);
+  bar.rotation.z=Math.PI/2; bar.position.set(0,y0+h*.92,0); bar.castShadow=true; g.add(bar);
+  /* hanging cloth rectangle */
+  const clothM=new T.Mesh(new T.Plane(.55,.7),cloth);
+  clothM.position.set(0,y0+h*.55,.04); clothM.castShadow=true; g.add(clothM);
+  /* short rope loops */
+  for(let i=0;i<3;i++){
+    const rope=new T.Mesh(new T.Cyl(.006,.006,.18,4),wood);
+    rope.position.set(-.22+i*.22,y0+h*.82,.02); g.add(rope)}
+  g.position.set(x,0,z); g.rotation.y=-.4;
+  root.add(g); onDes(g); window.__desRack=g; return g}
 function rebuildShoreGreen(){
   /* natural tufts: ~half olive #6f8a35, +30% denser fringe on palm side */
   while(reedG.children.length)reedG.remove(reedG.children[0]);

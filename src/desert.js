@@ -1,5 +1,5 @@
-/* 沙漠绿洲 · Desert Oasis (desert41) — from desert40: soft S-curl smoke,
-   coherent cloud bed below cliff, mute pale rim strips, snake ground-snap. HOLD MERGE. */
+/* 沙漠绿洲 · Desert Oasis (desert42) — from desert41: measurable smoke column,
+   soft-edged cloud bed below cliff, identify+kill pale rim strips. HOLD MERGE. */
 (()=>{
 window.__desInit=getX=>{
 const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
@@ -518,14 +518,14 @@ function buildCloudSea(){
              vec3 cloudSh=mix(col, vec3(0.38,0.32,0.55), .6);
              vec3 cloudCol=mix(cloudSh, cloudLit, smoothstep(.32,.72,lum)*smoothstep(.2,.6,sy));
              col=mix(grad, cloudCol, .35+cloud*.4);
-             /* desert41: kill mid-height popcorn blobs from sky photo — keep only low cloud-sea */
-             float midPop=smoothstep(.20,.38,sy)*smoothstep(.70,.48,sy);
-             col=mix(col, mix(grad, lav, .22), midPop*clamp(cloud*1.4,.35,1.));
+             /* desert42: erase mid-height sky-photo popcorn entirely — only low cloud-sea remains */
+             float midPop=smoothstep(.14,.34,sy)*smoothstep(.74,.42,sy);
+             col=mix(col, mix(grad, lav, .32), midPop);
              /* screen-top zenith crush — kill milky wash regardless of UV */
              col=mix(col, zen, smoothstep(.55,.92,sy)*.55);
              col=mix(col, mix(col, lav, .4), smoothstep(.35,.65,sy)*.25);
              /* warm gold lower cloud sea — denser bed toward horizon */
-             col=mix(col, mix(cloudSh, hor, .4), smoothstep(.48,.05,sy)*.72);
+             col=mix(col, mix(cloudSh, hor, .5), smoothstep(.38,.03,sy)*.88);
            }else if(uSkyMode<1.5){
              col=mix(col, col*vec3(.8,.9,1.1), smoothstep(.5,.95,sy)*.5);
              col=clamp((col-.5)*1.18+.5,0.,1.);
@@ -543,7 +543,7 @@ function buildCloudSea(){
         `outgoingLight=diffuseColor.rgb;\n#include <opaque_fragment>`);
     }
   };
-  skyM.customProgramCacheKey=()=>"desSkyGrade41a";
+  skyM.customProgramCacheKey=()=>"desSkyGrade42b";
   skyM.emissiveIntensity=1;
   const applySkyMap=v=>{
     skyU.map.value=v; skyM.map=v; skyM.emissiveMap=v; skyM.needsUpdate=true};
@@ -602,61 +602,83 @@ function buildCloudSea(){
 function placeSoftDepthCards(){ /* no vertical billboards */ }
 function addCloudFloorLayers(){ /* far horizontal disc only */ }
 
-/* coherent cumulus BED below island — few large masses of overlapping soft sprites.
-   Tops ≤ lower third of cliff; island deck stays clear; no mid-height popcorn floaters. */
+/* coherent cumulus BED below island — soft radial sprites (α=0 on 15% border).
+   Tops ≤ lower third of cliff; spread to horizon; never mid-height beside deck. */
 function buildPuffCloudBank(){
-  const nMass=MOB?4:6;
+  const nMass=MOB?6:9;
   const perMass=MOB?16:24;
   const n=nMass*perMass;
-  const Y_TOP=-CLIFF_H*(2/3); /* ≈ −7.5 — lower third of cliff */
-  const Y_BOT=-CLIFF_H-5.5;
+  /* cloud tops under lower third of cliff; mostly beneath cliff tip (~−10) */
+  const Y_TOP=-CLIFF_H*.85; /* ≈ −9.6 */
+  const Y_BOT=-CLIFF_H-12;
   const can=document.createElement("canvas");can.width=can.height=128;
   {const g=can.getContext("2d");
-    for(let i=0;i<26;i++){const x=rr(22,106),y=rr(28,100),s=rr(18,48);
+    /* soft lobes then FORCE α=0 on outer 15% border (kills hard rect point edges) */
+    for(let i=0;i<22;i++){const x=rr(32,96),y=rr(32,96),s=rr(14,36);
       const r=g.createRadialGradient(x,y,0,x,y,s);
-      r.addColorStop(0,"rgba(255,245,230,.82)");r.addColorStop(.38,"rgba(245,215,195,.5)");
-      r.addColorStop(.7,"rgba(170,150,185,.32)");r.addColorStop(1,"rgba(140,130,170,0)");
-      g.fillStyle=r;g.fillRect(0,0,128,128)}}
+      r.addColorStop(0,"rgba(255,245,230,.85)");r.addColorStop(.4,"rgba(245,215,195,.48)");
+      r.addColorStop(.72,"rgba(170,150,185,.28)");r.addColorStop(1,"rgba(140,130,170,0)");
+      g.fillStyle=r;g.fillRect(0,0,128,128)}
+    const id=g.getImageData(0,0,128,128),d=id.data,cx=63.5,cy=63.5,border=.15*64;
+    for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+      const dx=Math.abs(x-cx), dy=Math.abs(y-cy);
+      /* distance to nearest edge of quad */
+      const toEdge=Math.min(x,y,127-x,127-y);
+      const o=(y*128+x)*4;
+      if(toEdge<border){
+        const k=toEdge/border; /* 0 at edge → 1 at border */
+        const fall=k*k*(3-2*k);
+        d[o+3]=Math.floor(d[o+3]*fall)}
+      /* also radial soft circle so corners stay zero */
+      const rad=Math.hypot(x-cx,y-cy)/64;
+      if(rad>.85){const f=Math.max(0,1-(rad-.85)/.15); d[o+3]=Math.floor(d[o+3]*f*f)}}
+    g.putImageData(id,0,0)}
   const tex=new T.CTex(can);tex.colorSpace="srgb";
   const p=new Float32Array(n*3),a=new Float32Array(n),s=new Float32Array(n);
   const g=new T.BG();g.setAttribute("position",new T.BA(p,3));g.setAttribute("aA",new T.BA(a,1));g.setAttribute("aS",new T.BA(s,1));
   const uC={value:new C3(.98,.9,.82)};
   const uCeil={value:Y_TOP};
   const m=new T.SM({transparent:true,depthWrite:false,depthTest:true,fog:false,blending:1,
-    uniforms:{tS:{value:tex},uSc:{value:640},uC,uCeil},
+    uniforms:{tS:{value:tex},uSc:{value:480},uC,uCeil},
     vertexShader:`attribute float aA,aS;uniform float uSc;uniform float uCeil;varying float vA;varying float vSoft;
       void main(){
-        vSoft=smoothstep(uCeil+.15, uCeil-3.2, position.y);
+        vSoft=smoothstep(uCeil+.1, uCeil-3.5, position.y);
         vec4 mv=modelViewMatrix*vec4(position,1.);
         gl_Position=projectionMatrix*mv;
         float d=max(.6,-mv.z);
         float aEff=aA*vSoft;
-        gl_PointSize=aEff<.003?0.:min(aS*uSc/d,520.);
+        /* cap size — huge points were the hard rectangular white blobs */
+        gl_PointSize=aEff<.003?0.:min(aS*uSc/d,280.);
         vA=aEff;}`,
     fragmentShader:`uniform sampler2D tS;uniform vec3 uC;varying float vA;
-      void main(){vec4 s=texture2D(tS,gl_PointCoord);float a=s.a*vA;if(a<.012)discard;
-        float sh=smoothstep(.08,.7,length(gl_PointCoord-.5));
-        /* sunlit warm top → lavender shade */
+      void main(){
+        float rr=length(gl_PointCoord-.5);
+        /* soft disc — α exactly 0 outside ~0.48 radius (no hard quad edge) */
+        float disc=smoothstep(.48,.28,rr);
+        if(disc<.01)discard;
+        vec4 s=texture2D(tS,gl_PointCoord);
+        float a=s.a*vA*disc;
+        if(a<.012)discard;
+        float sh=smoothstep(.08,.7,rr);
         gl_FragColor=vec4(mix(uC,vec3(.62,.54,.78),sh*.55),a);}`});
   const o=new T.Points(g,m);o.frustumCulled=false;o.renderOrder=-40;o.layers.mask=1|L3;
   const CB=[];
   let idx=0;
   for(let mI=0;mI<nMass;mI++){
-    /* few big masses ringing the island, extending toward horizon */
-    const th0=mI/nMass*TAU+rr(-.08,.08);
-    const rad0=rr(R*1.55, R*4.2);
-    const y0=rr(Y_BOT+2.0, Y_TOP-2.2); /* sit well below cliff tip / lower third */
+    /* masses BELOW island tip, spread to horizon — never beside deck at surface height */
+    const th0=mI/nMass*TAU+rr(-.06,.06);
+    const rad0=rr(R*3.4, R*7.5);
+    const y0=rr(Y_BOT+2.0, Y_TOP-1.5);
     for(let k=0;k<perMass;k++){
-      /* tight cluster within each mass → reads as one cumulus, not popcorn */
-      const th=th0+rr(-.18,.18);
-      const rad=rad0+rr(-R*.35,R*.7);
-      let y=y0+rr(-1.0,1.0);
-      y=Math.min(y, Y_TOP-0.8);
-      if(rad<R*1.2) y=Math.min(y, -CLIFF_H*.82);
-      const sz=rr(14,26);
-      CB.push({th,rad,y,sz,ph:rnd()*TAU,w:rr(.001,.0035),mass:mI});
+      const th=th0+rr(-.28,.28);
+      const rad=Math.max(R*3.2, rad0+rr(-R*.5,R*1.1));
+      let y=y0+rr(-1.4,1.0);
+      y=Math.min(y, Y_TOP-0.6);
+      if(rad<R*4.0) y=Math.min(y, -CLIFF_H-1.5);
+      const sz=rr(10,18);
+      CB.push({th,rad,y,sz,ph:rnd()*TAU,w:rr(.001,.003),mass:mI});
       p[idx*3]=Math.cos(th)*rad; p[idx*3+1]=y; p[idx*3+2]=Math.sin(th)*rad;
-      a[idx]=rr(.45,.72); s[idx]=sz; idx++}}
+      a[idx]=rr(.38,.62); s[idx]=sz; idx++}}
   root.add(o);onDes(o);
   window.__desPuffBank={o,p,a,s,g,m,uC,uCeil,CB,n,Y_MAX:Y_TOP,DECK_CEIL:Y_TOP};
   return o}
@@ -681,7 +703,7 @@ buildPuffCloudBank();
      void main(){
        /* desCloudFloor24 — gold-lavender tint + soft radial fade; mirrored cloud-sea tex */
        float r=length(vUv-.5)*2.;
-       float fade=smoothstep(1.02,.52,r);
+       float fade=smoothstep(.98,.42,r)*smoothstep(0.,.08,min(min(vUv.x,vUv.y),min(1.-vUv.x,1.-vUv.y)));
        vec3 col=texture2D(map,vUv).rgb*tint;
        float lum=dot(col,vec3(.3,.55,.15));
        vec3 lit=col*vec3(1.22,1.05,.72);
@@ -1297,30 +1319,52 @@ fireG.position.set(firePos.x,hAt(firePos.x,firePos.z),firePos.z);root.add(fireG)
   const fireL=new T.PL(new C3("#ff9a4a"),0,6,2);fireL.position.set(0,.35,0);fireL.layers.mask=1|L3;fireG.add(fireL);fireG.userData.light=fireL;
   const tentL=new T.PL(new C3("#ffb070"),0,3.2,2);tentL.position.set(1.0,.4,-.5);tentL.layers.mask=1|L3;fireG.add(tentL);fireG.userData.tentL=tentL;
 })();
-/* campfire smoke — soft S-curl wisps (never a stiff white jet).
-   Sparse lobes; base α≈0.3; widen 0.15→1.0 by 3.5 m; warm grey-lavender. */
-const SMN=MOB?16:24;
+/* campfire smoke — desert42: 40–60 soft-noise sprites, α edge→0, normal blend.
+   Rise 0.5–0.7 m/s, scale 0.2→1.0 m, peak α≈0.4 @ life 0.15, fade out by 1.0.
+   Visible ~3.5 m column in overview (≥60 px @1024), not jet / not invisible. */
+const SMN=MOB?46:58;
 const smCan=document.createElement("canvas");smCan.width=64;smCan.height=64;
 {const g=smCan.getContext("2d");
-  for(let i=0;i<6;i++){
-    const x=rr(22,42),y=rr(20,44),s=rr(14,26);
+  /* soft noise blob — grey-lavender, α→0 at edges; mid α so stacks read as smoke */
+  for(let i=0;i<14;i++){
+    const x=rr(20,44),y=rr(18,46),s=rr(9,20);
     const r=g.createRadialGradient(x,y,0,x,y,s);
-    r.addColorStop(0,"rgba(175,162,175,.38)");r.addColorStop(.4,"rgba(155,145,162,.18)");
-    r.addColorStop(1,"rgba(135,125,150,0)");
-    g.fillStyle=r;g.fillRect(0,0,64,64)}}
+    r.addColorStop(0,"rgba(145,135,155,.55)");r.addColorStop(.35,"rgba(130,122,148,.28)");
+    r.addColorStop(.7,"rgba(118,110,140,.1)");r.addColorStop(1,"rgba(110,105,130,0)");
+    g.fillStyle=r;g.fillRect(0,0,64,64)}
+  const id=g.getImageData(0,0,64,64),d=id.data;
+  for(let y=0;y<64;y++)for(let x=0;x<64;x++){
+    const o=(y*64+x)*4;
+    const rr0=Math.hypot(x-31.5,y-31.5)/32;
+    const edge=Math.min(x,y,63-x,63-y);
+    let a=d[o+3]/255;
+    a*=ss(.92,.48,rr0);
+    if(edge<10)a*=(edge/10)*(edge/10);
+    d[o]=132; d[o+1]=124; d[o+2]=142; d[o+3]=Math.floor(a*255)}
+  g.putImageData(id,0,0)}
 const smTex=new T.CTex(smCan);smTex.colorSpace="srgb";
 const smGroup=new T.Group(); root.add(smGroup); onDes(smGroup); window.__desSmoke=smGroup;
 const SMF=[];
 for(let i=0;i<SMN;i++){
   const mat=new T.SM({transparent:true,depthWrite:false,fog:false,side:2,blending:1,
-    uniforms:{map:{value:smTex},op:{value:0},col:{value:new C3(.55,.5,.56)}},
+    uniforms:{map:{value:smTex},op:{value:0},col:{value:new C3(.42,.38,.48)}},
     vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`uniform sampler2D map;uniform float op;uniform vec3 col;varying vec2 vUv;
-      void main(){float a=texture2D(map,vUv).a*op;if(a<.016)discard;gl_FragColor=vec4(col,a);}`});
-  const mesh=new T.Mesh(new T.Plane(.55,.55),mat);
+      void main(){
+        /* elliptical soft falloff — tall wisps, not round cotton balls */
+        vec2 e=(vUv-.5)/vec2(.38,.48);
+        float ell=length(e);
+        float disc=smoothstep(1.0,.42,ell);
+        float edge=min(min(vUv.x,vUv.y),min(1.-vUv.x,1.-vUv.y));
+        float border=smoothstep(0.,.12,edge);
+        vec4 t=texture2D(map,vUv);
+        float a=t.a*op*disc*border;
+        if(a<.012)discard; gl_FragColor=vec4(col,a);}`});
+  /* tall thin wisp plane — stacks into a column, not cotton balls */
+  const mesh=new T.Mesh(new T.Plane(.38,1.7),mat);
   mesh.renderOrder=7; mesh.frustumCulled=false; smGroup.add(mesh);
-  SMF.push({mesh,mat,life:i/SMN, ph:rnd()*TAU, jx:rr(-1,1), jz:rr(-1,1), sz:rr(.9,1.5),
-    side:(i%2?1:-1)*rr(.4,1)})}
+  SMF.push({mesh,mat,life:i/SMN, ph:rnd()*TAU, jx:rr(-1,1), jz:rr(-1,1),
+    rise:rr(.55,.72), side:(i%2?1:-1)*rr(.35,.95)})}
 
 /* ---------------- camel — barrel body, S-neck, knobby legs ---------------- */
 function makeCamelProcedural(){
@@ -2384,34 +2428,40 @@ function update(dt){
       pos.array[o]=base[o]+wiggle;pos.array[o+1]=base[o+1]+wiggle*.55;pos.array[o+2]=base[o+2]+wiggle*.4}
     pos.needsUpdate=true});
 
-  /* soft S-curl smoke — faint grey base, widen+curl downwind, break into wisps, fade by ~4 m */
+  /* desert42 smoke — rise 0.5–0.7 m/s to ~3.8 m; scale 0.2→1.0; peak α≈0.42 @0.15 life */
   {const fp=fireG.position;
   const wdx=.9, wdz=.22; /* sand-wind dir */
   const camDist=De?Math.hypot(De.position.x-fp.x,De.position.y-fp.y,De.position.z-fp.z):8;
-  /* widen only at distance — never boost opacity (that made the white jet) */
-  const wideBoost=cl(.95+camDist*.018,1,1.55);
+  /* size boost at overview so ≥60 px @1024; mild far opacity lift (still < jet) */
+  const sizeBoost=cl(1.1+camDist*.04,1,2.35);
+  const farOp=cl(.95+camDist*.01,1,1.22);
   for(let i=0;i<SMN;i++){const k=SMF[i];
-    k.life+=dt*.06; if(k.life>1){k.life=0;k.jx=rr(-1,1);k.jz=rr(-1,1);k.ph=rnd()*TAU;k.sz=rr(.9,1.55);k.side=(Math.random()<.5?1:-1)*rr(.4,1)}
+    const lifeRate=(k.rise||.6)/4.4;
+    k.life+=dt*lifeRate;
+    if(k.life>1){k.life=0;k.jx=rr(-1,1);k.jz=rr(-1,1);k.ph=rnd()*TAU;k.rise=rr(.55,.72);k.side=(Math.random()<.5?1:-1)*rr(.45,1.15)}
     const u=k.life;
-    const h=u*4.0;
-    /* lazy S-curl: 0.35–0.5 m lateral per m rise + break into side wisps */
-    const drift=(.38+.1*Math.sin(k.ph))*h;
-    const curl=Math.sin(u*Math.PI*1.4+k.ph)*.38*h;
-    const wisp=k.side*(.12+.35*u*u)*h;
-    const x=fp.x+wdx*drift+(-wdz)*curl*.9+k.jx*.22*h+wisp*.7;
-    const z=fp.z+wdz*drift+wdx*curl*.9+k.jz*.2*h+wisp*.45;
-    const y=fp.y+.08+h;
+    const h=u*4.4;
+    const drift=.48*h;
+    const curl=Math.sin(u*Math.PI*1.55+k.ph)*.38*h;
+    const wisp=k.side*(.1+.28*u)*h*(.55+.45*Math.sin(u*5.5+k.ph));
+    /* keep column tight near fire so close-up reads continuous, not cotton balls */
+    const spread=.55+.45*u;
+    const x=fp.x+wdx*drift+(-wdz)*curl+k.jx*.12*h*spread+wisp*.55;
+    const z=fp.z+wdz*drift+wdx*curl+k.jz*.1*h*spread+wisp*.35;
+    const y=fp.y+.12+h;
     k.mesh.position.set(x,y,z);
-    const widen=(.15+Math.min(h,3.5)*.243)*wideBoost; /* 0.15 → ~1.0 by 3.5 m */
-    const sc=widen*k.sz*(.95+u*.5);
-    k.mesh.scale.set(sc/.55, sc*(1.15+u*.45)/.55, 1);
-    if(De)k.mesh.quaternion.copy(De.quaternion);
-    const birth=ss(0,.1,u), death=1-ss(.58,.98,u);
-    const hFade=1-ss(2.5,3.95,h);
-    const peak=.30+night*.03;
-    k.mat.uniforms.op.value=Math.max(0, peak*birth*death*hFade*(.7+.3*Math.sin(u*3.5+k.ph)));
-    /* warm grey-lavender in sunset — never bright white */
-    k.mat.uniforms.col.value.set(.56+.04*u, .52+.03*u, .58+.06*u+night*.05)}}
+    /* diam 0.2→1.0 m; tall plane base .38×1.7 */
+    const diam=(.2+u*.8)*sizeBoost;
+    k.mesh.scale.set(diam/.38, (diam*1.7*(1+.28*u))/1.7, 1);
+    if(De){
+      k.mesh.quaternion.copy(De.quaternion);
+      k.mesh.rotateZ(k.ph*.1+Math.sin(u*2.8+k.ph)*.08)}
+    /* peak 0.40 @ life 0.15 — stacks in lower half to ~0.35–0.45 */
+    const birth=ss(0,.15,u), death=1-ss(.55,.99,u);
+    const peak=.40*farOp;
+    const wob=.86+.14*Math.sin(u*3.8+k.ph);
+    k.mat.uniforms.op.value=Math.max(0, peak*birth*death*wob);
+    k.mat.uniforms.col.value.set(.40+.03*u, .36+.025*u, .48+.04*u+night*.05)}}
   (fireG.userData.flames||[]).forEach((fl,i)=>{
     const bob=.85+.15*Math.sin(t*14+i*1.7)+.08*Math.sin(t*23+i);
     fl.scale.set(bob,bob*1.1,1);
@@ -2455,7 +2505,9 @@ function update(dt){
       yy=Math.min(yy, yMax-0.35);
       if(b.rad<R*1.05) yy=Math.min(yy, -CLIFF_H*.78);
       B.p[i*3+1]=yy;
-      B.a[i]=.52+.12*Math.sin(t*.04+b.ph*2); B.s[i]=b.sz}
+      /* keep below ceiling; never climb to deck height */
+      B.a[i]=.48+.1*Math.sin(t*.04+b.ph*2); B.s[i]=b.sz;
+      if(B.p[i*3+1]>yMax-0.5) B.p[i*3+1]=yMax-0.5}
     B.g.attributes.position.needsUpdate=B.g.attributes.aA.needsUpdate=B.g.attributes.aS.needsUpdate=true;
     const lit=night>.5?.45:1;
     B.uC.value.set(.98*lit*(1-night*.4)+.4*night, .9*lit*(1-night*.3)+.5*night, .82*lit*(1-night*.15)+.66*night)}
@@ -2665,6 +2717,40 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XF
     else if(mode==="sidewind")snakePlay(s,"sidewind",.2);
     else snakePlay(s,"slither",.2)},
   sampleSnakeGroundY:(x,z)=>sampleSnakeGroundY(x,z),
+  /* screen-pixel pick → mesh name / world hit (for rim-strip notes) */
+  pickAt:(px,py,W,H)=>{
+    const w=W||(De&&De.domElement&&De.domElement.clientWidth)||1280;
+    const h=H||(De&&De.domElement&&De.domElement.clientHeight)||720;
+    const ndcX=(px/w)*2-1, ndcY=-(py/h)*2+1;
+    const origin=new V3().copy(De.position);
+    const un=new V3(ndcX,ndcY,.5);
+    un.unproject(De);
+    const dir=un.sub(De.position).normalize();
+    const hits=[];
+    const tmp=new V3();
+    root.updateMatrixWorld(true);
+    root.traverse(o=>{
+      if(!o.isMesh||!o.visible||!o.geometry)return;
+      if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();
+      const bs=o.geometry.boundingSphere; if(!bs)return;
+      /* world-space sphere */
+      const c=tmp.copy(bs.center).applyMatrix4(o.matrixWorld);
+      const e=o.matrixWorld.elements;
+      const sc=Math.max(Math.hypot(e[0],e[1],e[2]),Math.hypot(e[4],e[5],e[6]),Math.hypot(e[8],e[9],e[10]))||1;
+      const rad=bs.radius*sc;
+      /* ray–sphere */
+      const oc=new V3().subVectors(origin,c);
+      const b=oc.dot(dir), c2=oc.dot(oc)-rad*rad;
+      const disc=b*b-c2; if(disc<0)return;
+      const t=-b-Math.sqrt(disc); if(t<0)return;
+      const name=o.name||(o.parent&&o.parent.name)||"unnamed";
+      const path=[]; let p=o; for(let i=0;i<6&&p;i++){path.push(p.name||p.type||"?");p=p.parent}
+      hits.push({t, name, path:path.join("/"), uuid:o.uuid.slice(0,8),
+        mat:([].concat(o.material||[]).map(m=>m&&(m.name||m.type||"mat")).join(",")),
+        world:new V3().copy(origin).addScaledVector(dir,t),
+        userData:Object.keys(o.userData||{})})});
+    hits.sort((a,b)=>a.t-b.t);
+    return hits.slice(0,8)},
   plantSnake:(i,x,z,th)=>{const s=snakes[i|0];if(!s||!s.o)return;
     s.x=x; s.z=z; if(th!=null)s.th=th; s.mode="idle"; s.t=1; s.strikeCD=999; s.o.visible=true;
     snakePlay(s,"idle_coiled",.05);
@@ -2769,8 +2855,8 @@ function gradeIslandMat(m){
   if(m.color)m.color.set("#ffffff");
   if(m.map){ /* neutralize grey albedo — grade supplies gold */ m.color.set("#ffffff")}
   if(m.emissive){m.emissive.set("#000000");m.emissiveIntensity=0}
-  m.roughness=m.roughness!=null?Math.max(.78,Math.min(.94,m.roughness)):.86;
-  m.metalness=0; m.envMapIntensity=.08;
+  m.roughness=m.roughness!=null?Math.max(.86,Math.min(.97,m.roughness)):.92;
+  m.metalness=0; m.envMapIntensity=.04;
   m.side=2; m.fog=false;
   if(!m.userData._rippleN){
     const c=document.createElement("canvas");c.width=c.height=128;const g=c.getContext("2d");
@@ -2783,7 +2869,8 @@ function gradeIslandMat(m){
       const o=(y*128+x)*4;id.data[o]=nx*255;id.data[o+1]=ny*255;id.data[o+2]=255;id.data[o+3]=255}
     g.putImageData(id,0,0);
     const nt=new T.CTex(c);nt.wrapS=nt.wrapT=1000;nt.repeat.set(10,10);nt.needsUpdate=true;
-    m.normalMap=nt; m.normalScale=new T.V2(.38,.38); m.userData._rippleN=1}
+    m.normalMap=nt; m.normalScale=new T.V2(.22,.22); m.userData._rippleN=1}
+  else if(m.normalScale){m.normalScale.set(.22,.22)}
   m.onBeforeCompile=(sh)=>{
     sh.uniforms.uLakeC={value:new V3(lakeC.x,0,lakeC.z)};
     sh.uniforms.uLakeR={value:lakeR};
@@ -2832,41 +2919,43 @@ function gradeIslandMat(m){
            /* narrow ≤0.3 m slightly darker wet band only — keep desert22 sand grade otherwise */
            float wet=smoothstep(uLakeR+.28,uLakeR+.02,dL)*sandK*(1.-smoothstep(uLakeR+.02,uLakeR-.12,dL));
            diffuseColor.rgb=mix(diffuseColor.rgb, sandSh*vec3(.78,.68,.52), wet*.4);
-           /* desert41d: kill pale grey/cream rim strips (left/right cactus edges) */
+           /* desert42: kill pale grey/cream rim strips on tripo island_base shell */
            float rimD=length(vIslW.xz);
-           float rimBand=smoothstep(6.4,8.1,rimD)*smoothstep(9.85,8.55,rimD);
-           float rimY=smoothstep(-1.4,1.0,vIslW.y)*smoothstep(1.8,-.05,vIslW.y);
+           float rimBand=smoothstep(5.8,7.7,rimD)*smoothstep(10.0,8.3,rimD);
+           float rimY=smoothstep(-1.8,1.2,vIslW.y)*smoothstep(2.2,-.15,vIslW.y);
            float rimK=clamp(rimBand*rimY,0.,1.);
            float lumR=dot(diffuseColor.rgb,vec3(.3,.5,.2));
-           float pale=smoothstep(.36,.68,lumR);
-           /* force warm sand across the whole lip — ignore prior albedo */
-           vec3 rimSand=mix(sandSh*vec3(.88,.8,.64), sandLit*vec3(.86,.72,.48), sunF*.55+.2);
-           diffuseColor.rgb=mix(diffuseColor.rgb, rimSand, rimK*mix(.82,1.,pale));
-           /* cliff-break lip (outward normals) — blend into sandstone, not cream */
-           float lip=smoothstep(7.9,9.4,rimD)*smoothstep(-.8,.6,vIslW.y)*smoothstep(.75,-.2,vIslN.y);
-           diffuseColor.rgb=mix(diffuseColor.rgb, mix(rimSand,rockT,.6), lip*.95);
-           /* any remaining bright grey/cream pixel on outer deck → sand */
-           float greyLip=rimK*smoothstep(.5,.74,lumR);
+           float pale=smoothstep(.28,.58,lumR);
+           /* darker ochre — never cream/white on the silhouette lip */
+           vec3 rimSand=mix(sandSh*vec3(.82,.72,.52), sandLit*vec3(.78,.62,.38), sunF*.35+.2);
+           vec3 rimRock=mix(rockT, ochreDeep, .35);
+           diffuseColor.rgb=mix(diffuseColor.rgb, rimSand, rimK*mix(.85,1.,pale));
+           float lip=smoothstep(7.4,9.5,rimD)*smoothstep(-1.2,.75,vIslW.y)*smoothstep(.85,-.2,vIslN.y);
+           diffuseColor.rgb=mix(diffuseColor.rgb, mix(rimSand,rimRock,.7), lip);
+           float greyLip=rimK*smoothstep(.4,.65,lumR);
            diffuseColor.rgb=mix(diffuseColor.rgb, rimSand, greyLip);
+           /* silhouette edge: crush any remaining bright rim against sky */
+           float sil=rimK*smoothstep(.55,.25,abs(vIslN.y))*smoothstep(.35,.75,lumR);
+           diffuseColor.rgb=mix(diffuseColor.rgb, rimRock, sil*.9);
          }`);
-      /* also crush pale rim in final light so lit cream lips can't come back */
-      if(!/desRimKill41/.test(sh.fragmentShader)){
+      if(!/desRimKill42c/.test(sh.fragmentShader)){
         sh.fragmentShader=sh.fragmentShader.replace('#include <opaque_fragment>',
           `#include <opaque_fragment>
-           /* desRimKill41 */
+           /* desRimKill42c — crush lit cream lips on island_base rim */
            {
              float rd=length(vIslW.xz);
-             float rk=smoothstep(7.0,8.4,rd)*smoothstep(9.7,8.7,rd)*smoothstep(-.8,.55,vIslW.y);
+             float rk=smoothstep(6.2,8.0,rd)*smoothstep(9.9,8.4,rd)*smoothstep(-1.2,.85,vIslW.y);
              float ol=dot(outgoingLight,vec3(.3,.5,.2));
-             if(rk>.05 && ol>.55){
-               vec3 rs=vec3(0.78,0.58,0.36);
-               outgoingLight=mix(outgoingLight, rs, rk*smoothstep(.52,.78,ol));
+             float desat=1.-smoothstep(.06,.2,max(abs(outgoingLight.r-outgoingLight.g),abs(outgoingLight.g-outgoingLight.b)));
+             if(rk>.03 && ol>.42){
+               vec3 rs=vec3(0.74,0.54,0.32);
+               outgoingLight=mix(outgoingLight, rs, rk*mix(.78,.99,smoothstep(.42,.68,ol))*mix(.65,1.,desat));
              }
            }`);
       }
     }
   };
-  m.customProgramCacheKey=()=>"desIslandGrade41d";
+  m.customProgramCacheKey=()=>"desIslandGrade42d";
   m.needsUpdate=true}
 /* warm sand tint — not cream (cream×pale tip = white cone) */
 function warmIslandColor(m){ if(m&&m.color)m.color.set("#e3b36a") }
@@ -3114,6 +3203,47 @@ function crushBakedSpikes(mesh, anchors, sandY){
       pos.setY(i, ly+(want-wy)*.995/yScale); dirty=1}
     if(dirty){pos.needsUpdate=true; o.geometry.computeVertexNormals()}})}
   catch(e){console.warn("crushBakedSpikes",e)}}
+function mutePaleRimBake(mesh){
+  /* desert42: recolour + slightly bury pale/cream rim verts on island_base shell */
+  if(!mesh)return;
+  try{
+  mesh.updateMatrixWorld(true);
+  mesh.traverse(o=>{
+    if(!o.isMesh||!o.geometry||!o.geometry.attributes.position)return;
+    const pos=o.geometry.attributes.position, e=o.matrixWorld.elements;
+    const yScale=Math.hypot(e[1],e[5],e[9])||1;
+    const xScale=Math.hypot(e[0],e[4],e[8])||1;
+    const zScale=Math.hypot(e[2],e[6],e[10])||1;
+    let col=o.geometry.attributes.color;
+    if(!col){
+      const arr=new Float32Array(pos.count*3);
+      for(let i=0;i<pos.count;i++){arr[i*3]=1;arr[i*3+1]=1;arr[i*3+2]=1}
+      o.geometry.setAttribute("color", new T.BA(arr,3));
+      col=o.geometry.attributes.color;
+      [].concat(o.material||[]).forEach(m=>{if(m){m.vertexColors=true;m.needsUpdate=true}})}
+    let dirty=0;
+    for(let i=0;i<pos.count;i++){
+      const lx=pos.getX(i),ly=pos.getY(i),lz=pos.getZ(i);
+      const wx=e[0]*lx+e[4]*ly+e[8]*lz+e[12];
+      const wy=e[1]*lx+e[5]*ly+e[9]*lz+e[13];
+      const wz=e[2]*lx+e[6]*ly+e[10]*lz+e[14];
+      const rd=Math.hypot(wx,wz);
+      if(rd<6.8||rd>9.85)continue;
+      if(wy<-1.1||wy>1.6)continue;
+      const band=ss(6.8,8.1,rd)*ss(9.8,8.55,rd)*ss(-0.8,0.55,wy);
+      if(band<.04)continue;
+      const cr=col.getX(i), cg=col.getY(i), cb=col.getZ(i);
+      const lum=.3*cr+.5*cg+.2*cb;
+      const pale=ss(.42,.75,lum)*ss(.18,0.,Math.abs(cr-cg)+Math.abs(cg-cb));
+      const k=band*mix(.75,1.,pale);
+      col.setXYZ(i, mix(cr,.86,k), mix(cg,.66,k), mix(cb,.4,k));
+      /* bury sharp cream lip into the deck so it can't catch as a bright edge */
+      if(band>.25&&wy>-0.25&&wy<.7){
+        const pull=band*.07;
+        pos.setXYZ(i, lx-wx/rd*pull/xScale, ly-pull*.85/yScale, lz-wz/rd*pull/zScale)}
+      dirty=1}
+    if(dirty){col.needsUpdate=true; pos.needsUpdate=true; o.geometry.computeVertexNormals()}})}
+  catch(e){console.warn("mutePaleRimBake",e)}}
 function paintTipOchre(mesh){
   /* crush + recolour Tripo pale tip cone into sandstone stump */
   if(!mesh)return;
@@ -3446,13 +3576,17 @@ function installTripoIsland(){
     if(island){island.visible=false; island.traverse(o=>{o.visible=false})}
     if(under){under.visible=true; under.traverse(o=>{o.visible=true})}
     alignIslandSand(wrap);
+    wrap.name=wrap.name||"tripo_island_root";
     wrap.traverse(o=>{
       if(o.isMesh){
+        if(!o.name)o.name=(o.geometry&&o.geometry.attributes.position.count>5000)?"tripo_island_shell":"tripo_island_part";
         if(!islandMesh&&o.geometry&&o.geometry.attributes.position.count>1000)islandMesh=o;
         [].concat(o.material||[]).forEach(m=>{gradeIslandMat(m)});
         o.castShadow=o.receiveShadow=true; o.frustumCulled=false}});
     try{sculptIslandDunes(wrap)}catch(e){}
     try{deepenTripoUnderside(wrap)}catch(e){}
+    /* desert42: mute AFTER sculpt/deepen so cream lips aren't reintroduced */
+    try{mutePaleRimBake(wrap)}catch(e){console.warn("mutePaleRimBake",e)}
     buildHeightField(wrap);
     const basin=findCleanBasin()||findLakeOnIsland();
     if(basin){

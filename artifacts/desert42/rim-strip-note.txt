@@ -1,0 +1,17 @@
+desert42 pale rim strip identification
+Overview camera: lookAt(-22,11.6,24.8 → 0,-2.8,0), viewport 1280×720.
+Picks use __desQA().pickAt (ray–sphere against visible meshes).
+
+### left_rim  screen=(340, 345)
+hit0 name=tripo_node_f5cdd948-1c5e-4423-b8d7-025f5348366e  path=tripo_node_f5cdd948-1c5e-4423-b8d7-025f5348366e/island_base/Group/tripo_island_root/Group/Scene  mat=tripo_material_f5cdd948-1c5e-4423-b8d7-025f5348366e
+action: mutePaleRimBake (after sculpt/deepen; recolour+bury lip) + desIslandGrade42d / desRimKill42c force ochre on rim band.
+
+### right_rim  screen=(708, 312)
+hit0 name=tripo_node_f5cdd948-1c5e-4423-b8d7-025f5348366e  path=tripo_node_f5cdd948-1c5e-4423-b8d7-025f5348366e/island_base/Group/tripo_island_root/Group/Scene  mat=tripo_material_f5cdd948-1c5e-4423-b8d7-025f5348366e
+(also unnamed ShaderMaterial lake/cliff hits behind)
+action: same as left — island_base Tripo shell rim.
+
+### measurements
+fire=(763,343) smoke_px=115 at1024=92.0
+puffBank maxY≈-10.92 midBeside=0 Y_MAX=-9.605 smokeSprites=58
+orbit viol=0 hardEdgeFrames=0

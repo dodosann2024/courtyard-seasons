@@ -553,9 +553,9 @@ function buildPalms(){
 buildPalms();
 const propsReady=Promise.all([
   glb("saguaro").then(({scene})=>{
-    SAG.forEach((s,i)=>{const sc=i?VT.cloneSkinned(scene):scene;const w=fitTo(sc,s.h,"y");matsOf(w,m=>{cleanMat(m);if(m.color)m.color.set("#ffffff");m.roughness=.8;
+    SAG.forEach((s,i)=>{const sc=i?VT.cloneSkinned(scene):scene;const w=fitTo(sc,s.h,"y");matsOf(w,m=>{cleanMat(m);if(m.color)m.color.set("#ffffff");m.roughness=.8;if(!ANIM_MATS.includes(m))ANIM_MATS.push(m);
       m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace("#include <map_fragment>",`#ifdef USE_MAP
-        vec4 tx=texture2D(map,vMapUv);float l=dot(tx.rgb,vec3(.3,.59,.11));diffuseColor.rgb=mix(vec3(.10,.17,.07),vec3(.42,.55,.26),clamp(l*2.2,0.,1.));
+        vec4 tx=texture2D(map,vMapUv);float l=dot(tx.rgb,vec3(.3,.59,.11));diffuseColor.rgb=mix(vec3(.17,.26,.11),vec3(.46,.58,.29),clamp(l*1.9+.12,0.,1.));
         #else
         diffuseColor.rgb=vec3(.26,.38,.16);
         #endif`)};m.needsUpdate=true});
@@ -925,7 +925,7 @@ function randFree(g,cx,cz,r,test){for(let t=0;t<80;t++){const a=rnd()*TAU,d=Math
 function rigUp(scene,anims){const mx=new VT.THREE.AnimationMixer(scene),acts={};anims.forEach(c=>{acts[c.name]=mx.clipAction(c)});return{mx,acts,cur:null}}
 function play(r,name,fade,ts){const n=r.acts[name];if(!n)return;if(ts!=null)n.timeScale=ts;if(r.cur===name)return;
   n.reset();n.setEffectiveWeight(1);n.play();if(r.cur&&r.acts[r.cur]){r.acts[r.cur].crossFadeTo(n,fade,false)}else n.fadeIn(fade);r.cur=name}
-/* animals keep the scene's room-environment fill (as the sea's whale/turtles do), dimmed at night in the per-frame update */
+/* animals and saguaros keep the scene's room-environment fill (as the sea's whale/turtles do), dimmed at night in the per-frame update */
 const ANIM_MATS=[];
 function animalMats(o,tan){matsOf(o,m=>{cleanMat(m);m.roughness=Math.max(m.roughness||0,.75);if(!ANIM_MATS.includes(m))ANIM_MATS.push(m);
   /* Tripo's camel bakes a dark rust coat; keep its detail but shift it to a sun-faded dromedary tan */

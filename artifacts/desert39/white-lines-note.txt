@@ -1,0 +1,11 @@
+White sand lines identified (desert39)
+
+Cause: snake trail Points (trTrailPts / TRN buffer in src/desert.js).
+Two snakes left bright pale point-trails that read as white streaks on the sand
+in overview — left rim, right rim, and curves near the lake shore.
+
+Not wind-streak decals and not z-fighting. Wind streamers were already invisible;
+edge-on cloud billboards had been fixed earlier.
+
+Fix: trail Points disabled (TRN=0; trail update is a no-op). Animals, sounds,
+and night mode are unchanged.

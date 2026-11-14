@@ -1,6 +1,6 @@
-/* 沙漠绿洲 · Desert Oasis (desert38) — from desert37 (snake ok): scene fidelity
-   vs reference — smoke, dunes, rim rocks, deep jagged underside, puff cloud sea,
-   tent drying-rack (not stick-figure). HOLD MERGE. */
+/* 沙漠绿洲 · Desert Oasis (desert39) — from desert38: thin campfire smoke,
+   muted faceted sandstone rocks, remove snake-trail white lines on sand,
+   stronger puff cloud sea. HOLD MERGE. */
 (()=>{
 window.__desInit=getX=>{
 const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
@@ -598,28 +598,36 @@ function buildCloudSea(){
 function placeSoftDepthCards(){ /* no vertical billboards */ }
 function addCloudFloorLayers(){ /* far horizontal disc only */ }
 
-/* puff cumulus bank below island — sea-style soft Points impostors */
+/* puff cumulus bank below / around island — brighter sunlit tops, soft lavender shadows */
 function buildPuffCloudBank(){
-  const n=MOB?28:48;
+  const n=MOB?48:80;
   const can=document.createElement("canvas");can.width=can.height=128;
   {const g=can.getContext("2d");
-    for(let i=0;i<16;i++){const x=rr(30,98),y=rr(30,98),s=rr(14,34);
-      const r=g.createRadialGradient(x,y,0,x,y,s);r.addColorStop(0,"rgba(255,255,255,.38)");r.addColorStop(1,"rgba(255,255,255,0)");
+    /* soft multi-lobe cumulus sprite: brighter core + lavender rim */
+    for(let i=0;i<28;i++){const x=rr(24,104),y=rr(30,100),s=rr(18,46);
+      const r=g.createRadialGradient(x,y,0,x,y,s);
+      r.addColorStop(0,"rgba(255,252,248,.85)");r.addColorStop(.4,"rgba(242,228,214,.55)");
+      r.addColorStop(.7,"rgba(186,168,198,.32)");r.addColorStop(1,"rgba(150,140,175,0)");
       g.fillStyle=r;g.fillRect(0,0,128,128)}}
   const tex=new T.CTex(can);tex.colorSpace="srgb";
   const p=new Float32Array(n*3),a=new Float32Array(n),s=new Float32Array(n);
   const g=new T.BG();g.setAttribute("position",new T.BA(p,3));g.setAttribute("aA",new T.BA(a,1));g.setAttribute("aS",new T.BA(s,1));
-  const uC={value:new C3(.92,.78,.68)};
+  /* sunlit warm top with soft lavender shadow tint */
+  const uC={value:new C3(.98,.93,.88)};
   const m=new T.SM({transparent:true,depthWrite:false,fog:false,blending:1,
-    uniforms:{tS:{value:tex},uSc:{value:480},uC},
-    vertexShader:`attribute float aA,aS;uniform float uSc;varying float vA;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;float d=max(.5,-mv.z);gl_PointSize=aA<.003?0.:min(aS*uSc/d,520.);vA=aA;}`,
-    fragmentShader:`uniform sampler2D tS;uniform vec3 uC;varying float vA;void main(){float a=texture2D(tS,gl_PointCoord).a*vA;if(a<.01)discard;gl_FragColor=vec4(uC,a);}`});
+    uniforms:{tS:{value:tex},uSc:{value:760},uC},
+    vertexShader:`attribute float aA,aS;uniform float uSc;varying float vA;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;float d=max(.5,-mv.z);gl_PointSize=aA<.003?0.:min(aS*uSc/d,720.);vA=aA;}`,
+    fragmentShader:`uniform sampler2D tS;uniform vec3 uC;varying float vA;void main(){vec4 s=texture2D(tS,gl_PointCoord);float a=s.a*vA;if(a<.01)discard;float sh=smoothstep(.15,.85,length(gl_PointCoord-.5));gl_FragColor=vec4(mix(uC,vec3(.72,.64,.82),sh*.35),a);}`});
   const o=new T.Points(g,m);o.frustumCulled=false;o.renderOrder=-40;o.layers.mask=1|L3;
   const CB=[];
   for(let i=0;i<n;i++){
-    const th=i/n*TAU+rr(-.08,.08), rad=rr(R*.55,R*2.4), y=rr(-CLIFF_H-2.5,-CLIFF_H*.35);
-    CB.push({th,rad,y,sz:rr(7,14),ph:rnd()*TAU,w:rr(.003,.01)});
-    p[i*3]=Math.cos(th)*rad;p[i*3+1]=y;p[i*3+2]=Math.sin(th)*rad;a[i]=.28;s[i]=CB[i].sz}
+    /* denser bed under rim + wider field around island */
+    const near=i<n*.45;
+    const th=i/n*TAU+rr(-.08,.08), rad=near?rr(R*.55,R*1.35):rr(R*1.1,R*2.8);
+    const y=near?rr(-CLIFF_H*.85,-CLIFF_H*.12):rr(-CLIFF_H-2.2,-CLIFF_H*.25);
+    CB.push({th,rad,y,sz:near?rr(11,20):rr(10,19),ph:rnd()*TAU,w:rr(.003,.01)});
+    p[i*3]=Math.cos(th)*rad;p[i*3+1]=y;p[i*3+2]=Math.sin(th)*rad;
+    a[i]=rr(.58,.78); s[i]=CB[i].sz}
   root.add(o);onDes(o);
   window.__desPuffBank={o,p,a,s,g,m,uC,CB,n};
   return o}
@@ -637,7 +645,7 @@ buildPuffCloudBank();
   const fb=document.createElement("canvas");fb.width=fb.height=8;const fx=fb.getContext("2d");
   fx.fillStyle="#f0c090";fx.fillRect(0,0,8,8);
   const fbTex=new T.CTex(fb);fbTex.colorSpace="srgb";
-  const floorU={map:{value:fbTex},op:{value:.78},tint:{value:new C3("#ffe2c0")}};
+  const floorU={map:{value:fbTex},op:{value:.92},tint:{value:new C3("#ffe8d0")}};
   const floorM=new T.SM({transparent:true,depthWrite:false,depthTest:true,fog:false,side:2,uniforms:floorU,
     vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`uniform sampler2D map;uniform float op;uniform vec3 tint;varying vec2 vUv;
@@ -672,8 +680,8 @@ buildPuffCloudBank();
   /* mode tint via uniforms — setModeTint updates op/tint */
   floor.userData.setTint=(day,night,storm)=>{
     floor.visible=!(night>.5);
-    floorU.op.value=night>.5?0:storm>.3?.45:day?.55:.78;
-    floorU.tint.value.set(night>.5?"#6878a0":day?"#f0ece8":"#ffe2c0")};
+    floorU.op.value=night>.5?0:storm>.3?.5:day?.62:.92;
+    floorU.tint.value.set(night>.5?"#6878a0":day?"#f2eee8":"#ffe8d0")};
 })();
 (function initSkyAndSea(){
   const fb=document.createElement("canvas");fb.width=fb.height=4;const fx=fb.getContext("2d");
@@ -692,7 +700,8 @@ buildPuffCloudBank();
 loadTex(TEX.sandstone).then(tex=>{
   sandTex=tex;tex.wrapS=tex.wrapT=1000;tex.colorSpace="srgb";
   sandMats.forEach(m=>{m.map=tex; if(m.color)m.color.set("#e3b36a"); m.needsUpdate=true});
-  if(window.__desRockMats)window.__desRockMats.forEach(m=>{m.map=tex;m.color.set("#c4a070");m.needsUpdate=true});
+  /* rim rocks keep muted procedural ochre — do NOT apply sandstone.jpg (reads tomato-red) */
+  if(window.__desRockMats)window.__desRockMats.forEach(m=>{if(m.color)m.color.set("#a89068"); m.needsUpdate=true});
   /* feed real sandstone into cliff triplanar (replaces procedural strata canvas) */
   if(window.__desCliffU&&window.__desCliffU.map){window.__desCliffU.map.value=tex;tex.needsUpdate=true}
 }).catch(()=>{});
@@ -829,35 +838,61 @@ function reseatShoreGreen(){
 }
 reseatShoreGreen();
 
-/* sandstone boulders — rim cluster + a few on sand (ref); cliff sandstone mat */
-const rockG=new T.Group();root.add(rockG);window.__desRockMats=[];
+/* sandstone boulders — muted cliff ochre, irregular facets, partly sunk (ref) */
+const rockG=new T.Group();root.add(rockG);window.__desRockMats=[];window.__desRockG=rockG;
 function placeRimRocks(){
   while(rockG.children.length)rockG.remove(rockG.children[0]);
-  const rockM=M({color:"#b88958",map:sandTex||null,roughness:.96,metalness:0}); sandMats.push(rockM); window.__desRockMats.push(rockM);
+  window.__desRockMats.length=0;
+  /* muted tan/ochre matching cliff — solid (NO sandstone.jpg: that map reads tomato-red) */
+  const rkCan=document.createElement("canvas");rkCan.width=rkCan.height=64;
+  {const g=rkCan.getContext("2d"),id=g.createImageData(64,64);
+    for(let y=0;y<64;y++)for(let x=0;x<64;x++){
+      const n=.88+.12*Math.sin(x*.35+y*.2)*Math.sin(x*.15-y*.4);
+      const o=(y*64+x)*4;
+      id.data[o]=Math.floor(168*n);id.data[o+1]=Math.floor(138*n);id.data[o+2]=Math.floor(96*n);id.data[o+3]=255}
+    g.putImageData(id,0,0)}
+  const rkTex=new T.CTex(rkCan);rkTex.colorSpace="srgb";rkTex.wrapS=rkTex.wrapT=1000;
+  const rockM=M({color:"#a89068",map:rkTex,roughness:.98,metalness:0,
+    emissive:"#000000",emissiveIntensity:0});
+  window.__desRockMats.push(rockM);
+  const aoM=M({color:"#4a3828",roughness:1,transparent:true,opacity:.42,depthWrite:false});
   function rockMesh(s){
-    const rk=new T.Mesh(new T.Sphere(s*.55,8,6),rockM);
-    rk.scale.set(rr(.85,1.35),rr(.38,.72),rr(.8,1.3));
+    /* low-segment sphere + vertex jitter → irregular faceted boulder (not a tomato) */
+    const geo=new T.Sphere(s*.48,5,4);
+    const pos=geo.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+      const n=1+rr(-.2,.28)+.1*Math.sin(x*6.5+z*4.2+y*3);
+      pos.setXYZ(i,x*n*(.85+rr(0,.35)), y*n*(.5+rr(0,.25)), z*n*(.8+rr(0,.35)))}
+    pos.needsUpdate=true; geo.computeVertexNormals();
+    const rk=new T.Mesh(geo,rockM);
+    rk.scale.set(rr(.95,1.25),rr(.5,.8),rr(.9,1.3));
     return rk}
   function placeAt(x,z,s){
-    if(Math.hypot(x,z)>R-0.35)return;
-    if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR+.15)return;
-    if(Math.hypot(x-tentAnchor.x,z-tentAnchor.z)<1.6)return;
+    if(Math.hypot(x,z)>R-0.4)return;
+    if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR+.2)return;
+    if(Math.hypot(x-tentAnchor.x,z-tentAnchor.z)<1.8)return;
     const y=hAt(x,z); const rk=rockMesh(s);
-    rk.position.set(x,y+s*.08,z);
-    rk.rotation.set(rr(0,1.1),rr(0,TAU),rr(0,1.1));
-    rk.castShadow=rk.receiveShadow=true; onDes(rk); rockG.add(rk)}
-  /* rim boulders (varied) */
-  const rimN=MOB?8:12;
+    /* sink ~30% into sand */
+    rk.position.set(x, y - s*.28, z);
+    rk.rotation.set(rr(0,1.2),rr(0,TAU),rr(0,1.0));
+    rk.castShadow=rk.receiveShadow=true; onDes(rk); rockG.add(rk);
+    /* soft AO contact disc */
+    const ao=new T.Mesh(new T.Plane(s*1.15,s*1.15),aoM);
+    ao.rotation.x=-Math.PI/2; ao.position.set(x,y+.006,z); ao.renderOrder=1;
+    onDes(ao); rockG.add(ao)}
+  /* rim clusters (ref) */
+  const rimN=MOB?7:11;
   for(let i=0;i<rimN;i++){
-    const th=(i/rimN)*TAU+rr(-.12,.12), rad=R*(.72+rr(0,.16));
-    placeAt(Math.cos(th)*rad, Math.sin(th)*rad, rr(.18,.55))}
-  /* a few mid-sand + near oasis */
-  for(let i=0;i<(MOB?3:6);i++){
-    const a=rnd()*TAU, rad=lakeR+rr(.55,2.2);
-    placeAt(lakeC.x+Math.cos(a)*rad, lakeC.z+Math.sin(a)*rad*.95, rr(.1,.28))}
+    const th=(i/rimN)*TAU+rr(-.1,.1), rad=R*(.74+rr(0,.14));
+    placeAt(Math.cos(th)*rad, Math.sin(th)*rad, rr(.35,1.15));
+    if(rnd()<.45) placeAt(Math.cos(th+rr(-.08,.08))*(rad-rr(.15,.4)), Math.sin(th)*(rad-rr(.1,.35)), rr(.28,.7))}
   for(let i=0;i<(MOB?2:4);i++){
-    const a=rnd()*TAU, rad=rr(R*.35,R*.65);
-    placeAt(Math.cos(a)*rad, Math.sin(a)*rad*.9, rr(.12,.32))}}
+    const a=rnd()*TAU, rad=lakeR+rr(.7,2.4);
+    placeAt(lakeC.x+Math.cos(a)*rad, lakeC.z+Math.sin(a)*rad*.95, rr(.3,.75))}
+  for(let i=0;i<(MOB?1:3);i++){
+    const a=rnd()*TAU, rad=rr(R*.4,R*.62);
+    placeAt(Math.cos(a)*rad, Math.sin(a)*rad*.9, rr(.4,.95))}}
 placeRimRocks();
 const shrubs=[];
 (function makeShrubs(){
@@ -1214,26 +1249,33 @@ fireG.position.set(firePos.x,hAt(firePos.x,firePos.z),firePos.z);root.add(fireG)
   const fireL=new T.PL(new C3("#ff9a4a"),0,6,2);fireL.position.set(0,.35,0);fireL.layers.mask=1|L3;fireG.add(fireL);fireG.userData.light=fireL;
   const tentL=new T.PL(new C3("#ffb070"),0,3.2,2);tentL.position.set(1.0,.4,-.5);tentL.layers.mask=1|L3;fireG.add(tentL);fireG.userData.tentL=tentL;
 })();
-/* campfire smoke — soft grey-white column, visible at overview, fades with height */
-const SMN=MOB?90:140,smP=new Float32Array(SMN*3),smA=new Float32Array(SMN),smS=new Float32Array(SMN),smG=new T.BG();
-smG.setAttribute("position",new T.BA(smP,3));smG.setAttribute("a",new T.BA(smA,1));smG.setAttribute("aS",new T.BA(smS,1));
-const smPuffCan=document.createElement("canvas");smPuffCan.width=smPuffCan.height=64;
-{const g=smPuffCan.getContext("2d");
-  for(let i=0;i<10;i++){const x=rr(18,46),y=rr(18,46),s=rr(10,22);
-    const r=g.createRadialGradient(x,y,0,x,y,s);r.addColorStop(0,"rgba(255,255,255,.55)");r.addColorStop(1,"rgba(255,255,255,0)");
-    g.fillStyle=r;g.fillRect(0,0,64,64)}}
-const smPuffTex=new T.CTex(smPuffCan);smPuffTex.colorSpace="srgb";
-const smM=new T.SM({transparent:true,depthWrite:false,fog:false,blending:1,
- uniforms:{map:{value:smPuffTex},col:{value:new C3(.78,.76,.74)},scale:{value:520}},
- vertexShader:`attribute float a,aS;uniform float scale;varying float vA;
-  void main(){vA=a;vec4 mv=modelViewMatrix*vec4(position,1.);float dist=max(.8,-mv.z);
-   /* stay readable at overview (~25–45 m) — grow with distance, not fade */
-   gl_PointSize=clamp(aS*scale/dist, 6., 140.);
-   gl_Position=projectionMatrix*mv;}`,
- fragmentShader:`uniform sampler2D map;uniform vec3 col;varying float vA;
-  void main(){float a=texture2D(map,gl_PointCoord).a*vA;if(a<.02)discard;gl_FragColor=vec4(col,a);}`});
-{const smPts=new T.Points(smG,smM);smPts.frustumCulled=false;smPts.renderOrder=7;smPts.layers.mask=1|L3;root.add(smPts);window.__desSmoke=smPts}
-const SMF=[];for(let i=0;i<SMN;i++)SMF.push({x:0,y:rr(0,4.5),z:0,v:rr(.45,.85),life:rnd(),jx:rr(-1,1),jz:rr(-1,1),sz:rr(.55,1.35)});
+/* campfire smoke — ONE thin wispy column (soft noise filaments, not round balls).
+   Base ~0.15 m, widens slowly; opacity peaks ~0.32, fades out by ~3.5–4 m. */
+const SMN=MOB?16:22;
+const smCan=document.createElement("canvas");smCan.width=48;smCan.height=128;
+{const g=smCan.getContext("2d"), id=g.createImageData(48,128);
+  for(let y=0;y<128;y++)for(let x=0;x<48;x++){
+    const u=(x-24)/24, v=y/128;
+    /* filamentary wisps — elongated soft ribbons, not circular lobes */
+    const wiggle=Math.sin(v*11+u*2.4)*.1+Math.sin(v*23+u*5.5)*.045;
+    const half=.14+v*.38+wiggle;
+    const d=Math.abs(u-Math.sin(v*7.5)*.08)/Math.max(.06,half);
+    const filament=.35+.65*Math.pow(Math.max(0,Math.sin(x*1.1+y*.55)*Math.sin(x*.45-y*.9)),1.6);
+    const a=Math.max(0,1-d*d)*Math.pow(1-v,1.25)*filament*.85;
+    const o=(y*48+x)*4; id.data[o]=210;id.data[o+1]=208;id.data[o+2]=204;id.data[o+3]=Math.floor(cl(a,0,1)*255)}
+  g.putImageData(id,0,0)}
+const smTex=new T.CTex(smCan);smTex.colorSpace="srgb";
+const smGroup=new T.Group(); root.add(smGroup); onDes(smGroup); window.__desSmoke=smGroup;
+const SMF=[];
+for(let i=0;i<SMN;i++){
+  const mat=new T.SM({transparent:true,depthWrite:false,fog:false,side:2,blending:1,
+    uniforms:{map:{value:smTex},op:{value:0},col:{value:new C3(.7,.69,.67)}},
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`uniform sampler2D map;uniform float op;uniform vec3 col;varying vec2 vUv;
+      void main(){float a=texture2D(map,vUv).a*op;if(a<.02)discard;gl_FragColor=vec4(col,a);}`});
+  const mesh=new T.Mesh(new T.Plane(.14,.7),mat);
+  mesh.renderOrder=7; mesh.frustumCulled=false; smGroup.add(mesh);
+  SMF.push({mesh,mat,life:i/SMN, ph:rnd()*TAU, jx:rr(-1,1), jz:rr(-1,1)})}
 
 /* ---------------- camel — barrel body, S-neck, knobby legs ---------------- */
 function makeCamelProcedural(){
@@ -1966,12 +2008,11 @@ function spawnSnake(){
   return s}
 spawnSnake();if(!MOB)spawnSnake();
 
-const TRN=180,trP=new Float32Array(TRN*3),trA=new Float32Array(TRN),trG=new T.BG();let trI=0;
+/* snake trail Points — DISABLED in desert39: at overview they read as bright white
+   rim/shore lines (two snakes → two pale curves on the sand). Keep stubs so update is a no-op. */
+const TRN=0,trP=new Float32Array(3),trA=new Float32Array(1),trG=new T.BG();let trI=0;
 trG.setAttribute("position",new T.BA(trP,3));trG.setAttribute("a",new T.BA(trA,1));
-const trM=new T.SM({transparent:true,depthWrite:false,uniforms:{col:{value:new C3("#7a5a34")}},
- vertexShader:`attribute float a;varying float vA;void main(){vA=a;vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;gl_PointSize=max(2.2,9./max(.35,-mv.z));}`,
- fragmentShader:`uniform vec3 col;varying float vA;void main(){float d=length(gl_PointCoord-.5);gl_FragColor=vec4(col*.7,vA*smoothstep(.5,0.,d)*.65);}`});
-root.add(Object.assign(new T.Points(trG,trM),{frustumCulled:false,renderOrder:3}));
+const trTrailPts=null; /* was Points trail; removed — see artifacts/desert39/white-lines-note.txt */
 
 function snakeSlope(x,z){
   const e=.18; const hx=sampleSnakeGroundY(x+e,z)-sampleSnakeGroundY(x-e,z);
@@ -2103,10 +2144,7 @@ function snakeUpdate(st,dt,t){
   snakeHugBones(st);
   snakeLiftHostToBelly(st);
 
-  if(st.mode!=="idle"&&st.mode!=="strike"&&(st.t*20|0)!==((st.t-dt)*20|0)){
-    const i=trI%TRN; trP[i*3]=st.x; trP[i*3+1]=maxG+.01; trP[i*3+2]=st.z; trA[i]=1; trI++}
-  for(let i=0;i<TRN;i++)trA[i]=Math.max(0,trA[i]-dt*.06);
-  trG.attributes.position.needsUpdate=trG.attributes.a.needsUpdate=true}
+  /* trail Points removed (desert39) — were the pale white sand lines in overview */}
 function snakeMaxGroundUnder(st){
   /* max of visual-ground samples under coil ring + body bones — not just the root */
   let maxG=sampleSnakeGroundY(st.x,st.z);
@@ -2288,16 +2326,25 @@ function update(dt){
       pos.array[o]=base[o]+wiggle;pos.array[o+1]=base[o+1]+wiggle*.55;pos.array[o+2]=base[o+2]+wiggle*.4}
     pos.needsUpdate=true});
 
-  const fp=fireG.position;for(let i=0;i<SMN;i++){const k=SMF[i];k.life+=dt*.085;if(k.life>1){k.life=0;k.x=fp.x+rr(-.08,.08);k.z=fp.z+rr(-.08,.08);k.y=fp.y+.14;k.v=rr(.5,.95);k.jx=rr(-1,1);k.jz=rr(-1,1);k.sz=rr(.6,1.4)}
-    /* thin column rising then drifting with wind; fade by height (~5–6 m) */
-    const rise=k.y-fp.y;
-    k.y+=k.v*dt;k.x+=wn*.7*dt+k.jx*.22*dt*(.4+rise*.15);k.z+=wn*.25*dt+k.jz*.22*dt*(.4+rise*.15);
-    smP[i*3]=k.x;smP[i*3+1]=k.y;smP[i*3+2]=k.z;
-    const hFade=1-ss(2.4,6.0,rise);
-    const birth=ss(0,.06,k.life); const death=1-ss(.72,1,k.life);
-    smA[i]=Math.max(0,(.62+night*.18)*hFade*birth*death);
-    smS[i]=k.sz*(.75+rise*.2)}
-  smG.attributes.position.needsUpdate=smG.attributes.a.needsUpdate=smG.attributes.aS.needsUpdate=true;
+  /* thin single smoke column from campfire only — wispy filaments, peak α≈0.32, gone by ~3.5–4 m */
+  {const fp=fireG.position;
+  for(let i=0;i<SMN;i++){const k=SMF[i];
+    k.life+=dt*.095; if(k.life>1){k.life=0;k.jx=rr(-1,1);k.jz=rr(-1,1);k.ph=rnd()*TAU}
+    const u=k.life;
+    const h=u*3.6;
+    const widen=.15+h*.16; /* ~0.15 m base, slow flare */
+    const driftX=wn*.5*h+k.jx*.06*h;
+    const driftZ=wn*.16*h+k.jz*.06*h;
+    const x=fp.x+driftX+Math.sin(t*1.05+k.ph)*.015*h;
+    const y=fp.y+.1+h;
+    const z=fp.z+driftZ+Math.cos(t*.85+k.ph)*.015*h;
+    k.mesh.position.set(x,y,z);
+    k.mesh.scale.set(widen/.14, (.55+h*.08)/.7, 1);
+    if(De)k.mesh.quaternion.copy(De.quaternion);
+    const birth=ss(0,.1,u), death=1-ss(.75,1,u);
+    const hFade=1-ss(2.6,3.85,h);
+    const peak=.30+night*.03;
+    k.mat.uniforms.op.value=Math.max(0, peak*birth*death*hFade)}}
   (fireG.userData.flames||[]).forEach((fl,i)=>{
     const bob=.85+.15*Math.sin(t*14+i*1.7)+.08*Math.sin(t*23+i);
     fl.scale.set(bob,bob*1.1,1);
@@ -2337,11 +2384,11 @@ function update(dt){
       const b=B.CB[i]; b.th+=b.w*dt;
       B.p[i*3]=Math.cos(b.th)*b.rad; B.p[i*3+2]=Math.sin(b.th)*b.rad;
       B.p[i*3+1]=b.y+.35*Math.sin(t*.08+b.ph);
-      B.a[i]=.26+.07*Math.sin(t*.05+b.ph*2); B.s[i]=b.sz}
+      B.a[i]=.62+.14*Math.sin(t*.05+b.ph*2); B.s[i]=b.sz}
     B.g.attributes.position.needsUpdate=B.g.attributes.aA.needsUpdate=B.g.attributes.aS.needsUpdate=true;
-    /* sunset-lit warm grey (night from outer update scope) */
-    const lit=night>.5?.4:1;
-    B.uC.value.set(.92*lit*(1-night*.5)+.4*night, .76*lit*(1-night*.4)+.48*night, .64*lit*(1-night*.25)+.6*night)}
+    /* sunlit warm tops + soft lavender at night */
+    const lit=night>.5?.45:1;
+    B.uC.value.set(.96*lit*(1-night*.45)+.42*night, .9*lit*(1-night*.35)+.52*night, .86*lit*(1-night*.2)+.68*night)}
 
     /* Tripo prop wind uniforms */
   palmFrondMats.forEach(m=>{if(m&&m.userData&&m.userData._windU)m.userData._windU.value=t});

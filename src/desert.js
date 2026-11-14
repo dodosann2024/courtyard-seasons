@@ -1,6 +1,5 @@
-/* 沙漠绿洲 · Desert Oasis (desert39) — from desert38: thin campfire smoke,
-   muted faceted sandstone rocks, remove snake-trail white lines on sand,
-   stronger puff cloud sea. HOLD MERGE. */
+/* 沙漠绿洲 · Desert Oasis (desert40) — from desert39: clouds below cliff only,
+   rounded sunk boulders (no square AO), readable wispy smoke. HOLD MERGE. */
 (()=>{
 window.__desInit=getX=>{
 const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
@@ -598,38 +597,56 @@ function buildCloudSea(){
 function placeSoftDepthCards(){ /* no vertical billboards */ }
 function addCloudFloorLayers(){ /* far horizontal disc only */ }
 
-/* puff cumulus bank below / around island — brighter sunlit tops, soft lavender shadows */
+/* puff cumulus — ONLY below / around lower half of cliff. Never above deck−0.5 m,
+   never inside island cylinder above cliff mid, never between cam and island top. */
 function buildPuffCloudBank(){
-  const n=MOB?48:80;
+  const n=MOB?28:44;
+  /* hard ceiling: lowest deck ≈ 0; sprites must stay ≤ deckMin − 0.5 */
+  const DECK_CEIL=-0.5;
+  const Y_MAX=-CLIFF_H*.52; /* lower half of cliff only */
   const can=document.createElement("canvas");can.width=can.height=128;
   {const g=can.getContext("2d");
-    /* soft multi-lobe cumulus sprite: brighter core + lavender rim */
-    for(let i=0;i<28;i++){const x=rr(24,104),y=rr(30,100),s=rr(18,46);
+    for(let i=0;i<18;i++){const x=rr(28,100),y=rr(34,96),s=rr(14,36);
       const r=g.createRadialGradient(x,y,0,x,y,s);
-      r.addColorStop(0,"rgba(255,252,248,.85)");r.addColorStop(.4,"rgba(242,228,214,.55)");
-      r.addColorStop(.7,"rgba(186,168,198,.32)");r.addColorStop(1,"rgba(150,140,175,0)");
+      r.addColorStop(0,"rgba(255,250,245,.7)");r.addColorStop(.45,"rgba(236,220,210,.4)");
+      r.addColorStop(.75,"rgba(186,168,198,.2)");r.addColorStop(1,"rgba(160,150,180,0)");
       g.fillStyle=r;g.fillRect(0,0,128,128)}}
   const tex=new T.CTex(can);tex.colorSpace="srgb";
   const p=new Float32Array(n*3),a=new Float32Array(n),s=new Float32Array(n);
   const g=new T.BG();g.setAttribute("position",new T.BA(p,3));g.setAttribute("aA",new T.BA(a,1));g.setAttribute("aS",new T.BA(s,1));
-  /* sunlit warm top with soft lavender shadow tint */
-  const uC={value:new C3(.98,.93,.88)};
-  const m=new T.SM({transparent:true,depthWrite:false,fog:false,blending:1,
-    uniforms:{tS:{value:tex},uSc:{value:760},uC},
-    vertexShader:`attribute float aA,aS;uniform float uSc;varying float vA;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;float d=max(.5,-mv.z);gl_PointSize=aA<.003?0.:min(aS*uSc/d,720.);vA=aA;}`,
-    fragmentShader:`uniform sampler2D tS;uniform vec3 uC;varying float vA;void main(){vec4 s=texture2D(tS,gl_PointCoord);float a=s.a*vA;if(a<.01)discard;float sh=smoothstep(.15,.85,length(gl_PointCoord-.5));gl_FragColor=vec4(mix(uC,vec3(.72,.64,.82),sh*.35),a);}`});
+  const uC={value:new C3(.96,.9,.86)};
+  const uCeil={value:DECK_CEIL};
+  const m=new T.SM({transparent:true,depthWrite:false,depthTest:true,fog:false,blending:1,
+    uniforms:{tS:{value:tex},uSc:{value:380},uC,uCeil},
+    vertexShader:`attribute float aA,aS;uniform float uSc;uniform float uCeil;varying float vA;varying float vSoft;
+      void main(){
+        /* soft-particle ceiling: fade as sprite approaches deck */
+        vSoft=smoothstep(uCeil, uCeil-2.4, position.y);
+        vec4 mv=modelViewMatrix*vec4(position,1.);
+        gl_Position=projectionMatrix*mv;
+        float d=max(.5,-mv.z);
+        float aEff=aA*vSoft;
+        gl_PointSize=aEff<.003?0.:min(aS*uSc/d,280.);
+        vA=aEff;}`,
+    fragmentShader:`uniform sampler2D tS;uniform vec3 uC;varying float vA;varying float vSoft;
+      void main(){vec4 s=texture2D(tS,gl_PointCoord);float a=s.a*vA;if(a<.015)discard;
+        float sh=smoothstep(.12,.8,length(gl_PointCoord-.5));
+        gl_FragColor=vec4(mix(uC,vec3(.74,.66,.82),sh*.28),a);}`});
   const o=new T.Points(g,m);o.frustumCulled=false;o.renderOrder=-40;o.layers.mask=1|L3;
   const CB=[];
   for(let i=0;i<n;i++){
-    /* denser bed under rim + wider field around island */
-    const near=i<n*.45;
-    const th=i/n*TAU+rr(-.08,.08), rad=near?rr(R*.55,R*1.35):rr(R*1.1,R*2.8);
-    const y=near?rr(-CLIFF_H*.85,-CLIFF_H*.12):rr(-CLIFF_H-2.2,-CLIFF_H*.25);
-    CB.push({th,rad,y,sz:near?rr(11,20):rr(10,19),ph:rnd()*TAU,w:rr(.003,.01)});
+    const th=i/n*TAU+rr(-.1,.1);
+    /* outside island cylinder, or deep under tip only */
+    const underTip=i<n*.22;
+    const rad=underTip?rr(0,R*.55):rr(R*1.15,R*2.6);
+    let y=underTip?rr(-CLIFF_H-1.5,-CLIFF_H*.72):rr(-CLIFF_H-1.2,Y_MAX);
+    y=Math.min(y, Y_MAX, DECK_CEIL-0.6);
+    const sz=underTip?rr(5,9):rr(4.5,8.5);
+    CB.push({th,rad,y,sz,ph:rnd()*TAU,w:rr(.002,.008),underTip:underTip?1:0});
     p[i*3]=Math.cos(th)*rad;p[i*3+1]=y;p[i*3+2]=Math.sin(th)*rad;
-    a[i]=rr(.58,.78); s[i]=CB[i].sz}
+    a[i]=rr(.32,.48); s[i]=sz}
   root.add(o);onDes(o);
-  window.__desPuffBank={o,p,a,s,g,m,uC,CB,n};
+  window.__desPuffBank={o,p,a,s,g,m,uC,uCeil,CB,n,Y_MAX,DECK_CEIL};
   return o}
 
 const island=buildIsland(),under=buildUnderside(),cloudSea=buildCloudSea();
@@ -645,7 +662,7 @@ buildPuffCloudBank();
   const fb=document.createElement("canvas");fb.width=fb.height=8;const fx=fb.getContext("2d");
   fx.fillStyle="#f0c090";fx.fillRect(0,0,8,8);
   const fbTex=new T.CTex(fb);fbTex.colorSpace="srgb";
-  const floorU={map:{value:fbTex},op:{value:.92},tint:{value:new C3("#ffe8d0")}};
+  const floorU={map:{value:fbTex},op:{value:.72},tint:{value:new C3("#ffe2c0")}};
   const floorM=new T.SM({transparent:true,depthWrite:false,depthTest:true,fog:false,side:2,uniforms:floorU,
     vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`uniform sampler2D map;uniform float op;uniform vec3 tint;varying vec2 vUv;
@@ -680,8 +697,8 @@ buildPuffCloudBank();
   /* mode tint via uniforms — setModeTint updates op/tint */
   floor.userData.setTint=(day,night,storm)=>{
     floor.visible=!(night>.5);
-    floorU.op.value=night>.5?0:storm>.3?.5:day?.62:.92;
-    floorU.tint.value.set(night>.5?"#6878a0":day?"#f2eee8":"#ffe8d0")};
+    floorU.op.value=night>.5?0:storm>.3?.42:day?.5:.72;
+    floorU.tint.value.set(night>.5?"#6878a0":day?"#f0ece8":"#ffe2c0")};
 })();
 (function initSkyAndSea(){
   const fb=document.createElement("canvas");fb.width=fb.height=4;const fx=fb.getContext("2d");
@@ -838,50 +855,67 @@ function reseatShoreGreen(){
 }
 reseatShoreGreen();
 
-/* sandstone boulders — muted cliff ochre, irregular facets, partly sunk (ref) */
+/* sandstone boulders — rounded irregular, sunk 20–30%, no square AO decals */
 const rockG=new T.Group();root.add(rockG);window.__desRockMats=[];window.__desRockG=rockG;
 function placeRimRocks(){
   while(rockG.children.length)rockG.remove(rockG.children[0]);
   window.__desRockMats.length=0;
-  /* muted tan/ochre matching cliff — solid (NO sandstone.jpg: that map reads tomato-red) */
   const rkCan=document.createElement("canvas");rkCan.width=rkCan.height=64;
   {const g=rkCan.getContext("2d"),id=g.createImageData(64,64);
     for(let y=0;y<64;y++)for(let x=0;x<64;x++){
-      const n=.88+.12*Math.sin(x*.35+y*.2)*Math.sin(x*.15-y*.4);
+      const n=.9+.1*Math.sin(x*.3+y*.22)*Math.sin(x*.12-y*.35);
       const o=(y*64+x)*4;
-      id.data[o]=Math.floor(168*n);id.data[o+1]=Math.floor(138*n);id.data[o+2]=Math.floor(96*n);id.data[o+3]=255}
+      id.data[o]=Math.floor(172*n);id.data[o+1]=Math.floor(142*n);id.data[o+2]=Math.floor(100*n);id.data[o+3]=255}
     g.putImageData(id,0,0)}
   const rkTex=new T.CTex(rkCan);rkTex.colorSpace="srgb";rkTex.wrapS=rkTex.wrapT=1000;
-  const rockM=M({color:"#a89068",map:rkTex,roughness:.98,metalness:0,
+  const rockM=M({color:"#a89068",map:rkTex,roughness:.97,metalness:0,
     emissive:"#000000",emissiveIntensity:0});
   window.__desRockMats.push(rockM);
-  const aoM=M({color:"#4a3828",roughness:1,transparent:true,opacity:.42,depthWrite:false});
   function rockMesh(s){
-    /* low-segment sphere + vertex jitter → irregular faceted boulder (not a tomato) */
-    const geo=new T.Sphere(s*.48,5,4);
+    /* higher-res sphere + soft noise → rounded irregular boulder (not diamond) */
+    const geo=new T.Sphere(s*.5,14,12);
     const pos=geo.attributes.position;
     for(let i=0;i<pos.count;i++){
-      const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
-      const n=1+rr(-.2,.28)+.1*Math.sin(x*6.5+z*4.2+y*3);
-      pos.setXYZ(i,x*n*(.85+rr(0,.35)), y*n*(.5+rr(0,.25)), z*n*(.8+rr(0,.35)))}
-    pos.needsUpdate=true; geo.computeVertexNormals();
+      let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+      const len=Math.sqrt(x*x+y*y+z*z)||1;
+      const ny=y/len;
+      const n=1+.08*Math.sin(x*4.8+z*3.5)+.05*Math.sin(x*8.2-z*5.5+y*3)+rr(-.05,.06);
+      x*=n; z*=n;
+      /* gentle bottom squat — stay rounded, never a pyramid tip */
+      const squash=ny<0? mix(1,.78, -ny): mix(1,.94, ny);
+      y*=n*squash;
+      pos.setXYZ(i,x,y,z)}
+    pos.needsUpdate=true; geo.computeVertexNormals(); geo.computeBoundingBox();
     const rk=new T.Mesh(geo,rockM);
-    rk.scale.set(rr(.95,1.25),rr(.5,.8),rr(.9,1.3));
+    rk.scale.set(rr(.98,1.12),rr(.88,1.02),rr(.98,1.14));
     return rk}
   function placeAt(x,z,s){
     if(Math.hypot(x,z)>R-0.4)return;
     if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR+.2)return;
     if(Math.hypot(x-tentAnchor.x,z-tentAnchor.z)<1.8)return;
-    const y=hAt(x,z); const rk=rockMesh(s);
-    /* sink ~30% into sand */
-    rk.position.set(x, y - s*.28, z);
-    rk.rotation.set(rr(0,1.2),rr(0,TAU),rr(0,1.0));
-    rk.castShadow=rk.receiveShadow=true; onDes(rk); rockG.add(rk);
-    /* soft AO contact disc */
-    const ao=new T.Mesh(new T.Plane(s*1.15,s*1.15),aoM);
-    ao.rotation.x=-Math.PI/2; ao.position.set(x,y+.006,z); ao.renderOrder=1;
+    const ySurf=hAt(x,z); const rk=rockMesh(s);
+    rk.geometry.computeBoundingBox();
+    const bb=rk.geometry.boundingBox, sy=rk.scale.y;
+    const h=(bb.max.y-bb.min.y)*sy;
+    const sink=h*(.22+rr(0,.08)); /* 20–30% below sand */
+    rk.position.set(x, ySurf - bb.min.y*sy - sink, z);
+    rk.rotation.set(rr(-.08,.08),rr(0,TAU),rr(-.06,.06));
+    /* no castShadow — SwiftShader shadow maps read as square dark decals under rocks */
+    rk.castShadow=false; rk.receiveShadow=true;
+    onDes(rk); rockG.add(rk);
+    /* barely-visible soft radial contact only */
+    const aoCan=document.createElement("canvas");aoCan.width=aoCan.height=64;
+    {const g=aoCan.getContext("2d"), grd=g.createRadialGradient(32,32,1,32,32,31);
+      grd.addColorStop(0,"rgba(50,36,22,.22)");grd.addColorStop(.5,"rgba(50,36,22,.08)");grd.addColorStop(1,"rgba(50,36,22,0)");
+      g.fillStyle=grd;g.fillRect(0,0,64,64)}
+    const aoTex=new T.CTex(aoCan);aoTex.colorSpace="srgb";
+    const aoM=new T.SM({transparent:true,depthWrite:false,fog:false,
+      uniforms:{map:{value:aoTex},op:{value:.4}},
+      vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader:`uniform sampler2D map;uniform float op;varying vec2 vUv;void main(){vec4 c=texture2D(map,vUv);float a=c.a*op;if(a<.015)discard;gl_FragColor=vec4(c.rgb,a);}`});
+    const ao=new T.Mesh(new T.Plane(s*.95,s*.95),aoM);
+    ao.rotation.x=-Math.PI/2; ao.position.set(x,ySurf+.003,z); ao.renderOrder=1;
     onDes(ao); rockG.add(ao)}
-  /* rim clusters (ref) */
   const rimN=MOB?7:11;
   for(let i=0;i<rimN;i++){
     const th=(i/rimN)*TAU+rr(-.1,.1), rad=R*(.74+rr(0,.14));
@@ -892,7 +926,9 @@ function placeRimRocks(){
     placeAt(lakeC.x+Math.cos(a)*rad, lakeC.z+Math.sin(a)*rad*.95, rr(.3,.75))}
   for(let i=0;i<(MOB?1:3);i++){
     const a=rnd()*TAU, rad=rr(R*.4,R*.62);
-    placeAt(Math.cos(a)*rad, Math.sin(a)*rad*.9, rr(.4,.95))}}
+    placeAt(Math.cos(a)*rad, Math.sin(a)*rad*.9, rr(.4,.95))}
+}
+
 placeRimRocks();
 const shrubs=[];
 (function makeShrubs(){
@@ -1249,31 +1285,30 @@ fireG.position.set(firePos.x,hAt(firePos.x,firePos.z),firePos.z);root.add(fireG)
   const fireL=new T.PL(new C3("#ff9a4a"),0,6,2);fireL.position.set(0,.35,0);fireL.layers.mask=1|L3;fireG.add(fireL);fireG.userData.light=fireL;
   const tentL=new T.PL(new C3("#ffb070"),0,3.2,2);tentL.position.set(1.0,.4,-.5);tentL.layers.mask=1|L3;fireG.add(tentL);fireG.userData.tentL=tentL;
 })();
-/* campfire smoke — ONE thin wispy column (soft noise filaments, not round balls).
-   Base ~0.15 m, widens slowly; opacity peaks ~0.32, fades out by ~3.5–4 m. */
-const SMN=MOB?16:22;
-const smCan=document.createElement("canvas");smCan.width=48;smCan.height=128;
-{const g=smCan.getContext("2d"), id=g.createImageData(48,128);
-  for(let y=0;y<128;y++)for(let x=0;x<48;x++){
-    const u=(x-24)/24, v=y/128;
-    /* filamentary wisps — elongated soft ribbons, not circular lobes */
-    const wiggle=Math.sin(v*11+u*2.4)*.1+Math.sin(v*23+u*5.5)*.045;
-    const half=.14+v*.38+wiggle;
-    const d=Math.abs(u-Math.sin(v*7.5)*.08)/Math.max(.06,half);
-    const filament=.35+.65*Math.pow(Math.max(0,Math.sin(x*1.1+y*.55)*Math.sin(x*.45-y*.9)),1.6);
-    const a=Math.max(0,1-d*d)*Math.pow(1-v,1.25)*filament*.85;
-    const o=(y*48+x)*4; id.data[o]=210;id.data[o+1]=208;id.data[o+2]=204;id.data[o+3]=Math.floor(cl(a,0,1)*255)}
+/* campfire smoke — soft wispy column readable in overview.
+   Base ~0.15 m → ~0.8 m at 3 m; opacity peak ~0.45; fades by ~4 m. */
+const SMN=MOB?28:42;
+const smCan=document.createElement("canvas");smCan.width=64;smCan.height=128;
+{const g=smCan.getContext("2d"), id=g.createImageData(64,128);
+  for(let y=0;y<128;y++)for(let x=0;x<64;x++){
+    const u=(x-32)/32, v=y/128;
+    const wiggle=Math.sin(v*7+u*1.8)*.14+Math.sin(v*13+u*3.5)*.06;
+    const half=.2+v*.55+wiggle;
+    const d=Math.abs(u-Math.sin(v*5.5)*.12)/Math.max(.1,half);
+    const soft=.7+.3*Math.sin(x*.4+y*.25)*Math.sin(x*.2-y*.35);
+    const a=Math.max(0,(1-d*d)*Math.pow(1-v,.95)*Math.max(0,soft));
+    const o=(y*64+x)*4; id.data[o]=230;id.data[o+1]=228;id.data[o+2]=222;id.data[o+3]=Math.floor(Math.min(1,a)*220)}
   g.putImageData(id,0,0)}
 const smTex=new T.CTex(smCan);smTex.colorSpace="srgb";
 const smGroup=new T.Group(); root.add(smGroup); onDes(smGroup); window.__desSmoke=smGroup;
 const SMF=[];
 for(let i=0;i<SMN;i++){
   const mat=new T.SM({transparent:true,depthWrite:false,fog:false,side:2,blending:1,
-    uniforms:{map:{value:smTex},op:{value:0},col:{value:new C3(.7,.69,.67)}},
+    uniforms:{map:{value:smTex},op:{value:0},col:{value:new C3(.8,.78,.75)}},
     vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`uniform sampler2D map;uniform float op;uniform vec3 col;varying vec2 vUv;
       void main(){float a=texture2D(map,vUv).a*op;if(a<.02)discard;gl_FragColor=vec4(col,a);}`});
-  const mesh=new T.Mesh(new T.Plane(.14,.7),mat);
+  const mesh=new T.Mesh(new T.Plane(.32,.8),mat);
   mesh.renderOrder=7; mesh.frustumCulled=false; smGroup.add(mesh);
   SMF.push({mesh,mat,life:i/SMN, ph:rnd()*TAU, jx:rr(-1,1), jz:rr(-1,1)})}
 
@@ -2326,24 +2361,23 @@ function update(dt){
       pos.array[o]=base[o]+wiggle;pos.array[o+1]=base[o+1]+wiggle*.55;pos.array[o+2]=base[o+2]+wiggle*.4}
     pos.needsUpdate=true});
 
-  /* thin single smoke column from campfire only — wispy filaments, peak α≈0.32, gone by ~3.5–4 m */
+  /* soft wispy smoke — peak α≈0.45, width 0.15→0.8 by 3 m, fade by ~4 m; grow for overview */
   {const fp=fireG.position;
+  const camDist=De?Math.hypot(De.position.x-fp.x, De.position.y-fp.y, De.position.z-fp.z):10;
+  const viewBoost=cl(.85+camDist*.035, 1, 2.4); /* readable at ~30 m overview */
   for(let i=0;i<SMN;i++){const k=SMF[i];
-    k.life+=dt*.095; if(k.life>1){k.life=0;k.jx=rr(-1,1);k.jz=rr(-1,1);k.ph=rnd()*TAU}
+    k.life+=dt*.088; if(k.life>1){k.life=0;k.jx=rr(-1,1);k.jz=rr(-1,1);k.ph=rnd()*TAU}
     const u=k.life;
-    const h=u*3.6;
-    const widen=.15+h*.16; /* ~0.15 m base, slow flare */
-    const driftX=wn*.5*h+k.jx*.06*h;
-    const driftZ=wn*.16*h+k.jz*.06*h;
-    const x=fp.x+driftX+Math.sin(t*1.05+k.ph)*.015*h;
-    const y=fp.y+.1+h;
-    const z=fp.z+driftZ+Math.cos(t*.85+k.ph)*.015*h;
-    k.mesh.position.set(x,y,z);
-    k.mesh.scale.set(widen/.14, (.55+h*.08)/.7, 1);
+    const h=u*4.0;
+    const widen=(.15+Math.min(h,3)*.2167)*viewBoost;
+    const driftX=wn*.55*h+k.jx*.1*h+Math.sin(t*.7+k.ph)*.045*h;
+    const driftZ=wn*.2*h+k.jz*.08*h+Math.cos(t*.55+k.ph)*.035*h;
+    k.mesh.position.set(fp.x+driftX, fp.y+.12+h, fp.z+driftZ);
+    k.mesh.scale.set(widen/.32, ((.55+h*.1)/.8)*viewBoost, 1);
     if(De)k.mesh.quaternion.copy(De.quaternion);
-    const birth=ss(0,.1,u), death=1-ss(.75,1,u);
-    const hFade=1-ss(2.6,3.85,h);
-    const peak=.30+night*.03;
+    const birth=ss(0,.07,u), death=1-ss(.72,1,u);
+    const hFade=1-ss(2.9,4.05,h);
+    const peak=.45+night*.05;
     k.mat.uniforms.op.value=Math.max(0, peak*birth*death*hFade)}}
   (fireG.userData.flames||[]).forEach((fl,i)=>{
     const bob=.85+.15*Math.sin(t*14+i*1.7)+.08*Math.sin(t*23+i);
@@ -2377,16 +2411,21 @@ function update(dt){
       pl.position.y=u.y0+Math.sin(t*.1+u.ph)*.22;
       pl.lookAt(De.position.x,pl.position.y,De.position.z);
       pl.rotateX(-.08+Math.sin(t*.09+u.ph)*.03)})}
-  /* puff cumulus bank under island */
+  /* puff cumulus bank — clamp Y under deck; keep outside/below island */
   if(window.__desPuffBank){
     const B=window.__desPuffBank;
+    const yMax=B.Y_MAX!=null?B.Y_MAX:-CLIFF_H*.52;
+    const deckCeil=B.DECK_CEIL!=null?B.DECK_CEIL:-.5;
     for(let i=0;i<B.n;i++){
       const b=B.CB[i]; b.th+=b.w*dt;
       B.p[i*3]=Math.cos(b.th)*b.rad; B.p[i*3+2]=Math.sin(b.th)*b.rad;
-      B.p[i*3+1]=b.y+.35*Math.sin(t*.08+b.ph);
-      B.a[i]=.62+.14*Math.sin(t*.05+b.ph*2); B.s[i]=b.sz}
+      let yy=b.y+.22*Math.sin(t*.08+b.ph);
+      yy=Math.min(yy, yMax, deckCeil-0.6);
+      /* never enter island cylinder above mid-cliff */
+      if(b.rad<R*1.05 && yy>-CLIFF_H*.65) yy=-CLIFF_H*.72;
+      B.p[i*3+1]=yy;
+      B.a[i]=.36+.08*Math.sin(t*.05+b.ph*2); B.s[i]=b.sz}
     B.g.attributes.position.needsUpdate=B.g.attributes.aA.needsUpdate=B.g.attributes.aS.needsUpdate=true;
-    /* sunlit warm tops + soft lavender at night */
     const lit=night>.5?.45:1;
     B.uC.value.set(.96*lit*(1-night*.45)+.42*night, .9*lit*(1-night*.35)+.52*night, .86*lit*(1-night*.2)+.68*night)}
 
@@ -2540,7 +2579,9 @@ function show(on){
       if(s.pl)s.pl.visible=true});
     if(Cn){Cn.shadowMap.enabled=true;Cn.toneMappingExposure=isN?.7:isSt?.9:1.12}
     if(X.sr)X.sr.visible=!!isN;
-    root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}})
+    root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+    /* rocks: no castShadow — shadow maps read as square dark decals under boulders */
+    if(rockG)rockG.traverse(o=>{if(o.isMesh)o.castShadow=false});
   }
   const x=SX();if(x&&x.C)x.C();
   if(!on&&AU.master&&AU.ctx)AU.master.gain.setTargetAtTime(0,AU.ctx.currentTime,.25);

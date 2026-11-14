@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "framesChecked": 450,
+  "intrusions": 0,
+  "margin_m": 1.5,
+  "lakeR": 3.9592071473678727,
+  "lakeC": {
+    "x": -2.3148926926298157,
+    "z": 2.096474560301508
+  },
+  "spot": {
+    "x": 7.385238961609459,
+    "z": 2.6880071549688798,
+    "d": 9.718151311856008
+  },
+  "samples": [],
+  "note": "head+tail point-in-polygon against shoreline disc poly; must be false (dry) every frame"
+}

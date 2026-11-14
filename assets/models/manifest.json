@@ -1,1 +1,19 @@
-{}
+{
+  "camel_v3": 1,
+  "camel_v2": 0,
+  "camel_rigged": 0,
+  "eagle_v3": 1,
+  "eagle_perch_v2": 1,
+  "eagle_rigged": 0,
+  "eagle_perch": 0,
+  "snake_v3": 1,
+  "snake_rigged": 0,
+  "camel": 0,
+  "eagle": 0,
+  "snake": 0,
+  "island": 0,
+  "island_base": 1,
+  "palm": 1,
+  "saguaro": 1,
+  "tent": 1
+}

@@ -1,0 +1,24 @@
+{
+  "camel": {
+    "tripo0_Left_Limb_0": 0.7081367352684611,
+    "tripo0_Left_Limb_3": 0.17704326587706715,
+    "tripo0_Right_Limb_0": 0.77300571911159,
+    "tripo0_Right_Limb_3": 0.18712329068847347,
+    "bone_4": 0.8860487126993299,
+    "bone_9": 0.20528062227750132,
+    "tripoSpine_1": 0.13264912803056744,
+    "tripoHead_0": 0
+  },
+  "eagle": {
+    "tripo0_Left_Limb_0": 0.4586661778593357,
+    "tripo0_Left_Limb_1": 0.7146290849490564,
+    "tripo0_Left_Limb_2": 1.0030748299318346,
+    "tripo0_Left_Limb_3": 1.3314081632651464,
+    "tripo0_Right_Limb_0": 0.4586661778593357,
+    "tripo0_Right_Limb_1": 0.7146290849490564,
+    "tripo0_Right_Limb_2": 1.0030748299318346,
+    "tripo0_Right_Limb_3": 1.3314081632651464
+  },
+  "snakeSegMove": 1.8011636536350992,
+  "pass": true
+}

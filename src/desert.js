@@ -896,7 +896,7 @@ function groundFrame(x,z,yaw,L,Wd){
 
 /* ---- camels ---- */
 const REST=[{...tl(-3.9,4.4),yaw:TENT.yaw+Math.PI/2+.15},{x:7.2,z:-.6,yaw:-Math.PI/2-.35}];
-const DRINK=(()=>{const th=BEACH[0],[x,z]=pondEdge(th,1),nx=Math.cos(th),nz=Math.sin(th);return{x:x+nx*2.05,z:z+nz*2.05,yaw:Math.atan2(-nx,-nz)}})();
+const DRINK=(()=>{const th=BEACH[0],[x,z]=pondEdge(th,1),nx=Math.cos(th),nz=Math.sin(th);return{x:x+nx*1.0,z:z+nz*1.0,yaw:Math.atan2(-nx,-nz)}})();
 /* kneel/lie: fold each leg segment about the camel's lateral axis (degrees, + swings the lower end back) */
 const KNEEL=[["tripo0_Left_Limb_1",-72],["tripo0_Left_Limb_2",152],["tripo0_Right_Limb_1",-72],["tripo0_Right_Limb_2",152],
   ["tripo1_Left_Limb_0",-42],["tripo1_Left_Limb_1",132],["tripo1_Left_Limb_2",-152],["tripo1_Right_Limb_0",-42],["tripo1_Right_Limb_1",132],["tripo1_Right_Limb_2",-152]];

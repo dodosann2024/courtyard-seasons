@@ -1,5 +1,6 @@
-/* 沙漠绿洲 · Desert Oasis (desert35) — from desert34: eagle continuity, snake colour/
-   terrain hug, camel slope plant. HOLD MERGE. */
+/* 沙漠绿洲 · Desert Oasis (desert36) — from desert35: snake belly on sand (max
+   ground under coil), reed/prop path clearance, soft eagle approach→flare,
+   camel root continuity. HOLD MERGE. */
 (()=>{
 window.__desInit=getX=>{
 const X=getX(),T=X.T,{Jt,De,Ce,Cn,Ta,Ue,Ct,qt,jt,pi,dc}=X,MOB=!!X.kn;
@@ -106,6 +107,8 @@ function gradeAnimalMat(m, kind){
   if(m.roughness==null||m.roughness>0.95)m.roughness=.82;
   else if(kind==="snake")m.roughness=Math.max(.78, Math.min(.9, m.roughness||.85));
   m.envMapIntensity=kind==="snake"?.04:.1;
+  /* snake body: FrontSide only — DoubleSide would show hollow interior if clipped */
+  if(kind==="snake"&&m.side!==undefined&&m.color&&m.color.getHex&&m.color.getHex()!==0xc43845)m.side=0;
   m.needsUpdate=true}
 function gradeAnimalGLB(root, kind){
   if(!root)return;
@@ -1609,15 +1612,24 @@ function eagleBeginLand(kind){
   eagle.facing=face;
   eagleShowFly(true);
   /* Root.position barely moves at flare t=0 — arrive at tip itself (no 1 m stand-off) */
-  eagle.approachGoal={x:tip.x,y:tip.y+.15,z:tip.z};
+  /* approach the tip itself — tip.y+.15 made the flare seat drop ~0.15 m */
+  eagle.approachGoal={x:tip.x,y:tip.y,z:tip.z};
   eagle.mode=kind==="perch"?"approachPerch":"approachDrink";
   eagle.t=0; eagle.landed=0;
   eaglePlayFly("glide",.25)}
 function eagleStartFlare(){
   const tip=eagle.landTarget;
   const face=tip.facing!=null?tip.facing:eagle.facing;
-  /* Host already within <0.45 m of tip from approach; seat + hard-cut to flare */
-  eagleSeatHost(tip, face);
+  const o=eagle.o;
+  /* Soft seat (approach→flare): never snap more than ~0.12 m — desert35's
+     hard eagleSeatHost at dist≈0.25 + y-bias made the ~0.51 m frame jump */
+  const dx=tip.x-o.position.x, dy=tip.y-o.position.y, dz=tip.z-o.position.z;
+  const d=Math.hypot(dx,dy,dz), maxSeat=.12;
+  if(d>1e-6){const s=Math.min(1, maxSeat/d);
+    o.position.x+=dx*s; o.position.y+=dy*s; o.position.z+=dz*s}
+  o.rotation.set(0, face, 0); eagle.facing=face;
+  /* lock landTarget to seated host so land* frames don't re-snap */
+  eagle.landTarget={x:o.position.x,y:o.position.y,z:o.position.z,kind:tip.kind,facing:face};
   const act=eagle.flyAct;
   Object.keys(act).forEach(k=>{act[k].setEffectiveWeight(0); act[k].paused=true});
   if(act.landing_flare){
@@ -1710,8 +1722,8 @@ function eagleUpdate(dt,t){
     o.rotation.x=cl(-(dy/dist)*.25,-.35,.1); o.rotation.z=0;
     eaglePlayFly(dy<-.05||dist>3?"flap":"glide",EAGLE_XFADE);
     const dTip=Math.hypot(tip.x-o.position.x, tip.y-o.position.y, tip.z-o.position.z);
-    /* flare only when host is already on the tip — seat jump stays <0.45 m */
-    if(dist<.25||dTip<.28)eagleStartFlare()}
+    /* flare only when host is nearly on the tip — soft seat ≤0.12 m */
+    if(dist<.08||dTip<.1)eagleStartFlare()}
   else if(e.mode==="landPerch"||e.mode==="landDrink"){
     eagleShowFly(true);
     /* host fixed at tip; flare Root track is the approach */
@@ -1800,15 +1812,22 @@ function snakeAimYaw(fromX,fromZ,toX,toZ){
   const ax=dx/len, az=dz/len;
   return Math.atan2(az, -ax)}
 function snakeOpenSand(x,z){
-  /* avoid lake, tent, firepit, bone props, cactus — open dune only */
-  if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR+1.1)return 0;
-  if(typeof tentAnchor!=="undefined"&&tentAnchor&&Math.hypot(x-tentAnchor.x,z-tentAnchor.z)<2.2)return 0;
+  /* avoid lake, tent, firepit, bones, cactus, palms, shore reeds —
+     reed PlaneGeometry edge-on reads as a thin cream/beige pole in snake.mp4 */
+  if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR+1.45)return 0;
+  if(typeof tentAnchor!=="undefined"&&tentAnchor&&Math.hypot(x-tentAnchor.x,z-tentAnchor.z)<2.4)return 0;
   if(typeof fireG!=="undefined"&&fireG&&Math.hypot(x-fireG.position.x,z-fireG.position.z)<1.6)return 0;
   /* bleached rib props (desert props) */
   if(Math.hypot(x-(-5.8),z-3.6)<2.0)return 0;
   if(Math.hypot(x-4.6,z-1.6)<2.0)return 0;
   for(let i=0;i<(cacti||[]).length;i++){
-    const c=cacti[i]; if(c&&Math.hypot(x-c.position.x,z-c.position.z)<1.2)return 0}
+    const c=cacti[i]; if(c&&Math.hypot(x-c.position.x,z-c.position.z)<1.3)return 0}
+  for(let i=0;i<(palms||[]).length;i++){
+    const p=palms[i]; if(p&&p.visible!==false&&Math.hypot(x-p.position.x,z-p.position.z)<1.6)return 0}
+  /* tripo const is declared later — never touch it here (TDZ); tent/palms cover it */
+  for(let i=0;i<reedG.children.length;i++){
+    const g=reedG.children[i];
+    if(g&&Math.hypot(x-g.position.x,z-g.position.z)<.55)return 0}
   return 1}
 function snakePlaceTrigger(st){
   if(!st.trigger){
@@ -1835,12 +1854,16 @@ function snakeBeginStrike(st){
   snakePlay(st,"strike",.05);
   st.strikeCD=rr(40,90)}
 function spawnSnake(){
-  const spots=[{x:1.2,z:3.4,th:1.2},{x:3.8,z:.6,th:-.4},{x:-.5,z:3.8,th:2.1}];
-  const sp=spots[snakes.length%spots.length]||{x:2,z:3,th:0};
+  const spots=[{x:3.8,z:3.0,th:1.2},{x:4.2,z:2.2,th:-.4},{x:2.6,z:3.6,th:2.1}];
+  let sp=spots[snakes.length%spots.length]||{x:3.5,z:3.2,th:0};
+  if(!snakeOpenSand(sp.x,sp.z)){
+    for(let k=0;k<12;k++){
+      const a=rnd()*TAU,r=rr(2.8,R*.55),x=Math.cos(a)*r,z=Math.sin(a)*r;
+      if(snakeOpenSand(x,z)){sp={x,z,th:sp.th};break}}}
   const host=makeSnakeProcedural();
   const s={o:host,x:sp.x,z:sp.z,th:sp.th,mode:"slither",t:rr(0,4),speed:SNAKE_SLITHER_MPS,
     rig:null,wave:rnd()*TAU,idleFor:rr(3,6),phase:rr(0,10),strikeCD:rr(40,90),trigger:null};
-  host.position.set(sp.x,sampleGroundY(sp.x,sp.z),sp.z); host.rotation.y=sp.th;
+  host.position.set(sp.x,sampleGroundY(sp.x,sp.z)+.06,sp.z); host.rotation.y=sp.th;
   root.add(host); onDes(host); snakes.push(s);
   ensureSnakeProto().then(proto=>{
     if(!proto||s.rig)return;
@@ -1859,9 +1882,58 @@ const trM=new T.SM({transparent:true,depthWrite:false,uniforms:{col:{value:new C
 root.add(Object.assign(new T.Points(trG,trM),{frustumCulled:false,renderOrder:3}));
 
 function snakeSlope(x,z){
-  const e=.18; const hx=sampleGroundY(x+e,z)-sampleGroundY(x-e,z);
-  const hz=sampleGroundY(x,z+e)-sampleGroundY(x,z-e);
+  const e=.18; const hx=sampleSnakeGroundY(x+e,z)-sampleSnakeGroundY(x-e,z);
+  const hz=sampleSnakeGroundY(x,z+e)-sampleSnakeGroundY(x,z-e);
   return Math.hypot(hx,hz)/(2*e)}
+/* Dedicated deck HF for the snake — main HF culls dunes (med+0.45) + sandMed
+   clamp, so the coil sits ~0.5 m under the Tripo sand and reads hollow. */
+let _snakeHF=null;
+function buildSnakeHF(mesh){
+  if(!mesh){_snakeHF=null;return}
+  const N=72, half=_hfHalf, cell=(half*2)/N;
+  const grid=new Float32Array(N*N); grid.fill(-1e9);
+  mesh.updateMatrixWorld(true);
+  mesh.traverse(o=>{
+    if(!o.isMesh||!o.geometry)return;
+    const g=o.geometry; if(!g.attributes.normal)g.computeVertexNormals();
+    const pos=g.attributes.position, nor=g.attributes.normal; if(!pos||!nor)return;
+    const e=o.matrixWorld.elements;
+    for(let i=0;i<pos.count;i++){
+      const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+      const wx=e[0]*x+e[4]*y+e[8]*z+e[12], wy=e[1]*x+e[5]*y+e[9]*z+e[13], wz=e[2]*x+e[6]*y+e[10]*z+e[14];
+      const wny=e[1]*nor.getX(i)+e[5]*nor.getY(i)+e[9]*nor.getZ(i);
+      if(wny<0.42)continue;
+      /* keep dune tops; only skip extreme palm/tent crowns */
+      if(_sandMed!=null&&wy>_sandMed+1.15)continue;
+      if(_sandMed!=null&&wy<_sandMed-1.6)continue;
+      const ix=((wx+half)/cell)|0, iz=((wz+half)/cell)|0;
+      if(ix<0||iz<0||ix>=N||iz>=N)continue;
+      const j=iz*N+ix; if(wy>grid[j])grid[j]=wy}});
+  for(let pass=0;pass<4;pass++)for(let iz=0;iz<N;iz++)for(let ix=0;ix<N;ix++){
+    const j=iz*N+ix; if(grid[j]>-1e8)continue;
+    let s=0,c=0;
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+      const x=ix+dx,z=iz+dz; if(x<0||z<0||x>=N||z>=N)continue;
+      const v=grid[z*N+x]; if(v>-1e8){s+=v;c++}}
+    if(c)grid[j]=s/c}
+  for(let i=0;i<grid.length;i++)if(grid[i]<-1e8)grid[i]=_sandMed||0;
+  _snakeHF={grid,N,half,cell}}
+function sampleSnakeGroundY(x,z){
+  let y=sampleGroundY(x,z);
+  const src=_snakeHF||_hfFull||_hf;
+  if(!src)return y;
+  const {grid,N,half,cell}=src;
+  const fx=(x+half)/cell, fz=(z+half)/cell;
+  const ix=cl(fx|0,0,N-2), iz=cl(fz|0,0,N-2);
+  const tx=fx-ix, tz=fz-iz;
+  let yF=mix(mix(grid[iz*N+ix],grid[iz*N+ix+1],tx),mix(grid[(iz+1)*N+ix],grid[(iz+1)*N+ix+1],tx),tz);
+  if(yF>-1e8)y=Math.max(y, yF);
+  const dL=Math.hypot(x-lakeC.x,z-lakeC.z);
+  if(dL<lakeR*1.35){
+    const shore=lakeY+0.01;
+    const k=ss(lakeR*1.35,lakeR*.95,dL);
+    y=Math.max(y, mix(y,shore,k))}
+  return y}
 function snakeUpdate(st,dt,t){
   st.t+=dt; st.phase=(st.phase||0)+dt;
   if(st.strikeCD==null)st.strikeCD=rr(40,90);
@@ -1902,48 +1974,91 @@ function snakeUpdate(st,dt,t){
     st.th+=cl(dth,-maxT,maxT)}
 
   const sc=rig&&rig.fitScale||1;
-  if(st.mode==="slither"){
-    const sp=SNAKE_SLITHER_MPS*sc;
-    st.x+=Math.sin(st.th)*sp*dt; st.z+=Math.cos(st.th)*sp*dt; st.speed=sp}
-  else if(st.mode==="sidewind"){
-    const sp=SNAKE_SIDEWIND_MPS*sc;
-    st.x+=Math.cos(st.th)*sp*dt; st.z+=-Math.sin(st.th)*sp*dt; st.speed=sp}
-  else st.speed=0;
+  if(st.mode==="slither"||st.mode==="sidewind"){
+    const sp=(st.mode==="sidewind"?SNAKE_SIDEWIND_MPS:SNAKE_SLITHER_MPS)*sc;
+    let nx,nz;
+    if(st.mode==="sidewind"){nx=st.x+Math.cos(st.th)*sp*dt; nz=st.z+-Math.sin(st.th)*sp*dt}
+    else{nx=st.x+Math.sin(st.th)*sp*dt; nz=st.z+Math.cos(st.th)*sp*dt}
+    if(snakeOpenSand(nx,nz)){st.x=nx; st.z=nz; st.speed=sp}
+    else{
+      /* steer clear of reeds/props/lake — same clearance for all props */
+      const away=Math.atan2(st.x-lakeC.x, st.z-lakeC.z);
+      st.th=away+rr(-.4,.4); st.speed=0}
+  }else st.speed=0;
 
-  /* root + pitch to dune normal */
+  /* plant on MAX visual ground under the whole coil/body */
+  const maxG=snakeMaxGroundUnder(st);
+  const belly=.08; /* body radius clearance — belly on sand, no hollow interior */
   const eT=.28;
-  const gy=sampleGroundY(st.x,st.z);
-  const yF=sampleGroundY(st.x+Math.sin(st.th)*eT, st.z+Math.cos(st.th)*eT);
-  const yB=sampleGroundY(st.x-Math.sin(st.th)*eT, st.z-Math.cos(st.th)*eT);
-  const yR=sampleGroundY(st.x+Math.cos(st.th)*eT, st.z-Math.sin(st.th)*eT);
-  const yL=sampleGroundY(st.x-Math.cos(st.th)*eT, st.z+Math.sin(st.th)*eT);
-  o.position.set(st.x, gy+.035, st.z);
+  const yF=sampleSnakeGroundY(st.x+Math.sin(st.th)*eT, st.z+Math.cos(st.th)*eT);
+  const yB=sampleSnakeGroundY(st.x-Math.sin(st.th)*eT, st.z-Math.cos(st.th)*eT);
+  const yR=sampleSnakeGroundY(st.x+Math.cos(st.th)*eT, st.z-Math.sin(st.th)*eT);
+  const yL=sampleSnakeGroundY(st.x-Math.cos(st.th)*eT, st.z+Math.sin(st.th)*eT);
+  /* coiled poses: almost no pitch/roll — tilt was cutting the coil into the dune */
+  const tilt=(st.mode==="idle"||st.mode==="strike")?.12:.75;
+  o.position.set(st.x, maxG+belly, st.z);
   o.rotation.order="YXZ";
   o.rotation.y=st.th;
-  o.rotation.x=cl(Math.atan2(yB-yF, 2*eT),-.35,.35)*.8;
-  o.rotation.z=cl(Math.atan2(yL-yR, 2*eT),-.3,.3)*.7;
+  o.rotation.x=cl(Math.atan2(yB-yF, 2*eT),-.35,.35)*tilt;
+  o.rotation.z=cl(Math.atan2(yL-yR, 2*eT),-.3,.3)*tilt;
   if(rig&&rig.mixer)rig.mixer.update(dt);
   snakeHugBones(st);
+  snakeLiftHostToBelly(st);
 
   if(st.mode!=="idle"&&st.mode!=="strike"&&(st.t*20|0)!==((st.t-dt)*20|0)){
-    const i=trI%TRN; trP[i*3]=st.x; trP[i*3+1]=gy+.01; trP[i*3+2]=st.z; trA[i]=1; trI++}
+    const i=trI%TRN; trP[i*3]=st.x; trP[i*3+1]=maxG+.01; trP[i*3+2]=st.z; trA[i]=1; trI++}
   for(let i=0;i<TRN;i++)trA[i]=Math.max(0,trA[i]-dt*.06);
   trG.attributes.position.needsUpdate=trG.attributes.a.needsUpdate=true}
+function snakeMaxGroundUnder(st){
+  /* max of visual-ground samples under coil ring + body bones — not just the root */
+  let maxG=sampleSnakeGroundY(st.x,st.z);
+  const radii=[.12,.26,.4,.55];
+  for(let ri=0;ri<radii.length;ri++){
+    const r=radii[ri];
+    for(let i=0;i<8;i++){
+      const a=(i/8)*TAU+(st.th||0)*.15;
+      maxG=Math.max(maxG, sampleSnakeGroundY(st.x+Math.cos(a)*r, st.z+Math.sin(a)*r))}}
+  const wrap=st.glb;
+  if(wrap){
+    wrap.updateMatrixWorld(true);
+    const _p=new V3();
+    wrap.traverse(b=>{
+      if(!b.isBone)return;
+      if(!(b.name==="Head"||/^Body_/.test(b.name)))return;
+      b.getWorldPosition(_p);
+      maxG=Math.max(maxG, sampleSnakeGroundY(_p.x,_p.z))})}
+  return maxG}
 function snakeHugBones(st){
-  /* after mixer: only push up when a segment digs >2 cm into sand (avoid float) */
+  /* after mixer: only push up when a segment digs into visual sand */
   const wrap=st.glb; if(!wrap)return;
   wrap.updateMatrixWorld(true);
-  const half=.04*(st.rig&&st.rig.fitScale||1);
+  const half=.05*(st.rig&&st.rig.fitScale||1);
   const _p=new V3();
   wrap.traverse(b=>{
     if(!b.isBone)return;
     if(!(b.name==="Head"||/^Body_/.test(b.name)))return;
     b.getWorldPosition(_p);
-    const gy=sampleGroundY(_p.x,_p.z)+half;
+    const gy=sampleSnakeGroundY(_p.x,_p.z)+half;
     const dy=gy-_p.y;
-    if(dy>0.02)b.position.y+=Math.min(dy*.7, .08);
+    if(dy>0.015)b.position.y+=Math.min(dy*.85, .12);
   });
   wrap.updateMatrixWorld(true)}
+function snakeLiftHostToBelly(st){
+  /* final host lift so the lowest body bone sits on max visual ground under the body */
+  const wrap=st.glb; if(!wrap||!st.o)return;
+  wrap.updateMatrixWorld(true);
+  const half=.08*(st.rig&&st.rig.fitScale||1);
+  const _p=new V3();
+  let minY=1e9, maxG=sampleSnakeGroundY(st.x,st.z);
+  wrap.traverse(b=>{
+    if(!b.isBone)return;
+    if(!(b.name==="Head"||/^Body_/.test(b.name)))return;
+    b.getWorldPosition(_p);
+    minY=Math.min(minY,_p.y);
+    maxG=Math.max(maxG, sampleSnakeGroundY(_p.x,_p.z))});
+  if(minY>1e8)return;
+  const want=maxG+half;
+  if(minY<want){st.o.position.y+=(want-minY); wrap.updateMatrixWorld(true)}}
 
 /* ---------------- blowing sand / sandstorm ---------------- */
 const SND=MOB?2000:3600,snR=R*.96;
@@ -2328,7 +2443,18 @@ window.__desQA=()=>({camels,eagle,snakes,CAMEL_WALK_MPS,CAMEL_WALK_LOOP,CAMEL_XF
     const y=sampleGroundY(s.x,s.z);
     De.position.set(s.x-Math.sin(s.th)*d, y+hh, s.z-Math.cos(s.th)*d);
     Ce.target.set(s.x, y+0.06, s.z); Ce.update()},
+  /* low side cam ~1.5 m — belly-to-sand contact visible, snake centred */
+  followSnakeLow:(i,dist,h)=>{
+    const s=snakes[i|0];if(!s)return;
+    const d=dist||2.4, hh=h!=null?h:1.5;
+    const y=sampleGroundY(s.x,s.z);
+    const side=s.th+Math.PI*.55;
+    De.position.set(s.x+Math.sin(side)*d, y+hh, s.z+Math.cos(side)*d);
+    Ce.target.set(s.x, y+0.08, s.z); Ce.update()},
   eagleWorld:()=>{const p=eagleWorldPos(); return [p.x,p.y,p.z]},
+  /* camel host/root world position (not logical x/hAt/z — that hid a stuck walk) */
+  camelWorld:(i)=>{const c=camels[i|0];if(!c||!c.o)return null;
+    const p=c.o.position; return [p.x,p.y,p.z]},
   boneSnap:(which)=>{
     if(which==="camel"){const c=camels[0];if(!c||!c.rig)return null;
       const keys=["tripo0_Left_Limb_0","tripo0_Left_Limb_3","tripo0_Right_Limb_0","tripo0_Right_Limb_3",
@@ -2973,6 +3099,8 @@ function installTripoIsland(){
           const k=ss(lakeR*.98, lakeR*.12, d);
           grid[iz*N+ix]=Math.min(grid[iz*N+ix], mix(lakeY-0.05, lakeY-1.25, Math.pow(k,1.15)))}}
       _hfCacheClear()}
+    /* snake deck HF after bowl so shore samples match the deformed mesh */
+    buildSnakeHF(wrap);
     lake.visible=true; lake.renderOrder=2;
     lake.material.depthTest=true; lake.material.depthWrite=false;
     lake.material.polygonOffset=true; lake.material.polygonOffsetFactor=1; lake.material.polygonOffsetUnits=1;
@@ -3034,7 +3162,7 @@ function installTripoProps(){
         const x=-half+ix*cell+cell*.5, z=-half+iz*cell+cell*.5;
         if(Math.hypot(x-lakeC.x,z-lakeC.z)<lakeR*1.15)grid[iz*N+ix]=Math.max(grid[iz*N+ix], lakeY+0.02)}
       _hfCacheClear()}
-    else{_hfCacheClear(); buildHeightField(islandRoot)}}
+    else{_hfCacheClear(); buildHeightField(islandRoot); buildSnakeHF(islandRoot)}}
   /* hide ALL procedural palms/cacti/tent before hi-detail lands */
   palms.forEach(p=>{if(p){p.visible=false;p.traverse(o=>{o.visible=false})}});
   cacti.forEach(c=>{if(c){c.visible=false;c.traverse(o=>{o.visible=false})}});

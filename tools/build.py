@@ -49,6 +49,11 @@ def main():
     if os.path.isdir(mdir):
         for fn in os.listdir(mdir):
             written.add(os.path.normpath(os.path.join(mdir,fn)))
+    # desert sky panorama (built by tools/skypano.py)
+    tdir=os.path.join(ASSETS,"tex")
+    if os.path.isdir(tdir):
+        for fn in os.listdir(tdir):
+            written.add(os.path.normpath(os.path.join(tdir,fn)))
     # self-hosted three + GLTFLoader for desert Tripo GLBs (no CDN)
     vsrc=os.path.join(SRC,"vendor")
     vdst=os.path.join(ASSETS,"vendor")

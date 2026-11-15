@@ -97,6 +97,7 @@ function dDelta(x,z){if(!DLIVE)return 0;const m=dMaskG(x,z);return m>0?m*(duneP(
 const TENT={x:5.4,z:-3.9,yaw:-.24,L:6,D:4,H:2.2};
 const tentFwd={x:Math.sin(TENT.yaw),z:Math.cos(TENT.yaw)},tentRt={x:Math.cos(TENT.yaw),z:-Math.sin(TENT.yaw)};
 const FIRE={x:TENT.x+tentFwd.x*(TENT.D*.5+2.3)-tentRt.x*1.5,z:TENT.z+tentFwd.z*(TENT.D*.5+2.3)-tentRt.z*1.5};
+const tentU={uSunD:{value:new V3(0,1,0)},uSunC:{value:new C3(1,1,1)},uNt:{value:0},uWInv:{value:new T.M4()},uTC:{value:new T.V2(TENT.x,TENT.z)},uTF:{value:new T.V2(tentFwd.x,tentFwd.z)}};
 const RACK={x:TENT.x+tentRt.x*5.1+tentFwd.x*.9,z:TENT.z+tentRt.z*5.1+tentFwd.z*.9,yaw:TENT.yaw};
 const PALMS=[{x:-3.6,z:-1.8,h:11.8,lean:[.05,-.06],ry:.4},{x:-1.0,z:-4.2,h:10.8,lean:[.07,.05],ry:2.1},{x:-7.2,z:-.5,h:7.6,lean:[-.06,.04],ry:4.0}];
 const SAG=[{x:-19.6,z:-3.4,h:5.2,ry:.6},{x:12.6,z:6.2,h:2.0,ry:2.4}];
@@ -575,19 +576,29 @@ function palmMat(H,isTrunk){
         float a=clamp((a0-.5)/max(fwidth(a0),1e-4)+.5,0.,1.);
         a=mix(a,clamp(a0*1.15,0.,1.),smoothstep(.6,2.2,lod));
         if(a<.02)discard;diffuseColor.a=a;}`);
-    /* trunk: overlapping leaf-base stubs. Rows step up a spiral (golden-ratio phase per row), each stub has an
-       arched lower lip over a shadowed gap, seams between stubs, its own tone, and fine vertical fibre */
-    if(isTrunk)sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nvarying vec2 vUV;float pHs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}")
+    /* trunk: leaf-base stubs on a golden-ratio spiral with wavy, uneven rows. In patches (mostly low down) the stubs
+       have fallen off, leaving bare trunk with faint leaf-scar rings; the tone runs grey at the base to warm brown
+       under the crown. Value noise is periodic around the trunk so the uv seam doesn't show. */
+    if(isTrunk)sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
+        varying vec2 vUV;float pHs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        float pN(vec2 p,float per){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);float x0=mod(i.x,per),x1=mod(i.x+1.,per);
+          return mix(mix(pHs(vec2(x0,i.y)),pHs(vec2(x1,i.y)),f.x),mix(pHs(vec2(x0,i.y+1.)),pHs(vec2(x1,i.y+1.)),f.x),f.y);}`)
       .replace("#include <color_fragment>",`#include <color_fragment>
-        {float ry=vUV.y/.16;float row=floor(ry),fy=fract(ry);
-         float qx=vUV.x*9.+fract(row*.618)*9.+.35*sin(row*2.3);float cl=floor(qx),fx=fract(qx)-.5;
-         float h1=pHs(vec2(mod(cl,9.),row)),h2=pHs(vec2(row,mod(cl,9.)+.5));
-         float yb=.1+1.3*fx*fx+.18*h2;float gap=1.-smoothstep(yb,yb+.16,fy);
-         float seam=smoothstep(.33,.5,abs(fx+.06*(h2-.5)));
+        {float t=vUV.y/${H.toFixed(2)};
+         float ry=vUV.y/.17+.45*sin(vUV.x*6.2832+vUV.y*.8)+.35*pN(vec2(vUV.x*4.,vUV.y*.6),4.);
+         float row=floor(ry),fy=fract(ry);
+         float qx=vUV.x*8.+fract(row*.618)*8.+.4*sin(row*2.3);float cl=floor(qx),fx=fract(qx)-.5;
+         float h1=pHs(vec2(mod(cl,8.),row)),h2=pHs(vec2(row,mod(cl,8.)+.5));
+         float boot=clamp(smoothstep(.36,.62,pN(vec2(vUV.x*3.,vUV.y*.3),3.))+smoothstep(.5,.85,t)-.6*step(h1,.16),0.,1.);
+         float yb=.08+(1.1+.6*h2)*fx*fx+.2*h2;float gap=1.-smoothstep(yb,yb+.12+.1*h1,fy);
+         float seam=smoothstep(.32,.5,abs(fx+.08*(h2-.5)));
+         float stub=(.72+.4*fy)*(1.-.55*gap)*(1.-.3*seam)*(.78+.44*h1);
+         float scar=1.-.24*(1.-smoothstep(0.,.06,abs(fy-.3-.3*h2)-.02))*(.5+.5*h1);
          float fib=pHs(vec2(floor(vUV.x*110.),floor(vUV.y*5.)));
          float aa=1.-smoothstep(.2,.65,max(fwidth(ry),fwidth(qx)));
-         float k=(.74+.36*fy)*(1.-.5*gap)*(1.-.3*seam)*(.8+.4*h1)*(.9+.2*fib);
-         diffuseColor.rgb*=mix(.86,k,aa)*mix(vec3(1.),vec3(1.06,.98,.9),h1);}`);};
+         float k=mix(scar*mix(1.,stub,.3),stub,boot)*(.9+.2*fib);
+         vec3 tone=mix(vec3(.84,.85,.88),vec3(1.,.89,.75),smoothstep(.05,.75,t))*mix(.9,1.1,pN(vec2(vUV.x*2.,vUV.y*.15),2.));
+         diffuseColor.rgb*=mix(.88,k,aa)*tone*mix(vec3(1.),vec3(1.06,.98,.9),h1*boot);}`);};
   m.customProgramCacheKey=()=>"des47palm"+(isTrunk?"t":"c")+H.toFixed(1);return m}
 const DATE_GEO=(()=>{const{v,f}=icoSphere(1);return geoFrom(v.map(p=>[p[0]*.035,p[1]*.045,p[2]*.035]),f)})();
 function buildPalms(){
@@ -600,7 +611,7 @@ function buildPalms(){
     {const NR=40,NA=12,pos=[],col=[],uv=[],idx=[];
      for(let r=0;r<=NR;r++){const t=r/NR,P=spine(t),Tg=spine(Math.min(1,t+.01)).sub(spine(Math.max(0,t-.01))).normalize();
        const N=new V3().crossVectors(Tg,new V3(0,0,1)).normalize(),B=new V3().crossVectors(Tg,N);
-       const rad=(.23+.17*Math.exp(-t*22)-.03*t+(t>.95?.04:0))*(H>10?1:.85);
+       const rad=(.23+.17*Math.exp(-t*22)-.03*t+(t>.95?.04:0))*(H>10?1:.85)*(1+.035*Math.sin(t*H*1.1+pi_*2)+.025*Math.sin(t*H*2.9+pi_));
        for(let a=0;a<=NA;a++){const an=a/NA*TAU,c=Math.cos(an),s2=Math.sin(an),q=P.clone().addScaledVector(N,c*rad).addScaledVector(B,s2*rad);
          pos.push(q.x,q.y,q.z);const k=.8+.25*hs2(r*3.1,a);col.push(.42*k,.31*k,.21*k);uv.push(a/NA,t*H)}}
      for(let r=0;r<NR;r++)for(let a=0;a<NA;a++){const i0=r*(NA+1)+a,i1=i0+1,i2=i0+NA+1,i3=i2+1;idx.push(i0,i2,i1,i1,i2,i3)}
@@ -631,6 +642,19 @@ function buildPalms(){
       const g1=[mix(.1,.18,k),mix(.2,.24,k),mix(.05,.07,k)],g2=[mix(.32,.5,k),mix(.45,.48,k),mix(.1,.14,k)];
       frond(az,el,L,mix(.18,.45,k),g1,g2,false)}
     for(let i=0;i<4;i++){const az=i/4*TAU+.5+pp.ry;frond(az,-68*D2R,2.4*cw,.1,[.33,.22,.11],[.55,.4,.22],true)}
+    /* dead leaf sheaths under the crown: brown petiole bases hugging the trunk, the lower rings splayed further out;
+       their ends sample the leaflet cut-outs so they fray into fibres */
+    {const rT=(H>10?1:.85)*.25;let si=0;const lr=(a,b)=>a+(b-a)*hs2(pi_*13.7+(si++)*1.618,pi_*3.1+si*.37);
+     for(let ring=0;ring<3;ring++)for(let j=0;j<9;j++){
+       const P=spine(1-.02-ring*.045-(j%2)*.012),az=(j+ring*.5)/9*TAU+pp.ry+lr(-.18,.18);
+       const out=new V3(Math.cos(az),0,Math.sin(az)),tg=new V3(-Math.sin(az),0,Math.cos(az));
+       const L=lr(.6,1.)*(1+ring*.2),up=(52-ring*40+lr(-10,10))*D2R,dir=out.clone().multiplyScalar(Math.cos(up)).add(new V3(0,Math.sin(up),0));
+       const b0=P.clone().addScaledVector(out,rT*.85).add(new V3(0,-.1,0)),w0=lr(.1,.14),w1=lr(.05,.08),wm=(w0+w1)/2;
+       const mid=b0.clone().addScaledVector(dir,L*.5).addScaledVector(out,.03),tip=b0.clone().addScaledVector(dir,L).add(new V3(0,-.05*ring-.04,0));
+       const nn=out.clone().multiplyScalar(.6).add(new V3(0,.8,0)).normalize(),k=lr(.78,1.12),u1=lr(.25,.4);
+       const c0=[.25*k,.18*k,.11*k],c1=[.4*k,.3*k,.19*k],c2=[.56*k,.45*k,.3*k];
+       quad([b0.clone().addScaledVector(tg,-w0),c0,nn,0,.008],[b0.clone().addScaledVector(tg,w0),c0,nn,u1,.008],[mid.clone().addScaledVector(tg,-wm),c1,nn,0,.022],[mid.clone().addScaledVector(tg,wm),c1,nn,u1,.022]);
+       quad([mid.clone().addScaledVector(tg,-wm),c1,nn,0,.022],[mid.clone().addScaledVector(tg,wm),c1,nn,u1,.022],[tip.clone().addScaledVector(tg,-w1),c2,nn,0,.5],[tip.clone().addScaledVector(tg,w1),c2,nn,u1,.5])}}
     const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("color",new T.BA(new Float32Array(col),3));g.setAttribute("normal",new T.BA(new Float32Array(nrm),3));g.setAttribute("uv",new T.BA(new Float32Array(uv),2));g.setAttribute("aUV",g.attributes.uv);
     const cm=new T.Mesh(g,palmMat(H,false));cm.customDepthMaterial=palmDepthMat(H);cm.castShadow=true;cm.receiveShadow=true;grp.add(cm);
     for(let c=0;c<(H>10?4:2);c++){const az=c/4*TAU+pp.ry+.4,base=top.clone().add(new V3(Math.cos(az)*.35,-.35,Math.sin(az)*.35));
@@ -657,13 +681,31 @@ const propsReady=Promise.all([
   glb("tent").then(({scene})=>{
     const w=fitTo(scene,1,"y"),b=w.userData.box,sc=w.userData.sc;
     w.scale.set(TENT.L/(b.mx.x-b.mn.x),TENT.H/(b.mx.y-b.mn.y),TENT.D/(b.mx.z-b.mn.z));
-    matsOf(w,m=>{cleanMat(m);if(m.color)m.color.set("#ffffff");m.roughness=.95;m.side=2;
-      /* the source texture is a dark red hide; keep its luminance detail but read it as sun-bleached canvas, darker members as wood */
-      m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace("#include <map_fragment>",`#ifdef USE_MAP
+    matsOf(w,m=>{cleanMat(m);if(m.color)m.color.set("#ffffff");m.roughness=.97;m.side=2;
+      /* the source texture is a dark red hide: its luminance becomes the folds of a camel-brown woven cloth sewn from
+         0.55 m strips with a coarse 3 cm weave (laid out in island metres); dark members stay wood. Sun on the far side
+         of the cloth glows through it, and backlit edges get a warm rim. */
+      m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,tentU);
+        sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform mat4 uWInv;varying vec3 vTI;")
+          .replace("#include <project_vertex>","#include <project_vertex>\nvTI=(uWInv*modelMatrix*vec4(transformed,1.)).xyz;");
+        sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform vec3 uSunD,uSunC;uniform float uNt;uniform vec2 uTC,uTF;varying vec3 vTI;")
+          .replace("#include <map_fragment>",`#ifdef USE_MAP
         vec4 tx=texture2D(map,vMapUv);float l=dot(tx.rgb,vec3(.3,.59,.11));
-        vec3 canv=vec3(.97,.86,.69)*(.85+2.3*l);diffuseColor.rgb=mix(vec3(.30,.20,.12),min(canv,vec3(.98,.88,.72)),smoothstep(.015,.07,l));
+        vec2 rel=vTI.xz-uTC;float ac=dot(rel,uTF),al=dot(rel,vec2(uTF.y,-uTF.x));
+        float sh=fract(sin(floor(ac/.55)*91.7)*4375.85);
+        float band=mix(.84,1.06,sh)*(1.-.14*smoothstep(.42,.5,abs(fract(ac/.55)-.5)));
+        vec2 wv=vec2(al,vTI.y)/.03;float aw=1.-smoothstep(.3,.8,max(fwidth(wv.x),fwidth(wv.y)));
+        float weave=1.+.1*aw*sin(wv.x*6.2832)*sin(wv.y*6.2832+1.5708*step(.5,fract(wv.x*.5)));
+        vec3 cloth=vec3(.47,.37,.27)*(.7+2.2*l)*band*weave;
+        diffuseColor.rgb=mix(vec3(.30,.20,.12),min(cloth,vec3(.62,.5,.37)),smoothstep(.015,.07,l));
         #endif`).replace("#include <lights_fragment_end>",`#include <lights_fragment_end>
-        reflectedLight.indirectDiffuse*=vec3(1.16,.98,.78);`)};m.needsUpdate=true});
+        reflectedLight.indirectDiffuse*=vec3(1.06,.98,.88);
+        {vec3 Ld=normalize((viewMatrix*vec4(uSunD,0.)).xyz);float back=pow(max(dot(-geometryViewDir,Ld),0.),2.);
+         float trans=max(-dot(normal,Ld),0.);vec3 warm=mix(vec3(1.,.6,.3),vec3(1.),uNt);
+         float cm=smoothstep(.12,.22,diffuseColor.r);
+         reflectedLight.indirectDiffuse+=diffuseColor.rgb*uSunC*warm*trans*(.03+.16*back)*cm;
+         float rim=pow(1.-clamp(abs(dot(normal,geometryViewDir)),0.,1.),3.);
+         reflectedLight.indirectDiffuse+=diffuseColor.rgb*uSunC*warm*rim*back*.55*(1.-.7*uNt)*cm;}`)};m.needsUpdate=true});
     const g=new T.Group();g.add(w);g.position.set(TENT.x,hTop(TENT.x,TENT.z)-.05,TENT.z);g.rotation.y=TENT.yaw;
     g.traverse(c=>{if(c.isMesh){c.castShadow=c.receiveShadow=true;c.frustumCulled=false}});W.add(g);onDes(g);PROPS.tent=g}).catch(()=>{})]);
 
@@ -729,23 +771,23 @@ let fireL=null;
 /* campfire smoke: soft warm-grey wisps, camera-facing ribbons that widen, curl downwind (upper right
    of the default view) and are gone by ~7 m */
 const SMOKE_H=7.5;
-const smokeU={uT:{value:0},uBase:{value:new V3(FIRE.x,fireG.position.y+.4,FIRE.z)},uWind:{value:new V3(WIND.x,0,WIND.z)},uCamL:{value:new V3()},uOp:{value:1},uCol:{value:new C3(.66,.6,.56)}};
+const smokeU={uT:{value:0},uBase:{value:new V3(FIRE.x,fireG.position.y+.4,FIRE.z)},uWind:{value:new V3(WIND.x,0,WIND.z)},uCamL:{value:new V3()},uOp:{value:1},uCol:{value:new C3(.66,.6,.56)},uG:{value:.4}};
 const SMOKE=[];
 for(let r=0;r<3;r++){
   const SEG=56,n=SEG+1,aT=new Float32Array(n*2),aS=new Float32Array(n*2),pos=new Float32Array(n*6),idx=[];
   for(let i=0;i<n;i++){aT[i*2]=aT[i*2+1]=i/SEG;aS[i*2]=-1;aS[i*2+1]=1;if(i<SEG){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}}
   const g=new T.BG();g.setAttribute("position",new T.BA(pos,3));g.setAttribute("aT",new T.BA(aT,1));g.setAttribute("aS",new T.BA(aS,1));g.setIndex(idx);
-  const u=Object.assign({},smokeU,{uSeed:{value:r*7.31+1.7},uW:{value:[1,.8,.62][r]},uA:{value:[.25,.18,.13][r]}});
+  const u=Object.assign({},smokeU,{uSeed:{value:r*7.31+1.7},uW:{value:[1,.8,.62][r]},uA:{value:[.18,.14,.1][r]}});
   const mat=new T.SM({transparent:true,depthWrite:false,side:2,uniforms:u,
-    vertexShader:`attribute float aT,aS;uniform float uT,uSeed,uW;uniform vec3 uBase,uWind,uCamL;varying float vT,vS;varying vec2 vN;
+    vertexShader:`attribute float aT,aS;uniform float uT,uSeed,uW,uG;uniform vec3 uBase,uWind,uCamL;varying float vT,vS;varying vec2 vN;
       vec3 spine(float t){float h=t*${SMOKE_H.toFixed(1)};vec3 side=normalize(cross(uWind,vec3(0.,1.,0.)));
-        float lean=h*(.12+.85*t);
+        float lean=h*(.3+1.15*t)*(.7+.6*uG);
         float sway=sin(uT*.45+t*3.6+uSeed)*.3*t*t*h+sin(uT*1.1+t*8.+uSeed*2.)*.05*t*h;
         float curl=sin(uT*.33+t*4.4+uSeed*1.7)*.32*t*h+sin(uT*.8+t*9.3+uSeed)*.08*h*t+sin(uT*1.3+t*16.+uSeed*3.)*.5*sqrt(t)*(1.-t);
         return uBase+vec3(0.,h*(1.-.18*t),0.)+uWind*(lean+sway*.4)+side*(curl+sway*.5);}
       void main(){vT=aT;vS=aS;vec3 p=spine(aT),p2=spine(min(aT+.02,1.)),q=spine(max(aT-.02,0.));
         vec3 tg=normalize(p2-q+vec3(0.,1e-4,0.)),vd=normalize(uCamL-p),sd=normalize(cross(tg,vd));
-        float w=mix(.6,3.8,pow(aT,.7))*uW;vec3 wp=p+sd*aS*w*.5;vN=vec2(aS*w*.5,aT*${SMOKE_H.toFixed(1)});
+        float w=mix(.6,4.6,pow(aT,.65))*uW;vec3 wp=p+sd*aS*w*.5;vN=vec2(aS*w*.5,aT*${SMOKE_H.toFixed(1)});
         gl_Position=projectionMatrix*modelViewMatrix*vec4(wp,1.);}`,
     fragmentShader:`uniform float uT,uSeed,uA,uOp;uniform vec3 uCol;varying float vT,vS;varying vec2 vN;${GLSL_NOISE}
       void main(){vec2 p=vec2(vN.x*1.1,vN.y*.5-uT*.5)+uSeed;
@@ -753,7 +795,7 @@ for(let r=0;r<3;r++){
         float across=1.-abs(vS+(d-.5)*.9*smoothstep(.05,.45,vT));float core=exp(-pow(1.-max(across,0.),2.)*1.8)*smoothstep(0.,.45,across);
         float a=uA*uOp*core*mix(.35,1.,wisp)*mix(1.,wisp*1.3,smoothstep(.02,.35,vT));
         float puff=dn2(vec2(uSeed*3.1,vN.y*.3-uT*.4));a*=mix(1.,.3+.7*smoothstep(.15,.6,puff),smoothstep(.03,.3,vT));
-        a*=smoothstep(0.,.16,vT)*(1.-smoothstep(.3,.95,vT));
+        a*=smoothstep(0.,.16,vT)*(1.-smoothstep(.25,.85,vT));
         if(a<.006)discard;gl_FragColor=vec4(uCol*mix(.95,1.04,vT),a);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -938,7 +980,7 @@ function applyLighting(dt){
   const a=nk>.5?moonAzL+YAW:SUN.lazL+YAW;
   const d=new V3(Math.cos(el)*Math.sin(a),Math.sin(el),Math.cos(el)*Math.cos(a));
   if(pi){pi.position.copy(d).multiplyScalar(40);if(pi.target){pi.target.position.set(0,-1,0);pi.target.updateMatrixWorld()}
-    blendC("col",pi.color);pi.intensity=blendL("I");pi.castShadow=true;
+    blendC("col",pi.color);pi.intensity=blendL("I");pi.castShadow=true;tentU.uSunD.value.copy(d);tentU.uSunC.value.copy(pi.color).multiplyScalar(pi.intensity);tentU.uNt.value=nk;
     const sc=pi.shadow.camera;if(sc.right!==12.5){Object.assign(sc,{left:-12.5,right:12.5,top:12.5,bottom:-12.5,near:1,far:90});sc.updateProjectionMatrix()}
     pi.shadow.bias=-.0004;pi.shadow.normalBias=.025;pi.layers.enable(3);
     /* the hidden courtyard stays on layer 0; at low sun/moon its walls would shade the whole island */
@@ -996,8 +1038,9 @@ UPD.push((dt,t)=>{
   pondU.uT.value=t;pondU.uWind.value=wn;pondU.uNight.value=nk;pondU.uCamL.value.copy(_cl);
   {const d=pi.position.clone().normalize();d.applyAxisAngle(new V3(0,1,0),-YAW);pondU.uSunL.value.copy(d);pondU.uSunCol.value.copy(pi.color)}
   pondU.uSkyA.value.set(nk>.5?"#1a2440":st.day>.5?"#a8c4dc":"#d4aab8");pondU.uSkyB.value.set(nk>.5?"#0c1428":st.day>.5?"#5c88c0":"#7a6eb0");
-  smokeU.uT.value=t;smokeU.uCamL.value.copy(_cl);smokeU.uCol.value.setRGB(mix(.66,.3,nk),mix(.6,.31,nk),mix(.56,.38,nk));
+  smokeU.uT.value=t;smokeU.uG.value+=(gustAt(FIRE.x,FIRE.z)-smokeU.uG.value)*Math.min(1,dt*1.5);smokeU.uCamL.value.copy(_cl);smokeU.uCol.value.setRGB(mix(.66,.3,nk),mix(.6,.31,nk),mix(.56,.38,nk));
   SMOKE.forEach(m=>{m.material.uniforms.uT.value=t});
+  tentU.uWInv.value.copy(W.matrixWorld).invert();
   fireU.uT.value=t;fireU.uNight.value=nk;
   if(fireL)fireL.intensity=(mix(.5,3.6,nk))*(1+.12*Math.sin(t*9)+.07*Math.sin(t*23));
   if(fireG.userData.charM)fireG.userData.charM.emissiveIntensity=mix(.25,.9,nk)*(1+.2*Math.sin(t*5));

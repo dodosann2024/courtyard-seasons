@@ -1184,23 +1184,23 @@ const DRINK=(()=>{const th=BEACH[0],[x,z]=pondEdge(th,1),nx=Math.cos(th),nz=Math
 /* v4 clips: kneel_down 5.6 s (front knees, then hind, then onto the sternal pad), kneel_rest loop, stand_up 5.4 s (hind end
    first) ending on idle's first frame; there is no graze clip, so grazing uses drink (the neck lowers to the ground and sips) */
 const CK={down:5.6,up:5.4};
-/* the Tripo mesh lays the folded hind shank as a thin rod; while lying it is thickened across its length */
-const SHANK=["tripo1_Left_Limb_1","tripo1_Right_Limb_1"];
-/* two camels: a dromedary (slot 0) and a Bactrian (slot 1). bactrian_v1.glb carries camel_v4's six clips; it loads once its
-   file is named here, and until then slot 1 stays a dromedary, so no stand-in model is ever shown. A Bactrian is fitted
-   from its own bind height to 2.2 m at the humps (the dromedary stands 2.26 m), and its in-place walk is taken to be
-   authored for .99 m/s like camel_v4, so ground speed scales with it. coat 1 = the dromedary coat shader; voice = pitch. */
-const CAMEL_KIND={drom:{file:"camel_v4",sc:CAM_SC,coat:1,voice:[1,.92]},bact:{file:null,top:2.2,coat:0,voice:[.84,.84]}};
+/* two camels: a dromedary (camel_v4b, slot 0) and a Bactrian (bactrian_v1, slot 1; same skeleton and clips, dark coat and
+   real hair tufts). Both walks are authored for .989 m/s in place. The Bactrian stands 1.73 m at the withers in idle and is
+   scaled to 1.8 m (humps ~2.1 m, against the dromedary's 2.26 m); its short legs make the dromedary stride look hurried,
+   so its walk plays 10 % slower and its ground speed drops by the same factor, keeping the hooves planted.
+   coat 1 = the dromedary coat shader (the Bactrian keeps its own texture); voice = call pitch per slot. */
+const CAMEL_KIND={drom:{file:"camel_v4b",sc:CAM_SC,gait:1,coat:1,voice:[1,.92]},bact:{file:"bactrian_v1",sc:1.8/1.73,gait:.9,coat:0,voice:[.84,.84]}};
 const CAMEL_SLOTS=["drom","bact"];
 const camelKind=i=>{const k=CAMEL_KIND[CAMEL_SLOTS[i]];return k&&k.file?k:CAMEL_KIND.drom};
-function camelSpawn(sc,anims,i,kind){
- const g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";
-  const b=boxOf(sc),s=kind.sc||kind.top/Math.max(.5,b.mx.y-b.mn.y);
+/* the kneel clips drop the root ~3 cm in a single key where the knees meet the sand; two short box passes keep the settle without the pop */
+function smoothRoot(anims){for(const c of anims)if(/kneel_down|stand_up/.test(c.name))for(const t of c.tracks)if(!t._sm&&/Root\.position$/.test(t.name)){t._sm=1;const v=t.values,n=v.length/3;
+  for(let p=0;p<2;p++){const o=Float32Array.from(v);for(let i=1;i<n-1;i++){const r=Math.min(4,i,n-1-i);for(let d=0;d<3;d++){let s=0;for(let j=-r;j<=r;j++)s+=o[(i+j)*3+d];v[i*3+d]=s/(2*r+1)}}}}}
+function camelSpawn(sc,anims,i,kind){smoothRoot(anims);
+ const g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";const s=kind.sc;
   sc.position.y=0;inner.add(sc);inner.scale.setScalar(s);g.add(inner);animalMats(g,kind.coat);W.add(g);onDes(g);
-  const a={i,kind,sc:s,v:.989*s,voice:kind.voice[i]||1,g,inner,mdl:sc,r:rigUp(sc,anims),bones:{},x:0,z:0,yaw:0,yr:0,spd:0,gy:null,gp:0,gr:0,k:0,mode:"job",job:"idle",timer:rr(2,5),path:null,pi:0,face:null,stuck:0};
+  const a={i,kind,sc:s,gait:kind.gait,v:.989*s*kind.gait,voice:kind.voice[i]||1,g,inner,mdl:sc,r:rigUp(sc,anims),bones:{},x:0,z:0,yaw:0,yr:0,spd:0,gy:null,gp:0,gr:0,k:0,mode:"job",job:"idle",timer:rr(2,5),path:null,pi:0,face:null,stuck:0};
   sc.traverse(o=>{if(o.isBone)a.bones[o.name]=o});
   for(const k of["kneel_down","stand_up"]){const c=a.r.acts[k];if(c){c.setLoop(VT.THREE.LoopOnce,1);c.clampWhenFinished=true}}
-  a.shank=SHANK.map(n=>a.bones[n]).filter(b=>b&&b.children.some(c=>c.isBone)).map(b=>{const d=b.children.find(c=>c.isBone).position.clone().normalize();return{b,d:[Math.abs(d.x),Math.abs(d.y),Math.abs(d.z)]}});
   return a}
 function camelGo(a,to,job){
   const g=navGrid("camel",1.05,1.12,.84),blk=ANIM.camels.filter(o=>o!==a&&o.spd<.05).map(o=>({x:o.x,z:o.z,r:2.6})),p=navPath(g,a.x,a.z,to.x,to.z,blk);
@@ -1232,7 +1232,7 @@ function camelUpdate(a,dt){
     else{vT=a.v*cl(1-Math.abs(dy)/1.1,.18,1)*(last?cl(Math.sqrt(d/2.6),0,1):1);
       for(const o of ANIM.camels){if(o===a)continue;const ox=o.x-a.x,oz=o.z-a.z,fw=ox*Math.sin(a.yaw)+oz*Math.cos(a.yaw),lat=Math.abs(ox*Math.cos(a.yaw)-oz*Math.sin(a.yaw));if(fw>0&&fw<3.8&&lat<1.9)vT=0}
       a.stuck=vT<.05?a.stuck+dt:0;if(a.stuck>5){a.stuck=0;camelPlan(a)}
-      play(a.r,"walk",.6,Math.max(.2,a.spd/a.v))}}
+      play(a.r,"walk",.6,Math.max(.2,a.spd/a.v)*a.gait)}}
   else if(a.mode==="turn"){
     dy=a.face==null?0:wrapA(a.face-a.yaw);ym=.5;
     if(Math.abs(dy)<.04&&Math.abs(a.yr)<.06&&a.spd<.05){a.mode="job";
@@ -1240,7 +1240,7 @@ function camelUpdate(a,dt){
       else if(a.job==="graze"){a.timer=rr(9,18);play(a.r,"drink",1.2,.85)}
       else if(a.job==="kneel"){a.mode="down";play(a.r,"kneel_down",.5,1);if(rnd()<.8)camelCall(a,"down")}
       else{a.timer=rr(4,9);play(a.r,"idle",1.2,1)}}
-    else play(a.r,"walk",.6,Math.max(.3,a.spd/a.v))}
+    else play(a.r,"walk",.6,Math.max(.3,a.spd/a.v)*a.gait)}
   else if(a.mode==="down"){a.k=Math.min(1,a.k+dt/CK.down);if(a.k>=1){a.mode="rest";a.timer=rr(30,55);play(a.r,"kneel_rest",.3,night?.7:1)}}
   else if(a.mode==="rest"){if(a.r.acts.kneel_rest)a.r.acts.kneel_rest.timeScale=night?.7:1;
     if(!night){a.timer-=dt;if(a.timer<0){a.mode="up";play(a.r,"stand_up",.3,1);if(rnd()<.8)camelCall(a,"up")}}}
@@ -1254,8 +1254,7 @@ function camelUpdate(a,dt){
   if(a.gy==null||Math.abs(f.y-a.gy)>.6){a.gy=f.y;a.gp=f.pitch;a.gr=f.roll}
   const gk=ease(9,dt);a.gy+=(f.y-a.gy)*gk;a.gp+=(f.pitch-a.gp)*gk;a.gr+=(f.roll-a.gr)*gk;
   a.g.position.set(a.x,a.gy,a.z);a.g.rotation.set(a.gp*(1-.5*kk),a.yaw,a.gr*(1-.5*kk));
-  rigTick(a.r,dt);
-  const th=.38*ss(.55,.95,kk);if(th>1e-3)for(const{b,d}of a.shank)b.scale.set(b.scale.x*(1+th*(1-d[0])),b.scale.y*(1+th*(1-d[1])),b.scale.z*(1+th*(1-d[2])))}
+  rigTick(a.r,dt)}
 
 /* ---- eagle: soars in a thermal, lands on the saguaro top or at the west beach ---- */
 const _e0=new V3(),_e1=new V3(),_t0=new V3(),_t1=new V3(),_ev=new V3();
@@ -1573,7 +1572,7 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,
   dune:{DP,DUNE0,DCLK,GUST,crestXZ,dMask,gustAt},
   /* sound capture for the recorded videos: every voice's level/pan/low-pass per step, mixed offline */
   audCap(on){if(on){AU.cap={t0:st.t,ev:[]};return 0}const c=AU.cap;AU.cap=null;return c?c.ev:[]},AU,OAS,oasisNear,
-  Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,snakeGo,play}};
+  Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,snakeGo,play}};
 animalsReady.then(()=>{QA.ready=true});
 window.__desReady=true;
 }

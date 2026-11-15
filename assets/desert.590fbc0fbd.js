@@ -392,7 +392,7 @@ function placeRocks(list){
 
 /* ---------------- oasis pond: sea-style water, depth tint, sky fresnel, palm reflection, sun glint ---------------- */
 const pondU={uT:{value:0},uCamL:{value:new V3()},uSunL:{value:new V3(0,1,0)},uSunCol:{value:new C3("#ffb469")},
-  uDeep:{value:new C3("#0a3f42")},uShal:{value:new C3("#3d8f84")},uBed:{value:new C3("#a8875a")},uSkyA:{value:new C3("#c9a6c4")},uSkyB:{value:new C3("#6f6aa8")},
+  uDeep:{value:new C3("#0a2c2b")},uShal:{value:new C3("#2c6a5c")},uBed:{value:new C3("#a8875a")},uSkyA:{value:new C3("#c9a6c4")},uSkyB:{value:new C3("#6f6aa8")},
   uRefl:{value:null},uReflM:{value:new T.M4()},uReflOn:{value:0},uNight:{value:0},uWind:{value:.35}};
 let pondMesh=null;
 (function buildPond(){
@@ -409,7 +409,7 @@ let pondMesh=null;
       float wv(vec2 p){return dn2(p*1.1+vec2(uT*.35,uT*.12))*.6+dn2(p*2.7-vec2(uT*.22,-uT*.4))*.3+dn2(p*6.3+vec2(uT*.6,uT*.3))*.1;}
       void main(){
         float e=.06,h0=wv(vP.xz);vec2 g=vec2(wv(vP.xz+vec2(e,0.))-h0,wv(vP.xz+vec2(0.,e))-h0)/e;
-        float amp=.05+.12*uWind;vec3 n=normalize(vec3(-g.x*amp,1.,-g.y*amp));
+        float amp=.022+.07*uWind;vec3 n=normalize(vec3(-g.x*amp,1.,-g.y*amp));
         vec3 V=normalize(uCamL-vP);
         float fr=.02+.98*pow(1.-max(dot(n,V),0.),5.);
         /* oasis water: clear over the sand bed at the margin, absorbing to a deep green-teal in the middle */
@@ -420,9 +420,9 @@ let pondMesh=null;
         vec3 rd=reflect(-V,n);
         vec3 sky=mix(uSkyA,uSkyB,smoothstep(.0,.8,rd.y));
         vec3 refl=sky;
-        if(uReflOn>.5){vec2 ruv=vR.xy/vR.w+n.xz*.035;vec4 rc=texture2D(uRefl,clamp(ruv,0.,1.));
+        if(uReflOn>.5){vec2 ruv=vR.xy/vR.w+n.xz*.016;vec4 rc=texture2D(uRefl,clamp(ruv,0.,1.));
           rc=(any(isnan(rc))||any(isinf(rc)))?vec4(0.):clamp(rc,0.,1.);refl=mix(refl,rc.rgb*.7,rc.a*.92);}
-        vec3 c=mix(body,refl,clamp(fr*1.05+.06,0.,.9));
+        vec3 c=mix(body,refl,clamp(fr*1.05+.12,0.,.92));
         /* a faint darker band where the water meets the shore, and fine wind-roughened sparkle */
         c*=1.-.18*(1.-smoothstep(.0,.12,vD));
         float gl=pow(max(dot(rd,uSunL),0.),220.)*(1.-uNight),sp=pow(max(dot(rd,uSunL),0.),36.)*smoothstep(.55,.85,dn2(vP.xz*9.+uT*1.3))*(1.-uNight);
@@ -978,7 +978,7 @@ function phaseNow(){
   if(Ct.mode==="follow"){const h=new Date().getHours();if(h>=9&&h<16)return"day"}
   return"sunset"}
 const LIT={
-  sunset:{el:15,col:"#ffb469",I:2.6,sky:"#9a8cc8",gnd:"#d69c66",hI:.72,exp:1,clear:0x8a6a70,mode:0,con:.09,sat:1.07,ray:.34,vig:.26,tint:[1.02,1,.96],lift:.012},
+  sunset:{el:15,col:"#ffb469",I:3.05,sky:"#8c86c8",gnd:"#c08a62",hI:.5,exp:1,clear:0x8a6a70,mode:0,con:.09,sat:1.07,ray:.34,vig:.26,tint:[1.02,1,.96],lift:.012},
   day:{el:46,col:"#fff0d8",I:2.9,sky:"#b4cdea",gnd:"#d8b483",hI:.95,exp:1,clear:0x9ab8d0,mode:1,con:.05,sat:1.03,ray:.1,vig:.2,tint:[1,1,1],lift:.008},
   night:{el:29,col:"#7e9ff2",I:1.05,sky:"#1f3159",gnd:"#101218",hI:.14,exp:.7,clear:0x0a1428,mode:2,con:.12,sat:.78,ray:0,vig:.36,tint:[.86,.93,1.12],lift:0}};
 const _c1=new C3(),_c2=new C3();
@@ -1354,15 +1354,19 @@ function devilUpdate(dt,t){
    right axis, distance gain, and a low-pass that closes with distance so far calls arrive dull. Played through the site's
    master (volume slider, tap-to-start unlock). AU.cap records every voice for offline mixing of the captured videos. ---- */
 const AQ={dWnd:"audio/dWnd.ff02237487.mp3",dCalm:"audio/dCalm.89da1bd867.mp3",dSnd:"audio/dSnd.b33d754ea1.mp3",dFire:"audio/dFire.33662e3a07.mp3",dSnk:"audio/dSnk.21e330a51e.mp3",dEg1:"audio/dEg1.293c9c2d4e.mp3",dEg2:"audio/dEg2.1279fb1910.mp3",dEg3:"audio/dEg3.4ac8779906.mp3",dEg4:"audio/dEg4.94735b1f97.mp3",dEg5:"audio/dEg5.cc6841e972.mp3",
-  dCm1:"audio/dCm1.f2a9b2a01d.mp3",dCm2:"audio/dCm2.e317be836e.mp3",dCm3:"audio/dCm3.51b2b6db0a.mp3",dCm4:"audio/dCm4.fc07ce6e86.mp3",dCm5:"audio/dCm5.4cca90b15e.mp3"};
+  dCm1:"audio/dCm1.f2a9b2a01d.mp3",dCm2:"audio/dCm2.e317be836e.mp3",dCm3:"audio/dCm3.51b2b6db0a.mp3",dCm4:"audio/dCm4.fc07ce6e86.mp3",dCm5:"audio/dCm5.4cca90b15e.mp3",
+  dOk1:"audio/dOk1.e1cd0b8449.mp3",dOk2:"audio/dOk2.187122caa9.mp3",dOk3:"audio/dOk3.12a14d4f0e.mp3",dOk4:"audio/dOk4.2e238f8827.mp3",dOc1:"audio/dOc1.31d35bc855.mp3",dOc2:"audio/dOc2.ba99be553d.mp3",dOc3:"audio/dOc3.f21d195427.mp3",
+  dFr1:"audio/dFr1.71022fc177.mp3",dFr2:"audio/dFr2.2933177163.mp3",dFr3:"audio/dFr3.ef371c70a6.mp3",dFr4:"audio/dFr4.3b0eb8afa7.mp3",dFr5:"audio/dFr5.f59005cbba.mp3",dFr6:"audio/dFr6.34303a83b9.mp3",
+  dDf1:"audio/dDf1.c2bca8b159.mp3",dDf2:"audio/dDf2.f9c6cbb2b2.mp3",dDf3:"audio/dDf3.89d3852f46.mp3",dGh1:"audio/dGh1.fab43c03e1.mp3",dGh2:"audio/dGh2.db74adeb9b.mp3"};
 const LL={dWnd:22,dCalm:36,dSnd:20,dFire:19,dSnk:8};
-const AU={b:{},pd:{},lp:{},bus:null,pre:0,egT:rr(5,10),cmT:[rr(14,30),rr(30,60)],q:[],cap:null};
+const AU={b:{},pd:{},lp:{},bus:null,ob:null,pre:0,egT:rr(5,10),cmT:[rr(14,30),rr(30,60)],q:[],cap:null};
 function SX(){return window.__sndX||null}
 function aOK(){const x=SX();return!!(x&&x.on&&x.s&&x.s.state==="running"&&root.visible)}
 function amb(){const x=SX();return AU.cap?true:!!(x&&x.amb)}
 function dec(k){if(AU.b[k]||AU.pd[k])return;const x=SX();if(!x||!x.s||!x.ld)return;AU.pd[k]=1;
   x.ld(AQ[k]).then(B=>{const P=x.s.decodeAudioData(B,b=>{AU.b[k]=b},()=>{});P&&P.catch&&P.catch(()=>{})}).catch(()=>{setTimeout(()=>{AU.pd[k]=0},8e3)})}
-function aBus(){if(AU.bus)return true;const x=SX();try{const b=x.s.createGain();b.gain.value=0;b.connect(x.r);AU.bus=b;return true}catch(e){return false}}
+function aBus(){if(AU.bus)return true;const x=SX();try{const b=x.s.createGain();b.gain.value=0;b.connect(x.r);AU.bus=b;
+  const o=x.s.createGain();o.gain.value=0;o.connect(b);AU.ob=o;return true}catch(e){return false}}
 /* p in island metres; ref = distance (m) at which the source plays at its nominal level */
 const _cr=new V3();
 function spat(p,ref){const dx=p.x-_cl.x,dy=p.y-_cl.y,dz=p.z-_cl.z,d=Math.hypot(dx,dy,dz)||1;
@@ -1378,10 +1382,11 @@ function loopS(id,k,v,p,ref,rate){let pan=0,lpf=19000;if(p){const q=spat(p,ref);
   if(!L){if(v<=.001)return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;s.loopStart=.5;s.loopEnd=.5+LL[k];
     L=voice(c,AU.bus,pan,lpf);L.g.gain.value=0;L.s=s;s.connect(L.g);s.start(0,.5+rnd()*LL[k]);AU.lp[id]=L}catch(e){return}}
   const now=c.currentTime;L.g.gain.setTargetAtTime(v,now,.35);L.f.frequency.setTargetAtTime(lpf,now,.3);L.pn&&L.pn.pan.setTargetAtTime(pan,now,.2);L.s.playbackRate.setTargetAtTime(rate,now,.3)}
-function shotS(k,g,p,ref,rate){const q=p?spat(p,ref):[0,1,19000];rate=rate||1;g*=q[1];
-  capE(["S",k,+g.toFixed(4),+q[0].toFixed(3),Math.round(q[2]),+rate.toFixed(3)]);
+/* oas: route through the oasis bus, whose level follows the camera's distance from the water and the wind */
+function shotS(k,g,p,ref,rate,oas){const q=p?spat(p,ref):[0,1,19000];rate=rate||1;g*=q[1];
+  capE(["S",k,+g.toFixed(4),+q[0].toFixed(3),Math.round(q[2]),+rate.toFixed(3)].concat(oas?["oas"]:[]));
   if(!aOK()||!aBus())return;dec(k);const b=AU.b[k];if(!b)return;
-  try{const c=SX().s,s=c.createBufferSource(),v=voice(c,AU.bus,q[0],q[2]);s.buffer=b;s.playbackRate.value=rate;v.g.gain.value=g;s.connect(v.g);s.start()}catch(e){}}
+  try{const c=SX().s,s=c.createBufferSource(),v=voice(c,oas?AU.ob:AU.bus,q[0],q[2]);s.buffer=b;s.playbackRate.value=rate;v.g.gain.value=g;s.connect(v.g);s.start()}catch(e){}}
 const later=(sec,fn)=>AU.q.push({t:st.t+sec,fn});
 const pick=a=>a[Math.floor(rnd()*a.length)];
 /* calls tied to what the animals are doing */
@@ -1391,7 +1396,28 @@ function camelCall(a,kind){if(!amb())return;const r=(a.i?.92:1)*rr(.96,1.04),nt=
   if(kind==="down")later(.5,()=>shotS(pick(["dCm3","dCm4"]),.55*nt,camelHead(a),9,r));
   else if(kind==="up")later(.3,()=>shotS(pick(["dCm1","dCm5"]),.5*nt,camelHead(a),9,r));
   else shotS(rnd()<.6?"dCm2":pick(["dCm1","dCm5"]),.36*nt,camelHead(a),9,r)}
-const _snP=new V3(),_fiP=new V3(),_dvP=new V3();
+const _snP=new V3(),_fiP=new V3(),_dvP=new V3(),_oP=new V3();
+/* oasis insects, only around the water: field and desert crickets in the shore grass and water frogs at the edge sing
+   at night (a cricket only now and then by day); by day an odd dragonfly pass over the water or a grasshopper's wing
+   snaps. Crickets sing in bouts with rests. Everything pauses while the wind is up and starts again in the lulls, and
+   the group fades out as the camera leaves the oasis for the dunes. */
+const OAS=(()=>{const E=[],add=(ty,th,k,a,b)=>{const[x,z]=pondEdge(th,k);E.push({ty,x,z,a,b,t:rr(0,b),r:rr(.95,1.05),on:rnd()<.7,bt:rr(15,50)})};
+  add("fc",.45,1.35,2,9);add("fc",2.7,1.3,3,12);add("dk",-1.15,1.45,3,6.5);add("dk",3.9,1.42,3.4,7);
+  add("fr",1.35,1.0,12,32);add("fr",-2.35,1.02,14,38);add("df",0,.6,22,50);add("gh",.95,1.55,16,40);add("gh",-1.9,1.45,18,46);return E})();
+/* clip lengths (s), so one singer never overlaps itself */
+const OLEN={dOc1:8.35,dOc2:6.94,dOc3:1.72,dOk1:1.08,dOk2:.92,dOk3:1.03,dOk4:1.13,dFr1:.57,dFr2:.66,dFr3:.5,dFr4:1.29,dFr5:1.05,dFr6:.65,dDf1:1.15,dDf2:1.15,dDf3:1.95,dGh1:1.3,dGh2:1.92};
+const OSET={fc:[["dOc1","dOc2","dOc3"],.5,5],dk:[["dOk1","dOk2","dOk3","dOk4"],.42,5],fr:[["dFr1","dFr2","dFr3","dFr4","dFr5","dFr6"],.55,7],
+  df:[["dDf1","dDf2","dDf3"],.36,3],gh:[["dGh1","dGh2"],.3,4]};
+function oasisNear(){const r=Math.hypot((_cl.x-POND.x)/POND.rx,(_cl.z-POND.z)/POND.rz),dh=Math.max(0,r-1.3)*6,dy=Math.max(0,_cl.y-hTop(POND.x,POND.z)-2.5);
+  return 1-ss(3,15,Math.hypot(dh,dy*.7))}
+function oasis(dt,nk,W){const zone=oasisNear(),hush=1-ss(.22,.6,W),v=zone*hush;
+  capE(["B","oas",+v.toFixed(4)]);if(aOK()&&aBus())AU.ob.gain.setTargetAtTime(v,SX().s.currentTime,.6);
+  const night=ss(.3,.9,nk),act={fc:.05+.95*night,dk:.04+.96*night,fr:.75*ss(.45,.95,nk),df:1-ss(.15,.5,nk),gh:1-ss(.15,.5,nk)};
+  for(const e of OAS){if(e.ty==="fc"||e.ty==="dk"){e.bt-=dt;if(e.bt<0){e.on=!e.on;e.bt=e.on?rr(25,80):rr(8,30)}}
+    e.t-=dt;if(e.t>0)continue;e.t=rr(e.a,e.b);
+    if(!amb()||zone<.02||hush<.25||(e.ty==="fc"||e.ty==="dk")&&!e.on||rnd()>act[e.ty])continue;
+    const S=OSET[e.ty],k=pick(S[0]);let x=e.x,z=e.z;if(e.ty==="df"){const[px,pz]=pondEdge(rr(-3.1,3.1),rr(.3,.95));x=px;z=pz}
+    e.t+=OLEN[k];shotS(k,S[1]*rr(.8,1.05),_oP.set(x,hTop(x,z)+(e.ty==="df"?.8:.15),z),S[2],e.r*rr(.98,1.02),1)}}
 function sound(dt){if(!root.visible&&!AU.cap)return;
   if(!AU.pre&&aOK()){AU.pre=1;Object.keys(LL).forEach(dec);setTimeout(()=>Object.keys(AQ).forEach(dec),1500)}
   if(aOK()&&aBus())AU.bus.gain.setTargetAtTime(1,SX().s.currentTime,.6);
@@ -1401,6 +1427,7 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   loopS("calm","dCalm",.2+.08*nk);
   loopS("wind","dWnd",(.06+.42*ss(.12,1,wn)*(.45+.75*g))*calm);
   loopS("sand","dSnd",(.02+.26*ss(.2,1,wn))*ss(.3,.85,g)*calm);
+  oasis(dt,nk,ss(.12,1,wn)*(.45+.75*g));
   /* placed: dust devil, the night fire, the snake's rustle (speed sets level and grain rate) */
   loopS("devil","dSnd",DV.amp?.55*DV.amp:0,_dvP.set(DV.x,hTop(DV.x,DV.z)+1.5,DV.z),10,1.12);
   loopS("fire","dFire",.5*ss(.35,.85,nk),_fiP.set(FIRE.x,hTop(FIRE.x,FIRE.z)+.4,FIRE.z),5);
@@ -1458,7 +1485,7 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,
     sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk)},
   dune:{DP,DUNE0,DCLK,GUST,crestXZ,dMask,gustAt},
   /* sound capture for the recorded videos: every voice's level/pan/low-pass per step, mixed offline */
-  audCap(on){if(on){AU.cap={t0:st.t,ev:[]};return 0}const c=AU.cap;AU.cap=null;return c?c.ev:[]},AU,
+  audCap(on){if(on){AU.cap={t0:st.t,ev:[]};return 0}const c=AU.cap;AU.cap=null;return c?c.ev:[]},AU,OAS,oasisNear,
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,snakeGo,play}};
 animalsReady.then(()=>{QA.ready=true});
 window.__desReady=true;

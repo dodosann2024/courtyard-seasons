@@ -1090,11 +1090,11 @@ UPD.push((dt,t)=>{
 
 let _bloomSave=null;
 const HIDE=[];
-/* ---------------- animals: Tripo + Blender v4 rigs (camel / eagle / snake) at real size ----------------
+/* ---------------- animals: Tripo + Blender rigs (camel v4b, Bactrian, bald eagle, snake v4) at real size ----------------
    camel_v4 native metres (2.8 m long) x1.15 -> ~3.2 m long, hump ~2.1 m (palm 13 m, tent 6 m long); its in-place walk is
-   authored for .99 m/s; eagle_v4 2.1 m flying span x.95 -> 2.0 m, perched .8 m tall; snake_v4 1.22 m x1.1 -> 1.35 m. */
+   authored for .99 m/s; bald_eagle_v1 2.0 m span x.9 -> 1.8 m (body 1.04 m); snake_v4 1.22 m x1.1 -> 1.35 m. */
 const ANIM={camels:[],eagle:null,snake:null};
-const CAM_SC=1.15,CAM_V=.989*CAM_SC,EAG_SC=.95,SNK_SC=1.1,SNK_V=.425*SNK_SC;
+const CAM_SC=1.15,CAM_V=.989*CAM_SC,EAG_SC=.9,SNK_SC=1.1,SNK_V=.425*SNK_SC;
 const tl=(lx,lz)=>({x:TENT.x+Math.cos(TENT.yaw)*lx+Math.sin(TENT.yaw)*lz,z:TENT.z-Math.sin(TENT.yaw)*lx+Math.cos(TENT.yaw)*lz});
 /* light comes from +x/-z (local azimuth SUN.lazL), so shade falls toward -x/+z of anything */
 const SHADE={x:-Math.sin(SUN.lazL),z:-Math.cos(SUN.lazL)},SNK_HOME={x:2,z:10.5};
@@ -1263,26 +1263,25 @@ function herm(p0,m0,p1,m1,t,out){const t2=t*t,t3=t2*t;return out.set(0,0,0).addS
 function eagleSpots(){
   const sp=[];if(PROPS.sagTop)sp.push({k:"sag",p:PROPS.sagTop.clone(),yaw:SAG[0].ry+2.2});
   const th=BEACH[1],[x,z]=pondEdge(th,1.06);sp.push({k:"pond",p:new V3(x,hTop(x,z),z),yaw:Math.atan2(POND.x-x,POND.z-z)});return sp}
-/* v4 is one skeleton with a flying and a perched mesh; takeoff (swap at .75 s) and land (swap at 2.0 s) hide one by scaling its
-   root to .001. Their flight-root travel is replaced by the flight path: the root is held at the swap pose around the swap (so
-   both meshes' feet meet on the perch) and eases to the glide pose away from it. Across the swap the flying mesh is scaled
-   from .6 so the 1.1 m perched span grows into the 2.1 m flying span over .35 s, under a puff of down and dust. */
-const E_SW={takeoff:.75,land:2};
+/* bald_eagle_v1 is one mesh on one skeleton. Its clips keep root motion about the perch origin (flying poses carry the body .71 m
+   up): takeoff walks the root 1.36 m forward into flap frame 0, and land starts 1.09 m behind the perch at glide frame 0, at rest.
+   The path hands over to and from those clips at their ends; across the cross-fade the group slides by the root offset on the
+   incoming clip's weight, so the body never jumps. The group pivots at the flying body, so pitch and bank turn it about itself. */
+const E_FLY=.713*EAG_SC;
 function eagleSpawn(sc,anims){
-  const G=anims.find(c=>c.name==="glide"),gr=G&&G.tracks.find(t=>t.name==="Root.position"),r0=gr&&[gr.values[0],gr.values[1],gr.values[2]];
-  const prof={takeoff:[t=>1-ss(.75,1.4,t),t=>mix(.6,1,ss(.75,1.1,t))],land:[t=>ss(1.3,2,t),t=>mix(1,.6,ss(1.65,2,t))]};
-  anims.forEach(c=>{const P=prof[c.name];if(!P||!r0)return;
-    const tp=c.tracks.find(t=>t.name==="Root.position"),ts=c.tracks.find(t=>t.name==="Root.scale");
-    if(tp){let j=0;for(let i=0;i<tp.times.length;i++)if(Math.abs(tp.times[i]-E_SW[c.name])<Math.abs(tp.times[j]-E_SW[c.name]))j=i;
-      const rs=[tp.values[3*j],tp.values[3*j+1],tp.values[3*j+2]];
-      for(let i=0;i<tp.times.length;i++){const w=P[0](tp.times[i]);for(let k=0;k<3;k++)tp.values[3*i+k]=mix(r0[k],rs[k],w)}}
-    if(ts)for(let i=0;i<ts.times.length;i++)if(ts.values[3*i]>.01){const s=P[1](ts.times[i]);ts.values[3*i]=ts.values[3*i+1]=ts.values[3*i+2]=s}});
-  const g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";sc.position.y=0;inner.add(sc);inner.scale.setScalar(EAG_SC);g.add(inner);
+  const rt={};for(const n of["glide","flap","land","takeoff"]){const c=anims.find(a=>a.name===n),t=c&&c.tracks.find(t=>t.name==="Root.position");
+    if(t){const v=t.values,k=v.length-3;rt[n]={a:new V3(v[0],v[1],v[2]),b:new V3(v[k],v[k+1],v[k+2])}}}
+  const g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";sc.position.y=0;inner.add(sc);inner.scale.setScalar(EAG_SC);inner.position.y=-E_FLY;g.add(inner);
   animalMats(g);W.add(g);onDes(g);const r=rigUp(sc,anims);
-  const e={g,fg:g,pg:g,r,fr:r,pr:r,mode:"perch",spot:null,timer:rr(14,22),hold:0,settle:0,pf:0,
-    th:rnd()*TAU,c:new V3(2,0,-1),R:15,alt:17.5,pos:new V3(),vel:new V3(),bank:0,yaw:0,pit:0,seg:null,flapT:rr(6,12),cry:0};
+  const e={g,fg:g,pg:g,r,fr:r,pr:r,rt,ro:null,mode:"perch",spot:null,timer:rr(14,22),hold:0,settle:0,pf:0,
+    th:rnd()*TAU,c:new V3(2,0,-1),c0:new V3(2,0,-1),cv:new V3(),pend:null,R:15,alt:17.5,pos:new V3(),vel:new V3(),bank:0,yaw:0,pit:0,seg:null,flapT:rr(6,12),cry:0};
   for(const k of["takeoff","land"]){const a=r.acts[k];if(a){a.setLoop(VT.THREE.LoopOnce,1);a.clampWhenFinished=true}}
   return e}
+const _eo=new V3();
+const yawV=(v,y,s,out)=>{const c=Math.cos(y),n=Math.sin(y);return out.set((v.x*c+v.z*n)*s,v.y*s,(-v.x*n+v.z*c)*s)};
+function eaglePlace(e){const o=e.ro;_eo.set(0,0,0);
+  if(o){const a=e.r.acts[o.a],w=a&&a.isRunning()?a.getEffectiveWeight():1;if(w>=.999)e.ro=null;else yawV(o.X,o.yaw,(1-w)*EAG_SC,_eo)}
+  e.g.position.copy(e.pos).add(_eo);e.g.position.y+=E_FLY}
 const PUFF=softPoints(MOB?24:44,"#e6d7bd",.1,false);PUFF.o.renderOrder=6;PUFF.o.visible=false;W.add(PUFF.o);
 const PUFFP=[];
 function eaglePuff(p){for(let i=0;i<PUFF.n;i++){const a=rnd()*TAU,u=rr(.5,1.5);
@@ -1295,65 +1294,86 @@ function puffTick(dt){if(!PUFF.o.visible)return;let any=0;
     PUFF.P[o]=q.x;PUFF.P[o+1]=q.y;PUFF.P[o+2]=q.z;PUFF.A[i]=q.life<0||u>=1?0:.55*ss(0,.08,u)*(1-ss(.35,1,u))*(1-.5*st.night)}
   PUFF.g.attributes.position.needsUpdate=PUFF.g.attributes.a.needsUpdate=true;PUFF.m.uniforms.uH.value=innerHeight;if(!any)PUFF.o.visible=false}
 function eaglePerchAt(e,spot,landed){e.mode="perch";e.spot=spot;
-  e.g.position.copy(spot.p);e.g.rotation.set(0,spot.yaw,0);e.pos.copy(spot.p);e.vel.set(0,0,0);e.pit=e.bank=0;e.yaw=spot.yaw;
-  const L=e.r.acts.land;e.settle=landed&&L?Math.max(.05,3.2-L.time):0;if(!e.settle)play(e.r,spot.k==="pond"?"head_turn":"perch",.4,1);
+  e.g.rotation.set(0,spot.yaw,0);e.pos.copy(spot.p);e.vel.set(0,0,0);e.pit=e.bank=0;e.yaw=spot.yaw;
+  const L=e.r.acts.land;e.settle=landed&&L?L.getClip().duration:0;
+  if(e.settle){play(e.r,"land",.25,1);e.pf=0;e.ro={a:"land",yaw:spot.yaw,X:e.rt.land.a.clone().sub(e.rt.glide.a)}}
+  else play(e.r,spot.k==="pond"?"head_turn":"perch",.4,1);eaglePlace(e);
   e.timer=spot.k==="pond"?14:rr(16,26)}
 function soarPoint(th,out,t=st.t){return out.set(e_c().x+Math.cos(th)*ANIM.eagle.R,ANIM.eagle.alt+1.6*Math.sin(t*.21),e_c().z+Math.sin(th)*ANIM.eagle.R)}
 function soarVel(th,t,out){return out.set(-Math.sin(th)*8.5,1.6*.21*Math.cos(t*.21),Math.cos(th)*8.5)}
 function e_c(){return ANIM.eagle.c}
-/* take-off: .75 s crouch and wing-opening on the perch, then the path takes over at the mesh swap */
-function eagleTakeoff(e){e.mode="rise";e.hold=E_SW.takeoff;e.yaw=e.spot.yaw;e.pit=0;play(e.r,"takeoff",.3,1);e.cry=1}
+/* take-off: the whole clip plays on the perch (crouch, push-off, first beats, 1.4 m of root travel); the path takes over at
+   flap frame 0 from near rest. The join into the thermal is picked so the bird never drifts backward and peaks gently. */
+function eagleTakeoff(e){e.mode="rise";const a=e.r.acts.takeoff;e.hold=a?a.getClip().duration:0;e.yaw=e.spot.yaw;e.pit=0;e.pf=0;play(e.r,"takeoff",.3,1);e.cry=1}
+function herA(s,t,out){return out.set(0,0,0).addScaledVector(s.p0,12*t-6).addScaledVector(s.m0,6*t-4).addScaledVector(s.p1,6-12*t).addScaledVector(s.m1,6*t-2).divideScalar(s.T*s.T)}
 function eagleLaunch(e,over){
-  const sp=e.spot;e.mode="takeoff";
-  const p0=sp.p.clone(),fw=new V3(Math.sin(sp.yaw),0,Math.cos(sp.yaw));eaglePuff(sp.p);
-  e.th=Math.atan2(p0.z-e.c.z,p0.x-e.c.x)+.9;const T=6.5,p1=soarPoint(e.th,new V3(),st.t+T);
-  e.seg={p0,m0:fw.multiplyScalar(2.5).add(new V3(0,4.5,0)),p1,m1:soarVel(e.th,st.t+T,new V3()).multiplyScalar(T),T,t:over/T,land:false}}
+  const sp=e.spot,rt=e.rt;e.mode="takeoff";e.c.copy(e.c0);e.pend=null;
+  const d=rt.takeoff.b.clone().sub(rt.flap.a),p0=sp.p.clone().add(yawV(d,sp.yaw,EAG_SC,new V3()));
+  play(e.r,"flap",.15,1);e.ro={a:"flap",yaw:sp.yaw,X:d.clone().negate()};
+  const fw=new V3(Math.sin(sp.yaw),0,Math.cos(sp.yaw)),m0v=fw.clone().multiplyScalar(.15).add(new V3(0,.1,0)),th0=Math.atan2(p0.z-e.c.z,p0.x-e.c.x);
+  let best=null;const v=new V3(),ac=new V3();
+  for(let k=0;k<14;k++)for(const T of[4.5,5.5,6.5,7.5,8.5]){const th=th0+.3+k*.25,s={p0,m0:m0v.clone().multiplyScalar(T),p1:soarPoint(th,new V3(),st.t+T),m1:soarVel(th,st.t+T,new V3()).multiplyScalar(T),T};
+    let pk=0,back=0;for(let i=0;i<=12;i++){const t=i/12;herA(s,t,ac);pk=Math.max(pk,ac.length());hermV(s,t,v);if(t<.5)back=Math.max(back,-(v.x*fw.x+v.z*fw.z))}
+    const sc=pk+30*back;if(!best||sc<best.sc)best={sc,s,th}}
+  e.th=best.th;e.seg=Object.assign(best.s,{t:over/best.s.T,land:false})}
 const GROVE=new V3((PALMS[0].x+PALMS[1].x+PALMS[2].x)/3,0,(PALMS[0].z+PALMS[1].z+PALMS[2].z)/3);
 function eagleLand(e,spot){
   const out=new V3(spot.p.x-GROVE.x,0,spot.p.z-GROVE.z).normalize();
-  const A=spot.p.clone().addScaledVector(out,10).add(new V3(0,7,0));
-  e.mode="land";e.spot=spot;e.final=false;e.appr=A;
-  const d0=e.pos.distanceTo(A),dirA=new V3(-out.x,-.35,-out.z).normalize();
-  const T=cl(d0/Math.max(e.vel.length(),4),2.5,8);
-  e.seg={p0:e.pos.clone(),m0:e.vel.clone().multiplyScalar(T),p1:A,m1:dirA.multiplyScalar(Math.min(d0*.6,8*T)),T,t:0,land:false,appr:true};
+  /* a stoop, straight in line with the perch: glide to the entry point just below its height, stoop down the 32° line (dive pose held) to 10 m out
+     and 3.5 m up, then the glide-in pulls out and slows onto the perch */
+  const h=new V3(spot.p.x-e.pos.x,0,spot.p.z-e.pos.z).normalize(),dirA=new V3(h.x*.85,-.53,h.z*.85).normalize();
+  const A=spot.p.clone().addScaledVector(h,-10).add(new V3(0,3.5,0)),E=A.clone().addScaledVector(dirA,-cl((e.pos.y-.6-A.y)/.53,8,24));
+  e.mode="land";e.spot=spot;e.final=false;e.appr=A;e.dirA=dirA;
+  if((E.x-e.pos.x)*h.x+(E.z-e.pos.z)*h.z<4){eagleStoop(e);return}
+  const T=e.pos.distanceTo(E)/8.5;e.seg={p0:e.pos.clone(),m0:e.vel.clone().multiplyScalar(T),p1:E,m1:dirA.clone().multiplyScalar(8.5*T),T,t:0,land:false,appr:1};
   play(e.fr,"glide",.5,1)}
+function eagleStoop(e){const T=e.pos.distanceTo(e.appr)/9.75;e.seg={p0:e.pos.clone(),m0:e.vel.clone().multiplyScalar(T),p1:e.appr.clone(),m1:e.dirA.clone().multiplyScalar(11*T),T,t:0,land:false,appr:2};play(e.r,"dive",.6,1)}
 function eagleFinal(e){const spot=e.spot;e.final=true;const p1=spot.p.clone();
   const p0=e.pos.clone(),dir=new V3(p1.x-p0.x,0,p1.z-p0.z);const dist=p0.distanceTo(p1);dir.normalize();
-  spot.yaw=Math.atan2(dir.x,dir.z);
-  const T=cl(dist/Math.max(e.vel.length(),3),3.2,9);
-  e.seg={p0,m0:e.vel.clone().multiplyScalar(T),p1,m1:dir.multiplyScalar(dist*.12).add(new V3(0,-.4,0)),T,t:0,land:true};
-  play(e.fr,"glide",.5,1)}
+  spot.yaw=Math.atan2(dir.x,dir.z);p1.add(yawV(e.rt.land.a.clone().sub(e.rt.glide.a),spot.yaw,EAG_SC,new V3()));
+  const T=cl(2.4*dist/Math.max(e.vel.length(),3),1.6,9);
+  e.seg={p0,m0:e.vel.clone().multiplyScalar(T),p1,m1:new V3(0,0,0),T,t:0,land:true};
+  play(e.fr,"glide",.7,1)}
 function eagleUpdate(e,dt){
   const ph=st.phase,wantPerch=ph!=="day";puffTick(dt);
+  {const L=e.r.acts.land;if(e.r.cur==="land"&&!e.pf&&L&&L.time>=1.96){e.pf=1;if(e.spot.k==="pond")eaglePuff(e.spot.p)}}
   if(e.mode==="perch"){
     if(e.r.acts.perch)e.r.acts.perch.timeScale=ph==="night"?.35:1;
     if(e.settle>0){e.settle-=dt;if(e.settle<=0)play(e.r,e.spot.k==="pond"?"head_turn":"perch",.4,1)}
     else if(wantPerch){if(e.spot.k!=="sag"){e.timer-=dt;if(e.timer<0)eagleTakeoff(e)}}
     else{e.timer-=dt;if(e.timer<0)eagleTakeoff(e)}
-    if(e.mode==="perch"){rigTick(e.r,dt);return}}
-  if(e.mode==="rise"){e.hold-=dt;if(e.hold>0){rigTick(e.r,dt);return}eagleLaunch(e,-e.hold-dt)}
+    if(e.mode==="perch"){rigTick(e.r,dt);eaglePlace(e);return}}
+  if(e.mode==="rise"){e.hold-=dt;if(!e.pf&&e.hold<1.45){e.pf=1;if(e.spot.k==="pond")eaglePuff(e.spot.p)}
+    if(e.hold>0){rigTick(e.r,dt);eaglePlace(e);return}eagleLaunch(e,-e.hold-dt)}
+  /* to land, the thermal first drifts away from the perch (its drift is part of the bird's velocity), then the bird leaves
+     the circle when its heading points at the perch, which leaves room for a straight stoop */
   if(e.mode==="soar"){
-    const v=8.5;e.th+=v/e.R*dt;soarPoint(e.th,e.pos);soarVel(e.th,st.t,e.vel);
+    const v=8.5,P=e.pend;e.th+=v/e.R*dt;
+    if(P){P.u=Math.min(1,P.u+dt/P.T);e.c.lerpVectors(P.c0,P.c1,ss(0,1,P.u));e.cv.subVectors(P.c1,P.c0).multiplyScalar(P.u<1?6*P.u*(1-P.u)/P.T:0)}else e.cv.set(0,0,0);
+    soarPoint(e.th,e.pos);soarVel(e.th,st.t,e.vel).add(e.cv);
     e.bank+=(-Math.atan(v*v/(e.R*9.8))-e.bank)*ease(2,dt);
     e.flapT-=dt;if(e.flapT<0){play(e.fr,"flap",.3,1);if(e.flapT<-2.4){e.flapT=rr(8,15);play(e.fr,"glide",.6,1)}}
-    e.timer-=dt;if(wantPerch||e.timer<0){const sp=eagleSpots();const s=wantPerch?sp[0]:(rnd()<.62||sp.length<2?sp[0]:sp[1]);if(s)eagleLand(e,s);e.timer=rr(28,45)}}
+    if(P){if(P.u>=1&&Math.abs(wrapA(Math.atan2(P.s.p.x-e.pos.x,P.s.p.z-e.pos.z)-Math.atan2(e.vel.x,e.vel.z)))<.03){e.pend=null;e.cv.set(0,0,0);eagleLand(e,P.s)}}
+    else{e.timer-=dt;if(wantPerch||e.timer<0){const sp=eagleSpots(),s=wantPerch?sp[0]:(rnd()<.62||sp.length<2?sp[0]:sp[1]);e.timer=rr(28,45);
+      if(s){const aw=new V3(e.c.x-s.p.x,0,e.c.z-s.p.z).normalize();e.pend={s,u:0,T:6,c0:e.c.clone(),c1:new V3(s.p.x+aw.x*38,0,s.p.z+aw.z*38)}}}}}
   else{let s=e.seg;s.t+=dt/s.T;
     /* segment joins hand over position, analytic velocity and the leftover time, so the path never stalls a frame */
     if(s.t>=1){const over=(s.t-1)*s.T;herm(s.p0,s.m0,s.p1,s.m1,1,e.pos);hermV(s,1,e.vel);
-      if(s.land){eaglePerchAt(e,e.spot,true);rigTick(e.r,dt);return}
+      if(s.land){eaglePerchAt(e,e.spot,true);rigTick(e.r,dt);eaglePlace(e);return}
+      else if(s.appr===1){eagleStoop(e);e.seg.t=over/e.seg.T}
       else if(s.appr){eagleFinal(e);e.seg.t=over/e.seg.T}
       else{e.mode="soar";e.timer=wantPerch?0:rr(25,40);e.th+=8.5/e.R*over;soarPoint(e.th,e.pos);soarVel(e.th,st.t,e.vel)}}
     if(e.mode==="takeoff"||e.mode==="land"){s=e.seg;const t=Math.min(1,s.t);herm(s.p0,s.m0,s.p1,s.m1,t,e.pos);hermV(s,t,e.vel);
       e.bank+=(0-e.bank)*ease(2,dt);
-      if(s.land&&(1-t)*s.T<=E_SW.land&&e.r.cur!=="land"){play(e.r,"land",.2,1);e.pf=0}
-      if(!s.land&&!s.appr){if(s.t*s.T>2.4-E_SW.takeoff-.05&&e.r.cur==="takeoff")play(e.r,"flap",.1,1);if(s.t*s.T>3.6&&e.r.cur==="flap")play(e.r,"glide",.6,1)}}}
-  {const L=e.r.acts.land;if(e.r.cur==="land"&&!e.pf&&L&&L.time>=E_SW.land-.04){e.pf=1;eaglePuff(e.spot.p)}}
+      if(!s.land&&!s.appr&&s.t*s.T>3&&e.r.cur==="flap")play(e.r,"glide",.6,1)}}
   /* heading and pitch ease toward the flight direction, and let go of it smoothly as the bird slows to a hover; the last
      seconds of a landing hand the pitch over to the flare clip so the perch pose meets it level */
   const hv=Math.hypot(e.vel.x,e.vel.z),wy=ss(.05,1.2,hv),lw=e.seg&&e.seg.land?ss(0,1.6,(1-Math.min(1,e.seg.t))*e.seg.T):1;
   e.yaw=wrapA(e.yaw+cl(wrapA(Math.atan2(e.vel.x,e.vel.z)-e.yaw)*ease(5*wy,dt),-2.5*dt,2.5*dt));
   e.pit+=(cl(-Math.atan2(e.vel.y,Math.max(hv,1.5)),-.5,.5)*wy*lw-e.pit)*ease(4,dt);
-  e.g.position.copy(e.pos);e.g.rotation.set(e.pit*.6,e.yaw,e.bank);rigTick(e.r,dt)}
+  /* the stoop pose is pitched 58° down; the group lifts most of that back so the body follows the path's real descent */
+  const dv=e.r.acts.dive,wd=dv&&dv.isRunning()?dv.getEffectiveWeight():0;
+  e.g.rotation.set(e.pit*.6-.7*wd,e.yaw,e.bank);rigTick(e.r,dt);eaglePlace(e)}
 
 /* ---- snake: coiled in shade by day; slithers by dusk and night, never into the water ---- */
 function snakeShadeSpot(){
@@ -1535,7 +1555,7 @@ const animalsReady=propsReady.then(()=>Promise.all([
   Promise.all(CAMEL_SLOTS.map((_,i)=>glb(camelKind(i).file))).then(ms=>{const used=new Set(),[c0,c1]=ms.map((m,i)=>{const s=used.has(m)?VT.cloneSkinned(m.scene):m.scene;used.add(m);return camelSpawn(s,m.animations,i,camelKind(i))});ANIM.camels.push(c0,c1);
     Object.assign(c1,{x:REST[1].x,z:REST[1].z,yaw:REST[1].yaw,mode:"rest",job:"kneel",k:1,timer:rr(20,40),goal:REST[1]});play(c1.r,"kneel_rest",.01,1);
     const gs=grazeSpot(c0);Object.assign(c0,{x:gs.x,z:gs.z,yaw:gs.yaw,mode:"job",job:"graze",timer:rr(8,14)});play(c0.r,"drink",.01,.85)}).catch(()=>{}),
-  glb("eagle_v4").then(({scene,animations})=>{const e=eagleSpawn(scene,animations);ANIM.eagle=e;
+  glb("bald_eagle_v1").then(({scene,animations})=>{const e=eagleSpawn(scene,animations);ANIM.eagle=e;
     const sp=eagleSpots();if(sp[0])eaglePerchAt(e,sp[0]);else{e.mode="soar";play(e.r,"glide",.01,1)}}).catch(()=>{}),
   glb("snake_v4").then(({scene,animations})=>{const s=snakeSpawn(scene,animations);ANIM.snake=s;
     const sp=randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;Object.assign(s,{x:sp.x,z:sp.z,yaw:-.8,mode:"idle",timer:rr(1,3)});play(s.r,"tongue_flick",.01,1)}).catch(()=>{})]));

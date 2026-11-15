@@ -1171,11 +1171,11 @@ function camelUpdate(a,dt){
     if(Math.abs(dy)<.03){a.mode="job";
       if(a.job==="drink"){a.timer=14;play(a.r,"drink",.8,1)}
       else if(a.job==="graze"){a.timer=rr(9,18);play(a.r,"graze",.8,1)}
-      else if(a.job==="kneel"){a.mode="down";play(a.r,"idle",.8,.6)}
+      else if(a.job==="kneel"){a.mode="down";play(a.r,"idle",.8,.6);if(rnd()<.8)camelCall(a,"down")}
       else{a.timer=rr(4,9);play(a.r,"idle",.8,1)}}
     else play(a.r,"walk",.45,.3)}
   else if(a.mode==="down"){a.k=Math.min(1,a.k+dt/3.4);if(a.k>=1){a.mode="rest";a.timer=rr(30,55)}}
-  else if(a.mode==="rest"){if(!night){a.timer-=dt;if(a.timer<0){a.mode="up";play(a.r,"idle",.6,.8)}}}
+  else if(a.mode==="rest"){if(!night){a.timer-=dt;if(a.timer<0){a.mode="up";play(a.r,"idle",.6,.8);if(rnd()<.8)camelCall(a,"up")}}}
   else if(a.mode==="up"){a.k=Math.max(0,a.k-dt/2.8);if(a.k<=0){a.job="idle";camelPlan(a)}}
   else if(a.mode==="job"){a.timer-=dt;if(a.timer<0)camelPlan(a)}
   a.lie+=((night&&a.mode==="rest"?1:0)-a.lie)*ease(.5,dt);
@@ -1285,7 +1285,7 @@ function devilUpdate(dt,t){
     const gV=gustAt(DV.x,DV.z);DV.g=gV;DV.x+=(DV.vx+WIND.x*.9*gV)*dt;DV.z+=(DV.vz+WIND.z*.9*gV)*dt;const nx=DV.x+DV.vx*2,nz=DV.z+DV.vz*2;
     if(sN(nx,nz)>.8||pN(nx,nz)<1.8||!clearOf(nx,nz,.5)){const a=Math.atan2(DV.vz,DV.vx)+rr(1.6,2.6);DV.vx=Math.cos(a)*.7;DV.vz=Math.sin(a)*.7}
     if(DV.life>=1){DV.on=0;DV.wait=rr(18,34)}}
-  DEV.o.visible=amp>.01;if(!DEV.o.visible)return;
+  DV.amp=amp;DEV.o.visible=amp>.01;if(!DEV.o.visible)return;
   const H=7.5,gy=hTop(DV.x,DV.z);
   for(let i=0;i<DEV.n;i++){const q=DV.P[i];q.h+=dt*.1;if(q.h>1)q.h-=1;q.a+=dt*q.w*(1.4-q.h*.6);
     const h=q.h,r=q.r0*(.25+1.6*h*h)+.08,lean=h*h*1.6*(.6+.8*(DV.g||.5)),o=i*3;
@@ -1293,31 +1293,73 @@ function devilUpdate(dt,t){
     DEV.A[i]=amp*.32*(1-h)*ss(0,.08,h)*(.5+.5*Math.sin(q.a*3+i))}
   DEV.g.attributes.position.needsUpdate=DEV.g.attributes.a.needsUpdate=true;DEV.m.uniforms.uH.value=innerHeight}
 
-/* ---- audio through the site's shared context (unlocked by the tap-to-start gesture) ---- */
-const AU={ctx:null,master:null,wind:null,fire:null,ready:false,eagleT:4,rustleT:0};
+/* ---- sound: the desert's own set — CC0 field recordings cut by tools/desertaudio.py (sources: docs/desert-audio.md).
+   Wind and blown sand are heard everywhere; the eagle, camels, snake, dust devil and fire are placed: pan from the camera's
+   right axis, distance gain, and a low-pass that closes with distance so far calls arrive dull. Played through the site's
+   master (volume slider, tap-to-start unlock). AU.cap records every voice for offline mixing of the captured videos. ---- */
+const AQ={dWnd:"@a:dWnd",dCalm:"@a:dCalm",dSnd:"@a:dSnd",dFire:"@a:dFire",dSnk:"@a:dSnk",dEg1:"@a:dEg1",dEg2:"@a:dEg2",dEg3:"@a:dEg3",dEg4:"@a:dEg4",dEg5:"@a:dEg5",
+  dCm1:"@a:dCm1",dCm2:"@a:dCm2",dCm3:"@a:dCm3",dCm4:"@a:dCm4",dCm5:"@a:dCm5"};
+const LL={dWnd:22,dCalm:36,dSnd:20,dFire:19,dSnk:8};
+const AU={b:{},pd:{},lp:{},bus:null,pre:0,egT:rr(5,10),cmT:[rr(14,30),rr(30,60)],q:[],cap:null};
 function SX(){return window.__sndX||null}
-function ensureAudio(){
-  const x=SX();if(!x||!x.s)return null;const ctx=x.s;
-  if(!AU.ready){AU.ctx=ctx;AU.master=ctx.createGain();AU.master.gain.value=0;AU.master.connect(ctx.destination);
-    const buf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.35;
-    const src=ctx.createBufferSource();src.buffer=buf;src.loop=true;const bp=ctx.createBiquadFilter();bp.type="bandpass";bp.frequency.value=380;bp.Q.value=.7;
-    const g=ctx.createGain();g.gain.value=0;src.connect(bp);bp.connect(g);g.connect(AU.master);src.start();AU.wind={bp,g};
-    const fb=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate),fd=fb.getChannelData(0);for(let i=0;i<fd.length;i++)fd[i]=(Math.random()*2-1)*Math.pow(Math.random(),8);
-    const fs=ctx.createBufferSource();fs.buffer=fb;fs.loop=true;const fg=ctx.createGain();fg.gain.value=0;
-    const ff=ctx.createBiquadFilter();ff.type="highpass";ff.frequency.value=800;fs.connect(ff);ff.connect(fg);fg.connect(AU.master);fs.start();AU.fire={g:fg};AU.ready=true}
-  return AU}
-function eagleCry(){const A=ensureAudio();if(!A)return;const ctx=A.ctx,now=ctx.currentTime;
-  const o=ctx.createOscillator(),o2=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();
-  o.type="sawtooth";o2.type="triangle";f.type="bandpass";f.frequency.value=1750;f.Q.value=4;
-  o.frequency.setValueAtTime(1400,now);o.frequency.exponentialRampToValueAtTime(700,now+.5);
-  o2.frequency.setValueAtTime(950,now);o2.frequency.exponentialRampToValueAtTime(460,now+.5);
-  g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.09,now+.03);g.gain.exponentialRampToValueAtTime(.001,now+.65);
-  o.connect(f);o2.connect(f);f.connect(g);g.connect(A.master);o.start(now);o2.start(now);o.stop(now+.7);o2.stop(now+.7)}
-function sandRustle(v){const A=ensureAudio();if(!A)return;const ctx=A.ctx,now=ctx.currentTime;
-  const n=ctx.createBuffer(1,ctx.sampleRate*.07|0,ctx.sampleRate),d=n.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/d.length*3);
-  const s=ctx.createBufferSource();s.buffer=n;const f=ctx.createBiquadFilter();f.type="bandpass";f.frequency.value=2100;f.Q.value=1.2;
-  const g=ctx.createGain();g.gain.value=v;s.connect(f);f.connect(g);g.connect(A.master);s.start(now)}
-HIDE.push(on=>{if(!on&&AU.master&&AU.ctx)AU.master.gain.setTargetAtTime(0,AU.ctx.currentTime,.25)});
+function aOK(){const x=SX();return!!(x&&x.on&&x.s&&x.s.state==="running"&&root.visible)}
+function amb(){const x=SX();return AU.cap?true:!!(x&&x.amb)}
+function dec(k){if(AU.b[k]||AU.pd[k])return;const x=SX();if(!x||!x.s||!x.ld)return;AU.pd[k]=1;
+  x.ld(AQ[k]).then(B=>{const P=x.s.decodeAudioData(B,b=>{AU.b[k]=b},()=>{});P&&P.catch&&P.catch(()=>{})}).catch(()=>{setTimeout(()=>{AU.pd[k]=0},8e3)})}
+function aBus(){if(AU.bus)return true;const x=SX();try{const b=x.s.createGain();b.gain.value=0;b.connect(x.r);AU.bus=b;return true}catch(e){return false}}
+/* p in island metres; ref = distance (m) at which the source plays at its nominal level */
+const _cr=new V3();
+function spat(p,ref){const dx=p.x-_cl.x,dy=p.y-_cl.y,dz=p.z-_cl.z,d=Math.hypot(dx,dy,dz)||1;
+  const m=De.matrixWorld.elements;_cr.set(m[0],m[1],m[2]).applyAxisAngle(_yAx,-YAW);
+  return[cl((dx*_cr.x+dy*_cr.y+dz*_cr.z)/d,-1,1)*.8,cl(Math.pow(ref/Math.max(d,ref*.4),.9),.05,1.6),cl(19000*Math.exp(-d/55),1500,19000)]}
+const _yAx=new V3(0,1,0);
+function capE(e){if(AU.cap){AU.cap.ev.push([+(st.t-AU.cap.t0).toFixed(3)].concat(e));if(AU.cap.ev.length>4e5)AU.cap.ev.length=0}}
+function voice(c,out,pan,lpf){const g=c.createGain(),f=c.createBiquadFilter(),pn=c.createStereoPanner?c.createStereoPanner():null;f.type="lowpass";f.Q.value=.5;f.frequency.value=lpf;
+  g.connect(f);if(pn){pn.pan.value=pan;f.connect(pn);pn.connect(out)}else f.connect(out);return{g,f,pn}}
+function loopS(id,k,v,p,ref,rate){let pan=0,lpf=19000;if(p){const q=spat(p,ref);pan=q[0];v*=q[1];lpf=q[2]}rate=rate||1;
+  capE(["L",id,k,+v.toFixed(4),+pan.toFixed(3),Math.round(lpf),+rate.toFixed(3)]);
+  if(!aOK()||!aBus())return;const c=SX().s;let L=AU.lp[id];
+  if(!L){if(v<=.001)return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;s.loopStart=.5;s.loopEnd=.5+LL[k];
+    L=voice(c,AU.bus,pan,lpf);L.g.gain.value=0;L.s=s;s.connect(L.g);s.start(0,.5+rnd()*LL[k]);AU.lp[id]=L}catch(e){return}}
+  const now=c.currentTime;L.g.gain.setTargetAtTime(v,now,.35);L.f.frequency.setTargetAtTime(lpf,now,.3);L.pn&&L.pn.pan.setTargetAtTime(pan,now,.2);L.s.playbackRate.setTargetAtTime(rate,now,.3)}
+function shotS(k,g,p,ref,rate){const q=p?spat(p,ref):[0,1,19000];rate=rate||1;g*=q[1];
+  capE(["S",k,+g.toFixed(4),+q[0].toFixed(3),Math.round(q[2]),+rate.toFixed(3)]);
+  if(!aOK()||!aBus())return;dec(k);const b=AU.b[k];if(!b)return;
+  try{const c=SX().s,s=c.createBufferSource(),v=voice(c,AU.bus,q[0],q[2]);s.buffer=b;s.playbackRate.value=rate;v.g.gain.value=g;s.connect(v.g);s.start()}catch(e){}}
+const later=(sec,fn)=>AU.q.push({t:st.t+sec,fn});
+const pick=a=>a[Math.floor(rnd()*a.length)];
+/* calls tied to what the animals are doing */
+function eagleCall(e,long){if(!amb())return;const p=e.pos;shotS(long?pick(["dEg1","dEg2","dEg3"]):pick(["dEg4","dEg5"]),long?.62:.42,p,26,rr(.95,1.04))}
+function camelHead(a){const y=hTop(a.x,a.z)+mix(2.3,1.1,a.k);return{x:a.x+Math.sin(a.yaw)*1.5,y,z:a.z+Math.cos(a.yaw)*1.5}}
+function camelCall(a,kind){if(!amb())return;const r=(a.i?.92:1)*rr(.96,1.04),nt=st.night>.5?.6:1;
+  if(kind==="down")later(.5,()=>shotS(pick(["dCm3","dCm4"]),.55*nt,camelHead(a),9,r));
+  else if(kind==="up")later(.3,()=>shotS(pick(["dCm1","dCm5"]),.5*nt,camelHead(a),9,r));
+  else shotS(rnd()<.6?"dCm2":pick(["dCm1","dCm5"]),.36*nt,camelHead(a),9,r)}
+const _snP=new V3(),_fiP=new V3(),_dvP=new V3();
+function sound(dt){if(!root.visible&&!AU.cap)return;
+  if(!AU.pre&&aOK()){AU.pre=1;Object.keys(LL).forEach(dec);setTimeout(()=>Object.keys(AQ).forEach(dec),1500)}
+  if(aOK()&&aBus())AU.bus.gain.setTargetAtTime(1,SX().s.currentTime,.6);
+  for(let i=AU.q.length-1;i>=0;i--)if(st.t>=AU.q[i].t){const f=AU.q[i].fn;AU.q.splice(i,1);f()}
+  const nk=st.night,wn=st.wn,g=gustAt(_cl.x,_cl.z),calm=1-.5*nk;
+  /* beds: a steady low air, wind that swells with the gusts, and the hiss of sand on the move */
+  loopS("calm","dCalm",.2+.08*nk);
+  loopS("wind","dWnd",(.06+.42*ss(.12,1,wn)*(.45+.75*g))*calm);
+  loopS("sand","dSnd",(.02+.26*ss(.2,1,wn))*ss(.3,.85,g)*calm);
+  /* placed: dust devil, the night fire, the snake's rustle (speed sets level and grain rate) */
+  loopS("devil","dSnd",DV.amp?.55*DV.amp:0,_dvP.set(DV.x,hTop(DV.x,DV.z)+1.5,DV.z),10,1.12);
+  loopS("fire","dFire",.5*ss(.35,.85,nk),_fiP.set(FIRE.x,hTop(FIRE.x,FIRE.z)+.4,FIRE.z),5);
+  const s=ANIM.snake,sv=s?cl(s.spd/SNK_V,0,1):0;
+  loopS("snake","dSnk",s?.75*ss(.04,.4,sv):0,s?_snP.set(s.x,hTop(s.x,s.z)+.05,s.z):null,3,.8+.35*sv);
+  /* the eagle cries now and then while it circles; perched (dusk, night) it is quiet */
+  const e=ANIM.eagle;
+  if(e){if(e.cry){e.cry=0;eagleCall(e,false)}
+    if(e.mode==="soar"){AU.egT-=dt;if(AU.egT<=0){AU.egT=rr(11,24);if(rnd()<.8)eagleCall(e,true)}}}
+  /* camels grumble now and then while grazing or idling; rarely at night */
+  ANIM.camels.forEach((a,i)=>{AU.cmT[i]-=dt;if(AU.cmT[i]>0)return;
+    if(a.mode==="rest"){AU.cmT[i]=rr(80,160);if(rnd()<.5)camelCall(a,"grunt")}
+    else{AU.cmT[i]=rr(22,50);if(a.mode==="job"||a.mode==="walk")camelCall(a,"grunt")}})}
+HIDE.push(on=>{const x=SX();if(!on&&AU.bus&&x&&x.s){AU.bus.gain.setTargetAtTime(0,x.s.currentTime,.25);const L=AU.lp;AU.lp={};setTimeout(()=>{for(const k in L)try{L[k].s.stop()}catch(e){}},1500)}
+  if(x&&x.C)x.C()});
 
 /* ---- load + per-frame ---- */
 const animalsReady=propsReady.then(()=>Promise.all([
@@ -1335,14 +1377,7 @@ UPD.push((dt,t)=>{
   if(ANIM.eagle)eagleUpdate(ANIM.eagle,d);
   if(ANIM.snake)snakeUpdate(ANIM.snake,d);
   devilUpdate(d,t);
-  const A=AU.ready?AU:(SX()&&SX().on?ensureAudio():null);
-  if(A){const now=A.ctx.currentTime,x=SX(),on=root.visible&&x&&x.on;
-    A.master.gain.setTargetAtTime(on?.7:0,now,.3);
-    A.wind.g.gain.setTargetAtTime((.025+st.wn*.1)*(.7+.6*gustAt(0,0)),now,.3);A.wind.bp.frequency.setTargetAtTime(250+st.wn*650,now,.4);
-    A.fire.g.gain.setTargetAtTime(st.night*.05,now,.4);
-    if(on){const e=ANIM.eagle;AU.eagleT-=d;if(e&&(e.cry||(e.mode==="soar"&&AU.eagleT<=0&&rnd()<.01))){eagleCry();e.cry=0;AU.eagleT=rr(8,18)}
-      const s=ANIM.snake;AU.rustleT-=d;if(s&&s.spd>.1&&AU.rustleT<=0){sandRustle(.012);AU.rustleT=.14}
-      if(DV.on&&AU.rustleT<=0&&rnd()<.3){sandRustle(.008);AU.rustleT=.1}}}
+  sound(d);
 });
 
 function show(on){
@@ -1366,6 +1401,8 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,
   duneAdv(sec){const wk=.5+st.wn*1.4;duneEvolve(sec*.8*wk);sandU.uRipPh.value+=sec*.08*wk;
     sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk)},
   dune:{DP,DUNE0,DCLK,GUST,crestXZ,dMask,gustAt},
+  /* sound capture for the recorded videos: every voice's level/pan/low-pass per step, mixed offline */
+  audCap(on){if(on){AU.cap={t0:st.t,ev:[]};return 0}const c=AU.cap;AU.cap=null;return c?c.ev:[]},AU,
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,snakeGo,play}};
 animalsReady.then(()=>{QA.ready=true});
 window.__desReady=true;

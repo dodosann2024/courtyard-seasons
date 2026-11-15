@@ -575,12 +575,20 @@ function palmMat(H,isTrunk){
         float a=clamp((a0-.5)/max(fwidth(a0),1e-4)+.5,0.,1.);
         a=mix(a,clamp(a0*1.15,0.,1.),smoothstep(.6,2.2,lod));
         if(a<.02)discard;diffuseColor.a=a;}`);
-    if(isTrunk)sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nvarying vec2 vUV;")
+    /* trunk: overlapping leaf-base stubs. Rows step up a spiral (golden-ratio phase per row), each stub has an
+       arched lower lip over a shadowed gap, seams between stubs, its own tone, and fine vertical fibre */
+    if(isTrunk)sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nvarying vec2 vUV;float pHs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}")
       .replace("#include <color_fragment>",`#include <color_fragment>
-        {vec2 p=vec2(vUV.x*7.,vUV.y/.2);float d=abs(fract(p.x+p.y)-.5)+abs(fract(p.x-p.y)-.5);
-         float sc=smoothstep(.25,.55,d);diffuseColor.rgb*=mix(.55,1.12,sc);
-         float ring=smoothstep(.08,0.,abs(fract(vUV.y/.2)-.5)-.38);diffuseColor.rgb*=1.-ring*.25;}`);};
-  m.customProgramCacheKey=()=>"des44palm"+(isTrunk?"t":"c")+H.toFixed(1);return m}
+        {float ry=vUV.y/.16;float row=floor(ry),fy=fract(ry);
+         float qx=vUV.x*9.+fract(row*.618)*9.+.35*sin(row*2.3);float cl=floor(qx),fx=fract(qx)-.5;
+         float h1=pHs(vec2(mod(cl,9.),row)),h2=pHs(vec2(row,mod(cl,9.)+.5));
+         float yb=.1+1.3*fx*fx+.18*h2;float gap=1.-smoothstep(yb,yb+.16,fy);
+         float seam=smoothstep(.33,.5,abs(fx+.06*(h2-.5)));
+         float fib=pHs(vec2(floor(vUV.x*110.),floor(vUV.y*5.)));
+         float aa=1.-smoothstep(.2,.65,max(fwidth(ry),fwidth(qx)));
+         float k=(.74+.36*fy)*(1.-.5*gap)*(1.-.3*seam)*(.8+.4*h1)*(.9+.2*fib);
+         diffuseColor.rgb*=mix(.86,k,aa)*mix(vec3(1.),vec3(1.06,.98,.9),h1);}`);};
+  m.customProgramCacheKey=()=>"des47palm"+(isTrunk?"t":"c")+H.toFixed(1);return m}
 const DATE_GEO=(()=>{const{v,f}=icoSphere(1);return geoFrom(v.map(p=>[p[0]*.035,p[1]*.045,p[2]*.035]),f)})();
 function buildPalms(){
   const dates=[];
@@ -653,8 +661,9 @@ const propsReady=Promise.all([
       /* the source texture is a dark red hide; keep its luminance detail but read it as sun-bleached canvas, darker members as wood */
       m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace("#include <map_fragment>",`#ifdef USE_MAP
         vec4 tx=texture2D(map,vMapUv);float l=dot(tx.rgb,vec3(.3,.59,.11));
-        vec3 canv=vec3(1.,.9,.76)*(.85+2.6*l);diffuseColor.rgb=mix(vec3(.30,.20,.12),min(canv,vec3(1.)),smoothstep(.015,.07,l));
-        #endif`)};m.needsUpdate=true});
+        vec3 canv=vec3(.97,.86,.69)*(.85+2.3*l);diffuseColor.rgb=mix(vec3(.30,.20,.12),min(canv,vec3(.98,.88,.72)),smoothstep(.015,.07,l));
+        #endif`).replace("#include <lights_fragment_end>",`#include <lights_fragment_end>
+        reflectedLight.indirectDiffuse*=vec3(1.16,.98,.78);`)};m.needsUpdate=true});
     const g=new T.Group();g.add(w);g.position.set(TENT.x,hTop(TENT.x,TENT.z)-.05,TENT.z);g.rotation.y=TENT.yaw;
     g.traverse(c=>{if(c.isMesh){c.castShadow=c.receiveShadow=true;c.frustumCulled=false}});W.add(g);onDes(g);PROPS.tent=g}).catch(()=>{})]);
 
@@ -732,19 +741,19 @@ for(let r=0;r<3;r++){
       vec3 spine(float t){float h=t*${SMOKE_H.toFixed(1)};vec3 side=normalize(cross(uWind,vec3(0.,1.,0.)));
         float lean=h*(.12+.85*t);
         float sway=sin(uT*.45+t*3.6+uSeed)*.3*t*t*h+sin(uT*1.1+t*8.+uSeed*2.)*.05*t*h;
-        float curl=sin(uT*.33+t*4.4+uSeed*1.7)*.32*t*h+sin(uT*.8+t*9.3+uSeed)*.08*h*t;
+        float curl=sin(uT*.33+t*4.4+uSeed*1.7)*.32*t*h+sin(uT*.8+t*9.3+uSeed)*.08*h*t+sin(uT*1.3+t*16.+uSeed*3.)*.5*sqrt(t)*(1.-t);
         return uBase+vec3(0.,h*(1.-.18*t),0.)+uWind*(lean+sway*.4)+side*(curl+sway*.5);}
       void main(){vT=aT;vS=aS;vec3 p=spine(aT),p2=spine(min(aT+.02,1.)),q=spine(max(aT-.02,0.));
         vec3 tg=normalize(p2-q+vec3(0.,1e-4,0.)),vd=normalize(uCamL-p),sd=normalize(cross(tg,vd));
-        float w=mix(.22,3.6,pow(aT,.9))*uW;vec3 wp=p+sd*aS*w*.5;vN=vec2(aS*w*.5,aT*${SMOKE_H.toFixed(1)});
+        float w=mix(.6,3.8,pow(aT,.7))*uW;vec3 wp=p+sd*aS*w*.5;vN=vec2(aS*w*.5,aT*${SMOKE_H.toFixed(1)});
         gl_Position=projectionMatrix*modelViewMatrix*vec4(wp,1.);}`,
     fragmentShader:`uniform float uT,uSeed,uA,uOp;uniform vec3 uCol;varying float vT,vS;varying vec2 vN;${GLSL_NOISE}
       void main(){vec2 p=vec2(vN.x*1.1,vN.y*.5-uT*.5)+uSeed;
         float d=dfbm(p+vec2(dfbm(p*.6+uT*.04)*2.4,0.));float wisp=smoothstep(.3,.78,d);
-        float across=1.-abs(vS+(d-.5)*.9*smoothstep(.05,.45,vT));float core=exp(-pow(1.-max(across,0.),2.)*3.2)*smoothstep(0.,.25,across);
-        float a=uA*uOp*core*mix(.5,1.,wisp)*mix(1.,wisp*1.2,smoothstep(.15,.7,vT));
-        float puff=dn2(vec2(uSeed*3.1,vN.y*.3-uT*.4));a*=mix(1.,.4+.6*smoothstep(.15,.6,puff),smoothstep(.1,.45,vT));
-        a*=smoothstep(0.,.1,vT)*(1.-smoothstep(.3,.95,vT));
+        float across=1.-abs(vS+(d-.5)*.9*smoothstep(.05,.45,vT));float core=exp(-pow(1.-max(across,0.),2.)*1.8)*smoothstep(0.,.45,across);
+        float a=uA*uOp*core*mix(.35,1.,wisp)*mix(1.,wisp*1.3,smoothstep(.02,.35,vT));
+        float puff=dn2(vec2(uSeed*3.1,vN.y*.3-uT*.4));a*=mix(1.,.3+.7*smoothstep(.15,.6,puff),smoothstep(.03,.3,vT));
+        a*=smoothstep(0.,.16,vT)*(1.-smoothstep(.3,.95,vT));
         if(a<.006)discard;gl_FragColor=vec4(uCol*mix(.95,1.04,vT),a);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

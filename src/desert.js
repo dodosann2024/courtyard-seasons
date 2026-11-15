@@ -1412,7 +1412,7 @@ function oasisNear(){const r=Math.hypot((_cl.x-POND.x)/POND.rx,(_cl.z-POND.z)/PO
   return 1-ss(3,15,Math.hypot(dh,dy*.7))}
 function oasis(dt,nk,W){const zone=oasisNear(),hush=1-ss(.22,.6,W),v=zone*hush;
   capE(["B","oas",+v.toFixed(4)]);if(aOK()&&aBus())AU.ob.gain.setTargetAtTime(v,SX().s.currentTime,.6);
-  const night=ss(.3,.9,nk),act={fc:.05+.95*night,dk:.04+.96*night,fr:.75*ss(.45,.95,nk),df:1-ss(.15,.5,nk),gh:1-ss(.15,.5,nk)};
+  const night=ss(.3,.9,nk),act={fc:.05+.95*night,dk:.04+.96*night,fr:.75*ss(.45,.95,nk),df:.55*(1-ss(.15,.5,nk)),gh:.5*(1-ss(.15,.5,nk))};
   for(const e of OAS){if(e.ty==="fc"||e.ty==="dk"){e.bt-=dt;if(e.bt<0){e.on=!e.on;e.bt=e.on?rr(25,80):rr(8,30)}}
     e.t-=dt;if(e.t>0)continue;e.t=rr(e.a,e.b);
     if(!amb()||zone<.02||hush<.25||(e.ty==="fc"||e.ty==="dk")&&!e.on||rnd()>act[e.ty])continue;

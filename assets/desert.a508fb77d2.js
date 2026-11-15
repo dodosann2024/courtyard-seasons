@@ -1090,11 +1090,11 @@ UPD.push((dt,t)=>{
 
 let _bloomSave=null;
 const HIDE=[];
-/* ---------------- animals: Tripo rigged camel / eagle / snake at real size ----------------
-   camel_v3 native metres (2.8 m long) x1.15 -> ~3.2 m long, hump ~2.1 m (palm 13 m, tent 6 m long);
-   eagle_v3 2.1 m span x.95 -> 2.0 m; perch model .85 m tall; snake_v3 1.22 m x1.1 -> 1.35 m. */
+/* ---------------- animals: Tripo + Blender v4 rigs (camel / eagle / snake) at real size ----------------
+   camel_v4 native metres (2.8 m long) x1.15 -> ~3.2 m long, hump ~2.1 m (palm 13 m, tent 6 m long); its in-place walk is
+   authored for .99 m/s; eagle_v4 2.1 m flying span x.95 -> 2.0 m, perched .8 m tall; snake_v4 1.22 m x1.1 -> 1.35 m. */
 const ANIM={camels:[],eagle:null,snake:null};
-const CAM_SC=1.15,CAM_V=.989*CAM_SC,EAG_SC=.95,PER_SC=1,SNK_SC=1.1,SNK_V=.425*SNK_SC;
+const CAM_SC=1.15,CAM_V=.989*CAM_SC,EAG_SC=.95,SNK_SC=1.1,SNK_V=.425*SNK_SC;
 const tl=(lx,lz)=>({x:TENT.x+Math.cos(TENT.yaw)*lx+Math.sin(TENT.yaw)*lz,z:TENT.z-Math.sin(TENT.yaw)*lx+Math.cos(TENT.yaw)*lz});
 /* light comes from +x/-z (local azimuth SUN.lazL), so shade falls toward -x/+z of anything */
 const SHADE={x:-Math.sin(SUN.lazL),z:-Math.cos(SUN.lazL)},SNK_HOME={x:2,z:10.5};
@@ -1158,10 +1158,10 @@ float fur3(vec3 p,vec3 w,float k){return dn2(vec2(p.z*k,p.y*k*.22))*w.x+dn2(vec2
     .replace("#include <map_fragment>",`vec3 bp=vBP,bn=normalize(vBN),tw=abs(bn);tw/=tw.x+tw.y+tw.z;
       float l0=dot(texture2D(map,vMapUv).rgb,vec3(.3,.59,.11)),l4=dot(texture2D(map,vMapUv,4.).rgb,vec3(.3,.59,.11));
       float h=bp.y/1.98;
-      vec3 col=vec3(.75,.51,.27);
-      col=mix(col,vec3(.86,.66,.42),smoothstep(.45,.95,bn.y)*smoothstep(.55,.8,h));
-      col=mix(col,vec3(.90,.74,.52),smoothstep(-.2,-.75,bn.y));
-      col=mix(col,vec3(.66,.49,.33),smoothstep(.36,.12,h));
+      vec3 col=vec3(.74,.47,.22);
+      col=mix(col,vec3(.84,.62,.36),smoothstep(.45,.95,bn.y)*smoothstep(.55,.8,h));
+      col=mix(col,vec3(.88,.70,.46),smoothstep(-.2,-.75,bn.y));
+      col=mix(col,vec3(.64,.45,.28),smoothstep(.36,.12,h));
       col=mix(col,vec3(.24,.18,.14),smoothstep(.05,.0,h));
       col=mix(col,vec3(.30,.22,.16),smoothstep(.035,.0,abs(h-.27))*.7);
       float fw=length(fwidth(bp))*190.,fa=1.-smoothstep(.35,1.1,fw);
@@ -1181,20 +1181,26 @@ function groundFrame(x,z,yaw,L,Wd){
 /* ---- camels ---- */
 const REST=[{...tl(4.2,5.2),yaw:TENT.yaw+Math.PI/2+.15},{x:14.2,z:2.6,yaw:-Math.PI/2-.35}];
 const DRINK=(()=>{const th=BEACH[0],[x,z]=pondEdge(th,1),nx=Math.cos(th),nz=Math.sin(th);return{x:x+nx*1.0,z:z+nz*1.0,yaw:Math.atan2(-nx,-nz)}})();
-/* kneel/lie: fold each leg segment about the camel's lateral axis (degrees, + swings the lower end back) */
-const KNEEL=[["tripo0_Left_Limb_1",-72],["tripo0_Left_Limb_2",152],["tripo0_Right_Limb_1",-72],["tripo0_Right_Limb_2",152],
-  ["tripo1_Left_Limb_0",-42],["tripo1_Left_Limb_1",132],["tripo1_Left_Limb_2",-152],["tripo1_Right_Limb_0",-42],["tripo1_Right_Limb_1",132],["tripo1_Right_Limb_2",-152]];
-const LIE=[["tripoSpine_4",22],["tripoSpine_5",14],["tripoHead_0",-18]];
-const _q1=new T.Quat(),_q2=new T.Quat(),_ax=new V3(),_lat=new V3();
-function foldBones(a,list,k){
-  a.g.getWorldQuaternion(_q1);_lat.set(1,0,0).applyQuaternion(_q1);
-  for(const[n,deg]of list){const b=a.bones[n];if(!b||!b.parent)continue;b.parent.getWorldQuaternion(_q2);
-    _ax.copy(_lat).applyQuaternion(_q2.invert()).normalize();_q1.setFromAxisAngle(_ax,deg*D2R*k);b.quaternion.premultiply(_q1)}}
-function camelSpawn(sc,anims,i){
+/* v4 clips: kneel_down 5.6 s (front knees, then hind, then onto the sternal pad), kneel_rest loop, stand_up 5.4 s (hind end
+   first) ending on idle's first frame; there is no graze clip, so grazing uses drink (the neck lowers to the ground and sips) */
+const CK={down:5.6,up:5.4};
+/* the Tripo mesh lays the folded hind shank as a thin rod; while lying it is thickened across its length */
+const SHANK=["tripo1_Left_Limb_1","tripo1_Right_Limb_1"];
+/* two camels: a dromedary (slot 0) and a Bactrian (slot 1). bactrian_v1.glb carries camel_v4's six clips; it loads once its
+   file is named here, and until then slot 1 stays a dromedary, so no stand-in model is ever shown. A Bactrian is fitted
+   from its own bind height to 2.2 m at the humps (the dromedary stands 2.26 m), and its in-place walk is taken to be
+   authored for .99 m/s like camel_v4, so ground speed scales with it. coat 1 = the dromedary coat shader; voice = pitch. */
+const CAMEL_KIND={drom:{file:"camel_v4",sc:CAM_SC,coat:1,voice:[1,.92]},bact:{file:null,top:2.2,coat:0,voice:[.84,.84]}};
+const CAMEL_SLOTS=["drom","bact"];
+const camelKind=i=>{const k=CAMEL_KIND[CAMEL_SLOTS[i]];return k&&k.file?k:CAMEL_KIND.drom};
+function camelSpawn(sc,anims,i,kind){
  const g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";
-  const b=boxOf(sc);sc.position.y=-b.mn.y;inner.add(sc);inner.scale.setScalar(CAM_SC);g.add(inner);animalMats(g,1);W.add(g);onDes(g);
-  const a={i,g,inner,sc,r:rigUp(sc,anims),bones:{},x:0,z:0,yaw:0,yr:0,spd:0,gy:null,gp:0,gr:0,k:0,lie:0,mode:"job",job:"idle",timer:rr(2,5),path:null,pi:0,face:null,stuck:0};
+  const b=boxOf(sc),s=kind.sc||kind.top/Math.max(.5,b.mx.y-b.mn.y);
+  sc.position.y=0;inner.add(sc);inner.scale.setScalar(s);g.add(inner);animalMats(g,kind.coat);W.add(g);onDes(g);
+  const a={i,kind,sc:s,v:.989*s,voice:kind.voice[i]||1,g,inner,mdl:sc,r:rigUp(sc,anims),bones:{},x:0,z:0,yaw:0,yr:0,spd:0,gy:null,gp:0,gr:0,k:0,mode:"job",job:"idle",timer:rr(2,5),path:null,pi:0,face:null,stuck:0};
   sc.traverse(o=>{if(o.isBone)a.bones[o.name]=o});
+  for(const k of["kneel_down","stand_up"]){const c=a.r.acts[k];if(c){c.setLoop(VT.THREE.LoopOnce,1);c.clampWhenFinished=true}}
+  a.shank=SHANK.map(n=>a.bones[n]).filter(b=>b&&b.children.some(c=>c.isBone)).map(b=>{const d=b.children.find(c=>c.isBone).position.clone().normalize();return{b,d:[Math.abs(d.x),Math.abs(d.y),Math.abs(d.z)]}});
   return a}
 function camelGo(a,to,job){
   const g=navGrid("camel",1.05,1.12,.84),blk=ANIM.camels.filter(o=>o!==a&&o.spd<.05).map(o=>({x:o.x,z:o.z,r:2.6})),p=navPath(g,a.x,a.z,to.x,to.z,blk);
@@ -1204,12 +1210,15 @@ const roomy=(a,x,z)=>ANIM.camels.every(o=>o===a||(Math.hypot(o.x-x,o.z-z)>5.5&&(
 function grazeSpot(a){const g=navGrid("camel",1.05,1.12,.84);
   for(let t=0;t<60;t++){const th=rr(-.5,1.9),k=rr(1.25,1.65),[x,z]=pondEdge(th,k);if(navFree(g,x,z)&&(!a||roomy(a,x,z)))return{x,z,yaw:Math.atan2(POND.x-x,POND.z-z)+rr(-1.3,1.3)}}
   return randFree(g,0,4,12)||{x:0,z:6}}
+/* by day the two keep different jobs (one grazes while the other drinks or lies down); at night both kneel at their rest spots */
 function camelPlan(a){
   if(st.phase==="night"){camelGo(a,REST[a.i],"kneel");return}
-  const busy=j=>ANIM.camels.some(o=>o!==a&&o.job===j);const r=rnd();
-  if(r<.3&&!busy("drink"))camelGo(a,DRINK,"drink");
-  else if(r<.62)camelGo(a,grazeSpot(a),"graze");
-  else if(r<.82&&!busy("kneel"))camelGo(a,REST[a.i],"kneel");
+  const busy=j=>ANIM.camels.some(o=>o!==a&&o.job===j),near=(p,r)=>ANIM.camels.some(o=>o!==a&&(Math.hypot(o.x-p.x,o.z-p.z)<r||(o.goal&&Math.hypot(o.goal.x-p.x,o.goal.z-p.z)<r)));
+  const opts=[["drink",.3],["graze",.32],["kneel",.2],["idle",.18]].filter(([j])=>j==="idle"||!busy(j)&&(j!=="drink"||!near(DRINK,4.5)));
+  let r=rnd()*opts.reduce((s,o)=>s+o[1],0),job="idle";for(const[j,w]of opts){if((r-=w)<0){job=j;break}}
+  if(job==="drink")camelGo(a,DRINK,"drink");
+  else if(job==="graze")camelGo(a,grazeSpot(a),"graze");
+  else if(job==="kneel")camelGo(a,REST[a.i],"kneel");
   else{const g=navGrid("camel",1.05,1.12,.84),p=randFree(g,0,2,20,(x,z)=>sN(x,z)<.72&&roomy(a,x,z));camelGo(a,p||REST[a.i],"idle")}}
 function camelUpdate(a,dt){
   const night=st.phase==="night";
@@ -1220,36 +1229,33 @@ function camelUpdate(a,dt){
     if(!last&&Math.hypot(wp.x-a.x,wp.z-a.z)<1.1){a.pi++;wp=a.path[a.pi];last=a.pi===a.path.length-1}
     const dx=wp.x-a.x,dz=wp.z-a.z,d=Math.hypot(dx,dz);dy=wrapA(Math.atan2(dx,dz)-a.yaw);
     if(last&&(d<.15||(d<.7&&Math.abs(dy)>1.4))){a.mode="turn";dy=0}
-    else{vT=CAM_V*cl(1-Math.abs(dy)/1.1,.18,1)*(last?cl(Math.sqrt(d/2.6),0,1):1);
+    else{vT=a.v*cl(1-Math.abs(dy)/1.1,.18,1)*(last?cl(Math.sqrt(d/2.6),0,1):1);
       for(const o of ANIM.camels){if(o===a)continue;const ox=o.x-a.x,oz=o.z-a.z,fw=ox*Math.sin(a.yaw)+oz*Math.cos(a.yaw),lat=Math.abs(ox*Math.cos(a.yaw)-oz*Math.sin(a.yaw));if(fw>0&&fw<3.8&&lat<1.9)vT=0}
       a.stuck=vT<.05?a.stuck+dt:0;if(a.stuck>5){a.stuck=0;camelPlan(a)}
-      play(a.r,"walk",.6,Math.max(.2,a.spd/CAM_V))}}
+      play(a.r,"walk",.6,Math.max(.2,a.spd/a.v))}}
   else if(a.mode==="turn"){
     dy=a.face==null?0:wrapA(a.face-a.yaw);ym=.5;
     if(Math.abs(dy)<.04&&Math.abs(a.yr)<.06&&a.spd<.05){a.mode="job";
       if(a.job==="drink"){a.timer=14;play(a.r,"drink",1.2,1)}
-      else if(a.job==="graze"){a.timer=rr(9,18);play(a.r,"graze",1.2,1)}
-      else if(a.job==="kneel"){a.mode="down";play(a.r,"idle",1.2,.6);if(rnd()<.8)camelCall(a,"down")}
+      else if(a.job==="graze"){a.timer=rr(9,18);play(a.r,"drink",1.2,.85)}
+      else if(a.job==="kneel"){a.mode="down";play(a.r,"kneel_down",.5,1);if(rnd()<.8)camelCall(a,"down")}
       else{a.timer=rr(4,9);play(a.r,"idle",1.2,1)}}
-    else play(a.r,"walk",.6,Math.max(.3,a.spd/CAM_V))}
-  else if(a.mode==="down"){a.k=Math.min(1,a.k+dt/3.4);if(a.k>=1){a.mode="rest";a.timer=rr(30,55)}}
-  else if(a.mode==="rest"){if(!night){a.timer-=dt;if(a.timer<0){a.mode="up";play(a.r,"idle",1,.8);if(rnd()<.8)camelCall(a,"up")}}}
-  else if(a.mode==="up"){a.k=Math.max(0,a.k-dt/2.8);if(a.k<=0){a.job="idle";camelPlan(a)}}
+    else play(a.r,"walk",.6,Math.max(.3,a.spd/a.v))}
+  else if(a.mode==="down"){a.k=Math.min(1,a.k+dt/CK.down);if(a.k>=1){a.mode="rest";a.timer=rr(30,55);play(a.r,"kneel_rest",.3,night?.7:1)}}
+  else if(a.mode==="rest"){if(a.r.acts.kneel_rest)a.r.acts.kneel_rest.timeScale=night?.7:1;
+    if(!night){a.timer-=dt;if(a.timer<0){a.mode="up";play(a.r,"stand_up",.3,1);if(rnd()<.8)camelCall(a,"up")}}}
+  else if(a.mode==="up"){a.k=Math.max(0,a.k-dt/CK.up);if(a.k<=0){a.job="idle";play(a.r,"idle",.3,1);camelPlan(a)}}
   else if(a.mode==="job"){a.timer-=dt;if(a.timer<0)camelPlan(a)}
-  a.lie+=((night&&a.mode==="rest"?1:0)-a.lie)*ease(.5,dt);
   /* one integrator for every mode: speed and heading carry over mode changes instead of snapping */
   a.spd+=(vT-a.spd)*ease(a.mode==="walk"?2.2:4,dt);steer(a,dy,ym,dt);
   if(a.spd>1e-4){a.x+=Math.sin(a.yaw)*a.spd*dt;a.z+=Math.cos(a.yaw)*a.spd*dt}
   /* the sand under the feet is sampled sparsely and creeps with the dune: follow it through a short low-pass */
-  const f=groundFrame(a.x,a.z,a.yaw,1.25,.45),kk=a.k,kf=ss(0,.55,kk),kh=ss(.35,1,kk);
+  const f=groundFrame(a.x,a.z,a.yaw,1.25,.45),kk=a.k;
   if(a.gy==null||Math.abs(f.y-a.gy)>.6){a.gy=f.y;a.gp=f.pitch;a.gr=f.roll}
   const gk=ease(9,dt);a.gy+=(f.y-a.gy)*gk;a.gp+=(f.pitch-a.gp)*gk;a.gr+=(f.roll-a.gr)*gk;
-  a.g.position.set(a.x,a.gy,a.z);a.g.rotation.set(a.gp*(1-.5*kk)+(kf-kh)*.2,a.yaw,a.gr*(1-.5*kk));
-  a.inner.position.y=-(.62*kf*.5+.62*kh*.5)*CAM_SC-.05*kk;
+  a.g.position.set(a.x,a.gy,a.z);a.g.rotation.set(a.gp*(1-.5*kk),a.yaw,a.gr*(1-.5*kk));
   rigTick(a.r,dt);
-  if(kk>.001||a.lie>.001){a.g.updateMatrixWorld(true);
-    if(kk>.001){foldBones(a,KNEEL.slice(0,4),kf);foldBones(a,KNEEL.slice(4),kh)}
-    if(a.lie>.001)foldBones(a,LIE,a.lie)}}
+  const th=.38*ss(.55,.95,kk);if(th>1e-3)for(const{b,d}of a.shank)b.scale.set(b.scale.x*(1+th*(1-d[0])),b.scale.y*(1+th*(1-d[1])),b.scale.z*(1+th*(1-d[2])))}
 
 /* ---- eagle: soars in a thermal, lands on the saguaro top or at the west beach ---- */
 const _e0=new V3(),_e1=new V3(),_t0=new V3(),_t1=new V3(),_ev=new V3();
@@ -1258,32 +1264,51 @@ function herm(p0,m0,p1,m1,t,out){const t2=t*t,t3=t2*t;return out.set(0,0,0).addS
 function eagleSpots(){
   const sp=[];if(PROPS.sagTop)sp.push({k:"sag",p:PROPS.sagTop.clone(),yaw:SAG[0].ry+2.2});
   const th=BEACH[1],[x,z]=pondEdge(th,1.06);sp.push({k:"pond",p:new V3(x,hTop(x,z),z),yaw:Math.atan2(POND.x-x,POND.z-z)});return sp}
-function eagleSpawn(fly,fa,per,pa){
-  /* take-off and landing clips carry their own 1-1.4 m root travel and loop by default; the flight path already moves the
-     bird, so their root is pinned to the glide pose and they play once and hold */
-  const g0=fa.find(c=>c.name==="glide"),r0=g0&&g0.tracks.find(t=>t.name==="Root.position");
-  fa.forEach(c=>{if(c.name!=="take_off"&&c.name!=="landing_flare")return;const t=c.tracks.find(t=>t.name==="Root.position");
-    if(t&&r0)for(let i=0;i<t.values.length;i+=3){t.values[i]=r0.values[0];t.values[i+1]=r0.values[1];t.values[i+2]=r0.values[2]}});
-  const fg=new T.Group(),pg=new T.Group();fg.rotation.order=pg.rotation.order="YXZ";
-  const fb=boxOf(fly);fly.position.y=0;const fi=new T.Group();fi.add(fly);fi.scale.setScalar(EAG_SC);fg.add(fi);
-  const pb=boxOf(per);per.position.y=-pb.mn.y;const pi_=new T.Group();pi_.add(per);pi_.scale.setScalar(PER_SC);pg.add(pi_);
-  animalMats(fg);animalMats(pg);W.add(fg);W.add(pg);onDes(fg);onDes(pg);
-  const e={fg,pg,fr:rigUp(fly,fa),pr:rigUp(per,pa),footY:-fb.mn.y*EAG_SC,mode:"perch",spot:null,timer:rr(14,22),
+/* v4 is one skeleton with a flying and a perched mesh; takeoff (swap at .75 s) and land (swap at 2.0 s) hide one by scaling its
+   root to .001. Their flight-root travel is replaced by the flight path: the root is held at the swap pose around the swap (so
+   both meshes' feet meet on the perch) and eases to the glide pose away from it. Across the swap the flying mesh is scaled
+   from .6 so the 1.1 m perched span grows into the 2.1 m flying span over .35 s, under a puff of down and dust. */
+const E_SW={takeoff:.75,land:2};
+function eagleSpawn(sc,anims){
+  const G=anims.find(c=>c.name==="glide"),gr=G&&G.tracks.find(t=>t.name==="Root.position"),r0=gr&&[gr.values[0],gr.values[1],gr.values[2]];
+  const prof={takeoff:[t=>1-ss(.75,1.4,t),t=>mix(.6,1,ss(.75,1.1,t))],land:[t=>ss(1.3,2,t),t=>mix(1,.6,ss(1.65,2,t))]};
+  anims.forEach(c=>{const P=prof[c.name];if(!P||!r0)return;
+    const tp=c.tracks.find(t=>t.name==="Root.position"),ts=c.tracks.find(t=>t.name==="Root.scale");
+    if(tp){let j=0;for(let i=0;i<tp.times.length;i++)if(Math.abs(tp.times[i]-E_SW[c.name])<Math.abs(tp.times[j]-E_SW[c.name]))j=i;
+      const rs=[tp.values[3*j],tp.values[3*j+1],tp.values[3*j+2]];
+      for(let i=0;i<tp.times.length;i++){const w=P[0](tp.times[i]);for(let k=0;k<3;k++)tp.values[3*i+k]=mix(r0[k],rs[k],w)}}
+    if(ts)for(let i=0;i<ts.times.length;i++)if(ts.values[3*i]>.01){const s=P[1](ts.times[i]);ts.values[3*i]=ts.values[3*i+1]=ts.values[3*i+2]=s}});
+  const g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";sc.position.y=0;inner.add(sc);inner.scale.setScalar(EAG_SC);g.add(inner);
+  animalMats(g);W.add(g);onDes(g);const r=rigUp(sc,anims);
+  const e={g,fg:g,pg:g,r,fr:r,pr:r,mode:"perch",spot:null,timer:rr(14,22),hold:0,settle:0,pf:0,
     th:rnd()*TAU,c:new V3(2,0,-1),R:15,alt:17.5,pos:new V3(),vel:new V3(),bank:0,yaw:0,pit:0,seg:null,flapT:rr(6,12),cry:0};
-  for(const k of["take_off","landing_flare"]){const a=e.fr.acts[k];if(a){a.setLoop(VT.THREE.LoopOnce,1);a.clampWhenFinished=true}}
+  for(const k of["takeoff","land"]){const a=r.acts[k];if(a){a.setLoop(VT.THREE.LoopOnce,1);a.clampWhenFinished=true}}
   return e}
-function eaglePerchAt(e,spot){e.mode="perch";e.spot=spot;e.fg.visible=false;e.pg.visible=true;
-  e.pg.position.copy(spot.p);e.pg.rotation.set(0,spot.yaw,0);e.pos.copy(spot.p);e.pos.y+=e.footY;e.vel.set(0,0,0);
-  play(e.pr,spot.k==="pond"?"drink":"perch_idle",.4,st.phase==="night"?.35:1);e.timer=spot.k==="pond"?14:rr(16,26)}
+const PUFF=softPoints(MOB?24:44,"#e6d7bd",.1,false);PUFF.o.renderOrder=6;PUFF.o.visible=false;W.add(PUFF.o);
+const PUFFP=[];
+function eaglePuff(p){for(let i=0;i<PUFF.n;i++){const a=rnd()*TAU,u=rr(.5,1.5);
+    PUFFP[i]={x:p.x+Math.cos(a)*.12,y:p.y+rr(.05,.35),z:p.z+Math.sin(a)*.12,vx:Math.cos(a)*u,vy:rr(.1,.7),vz:Math.sin(a)*u,life:-rr(0,.12),dur:rr(.7,1.3)};PUFF.Z[i]=rr(.6,1.5)}
+  PUFF.o.visible=true}
+function puffTick(dt){if(!PUFF.o.visible)return;let any=0;
+  for(let i=0;i<PUFF.n;i++){const q=PUFFP[i];q.life+=dt;const u=q.life/q.dur,o=i*3;if(u<1)any=1;
+    const dr=Math.exp(-3.2*dt);q.vx=q.vx*dr+WIND.x*.6*dt;q.vz=q.vz*dr+WIND.z*.6*dt;q.vy=q.vy*dr-.25*dt;
+    if(q.life>0){q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt}
+    PUFF.P[o]=q.x;PUFF.P[o+1]=q.y;PUFF.P[o+2]=q.z;PUFF.A[i]=q.life<0||u>=1?0:.55*ss(0,.08,u)*(1-ss(.35,1,u))*(1-.5*st.night)}
+  PUFF.g.attributes.position.needsUpdate=PUFF.g.attributes.a.needsUpdate=true;PUFF.m.uniforms.uH.value=innerHeight;if(!any)PUFF.o.visible=false}
+function eaglePerchAt(e,spot,landed){e.mode="perch";e.spot=spot;
+  e.g.position.copy(spot.p);e.g.rotation.set(0,spot.yaw,0);e.pos.copy(spot.p);e.vel.set(0,0,0);e.pit=e.bank=0;e.yaw=spot.yaw;
+  const L=e.r.acts.land;e.settle=landed&&L?Math.max(.05,3.2-L.time):0;if(!e.settle)play(e.r,spot.k==="pond"?"head_turn":"perch",.4,1);
+  e.timer=spot.k==="pond"?14:rr(16,26)}
 function soarPoint(th,out,t=st.t){return out.set(e_c().x+Math.cos(th)*ANIM.eagle.R,ANIM.eagle.alt+1.6*Math.sin(t*.21),e_c().z+Math.sin(th)*ANIM.eagle.R)}
 function soarVel(th,t,out){return out.set(-Math.sin(th)*8.5,1.6*.21*Math.cos(t*.21),Math.cos(th)*8.5)}
 function e_c(){return ANIM.eagle.c}
-function eagleTakeoff(e){
-  const sp=e.spot;e.mode="takeoff";e.pg.visible=false;e.fg.visible=true;e.yaw=sp.yaw;e.pit=0;
-  const p0=sp.p.clone().add(new V3(0,e.footY,0)),fw=new V3(Math.sin(sp.yaw),0,Math.cos(sp.yaw));
+/* take-off: .75 s crouch and wing-opening on the perch, then the path takes over at the mesh swap */
+function eagleTakeoff(e){e.mode="rise";e.hold=E_SW.takeoff;e.yaw=e.spot.yaw;e.pit=0;play(e.r,"takeoff",.3,1);e.cry=1}
+function eagleLaunch(e,over){
+  const sp=e.spot;e.mode="takeoff";
+  const p0=sp.p.clone(),fw=new V3(Math.sin(sp.yaw),0,Math.cos(sp.yaw));eaglePuff(sp.p);
   e.th=Math.atan2(p0.z-e.c.z,p0.x-e.c.x)+.9;const T=6.5,p1=soarPoint(e.th,new V3(),st.t+T);
-  e.seg={p0,m0:fw.multiplyScalar(2.5).add(new V3(0,4.5,0)),p1,m1:soarVel(e.th,st.t+T,new V3()).multiplyScalar(T),T,t:0,land:false};
-  play(e.fr,"take_off",.15,1);e.cry=1}
+  e.seg={p0,m0:fw.multiplyScalar(2.5).add(new V3(0,4.5,0)),p1,m1:soarVel(e.th,st.t+T,new V3()).multiplyScalar(T),T,t:over/T,land:false}}
 const GROVE=new V3((PALMS[0].x+PALMS[1].x+PALMS[2].x)/3,0,(PALMS[0].z+PALMS[1].z+PALMS[2].z)/3);
 function eagleLand(e,spot){
   const out=new V3(spot.p.x-GROVE.x,0,spot.p.z-GROVE.z).normalize();
@@ -1293,19 +1318,21 @@ function eagleLand(e,spot){
   const T=cl(d0/Math.max(e.vel.length(),4),2.5,8);
   e.seg={p0:e.pos.clone(),m0:e.vel.clone().multiplyScalar(T),p1:A,m1:dirA.multiplyScalar(Math.min(d0*.6,8*T)),T,t:0,land:false,appr:true};
   play(e.fr,"glide",.5,1)}
-function eagleFinal(e){const spot=e.spot;e.final=true;const p1=spot.p.clone().add(new V3(0,e.footY,0));
+function eagleFinal(e){const spot=e.spot;e.final=true;const p1=spot.p.clone();
   const p0=e.pos.clone(),dir=new V3(p1.x-p0.x,0,p1.z-p0.z);const dist=p0.distanceTo(p1);dir.normalize();
   spot.yaw=Math.atan2(dir.x,dir.z);
   const T=cl(dist/Math.max(e.vel.length(),3),3.2,9);
   e.seg={p0,m0:e.vel.clone().multiplyScalar(T),p1,m1:dir.multiplyScalar(dist*.12).add(new V3(0,-.4,0)),T,t:0,land:true};
   play(e.fr,"glide",.5,1)}
 function eagleUpdate(e,dt){
-  const ph=st.phase,wantPerch=ph!=="day";
+  const ph=st.phase,wantPerch=ph!=="day";puffTick(dt);
   if(e.mode==="perch"){
-    if(e.pr.acts.perch_idle)e.pr.acts.perch_idle.timeScale=ph==="night"?.35:1;
-    if(wantPerch){if(e.spot.k!=="sag"){e.timer-=dt;if(e.timer<0)eagleTakeoff(e)}}
+    if(e.r.acts.perch)e.r.acts.perch.timeScale=ph==="night"?.35:1;
+    if(e.settle>0){e.settle-=dt;if(e.settle<=0)play(e.r,e.spot.k==="pond"?"head_turn":"perch",.4,1)}
+    else if(wantPerch){if(e.spot.k!=="sag"){e.timer-=dt;if(e.timer<0)eagleTakeoff(e)}}
     else{e.timer-=dt;if(e.timer<0)eagleTakeoff(e)}
-    if(e.mode==="perch"){rigTick(e.pr,dt);return}}
+    if(e.mode==="perch"){rigTick(e.r,dt);return}}
+  if(e.mode==="rise"){e.hold-=dt;if(e.hold>0){rigTick(e.r,dt);return}eagleLaunch(e,-e.hold-dt)}
   if(e.mode==="soar"){
     const v=8.5;e.th+=v/e.R*dt;soarPoint(e.th,e.pos);soarVel(e.th,st.t,e.vel);
     e.bank+=(-Math.atan(v*v/(e.R*9.8))-e.bank)*ease(2,dt);
@@ -1314,18 +1341,20 @@ function eagleUpdate(e,dt){
   else{let s=e.seg;s.t+=dt/s.T;
     /* segment joins hand over position, analytic velocity and the leftover time, so the path never stalls a frame */
     if(s.t>=1){const over=(s.t-1)*s.T;herm(s.p0,s.m0,s.p1,s.m1,1,e.pos);hermV(s,1,e.vel);
-      if(s.land)eaglePerchAt(e,e.spot);
+      if(s.land){eaglePerchAt(e,e.spot,true);rigTick(e.r,dt);return}
       else if(s.appr){eagleFinal(e);e.seg.t=over/e.seg.T}
       else{e.mode="soar";e.timer=wantPerch?0:rr(25,40);e.th+=8.5/e.R*over;soarPoint(e.th,e.pos);soarVel(e.th,st.t,e.vel)}}
     if(e.mode==="takeoff"||e.mode==="land"){s=e.seg;const t=Math.min(1,s.t);herm(s.p0,s.m0,s.p1,s.m1,t,e.pos);hermV(s,t,e.vel);
       e.bank+=(0-e.bank)*ease(2,dt);
-      if(s.land&&(1-t)*s.T<2&&e.fr.cur!=="landing_flare")play(e.fr,"landing_flare",.5,1);
-      if(!s.land&&!s.appr){if(s.t*s.T>1.7&&e.fr.cur==="take_off")play(e.fr,"flap",.4,1);if(s.t*s.T>3.6&&e.fr.cur==="flap")play(e.fr,"glide",.6,1)}}}
-  if(e.mode!=="perch"){const hv=Math.hypot(e.vel.x,e.vel.z),wy=ss(.05,1.2,hv);
-    /* heading and pitch ease toward the flight direction, and let go of it smoothly as the bird slows to a hover */
-    e.yaw=wrapA(e.yaw+cl(wrapA(Math.atan2(e.vel.x,e.vel.z)-e.yaw)*ease(5*wy,dt),-2.5*dt,2.5*dt));
-    e.pit+=(cl(-Math.atan2(e.vel.y,Math.max(hv,1.5)),-.5,.5)*wy-e.pit)*ease(4,dt);
-    e.fg.position.copy(e.pos);e.fg.rotation.set(e.pit*.6,e.yaw,e.bank);rigTick(e.fr,dt)}}
+      if(s.land&&(1-t)*s.T<=E_SW.land&&e.r.cur!=="land"){play(e.r,"land",.2,1);e.pf=0}
+      if(!s.land&&!s.appr){if(s.t*s.T>2.4-E_SW.takeoff-.05&&e.r.cur==="takeoff")play(e.r,"flap",.1,1);if(s.t*s.T>3.6&&e.r.cur==="flap")play(e.r,"glide",.6,1)}}}
+  {const L=e.r.acts.land;if(e.r.cur==="land"&&!e.pf&&L&&L.time>=E_SW.land-.04){e.pf=1;eaglePuff(e.spot.p)}}
+  /* heading and pitch ease toward the flight direction, and let go of it smoothly as the bird slows to a hover; the last
+     seconds of a landing hand the pitch over to the flare clip so the perch pose meets it level */
+  const hv=Math.hypot(e.vel.x,e.vel.z),wy=ss(.05,1.2,hv),lw=e.seg&&e.seg.land?ss(0,1.6,(1-Math.min(1,e.seg.t))*e.seg.T):1;
+  e.yaw=wrapA(e.yaw+cl(wrapA(Math.atan2(e.vel.x,e.vel.z)-e.yaw)*ease(5*wy,dt),-2.5*dt,2.5*dt));
+  e.pit+=(cl(-Math.atan2(e.vel.y,Math.max(hv,1.5)),-.5,.5)*wy*lw-e.pit)*ease(4,dt);
+  e.g.position.copy(e.pos);e.g.rotation.set(e.pit*.6,e.yaw,e.bank);rigTick(e.r,dt)}
 
 /* ---- snake: coiled in shade by day; slithers by dusk and night, never into the water ---- */
 function snakeShadeSpot(){
@@ -1333,32 +1362,59 @@ function snakeShadeSpot(){
   for(const o of OBST){if(o.k!=="rock"||o.r<.6)continue;const x=o.x+SHADE.x*(o.r+.42),z=o.z+SHADE.z*(o.r+.42);
     if(!navFree(g,x,z))continue;const sc=-Math.hypot(x-SNK_HOME.x,z-SNK_HOME.z)*.12+o.r;if(!best||sc>best.sc)best={x,z,sc,yaw:Math.atan2(SHADE.x,SHADE.z)+2}}
   return best||{x:-2,z:12,yaw:0}}
+/* v4 has only coil and tongue_flick; crawling bends the straight bind-pose spine (Head > Body_01..30, head at +z) so every
+   joint lies on one fixed serpentine track that the snake slides along: joint yaw = track tangent there minus the one ahead,
+   and the head steps sideways by the track's lateral offset. The crawl pose is blended over the clip pose (cw 0 coiled, 1 crawl). */
+const SNK_A=.75,SNK_K=TAU/.7;
 function snakeSpawn(proto,anims){
-  const g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";const b=boxOf(proto);proto.position.y=-b.mn.y;
+  const g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";proto.position.y=0;
   inner.add(proto);inner.scale.setScalar(SNK_SC);g.add(inner);animalMats(g);W.add(g);onDes(g);
-  return{g,r:rigUp(proto,anims),x:0,z:0,yaw:0,yr:0,spd:0,gy:null,gp:0,gr:0,mode:"idle",path:null,pi:0,timer:0,coil:0}}
+  matsOf(g,m=>{if(/tongue/i.test(m.name||"")){m.side=2;m.color.multiplyScalar(.8);m.roughness=.45}});
+  let sk=null;proto.traverse(o=>{if(o.isSkinnedMesh&&!sk&&o.skeleton.bones.some(b=>b.name==="Body_01"))sk=o.skeleton});
+  const chain=[];
+  if(sk){const W0={},bw=n=>{const i=sk.bones.findIndex(b=>b.name===n);return i<0?null:new T.M4().copy(sk.boneInverses[i]).invert()};
+    const names=["Root","Head"];for(let i=1;i<=30;i++)names.push("Body_"+String(i).padStart(2,"0"));
+    let s=0,prev=null;
+    for(const n of names){const M=bw(n),b=sk.bones.find(b=>b.name===n);if(!M||!b)continue;W0[n]=M;
+      const pM=b.parent&&b.parent.isBone&&W0[b.parent.name]?W0[b.parent.name]:new T.M4(),L=new T.M4().copy(pM).invert().multiply(M);
+      const p=new V3(),q=new T.Quat(),sc=new V3();L.decompose(p,q,sc);const wq=new T.Quat();M.decompose(new V3(),wq,new V3());
+      const wp=new V3().setFromMatrixPosition(M);if(n!=="Root"){if(prev)s+=wp.distanceTo(prev);prev=wp}
+      const up=new V3(0,1,0).applyQuaternion(wq.clone().invert()),pw=new T.Quat();(b.parent&&W0[b.parent.name]?W0[b.parent.name]:new T.M4()).decompose(new V3(),pw,new V3());
+      chain.push({b,n,p,q,up,s:n==="Root"?0:s,lat:new V3(1,0,0).applyQuaternion(pw.invert())})}}
+  return{g,r:rigUp(proto,anims),chain,x:0,z:0,yaw:0,yr:0,spd:0,gy:null,gp:0,gr:0,mode:"idle",path:null,pi:0,timer:0,cw:1,ph:0,fl:rr(4,9)}}
+const _sq=new T.Quat(),_sv=new V3();
+function snakeCrawl(s){const w=s.cw;if(w<.002||!s.chain.length)return;
+  const th=u=>SNK_A*(.55+.45*ss(0,.3,u))*Math.sin(SNK_K*(s.ph-u));let prev=0;
+  for(const c of s.chain){if(c.n==="Root"){c.b.quaternion.slerp(c.q,w);c.b.position.lerp(c.p,w);continue}
+    const a=th(c.s),d=c.n==="Head"?a:a-prev;prev=a;
+    _sq.setFromAxisAngle(c.up,d).premultiply(c.q);c.b.quaternion.slerp(_sq,w);
+    _sv.copy(c.p);if(c.n==="Head")_sv.addScaledVector(c.lat,-SNK_A*.55/SNK_K*Math.cos(SNK_K*s.ph));c.b.position.lerp(_sv,w)}}
 function snakeGo(s,to,mode){const g=navGrid("snake",.32,1.3,.82),p=navPath(g,s.x,s.z,to.x,to.z);if(!p)return false;s.path=p;s.pi=1;s.mode=mode;s.goal=to;return true}
 function snakeUpdate(s,dt){
   const day=st.phase==="day";
   if(day&&s.mode!=="toShade"&&s.mode!=="coiled"){const sp=snakeShadeSpot();if(!snakeGo(s,sp,"toShade")){s.x=sp.x;s.z=sp.z;s.mode="coiled"}}
   if(!day&&(s.mode==="coiled"||s.mode==="toShade")){s.mode="idle";s.timer=rr(.5,2)}
   let dy=0,vT=0;
-  if(s.mode==="idle"){s.timer-=dt;play(s.r,"slither",.6,Math.max(.12,s.spd/SNK_V));
+  if(s.mode==="idle"){s.timer-=dt;
     if(s.timer<0){const g=navGrid("snake",.32,1.3,.82),p=randFree(g,SNK_HOME.x,SNK_HOME.z,9,(x,z)=>Math.hypot(x-s.x,z-s.z)>3);if(!p||!snakeGo(s,p,"go"))s.timer=1}}
   else if(s.mode==="go"||s.mode==="toShade"){
     let wp=s.path[s.pi],last=s.pi===s.path.length-1;
     if(!last&&Math.hypot(wp.x-s.x,wp.z-s.z)<.5){s.pi++;wp=s.path[s.pi];last=s.pi===s.path.length-1}
     const dx=wp.x-s.x,dz=wp.z-s.z,d=Math.hypot(dx,dz);dy=wrapA(Math.atan2(dx,dz)-s.yaw);
-    if(last&&(d<.1||(d<.35&&Math.abs(dy)>1.4))){dy=0;if(s.mode==="toShade"){s.mode="coiled";play(s.r,"idle_coiled",1.4,1)}else{s.mode="idle";s.timer=rr(1.5,5)}}
-    else{vT=SNK_V*cl(1-Math.abs(dy)/1.6,.25,1)*(last?cl(Math.sqrt(d/.8),0,1):1);play(s.r,"slither",.6,Math.max(.15,s.spd/SNK_V))}}
-  else if(s.mode==="coiled"){if(s.r.cur!=="idle_coiled")play(s.r,"idle_coiled",1.4,1)}
+    if(last&&(d<.1||(d<.35&&Math.abs(dy)>1.4))){dy=0;if(s.mode==="toShade"){s.mode="coiled";s.fl=rr(3,6)}else{s.mode="idle";s.timer=rr(1.5,5)}}
+    else vT=SNK_V*cl(1-Math.abs(dy)/1.6,.25,1)*(last?cl(Math.sqrt(d/.8),0,1):1)*ss(.7,1,s.cw)}
+  /* coiled it rests on coil and tastes the air now and then; out of the coil the flick clip runs under the crawl pose */
+  if(s.mode==="coiled"){s.fl-=dt;if(s.fl<0){if(s.r.cur==="tongue_flick"){play(s.r,"coil",.3,1);s.fl=rr(6,14)}else{play(s.r,"tongue_flick",.3,1);s.fl=6}}
+    else if(s.r.cur!=="coil"&&s.r.cur!=="tongue_flick")play(s.r,"coil",.3,1)}
+  else if(s.r.cur!=="tongue_flick")play(s.r,"tongue_flick",.3,1);
+  s.cw+=((s.mode==="coiled"?0:1)-s.cw)*ease(s.mode==="coiled"?1.1:1.5,dt);
   s.spd+=(vT-s.spd)*ease(3,dt);steer(s,dy,1.3,dt);
-  if(s.spd>1e-4){s.x+=Math.sin(s.yaw)*s.spd*dt;s.z+=Math.cos(s.yaw)*s.spd*dt}
+  if(s.spd>1e-4){s.x+=Math.sin(s.yaw)*s.spd*dt;s.z+=Math.cos(s.yaw)*s.spd*dt;s.ph+=s.spd*dt/SNK_SC}
   const f=groundFrame(s.x,s.z,s.yaw,.5,.15);
   if(s.gy==null||Math.abs(f.y-s.gy)>.4){s.gy=f.y;s.gp=f.pitch;s.gr=f.roll}
   const gk=ease(10,dt);s.gy+=(f.y-s.gy)*gk;s.gp+=(f.pitch-s.gp)*gk;s.gr+=(f.roll-s.gr)*gk;
   s.g.position.set(s.x,s.gy-.01,s.z);s.g.rotation.set(s.gp,s.yaw,s.gr);
-  rigTick(s.r,dt)}
+  rigTick(s.r,dt);snakeCrawl(s)}
 
 /* ---- dust devil: a slender sand whirl that wanders across the open sand now and then (day / sunset) ---- */
 const DEV=softPoints(MOB?140:260,"#e4bf88",.2,false);DEV.o.renderOrder=6;W.add(DEV.o);
@@ -1390,7 +1446,7 @@ const AQ={dWnd:"audio/dWnd.ff02237487.mp3",dCalm:"audio/dCalm.89da1bd867.mp3",dS
   dFr1:"audio/dFr1.71022fc177.mp3",dFr2:"audio/dFr2.2933177163.mp3",dFr3:"audio/dFr3.ef371c70a6.mp3",dFr4:"audio/dFr4.3b0eb8afa7.mp3",dFr5:"audio/dFr5.f59005cbba.mp3",dFr6:"audio/dFr6.34303a83b9.mp3",
   dDf1:"audio/dDf1.c2bca8b159.mp3",dDf2:"audio/dDf2.f9c6cbb2b2.mp3",dDf3:"audio/dDf3.89d3852f46.mp3",dGh1:"audio/dGh1.fab43c03e1.mp3",dGh2:"audio/dGh2.db74adeb9b.mp3"};
 const LL={dWnd:22,dCalm:36,dSnd:20,dFire:19,dSnk:8};
-const AU={b:{},pd:{},lp:{},bus:null,ob:null,pre:0,egT:rr(5,10),cmT:[rr(14,30),rr(30,60)],q:[],cap:null};
+const AU={b:{},pd:{},lp:{},bus:null,ob:null,pre:0,egT:rr(5,10),cmT:[rr(14,30),rr(30,60)],cmL:-99,q:[],cap:null};
 function SX(){return window.__sndX||null}
 function aOK(){const x=SX();return!!(x&&x.on&&x.s&&x.s.state==="running"&&root.visible)}
 function amb(){const x=SX();return AU.cap?true:!!(x&&x.amb)}
@@ -1423,7 +1479,7 @@ const pick=a=>a[Math.floor(rnd()*a.length)];
 /* calls tied to what the animals are doing */
 function eagleCall(e,long){if(!amb())return;const p=e.pos;shotS(long?pick(["dEg1","dEg2","dEg3"]):pick(["dEg4","dEg5"]),long?.62:.42,p,26,rr(.95,1.04))}
 function camelHead(a){const y=hTop(a.x,a.z)+mix(2.3,1.1,a.k);return{x:a.x+Math.sin(a.yaw)*1.5,y,z:a.z+Math.cos(a.yaw)*1.5}}
-function camelCall(a,kind){if(!amb())return;const r=(a.i?.92:1)*rr(.96,1.04),nt=st.night>.5?.6:1;
+function camelCall(a,kind){if(!amb())return;const r=a.voice*rr(.96,1.04),nt=st.night>.5?.6:1;AU.cmL=st.t;
   if(kind==="down")later(.5,()=>shotS(pick(["dCm3","dCm4"]),.55*nt,camelHead(a),9,r));
   else if(kind==="up")later(.3,()=>shotS(pick(["dCm1","dCm5"]),.5*nt,camelHead(a),9,r));
   else shotS(rnd()<.6?"dCm2":pick(["dCm1","dCm5"]),.36*nt,camelHead(a),9,r)}
@@ -1469,7 +1525,7 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   if(e){if(e.cry){e.cry=0;eagleCall(e,false)}
     if(e.mode==="soar"){AU.egT-=dt;if(AU.egT<=0){AU.egT=rr(11,24);if(rnd()<.8)eagleCall(e,true)}}}
   /* camels grumble now and then while grazing or idling; rarely at night */
-  ANIM.camels.forEach((a,i)=>{AU.cmT[i]-=dt;if(AU.cmT[i]>0)return;
+  ANIM.camels.forEach((a,i)=>{AU.cmT[i]-=dt;if(AU.cmT[i]>0)return;if(st.t-AU.cmL<4){AU.cmT[i]=rr(3,6);return}
     if(a.mode==="rest"){AU.cmT[i]=rr(80,160);if(rnd()<.5)camelCall(a,"grunt")}
     else{AU.cmT[i]=rr(22,50);if(a.mode==="job"||a.mode==="walk")camelCall(a,"grunt")}})}
 HIDE.push(on=>{const x=SX();if(!on&&AU.bus&&x&&x.s){AU.bus.gain.setTargetAtTime(0,x.s.currentTime,.25);const L=AU.lp;AU.lp={};setTimeout(()=>{for(const k in L)try{L[k].s.stop()}catch(e){}},1500)}
@@ -1477,13 +1533,13 @@ HIDE.push(on=>{const x=SX();if(!on&&AU.bus&&x&&x.s){AU.bus.gain.setTargetAtTime(
 
 /* ---- load + per-frame ---- */
 const animalsReady=propsReady.then(()=>Promise.all([
-  glb("camel_v3").then(({scene,animations})=>{const s2=VT.cloneSkinned(scene),c0=camelSpawn(scene,animations,0),c1=camelSpawn(s2,animations,1);ANIM.camels.push(c0,c1);
-    Object.assign(c1,{x:REST[1].x,z:REST[1].z,yaw:REST[1].yaw,mode:"rest",job:"kneel",k:1,timer:rr(20,40),goal:REST[1]});play(c1.r,"idle",.01,.6);
-    const gs=grazeSpot(c0);Object.assign(c0,{x:gs.x,z:gs.z,yaw:gs.yaw,mode:"job",job:"graze",timer:rr(8,14)});play(c0.r,"graze",.01,1)}).catch(()=>{}),
-  Promise.all([glb("eagle_v3"),glb("eagle_perch_v2")]).then(([f,p])=>{const e=eagleSpawn(f.scene,f.animations,p.scene,p.animations);ANIM.eagle=e;
-    const sp=eagleSpots();if(sp[0])eaglePerchAt(e,sp[0]);else{e.mode="soar";e.fg.visible=true;e.pg.visible=false}}).catch(()=>{}),
-  glb("snake_v3").then(({scene,animations})=>{const s=snakeSpawn(scene,animations);ANIM.snake=s;
-    const sp=randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;Object.assign(s,{x:sp.x,z:sp.z,yaw:-.8,mode:"idle",timer:rr(1,3)});play(s.r,"slither",.01,.12)}).catch(()=>{})]));
+  Promise.all(CAMEL_SLOTS.map((_,i)=>glb(camelKind(i).file))).then(ms=>{const used=new Set(),[c0,c1]=ms.map((m,i)=>{const s=used.has(m)?VT.cloneSkinned(m.scene):m.scene;used.add(m);return camelSpawn(s,m.animations,i,camelKind(i))});ANIM.camels.push(c0,c1);
+    Object.assign(c1,{x:REST[1].x,z:REST[1].z,yaw:REST[1].yaw,mode:"rest",job:"kneel",k:1,timer:rr(20,40),goal:REST[1]});play(c1.r,"kneel_rest",.01,1);
+    const gs=grazeSpot(c0);Object.assign(c0,{x:gs.x,z:gs.z,yaw:gs.yaw,mode:"job",job:"graze",timer:rr(8,14)});play(c0.r,"drink",.01,.85)}).catch(()=>{}),
+  glb("eagle_v4").then(({scene,animations})=>{const e=eagleSpawn(scene,animations);ANIM.eagle=e;
+    const sp=eagleSpots();if(sp[0])eaglePerchAt(e,sp[0]);else{e.mode="soar";play(e.r,"glide",.01,1)}}).catch(()=>{}),
+  glb("snake_v4").then(({scene,animations})=>{const s=snakeSpawn(scene,animations);ANIM.snake=s;
+    const sp=randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;Object.assign(s,{x:sp.x,z:sp.z,yaw:-.8,mode:"idle",timer:rr(1,3)});play(s.r,"tongue_flick",.01,1)}).catch(()=>{})]));
 UPD.push((dt,t)=>{
   {const envI=mix(.3,.08,st.night);for(const m of ANIM_MATS)m.envMapIntensity=m.userData.coat?envI*.7:envI}
   if(dt<=0)return;const d=Math.min(dt,.1);

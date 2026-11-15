@@ -84,7 +84,13 @@ let DOB=null,DLIVE=false;const PINS=[];
 function dZone(x,z){const c=Math.cos(DUNE0.yaw),s=Math.sin(DUNE0.yaw),dx=x-DUNE0.x,dz=z-DUNE0.z,u=dx*c-dz*s,v=dx*s+dz*c;
   if(u<-9||u>11.5||Math.abs(v)>10)return 0;return ss(-9,-6.5,u)*ss(11.5,9,u)*ss(10,7.5,Math.abs(v))*(1-ss(.88,.96,sN(x,z)))}
 function dMask(x,z){let m=dZone(x,z);if(m<=0||!DOB)return m;for(const o of DOB){const d=Math.hypot(x-o.x,z-o.z);if(d<o.r+1.6)m*=ss(o.r+.25,o.r+1.6,d)}return m}
-function dDelta(x,z){if(!DLIVE)return 0;const m=dMask(x,z);return m>0?m*(duneP(x,z,DP)-duneP(x,z,DUNE0)):0}
+/* the mask never changes once settled, so per-frame lookups (grains, veil, animals) read it from a 0.25 m grid; the zone fits inside ±16 m */
+let MG=null;
+function bakeMask(){const N=129,h=.25,x0=DUNE0.x-16,z0=DUNE0.z-16,a=new Float32Array(N*N);
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++)a[j*N+i]=dMask(x0+i*h,z0+j*h);MG={N,h,x0,z0,a}}
+function dMaskG(x,z){const g=MG,fx=(x-g.x0)/g.h,fz=(z-g.z0)/g.h;if(fx<0||fz<0||fx>=g.N-1||fz>=g.N-1)return 0;
+  const i=fx|0,j=fz|0,tx=fx-i,tz=fz-j,o=j*g.N+i,a=g.a;return(a[o]*(1-tx)+a[o+1]*tx)*(1-tz)+(a[o+g.N]*(1-tx)+a[o+g.N+1]*tx)*tz}
+function dDelta(x,z){if(!DLIVE)return 0;const m=dMaskG(x,z);return m>0?m*(duneP(x,z,DP)-duneP(x,z,DUNE0)):0}
 
 /* reference2 layout: pond left-front by the rim, palms just behind it, tent + fire centre-right,
    dune behind-right, tall saguaro on the left rim, small one front-right */
@@ -239,7 +245,7 @@ let sandMesh=null;
 function duneSettle(){
   DOB=OBST.concat(PINS).filter(o=>dZone(o.x,o.z)>0||Math.hypot(o.x-DUNE0.x,o.z-DUNE0.z)<19);
   const P=sandMesh.geometry.attributes.position,A=sandMesh.geometry.attributes.aM;
-  for(let i=0;i<P.count;i++)A.setX(i,dMask(P.getX(i),P.getZ(i)));A.needsUpdate=true;
+  for(let i=0;i<P.count;i++)A.setX(i,dMask(P.getX(i),P.getZ(i)));A.needsUpdate=true;bakeMask();
   sandMesh.geometry.computeBoundingSphere();sandMesh.geometry.boundingSphere.radius+=3;DLIVE=true;duneEvolve(0)}
 
 /* sandstone: triplanar painted texture + luminance bump, paled toward the reference's tan/lilac rock */

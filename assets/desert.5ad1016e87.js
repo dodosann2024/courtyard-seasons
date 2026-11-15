@@ -54,11 +54,37 @@ function pondEdge(th,k){const f=pondF(th)*(k||1);return[POND.x+POND.rx*f*Math.co
 /* barchan: wind blows toward +x (slightly away), horns point downwind, slip face ~35° */
 const DUNE={x:15.6,z:-9.6,H:4.8,w:6.2,Lw:5.2,Ll:4.6,yaw:.45};
 const WIND={x:Math.cos(DUNE.yaw),z:-Math.sin(DUNE.yaw)};
-function duneH(x,z){
-  const c=Math.cos(DUNE.yaw),s=Math.sin(DUNE.yaw),dx=x-DUNE.x,dz=z-DUNE.z;
-  const u=dx*c-dz*s,v=dx*s+dz*c,vn=v/DUNE.w,d=u-2.8*vn*vn;
-  const hv=Math.exp(-vn*vn*1.15),p=d<0?Math.exp(-((d/DUNE.Lw)**2)):Math.max(0,1-d/DUNE.Ll)**1.3;
-  return DUNE.H*hv*p}
+/* cv: horn sweep, sk: horn asymmetry */
+const DUNE0=Object.assign({cv:2.8,sk:0},DUNE),DP=Object.assign({},DUNE0);
+function duneP(x,z,P){
+  const c=Math.cos(P.yaw),s=Math.sin(P.yaw),dx=x-P.x,dz=z-P.z;
+  const u=dx*c-dz*s,v=dx*s+dz*c,vn=v/P.w,d=u-P.cv*vn*vn+P.sk*vn;
+  const hv=Math.exp(-vn*vn*1.15),p=d<0?Math.exp(-((d/P.Lw)**2)):Math.max(0,1-d/P.Ll)**1.3;
+  return P.H*hv*p}
+const duneH=(x,z)=>duneP(x,z,DUNE0);
+/* gusts: one field for everything the wind touches — fronts roll downwind at ~6 m/s, with a slow across-wind wobble */
+const GUST={t:0,c:6};
+function gustAt(x,z){const s=GUST.t-(x*WIND.x+z*WIND.z)/GUST.c,q=z*WIND.x-x*WIND.z;
+  return cl(.5+.26*Math.sin(s*.43)+.16*Math.sin(s*1.07+1.7)+.08*Math.sin(s*2.3+.4)+.1*Math.sin(q*.21+s*.31),0,1)}
+const GLSL_GUST=`uniform float uGT;uniform vec2 uWD;
+  float gustF(vec2 p){float s=uGT-dot(p,uWD)/${GUST.c.toFixed(1)},q=p.y*uWD.x-p.x*uWD.y;
+    return clamp(.5+.26*sin(s*.43)+.16*sin(s*1.07+1.7)+.08*sin(s*2.3+.4)+.1*sin(q*.21+s*.31),0.,1.);}`;
+/* the dune creeps on its own clock, which runs faster in gusts; incommensurate periods (≈3–12 min) so the shape never visibly loops */
+const DCLK={ph:0};
+function duneEvolve(dph){
+  const p=DCLK.ph+=dph,c=Math.cos(DUNE0.yaw),s=Math.sin(DUNE0.yaw);
+  const mg=.55*Math.sin(p/89+.3)+.35*Math.sin(p/37+2.1),lt=.4*Math.sin(p/61+1.1);
+  DP.x=DUNE0.x+mg*c+lt*s;DP.z=DUNE0.z-mg*s+lt*c;
+  DP.H=DUNE0.H*(1+.05*Math.sin(p/47+.7)+.03*Math.sin(p/23+2.6));
+  DP.w=DUNE0.w*(1+.04*Math.sin(p/67+.1));
+  DP.cv=DUNE0.cv+.45*Math.sin(p/53+1.9);DP.sk=.3*Math.sin(p/71+.4)+.12*Math.sin(p/29+1.3);
+  DP.Lw=DUNE0.Lw*(1+.06*Math.sin(p/43+2.2));DP.Ll=DUNE0.Ll*(1-.07*Math.sin(p/57+.9))}
+/* where the dune may move: a zone around it, pinned at the rim and around anything resting on the sand */
+let DOB=null,DLIVE=false;const PINS=[];
+function dZone(x,z){const c=Math.cos(DUNE0.yaw),s=Math.sin(DUNE0.yaw),dx=x-DUNE0.x,dz=z-DUNE0.z,u=dx*c-dz*s,v=dx*s+dz*c;
+  if(u<-9||u>11.5||Math.abs(v)>10)return 0;return ss(-9,-6.5,u)*ss(11.5,9,u)*ss(10,7.5,Math.abs(v))*(1-ss(.88,.96,sN(x,z)))}
+function dMask(x,z){let m=dZone(x,z);if(m<=0||!DOB)return m;for(const o of DOB){const d=Math.hypot(x-o.x,z-o.z);if(d<o.r+1.6)m*=ss(o.r+.25,o.r+1.6,d)}return m}
+function dDelta(x,z){if(!DLIVE)return 0;const m=dMask(x,z);return m>0?m*(duneP(x,z,DP)-duneP(x,z,DUNE0)):0}
 
 /* reference2 layout: pond left-front by the rim, palms just behind it, tent + fire centre-right,
    dune behind-right, tall saguaro on the left rim, small one front-right */
@@ -76,7 +102,8 @@ function hRaw(x,z){
   h+=1.1*G2(x,z,-12,-11.5,6.5,4)+.7*G2(x,z,15,7,5.5,4)+.5*G2(x,z,-19,-8,4,5)+.35*G2(x,z,3,11.5,6.5,3);
   return h}
 PADS.forEach(p=>{p.h=hRaw(p.x,p.z)});
-function hTop(x,z){
+const hTop=(x,z)=>hTop0(x,z)+dDelta(x,z);
+function hTop0(x,z){
   let h=hRaw(x,z);
   for(const p of PADS){const c=Math.cos(p.yaw),s=Math.sin(p.yaw),dx=x-p.x,dz=z-p.z;
     const u=(dx*c-dz*s)/p.rx,v=(dx*s+dz*c)/p.rz,r=Math.hypot(u,v);if(r<1.6)h=mix(h,p.h,ss(1.6,.9,r))}
@@ -127,20 +154,37 @@ function cleanMat(m){if(m.map){m.map.colorSpace="srgb";m.map.anisotropy=MOB?4:8;
 const NT=MOB?200:320,NSR=MOB?70:120;
 const sandU={uWy:{value:POND.wy},uRipDir:{value:new T.V2(WIND.x,WIND.z)},uRip:{value:1},uNight:{value:0},
   uSandA:{value:new C3("#e8a95c")},uSandB:{value:new C3("#c98444")},uWet:{value:new C3("#8a6c4c")},uSoil:{value:new C3("#a39457")},
-  uPond:{value:new T.V4(POND.x,POND.z,POND.rx,POND.rz)}};
+  uPond:{value:new T.V4(POND.x,POND.z,POND.rx,POND.rz)},
+  uDA:{value:new T.V4()},uDB:{value:new T.V4()},uDA0:{value:new T.V4(DUNE0.x,DUNE0.z,DUNE0.H,DUNE0.w)},uDB0:{value:new T.V4(DUNE0.Lw,DUNE0.Ll,DUNE0.cv,DUNE0.sk)},uDYaw:{value:DUNE0.yaw},
+  uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)}};
+const GLSL_DUNE=`uniform vec4 uDA,uDB,uDA0,uDB0;uniform float uDYaw;
+  float duneG(vec2 p,vec4 A,vec4 B){float c=cos(uDYaw),s=sin(uDYaw);vec2 d=p-A.xy;float u=d.x*c-d.y*s,v=d.x*s+d.y*c,vn=v/A.w,dd=u-B.z*vn*vn+B.w*vn;
+    float hv=exp(-vn*vn*1.15),pp=dd<0.?exp(-(dd/B.x)*(dd/B.x)):pow(max(0.,1.-dd/B.y),1.3);return A.z*hv*pp;}
+  float duneD(vec2 p){return duneG(p,uDA,uDB)-duneG(p,uDA0,uDB0);}`;
+/* the creeping dune: masked height change on top of the built surface, normal rebuilt from its gradient */
+const SAND_DISP=`float dDsp=aM>0.?aM*duneD(position.xz):0.;transformed.y+=dDsp;`;
 function sandMat(){
   const m=new T.MSM({color:0xffffff,roughness:.93,metalness:0});
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,sandU);
-    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nvarying vec3 vSP;varying vec3 vSN;")
-      .replace("#include <begin_vertex>","#include <begin_vertex>\nvSP=position;vSN=normal;");
+    sh.vertexShader=sh.vertexShader.replace("#include <common>",`#include <common>
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;attribute float aM;${GLSL_DUNE}`)
+      .replace("#include <beginnormal_vertex>",`vec3 objectNormal=vec3(normal);
+        if(aM>0.){float e=.3;vec2 p=position.xz;
+          vec2 gd=vec2(duneD(p+vec2(e,0.))-duneD(p-vec2(e,0.)),duneD(p+vec2(0.,e))-duneD(p-vec2(0.,e)))/(2.*e)*aM;
+          vec3 nb=normal/max(normal.y,.2);objectNormal=normalize(vec3(nb.x-gd.x,1.,nb.z-gd.y));}
+        #ifdef USE_TANGENT
+        vec3 objectTangent=vec3(tangent.xyz);
+        #endif`)
+      .replace("#include <begin_vertex>",`#include <begin_vertex>
+        ${SAND_DISP}vSP=transformed;vSN=objectNormal;vWP=(modelMatrix*vec4(transformed,1.)).xyz;`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-      varying vec3 vSP;varying vec3 vSN;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight;uniform vec2 uRipDir;
-      uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;${GLSL_NOISE}
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh;uniform vec2 uRipDir;uniform vec3 uLd;
+      uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;${GLSL_NOISE}${GLSL_GUST}
       float pondN(vec2 p){vec2 q=(p-uPond.xy)/uPond.zw;float th=atan(q.y,q.x);
         return length(q)/(1.+.09*sin(2.*th+1.1)+.06*sin(3.*th-.4)+.04*sin(5.*th+2.3));}
       float ripH(vec2 p){vec2 q=p+vec2(dfbm(p*.09)*4.,dfbm(p*.11+7.)*2.5);
-        float ph=dot(q,uRipDir)*8.38;float a=sin(ph+.9*sin(ph));
-        vec2 d2=vec2(-uRipDir.y,uRipDir.x);float b=sin(dot(q*1.7+3.,uRipDir+d2*.35)*8.38);
+        float ph=dot(q,uRipDir)*8.38-uRipPh;float a=sin(ph+.9*sin(ph));
+        vec2 d2=vec2(-uRipDir.y,uRipDir.x);float b=sin(dot(q*1.7+3.,uRipDir+d2*.35)*8.38-uRipPh*1.6);
         return a*.7+b*.3;}`)
       .replace("#include <color_fragment>",`#include <color_fragment>
         float pn=pondN(vSP.xz);
@@ -160,10 +204,27 @@ function sandMat(){
          if(k>.001){float e=.04,h0=ripH(vSP.xz);
            vec2 g=vec2(ripH(vSP.xz+vec2(e,0.))-h0,ripH(vSP.xz+vec2(0.,e))-h0)/e*.022*k;
            vec3 nL=normalize(normalize(vSN)-vec3(g.x,0.,g.y));
-           normal=normalize(normalMatrix*nL);}}`);
+           normal=normalize(normalMatrix*nL);}}`)
+      /* drifting sand: ground-hugging streamers of fine grains running downwind, denser in gusts and over the dune;
+         lit by the scene's own direct light (so shadowed, warm, or moonlit as the sand is) plus forward scatter against the light */
+      .replace("#include <opaque_fragment>",`{
+        vec2 p=vSP.xz,wd=uRipDir,wp=vec2(-wd.y,wd.x);float al=dot(p,wd)-uFlowT,ac=dot(p,wp);
+        float g=gustF(p),fwf=length(fwidth(p));
+        float s1=dn2(vec2(al*.3,ac*1.7)),s2=dn2(vec2(al*.8+5.,ac*4.4+2.));
+        float str=smoothstep(.4,.82,s1*.6+s2*.4)*(.35+.65*dn2(vec2(al*.07-uGT*.05,ac*.16)));
+        ${MOB?"float grain=1.;":"float gr=dn2(vec2(al*13.,ac*9.)+vec2(0.,3.));float grain=mix(1.,.55+.9*smoothstep(.25,.85,gr),1.-smoothstep(.012,.05,fwf));"}
+        float fl=str*grain*smoothstep(.12,.8,g)*uFlowK*smoothstep(1.45,2.1,pondN(p))*(1.+.7*smoothstep(1.,3.5,vSP.y))*(.45+.55*(1.-smoothstep(.06,.25,fwf)));
+        vec3 V=normalize(cameraPosition-vWP);float fs=pow(max(dot(V,-uLd),0.),5.);
+        outgoingLight+=(reflectedLight.directDiffuse*(1.6+4.*fs)+reflectedLight.indirectDiffuse*.5)*fl*.85;}
+      #include <opaque_fragment>`);
   };
-  m.customProgramCacheKey=()=>"des44sand";
+  m.customProgramCacheKey=()=>"des45sand";
   return m}
+/* shadow caster for the sand: same dune displacement */
+const sandDepthM=new T.SM({uniforms:sandU,
+  vertexShader:`attribute float aM;${GLSL_DUNE}void main(){vec3 transformed=position;${SAND_DISP}gl_Position=projectionMatrix*modelViewMatrix*vec4(transformed,1.);}`,
+  fragmentShader:`#include <packing>
+    void main(){gl_FragColor=packDepthToRGBA(gl_FragCoord.z);}`});
 let sandMesh=null;
 (function buildSand(){
   const pos=[],idx=[];
@@ -172,8 +233,14 @@ let sandMesh=null;
   for(let k=0;k<rs.length;k++)for(let j=0;j<NT;j++){const th=j/NT*TAU,[x,z]=edgeXZ(th,rs[k]);pos.push(x,hTop(x,z),z)}
   for(let j=0;j<NT;j++)idx.push(0,1+(j+1)%NT,1+j);
   for(let k=0;k<rs.length-1;k++)for(let j=0;j<NT;j++){const a=1+k*NT+j,b=1+k*NT+(j+1)%NT,c=a+NT,d=b+NT;idx.push(a,b,c,b,d,c)}
-  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setIndex(idx);g.computeVertexNormals();
-  sandMesh=new T.Mesh(g,sandMat());sandMesh.receiveShadow=true;sandMesh.castShadow=true;W.add(sandMesh)})();
+  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("aM",new T.BA(new Float32Array(pos.length/3),1));g.setIndex(idx);g.computeVertexNormals();
+  sandMesh=new T.Mesh(g,sandMat());sandMesh.receiveShadow=true;sandMesh.castShadow=true;sandMesh.customDepthMaterial=sandDepthM;W.add(sandMesh)})();
+/* once everything that rests on the sand is placed: pin the dune mask around it and bake the mask into the sand mesh */
+function duneSettle(){
+  DOB=OBST.concat(PINS).filter(o=>dZone(o.x,o.z)>0||Math.hypot(o.x-DUNE0.x,o.z-DUNE0.z)<19);
+  const P=sandMesh.geometry.attributes.position,A=sandMesh.geometry.attributes.aM;
+  for(let i=0;i<P.count;i++)A.setX(i,dMask(P.getX(i),P.getZ(i)));A.needsUpdate=true;
+  sandMesh.geometry.computeBoundingSphere();sandMesh.geometry.boundingSphere.radius+=3;DLIVE=true;duneEvolve(0)}
 
 /* sandstone: triplanar painted texture + luminance bump, paled toward the reference's tan/lilac rock */
 const rockU={uMap:{value:null},uHas:{value:0},uTint:{value:new C3("#f8e2c4")},uDeep:{value:new C3("#a3836f")},uSc:{value:1/6.5},uNight:{value:0}};
@@ -364,22 +431,22 @@ function renderPondReflection(){
   Cn.setRenderTarget(prevT);Cn.setClearColor(pondRefl.cc,prevA);Cn.shadowMap.autoUpdate=sAuto;pondU.uReflOn.value=1}
 
 /* ---------------- vegetation: grass tufts, reeds, shrubs ---------------- */
-const vegU={uT:{value:0},uWind:{value:.35}};
+const vegU={uT:{value:0},uWind:{value:.35},uGT:sandU.uGT,uWD:sandU.uWD};
 function vegMat(opt){
   const m=new T.MSM({vertexColors:true,roughness:.88,metalness:0,side:2});
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,vegU);
-    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uT,uWind;")
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uT,uWind;"+GLSL_GUST)
       .replace("#include <begin_vertex>",`#include <begin_vertex>
         {vec3 ip=vec3(0.);
          #ifdef USE_INSTANCING
          ip=instanceMatrix[3].xyz;
          #endif
          float h=max(position.y,0.);float ph=ip.x*.37+ip.z*.61;
-         float sw=(sin(uT*1.9+ph)*.6+sin(uT*3.3+ph*1.7)*.25+.35)*uWind*${opt.sway.toFixed(3)};
+         float sw=(sin(uT*1.9+ph)*.6+sin(uT*3.3+ph*1.7)*.25+.35)*uWind*(.5+.9*gustF(ip.xz))*${opt.sway.toFixed(3)};
          transformed.x+=sw*h*h;transformed.z+=sw*.35*h*h;}`)
       .replace("#include <beginnormal_vertex>","vec3 objectNormal=normalize(mix(normal,vec3(0.,1.,0.),"+opt.up.toFixed(2)+"));\n#ifdef USE_TANGENT\nvec3 objectTangent=vec3(tangent.xyz);\n#endif");
   };
-  m.customProgramCacheKey=()=>"des44veg"+opt.sway+opt.up;return m}
+  m.customProgramCacheKey=()=>"des45veg"+opt.sway+opt.up;return m}
 function tuftGeo(nb,lean,wid,c0,c1,seed){
   const pos=[],col=[],idx=[];sd=seed;
   for(let b=0;b<nb;b++){const a=b/nb*TAU+rr(-.3,.3),ln=rr(lean[0],lean[1]),hh=rr(.65,1),w=wid*rr(.7,1.2),seg=4,base=pos.length/3;
@@ -418,7 +485,7 @@ function scatter(geo,mat,list){const im=new T.IM(geo,mat,list.length),m=new T.M4
     for(let i=0;i<n;i++){const b=rnd()*TAU,q=Math.sqrt(rnd())*rr(.6,1.3),x=cx+Math.cos(b)*q,z=cz+Math.sin(b)*q;if(pN(x,z)<1.02||!okW(x,z))continue;(rnd()<.3?C:L).push({x,z,ry:rnd()*TAU,s:rr(.7,1.2),h:rr(.28,.62)})}}});
   /* dry tufts in the open sand: small groups, never on the dune face */
   for(let c=0;c<Math.round(26*N);c++){let x0,z0,ok=0;for(let t=0;t<20&&!ok;t++){const a=rnd()*TAU,r=Math.sqrt(rnd())*.86;[x0,z0]=edgeXZ(a,r);ok=pN(x0,z0)>2.3&&clearOf(x0,z0,1)&&duneH(x0,z0)<.5}
-    if(!ok)continue;const n=Math.round(rr(1,4));for(let i=0;i<n;i++)D.push({x:x0+rr(-.7,.7),z:z0+rr(-.7,.7),ry:rnd()*TAU,s:rr(.55,1.15),h:rr(.18,.45)})}
+    if(!ok)continue;const n=Math.round(rr(1,4));for(let i=0;i<n;i++)D.push({x:x0+rr(-.7,.7),z:z0+rr(-.7,.7),ry:rnd()*TAU,s:rr(.55,1.15),h:rr(.18,.45)});PINS.push({x:x0,z:z0,r:.9})}
   for(let c=0;c<16;c++){const th=c/16*TAU+rr(-.15,.15);if((Math.sin(th)>.55&&c%2)||beachGap(th)<.45||rnd()<.3)continue;const[x0,z0]=pondEdge(th,rr(.93,1.01));
     for(let i=0;i<rr(3,9);i++)R.push({x:x0+rr(-.6,.6),z:z0+rr(-.6,.6),ry:rnd()*TAU,s:rr(.9,1.3),h:rr(1.,2.1)})}
   /* few, irregular shrubs: back of the pond and under the palms; two weathered ones out on the sand */
@@ -440,6 +507,7 @@ function scatter(geo,mat,list){const im=new T.IM(geo,mat,list.length),m=new T.M4
   [[9.5,-15.6,.8],[-14.5,-13,.7],[18.4,4.2,.6],[-21.2,2.3,.55]].forEach(([x,z,s])=>put(x,z,s));
   for(let i=0;i<7;i++){const a=rnd()*TAU,r=Math.sqrt(rnd())*.85,[x,z]=edgeXZ(a,r);if(duneH(x,z)>.5)continue;put(x,z,rr(.22,.38))}
   placeRocks(L)})();
+duneSettle();
 
 /* ---------------- Tripo props: date palms (trunk lengthened, crown kept ~6 m), saguaros, tent ---------------- */
 const PROPS={palms:[],sag:[],tent:null,sagTop:null};
@@ -684,13 +752,43 @@ function softPoints(n,col,size,additive){
 /* sand wisps: low drifting grains that lift off the dune crest and blow downwind */
 const SAND=softPoints(MOB?260:520,"#e6c08a",.16,false);SAND.o.renderOrder=6;W.add(SAND.o);
 const SANDP=[];
+function crestXZ(vn){const c=Math.cos(DP.yaw),s=Math.sin(DP.yaw),v=vn*DP.w,u=DP.cv*vn*vn-DP.sk*vn;return[DP.x+u*c+v*s,DP.z-u*s+v*c]}
 function sandSeed(i,init){
   const crest=rnd()<.55;let x,z;
-  if(crest){const v=rr(-1,1)*DUNE.w*1.1,c=Math.cos(DUNE.yaw),s=Math.sin(DUNE.yaw),u=2.8*(v/DUNE.w)**2;x=DUNE.x+u*c+v*s;z=DUNE.z-u*s+v*c}
+  if(crest){[x,z]=crestXZ(rr(-1,1)*1.1)}
   else{const[a,b]=edgeXZ(rnd()*TAU,Math.sqrt(rnd())*.88);x=a;z=b}
   const q={x,z,y:hTop(x,z)+.05,vx:WIND.x*rr(1.5,3.4),vz:WIND.z*rr(1.5,3.4)+rr(-.3,.3),vy:crest?rr(.15,.5):rr(0,.12),life:init?rnd():0,dur:rr(2.5,6),crest};
   SANDP[i]=q;SAND.Z[i]=rr(.4,1.3)}
 for(let i=0;i<SAND.n;i++)sandSeed(i,true);
+/* crest veil: fine sand torn off the dune crest, streaming downwind and up over the slip face, thicker in gusts */
+const CUR={NS:MOB?28:44,NK:MOB?7:10};
+const curU={uT:{value:0},uCol:{value:new C3()},uSheen:{value:new C3()},uLd:sandU.uLd};
+const CURT=(()=>{const{NS,NK}=CUR,n=(NS+1)*(NK+1),g=new T.BG(),P=new Float32Array(n*3),U=new Float32Array(n*2),Hv=new Float32Array(n),idx=[];
+  for(let i=0;i<=NS;i++)for(let k=0;k<=NK;k++){const o=i*(NK+1)+k;U[o*2]=i/NS;U[o*2+1]=k/NK}
+  for(let i=0;i<NS;i++)for(let k=0;k<NK;k++){const a=i*(NK+1)+k,b=a+NK+1;idx.push(a,b,a+1,b,b+1,a+1)}
+  g.setAttribute("position",new T.BA(P,3));g.setAttribute("uv",new T.BA(U,2));g.setAttribute("aH",new T.BA(Hv,1));g.setIndex(idx);
+  const m=new T.SM({uniforms:curU,transparent:true,depthWrite:false,side:2,
+    vertexShader:`attribute float aH;varying vec2 vUv;varying float vH,vFs;uniform vec3 uLd;
+      void main(){vUv=uv;vH=aH;vec4 w=modelMatrix*vec4(position,1.);vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);
+        gl_Position=projectionMatrix*viewMatrix*w;}`,
+    fragmentShader:`uniform float uT;uniform vec3 uCol,uSheen;varying vec2 vUv;varying float vH,vFs;${GLSL_NOISE}
+      void main(){float k=vUv.y,s=vUv.x;
+        float st=dn2(vec2(s*72.,k*1.6-uT*1.3))*.55+dn2(vec2(s*150.+3.,k*3.4-uT*2.6))*.45;
+        float gr=dn2(vec2(s*420.,k*60.-uT*9.));
+        float fr=dn2(vec2(s*9.+uT*.3,k*2.-uT*.8));
+        float a=vH*smoothstep(0.,.1,k)*(1.-smoothstep(.2+.5*fr,.9,k))*smoothstep(.42,.8,st)*(.3+.7*gr)*smoothstep(0.,.12,s)*smoothstep(1.,.88,s)*.6;
+        if(a<.004)discard;gl_FragColor=vec4(uCol+uSheen*vFs,a);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`});
+  const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=6;W.add(o);return{o,g,P,Hv}})();
+function curtainUpdate(t){
+  const{NS,NK}=CUR,P=CURT.P,Hv=CURT.Hv;
+  for(let i=0;i<=NS;i++){const vn=(i/NS*2-1)*.95,[x,z]=crestXZ(vn),y=hTop(x,z),hv=Math.exp(-vn*vn*1.15),g=gustAt(x,z);
+    const L=(1.1+2.6*g)*(.35+.65*hv)*(.6+.8*(.5+.5*Math.sin(i*.9+t*.7)*Math.sin(i*.37-t*.45))),rise=.1+.16*g,a=hv*ss(.12,.75,g)*(1-ss(.86,.97,sN(x,z)));
+    for(let k=0;k<=NK;k++){const q=k/NK,o=i*(NK+1)+k,d=q*L;
+      P[o*3]=x+WIND.x*d;P[o*3+1]=y+.02+(.3+.45*g)*(1-Math.exp(-d*1.4))+d*rise*.4-.1*d*q+.1*q*Math.sin(t*2.1+i*.45+q*4)*g;P[o*3+2]=z+WIND.z*d;Hv[o]=a}}
+  CURT.g.attributes.position.needsUpdate=CURT.g.attributes.aH.needsUpdate=true}
 /* night fireflies over the oasis */
 const FF=softPoints(MOB?18:32,"#d8ff8a",.12,true);FF.o.renderOrder=9;W.add(FF.o);
 const FFP=[];for(let i=0;i<FF.n;i++){const[a,b]=pondEdge(rnd()*TAU,rr(.8,1.9));FFP.push({x:a,z:b,y:rr(.4,2.6),ph:rnd()*TAU,sp:rr(.3,.7),bl:rr(.6,1.4)});FF.Z[i]=rr(.8,1.2)}
@@ -851,7 +949,19 @@ const _cl=new V3();
 UPD.push((dt,t)=>{
   const wn=st.wn,nk=st.night;
   _cl.copy(De.position);W.worldToLocal(_cl);
-  vegU.uT.value=t;vegU.uWind.value=.4+wn;propU.uT.value=t;propU.uWind.value=.4+wn;
+  /* wind: shared gust clock, dune creep, drifting-sand phase */
+  GUST.t+=dt;sandU.uGT.value=GUST.t;
+  const gD=gustAt(DUNE0.x,DUNE0.z),wk=.5+wn*1.4;
+  duneEvolve(dt*(.35+.9*gD)*wk);
+  sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk);
+  sandU.uFlowT.value+=dt*(2.4+2.2*gD)*wk;sandU.uRipPh.value+=dt*.1*(.3+gD)*wk;sandU.uFlowK.value=cl(.3+wn*1.4,0,1.3);
+  if(pi){sandU.uLd.value.copy(pi.position).normalize();
+    _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
+    curU.uCol.value.set("#efcb94").multiply(_c1.clone().multiplyScalar(.42*Math.max(.3,sandU.uLd.value.y*2)).add(_c2.clone().multiplyScalar(1.1)));
+    curU.uSheen.value.set("#f6d6a0").multiply(_c1).multiplyScalar(.6)}
+  curU.uT.value=t;curtainUpdate(t);
+  const gT=gustAt(TENT.x,TENT.z);
+  vegU.uT.value=t;vegU.uWind.value=.4+wn;propU.uT.value=t;propU.uWind.value=(.4+wn)*(.55+.9*gT);
   pondU.uT.value=t;pondU.uWind.value=wn;pondU.uNight.value=nk;pondU.uCamL.value.copy(_cl);
   {const d=pi.position.clone().normalize();d.applyAxisAngle(new V3(0,1,0),-YAW);pondU.uSunL.value.copy(d);pondU.uSunCol.value.copy(pi.color)}
   pondU.uSkyA.value.set(nk>.5?"#1a2440":st.day>.5?"#a8c4dc":"#d4aab8");pondU.uSkyB.value.set(nk>.5?"#0c1428":st.day>.5?"#5c88c0":"#7a6eb0");
@@ -860,16 +970,17 @@ UPD.push((dt,t)=>{
   fireU.uT.value=t;fireU.uNight.value=nk;
   if(fireL)fireL.intensity=(mix(.5,3.6,nk))*(1+.12*Math.sin(t*9)+.07*Math.sin(t*23));
   if(fireG.userData.charM)fireG.userData.charM.emissiveIntensity=mix(.25,.9,nk)*(1+.2*Math.sin(t*5));
-  if(RACK.cloths)RACK.cloths.forEach((c,i)=>{c.rotation.x=Math.sin(t*1.6+c.userData.ph)*.06*(.4+wn)+.05*(.4+wn)});
-  /* sand wisps */
+  if(RACK.cloths){const gR=gustAt(RACK.x,RACK.z);RACK.cloths.forEach((c,i)=>{c.rotation.x=(Math.sin(t*1.6+c.userData.ph)*.06*(.6+.8*gR)+.05*(.4+1.2*gR))*(.4+wn)})}
+  /* sand wisps: grains hop and drift with the local gust */
   for(let i=0;i<SAND.n;i++){const q=SANDP[i];q.life+=dt/q.dur;
     if(q.life>=1){sandSeed(i,false);continue}
-    q.x+=q.vx*dt*(.5+wn);q.z+=q.vz*dt*(.5+wn);q.y+=q.vy*dt;const g=hTop(q.x,q.z);if(q.y<g+.03)q.y=g+.03;
+    const gq=gustAt(q.x,q.z),sp=(.5+wn)*(.35+1.3*gq);
+    q.x+=q.vx*dt*sp;q.z+=q.vz*dt*sp;q.y+=q.vy*dt*(.5+gq);const g=hTop(q.x,q.z);if(q.y<g+.03)q.y=g+.03;
     q.vy+=(q.crest?-.08:-.02)*dt;
     const o=i*3;SAND.P[o]=q.x;SAND.P[o+1]=q.y;SAND.P[o+2]=q.z;
-    SAND.A[i]=Math.sin(q.life*Math.PI)*(q.crest?.3:.16)*(.3+wn*1.4)*(1-nk*.6)*(1-ss(.86,.97,sN(q.x,q.z)))}
+    SAND.A[i]=Math.sin(q.life*Math.PI)*(q.crest?.3:.16)*(.3+wn*1.4)*(.25+gq)*(1-ss(.86,.97,sN(q.x,q.z)))}
   SAND.g.attributes.position.needsUpdate=SAND.g.attributes.a.needsUpdate=true;SAND.m.uniforms.uH.value=innerHeight;
-  SAND.m.uniforms.uC.value.set(nk>.5?"#6a7088":"#e8c690");
+  SAND.m.uniforms.uC.value.copy(curU.uCol.value).multiplyScalar(1.15);
   /* fireflies */
   FF.o.visible=nk>.3;
   if(FF.o.visible){for(let i=0;i<FF.n;i++){const f=FFP[i],o=i*3;f.ph+=dt*f.sp;
@@ -1097,13 +1208,13 @@ function devilUpdate(dt,t){
       if(p){DV.on=1;DV.life=0;DV.x=p.x;DV.z=p.z;const a=rnd()*TAU;DV.vx=Math.cos(a)*.7;DV.vz=Math.sin(a)*.7}else DV.wait=3}}
   let amp=0;
   if(DV.on){DV.life+=dt/DV.dur;amp=ss(0,.15,DV.life)*(1-ss(.75,1,DV.life))*(st.phase==="night"?0:1);
-    DV.x+=DV.vx*dt;DV.z+=DV.vz*dt;const nx=DV.x+DV.vx*2,nz=DV.z+DV.vz*2;
+    const gV=gustAt(DV.x,DV.z);DV.g=gV;DV.x+=(DV.vx+WIND.x*.9*gV)*dt;DV.z+=(DV.vz+WIND.z*.9*gV)*dt;const nx=DV.x+DV.vx*2,nz=DV.z+DV.vz*2;
     if(sN(nx,nz)>.8||pN(nx,nz)<1.8||!clearOf(nx,nz,.5)){const a=Math.atan2(DV.vz,DV.vx)+rr(1.6,2.6);DV.vx=Math.cos(a)*.7;DV.vz=Math.sin(a)*.7}
     if(DV.life>=1){DV.on=0;DV.wait=rr(18,34)}}
   DEV.o.visible=amp>.01;if(!DEV.o.visible)return;
   const H=7.5,gy=hTop(DV.x,DV.z);
   for(let i=0;i<DEV.n;i++){const q=DV.P[i];q.h+=dt*.1;if(q.h>1)q.h-=1;q.a+=dt*q.w*(1.4-q.h*.6);
-    const h=q.h,r=q.r0*(.25+1.6*h*h)+.08,lean=h*h*1.6,o=i*3;
+    const h=q.h,r=q.r0*(.25+1.6*h*h)+.08,lean=h*h*1.6*(.6+.8*(DV.g||.5)),o=i*3;
     DEV.P[o]=DV.x+Math.cos(q.a)*r+WIND.x*lean;DEV.P[o+1]=gy+h*H;DEV.P[o+2]=DV.z+Math.sin(q.a)*r+WIND.z*lean;
     DEV.A[i]=amp*.32*(1-h)*ss(0,.08,h)*(.5+.5*Math.sin(q.a*3+i))}
   DEV.g.attributes.position.needsUpdate=DEV.g.attributes.a.needsUpdate=true;DEV.m.uniforms.uH.value=innerHeight}
@@ -1153,7 +1264,7 @@ UPD.push((dt,t)=>{
   const A=AU.ready?AU:(SX()&&SX().on?ensureAudio():null);
   if(A){const now=A.ctx.currentTime,x=SX(),on=root.visible&&x&&x.on;
     A.master.gain.setTargetAtTime(on?.7:0,now,.3);
-    A.wind.g.gain.setTargetAtTime(.025+st.wn*.1,now,.3);A.wind.bp.frequency.setTargetAtTime(250+st.wn*650,now,.4);
+    A.wind.g.gain.setTargetAtTime((.025+st.wn*.1)*(.7+.6*gustAt(0,0)),now,.3);A.wind.bp.frequency.setTargetAtTime(250+st.wn*650,now,.4);
     A.fire.g.gain.setTargetAtTime(st.night*.05,now,.4);
     if(on){const e=ANIM.eagle;AU.eagleT-=d;if(e&&(e.cry||(e.mode==="soar"&&AU.eagleT<=0&&rnd()<.01))){eagleCry();e.cry=0;AU.eagleT=rr(8,18)}
       const s=ANIM.snake;AU.rustleT-=d;if(s&&s.spd>.1&&AU.rustleT<=0){sandRustle(.012);AU.rustleT=.14}
@@ -1177,6 +1288,10 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,
   tod(p){st.tod=p||null;const ph=phaseNow();for(const k in LK)LK[k]=k===ph?1:0;applyLighting(0)},
   /* camera helpers in island metres */
   lookAt(px,py,pz,tx,ty,tz){De.position.copy(toW(px,py,pz));const t=toW(tx,ty,tz);if(Ce){Ce.target.copy(t);Ce.update()}De.lookAt(t)},
+  /* fast-forward only the dune clock (and the ripple drift) by `sec` seconds of average wind */
+  duneAdv(sec){const wk=.5+st.wn*1.4;duneEvolve(sec*.8*wk);sandU.uRipPh.value+=sec*.08*wk;
+    sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk)},
+  dune:{DP,DUNE0,DCLK,GUST,crestXZ,dMask,gustAt},
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,snakeGo,play}};
 animalsReady.then(()=>{QA.ready=true});
 window.__desReady=true;

@@ -767,27 +767,33 @@ const CURT=(()=>{const{NS,NK}=CUR,n=(NS+1)*(NK+1),g=new T.BG(),P=new Float32Arra
   for(let i=0;i<=NS;i++)for(let k=0;k<=NK;k++){const o=i*(NK+1)+k;U[o*2]=i/NS;U[o*2+1]=k/NK}
   for(let i=0;i<NS;i++)for(let k=0;k<NK;k++){const a=i*(NK+1)+k,b=a+NK+1;idx.push(a,b,a+1,b,b+1,a+1)}
   g.setAttribute("position",new T.BA(P,3));g.setAttribute("uv",new T.BA(U,2));g.setAttribute("aH",new T.BA(Hv,1));g.setIndex(idx);
-  const m=new T.SM({uniforms:curU,transparent:true,depthWrite:false,side:2,
-    vertexShader:`attribute float aH;varying vec2 vUv;varying float vH,vFs;uniform vec3 uLd;
-      void main(){vUv=uv;vH=aH;vec4 w=modelMatrix*vec4(position,1.);vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);
+  const m=new T.SM({uniforms:curU,transparent:true,premultipliedAlpha:true,depthWrite:false,side:2,
+    vertexShader:`attribute float aH;varying vec2 vUv;varying float vH,vFs;varying vec3 vW;uniform vec3 uLd;
+      void main(){vUv=uv;vH=aH;vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);
         gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uT;uniform vec3 uCol,uSheen;varying vec2 vUv;varying float vH,vFs;${GLSL_NOISE}
+    fragmentShader:`uniform float uT;uniform vec3 uCol,uSheen;varying vec2 vUv;varying float vH,vFs;varying vec3 vW;${GLSL_NOISE}
       void main(){float k=vUv.y,s=vUv.x;
-        float st=dn2(vec2(s*72.,k*1.6-uT*1.3))*.55+dn2(vec2(s*150.+3.,k*3.4-uT*2.6))*.45;
-        float gr=dn2(vec2(s*420.,k*60.-uT*9.));
-        float fr=dn2(vec2(s*9.+uT*.3,k*2.-uT*.8));
-        float a=vH*smoothstep(0.,.1,k)*(1.-smoothstep(.2+.5*fr,.9,k))*smoothstep(.42,.8,st)*(.3+.7*gr)*smoothstep(0.,.12,s)*smoothstep(1.,.88,s)*.6;
-        if(a<.004)discard;gl_FragColor=vec4(uCol+uSheen*vFs,a);
+        float st=dn2(vec2(s*60.,k*1.4-uT*1.2))*.45+dn2(vec2(s*160.+3.,k*3.-uT*2.4))*.55;
+        float gr=dn2(vec2(s*420.,k*40.-uT*8.));
+        float fr=dn2(vec2(s*7.+uT*.3,k*2.-uT*.8));
+        float wp=smoothstep(.32,.68,dn2(vec2(s*11.+uT*.25,k*1.3-uT*.7)));
+        float a=vH*smoothstep(0.,.04,k)*pow(1.-k,2.)*(1.-smoothstep(.2+.65*fr,1.,k))*mix(.1,1.,smoothstep(.3,.75,st))*(.55+.45*gr)*mix(.05,1.,wp)*smoothstep(0.,.12,s)*smoothstep(1.,.88,s);
+        /* a sheet seen edge-on piles up alpha into a hard line; thin it at grazing angles */
+        vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.15,1.,smoothstep(.08,.6,abs(dot(N,normalize(cameraPosition-vW)))));
+        if(a<.004)discard;
+        /* premultiplied: backlit grains add light rather than veiling the sky behind them */
+        gl_FragColor=vec4(uCol*(1.+.2*k)+uSheen*vFs*(1.-.4*k),1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
+        a=min(a*1.7*mix(.45,1.,vFs),.9);gl_FragColor=vec4(gl_FragColor.rgb*a,a*mix(.4,.3,vFs));
       }`});
   const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=6;W.add(o);return{o,g,P,Hv}})();
 function curtainUpdate(t){
   const{NS,NK}=CUR,P=CURT.P,Hv=CURT.Hv;
   for(let i=0;i<=NS;i++){const vn=(i/NS*2-1)*.95,[x,z]=crestXZ(vn),y=hTop(x,z),hv=Math.exp(-vn*vn*1.15),g=gustAt(x,z);
-    const L=(1.1+2.6*g)*(.35+.65*hv)*(.6+.8*(.5+.5*Math.sin(i*.9+t*.7)*Math.sin(i*.37-t*.45))),rise=.1+.16*g,a=hv*ss(.12,.75,g)*(1-ss(.86,.97,sN(x,z)));
+    const L=(.7+2.*g)*(.35+.65*hv)*(.6+.8*(.5+.5*Math.sin(i*.9+t*.7)*Math.sin(i*.37-t*.45))),rise=.1+.16*g,a=hv*ss(.12,.75,g)*(1-ss(.86,.97,sN(x,z)));
     for(let k=0;k<=NK;k++){const q=k/NK,o=i*(NK+1)+k,d=q*L;
-      P[o*3]=x+WIND.x*d;P[o*3+1]=y+.02+(.3+.45*g)*(1-Math.exp(-d*1.4))+d*rise*.4-.1*d*q+.1*q*Math.sin(t*2.1+i*.45+q*4)*g;P[o*3+2]=z+WIND.z*d;Hv[o]=a}}
+      P[o*3]=x+WIND.x*d;P[o*3+1]=y-.03+(.16+.3*g)*(1-Math.exp(-d*1.6))+d*rise*.3-.08*d*q+.08*q*Math.sin(t*2.1+i*.45+q*4)*g;P[o*3+2]=z+WIND.z*d;Hv[o]=a}}
   CURT.g.attributes.position.needsUpdate=CURT.g.attributes.aH.needsUpdate=true}
 /* night fireflies over the oasis */
 const FF=softPoints(MOB?18:32,"#d8ff8a",.12,true);FF.o.renderOrder=9;W.add(FF.o);
@@ -957,8 +963,8 @@ UPD.push((dt,t)=>{
   sandU.uFlowT.value+=dt*(2.4+2.2*gD)*wk;sandU.uRipPh.value+=dt*.1*(.3+gD)*wk;sandU.uFlowK.value=cl(.3+wn*1.4,0,1.3);
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
-    curU.uCol.value.set("#efcb94").multiply(_c1.clone().multiplyScalar(.42*Math.max(.3,sandU.uLd.value.y*2)).add(_c2.clone().multiplyScalar(1.1)));
-    curU.uSheen.value.set("#f6d6a0").multiply(_c1).multiplyScalar(.6)}
+    curU.uCol.value.set("#f0d2a0").multiply(_c1.clone().multiplyScalar(.5).add(_c2.clone().multiplyScalar(.5)).add(dc?dc.color.clone().multiplyScalar(dc.intensity):_c2));
+    curU.uSheen.value.set("#f6d6a0").multiply(_c1).multiplyScalar(.85)}
   curU.uT.value=t;curtainUpdate(t);
   const gT=gustAt(TENT.x,TENT.z);
   vegU.uT.value=t;vegU.uWind.value=.4+wn;propU.uT.value=t;propU.uWind.value=(.4+wn)*(.55+.9*gT);

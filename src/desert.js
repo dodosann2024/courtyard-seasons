@@ -207,7 +207,7 @@ function sandMat(){
         {float fwc=length(fwidth(vSP.xz)),gd=1.-smoothstep(.012,.07,fwc);
          float g1=dh2(floor(vSP.xz*64.)),g2=dn2(vSP.xz*17.+5.);
          sc*=1.+gd*((g1-.5)*.12+(g2-.5)*.1);sc=mix(sc,sc*vec3(.58,.52,.48),gd*step(.97,g1)*.7*(1.-wet));}
-        diffuseColor.rgb=mix(sc,vec3(dot(sc,vec3(.3,.59,.11)))*vec3(.54,.68,1.08),uNight*.8)*mix(1.,.46,uNight);`)
+        diffuseColor.rgb=mix(sc,vec3(dot(sc,vec3(.3,.59,.11)))*vec3(.74,.88,1.04),uNight*.7)*mix(1.,.54,uNight);`)
       .replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
         float ripAO=1.;
         {float fw=length(fwidth(vSP.xz));
@@ -215,8 +215,8 @@ function sandMat(){
          vec3 nS=normalize(vSN);float lee=smoothstep(.08,.3,dot(nS.xz,uRipDir));
          float k=uRip*(1.-smoothstep(.07,.3,fw))*smoothstep(1.3,1.8,pn2)*smoothstep(.35,.7,nS.y)*(1.-.85*lee);
          if(k>.001){float e=.04,h0=ripH(vSP.xz);
-           vec2 g=vec2(ripH(vSP.xz+vec2(e,0.))-h0,ripH(vSP.xz+vec2(0.,e))-h0)/e*.036*k;
-           ripAO=1.-.13*k*(.5-.5*h0);
+           vec2 g=vec2(ripH(vSP.xz+vec2(e,0.))-h0,ripH(vSP.xz+vec2(0.,e))-h0)/e*.036*k*(1.+.9*uNight);
+           ripAO=1.-(.13+.17*uNight)*k*(.5-.5*h0);
            vec3 nL=normalize(normalize(vSN)-vec3(g.x,0.,g.y));
            normal=normalize(normalMatrix*nL);}}`)
       /* drifting sand: ground-hugging streamers of fine grains running downwind, denser in gusts and over the dune;
@@ -282,9 +282,16 @@ function rockMat(extra){
         vec3 c=mix(vec3(L),tex,.6)*uTint*1.2;
         float band=sin(vRP.y*2.1+dn2(vRP.xz*.08)*5.)*.5+.5;
         c*=.9+.12*band;
+        /* desert varnish: dark manganese streaks running down the steep faces; pitted grain close up */
+        {float vt=1.-smoothstep(.35,.7,abs(nA.y)),hz=mix(vRP.z,vRP.x,wt.z/(wt.x+wt.z+1e-3));
+         float vs=smoothstep(.56,.82,dn2(vec2(hz*.9,vRP.y*.07))*.75+dn2(vec2(hz*3.1,vRP.y*.3))*.25);
+         c*=mix(vec3(1.),vec3(.58,.47,.40),vs*vt*.55*(1.-smoothstep(-6.,-14.,vRP.y)*.5));
+         c*=.88+.24*smoothstep(.2,.6,L);
+         float fr=length(fwidth(vRP)),gd=1.-smoothstep(.02,.09,fr);
+         c*=1.+gd*((dh2(floor(P.xz*90.+P.y*37.))-.5)*.14+(dn2(P.zy*31.+P.x*7.)-.5)*.12);}
         c=mix(c,c*vec3(.9,.9,1.02),smoothstep(.4,.9,dn2(vec2(vRP.y*.35,0.)+vRP.xz*.02)));
         c=mix(c,uDeep*(.55+.6*L),smoothstep(-3.,-17.,vRP.y)*.55);
-        c=mix(c,vec3(dot(c,vec3(.3,.59,.11)))*vec3(.8,.84,1.),uNight*.5)*mix(1.,.55,uNight);
+        c=mix(c,vec3(dot(c,vec3(.3,.59,.11)))*vec3(.74,.86,1.04),uNight*.68)*mix(1.,.55,uNight);
         diffuseColor.rgb=c;`)
       .replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
         {vec3 nA2=normalize(vRN),w2=pow(abs(nA2),vec3(4.));w2/=w2.x+w2.y+w2.z;
@@ -781,19 +788,19 @@ let fireL=null;
   const flames=[];
   for(let i=0;i<3;i++){const geo=new T.Plane(1,1,1,4);geo.translate(0,.5,0);const n=geo.attributes.position.count;geo.setAttribute("aK",new T.BA(new Float32Array(n).fill(i*.37+.1),1));
     const f=new T.Mesh(geo,flM);f.scale.set([.42,.32,.26][i],[.62,.48,.38][i],1);f.position.set([0,.08,-.07][i],.08,[0,.05,.06][i]);f.renderOrder=8;f.frustumCulled=false;fireG.add(f);flames.push(f)}
-  fireL=new T.PL(new C3("#ff9a4a"),0,3.4,2);fireL.position.set(FIRE.x,hTop(FIRE.x,FIRE.z)+1.1,FIRE.z);W.add(fireL);fireL.layers.enable(3);
+  fireL=new T.PL(new C3("#ff9a4a"),0,4.4,2);fireL.position.set(FIRE.x,hTop(FIRE.x,FIRE.z)+1.1,FIRE.z);W.add(fireL);fireL.layers.enable(3);
 })();
 
 /* campfire smoke: soft warm-grey wisps, camera-facing ribbons that widen, curl downwind (upper right
    of the default view) and are gone by ~7 m */
 const SMOKE_H=7.5;
-const smokeU={uT:{value:0},uBase:{value:new V3(FIRE.x,fireG.position.y+.4,FIRE.z)},uWind:{value:new V3(WIND.x,0,WIND.z)},uCamL:{value:new V3()},uOp:{value:1},uCol:{value:new C3(.66,.6,.56)},uG:{value:.4}};
+const smokeU={uT:{value:0},uBase:{value:new V3(FIRE.x,fireG.position.y+.4,FIRE.z)},uWind:{value:new V3(WIND.x,0,WIND.z)},uCamL:{value:new V3()},uOp:{value:1},uCol:{value:new C3(.66,.6,.56)},uG:{value:.4},uNt:{value:0}};
 const SMOKE=[];
 for(let r=0;r<3;r++){
   const SEG=56,n=SEG+1,aT=new Float32Array(n*2),aS=new Float32Array(n*2),pos=new Float32Array(n*6),idx=[];
   for(let i=0;i<n;i++){aT[i*2]=aT[i*2+1]=i/SEG;aS[i*2]=-1;aS[i*2+1]=1;if(i<SEG){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}}
   const g=new T.BG();g.setAttribute("position",new T.BA(pos,3));g.setAttribute("aT",new T.BA(aT,1));g.setAttribute("aS",new T.BA(aS,1));g.setIndex(idx);
-  const u=Object.assign({},smokeU,{uSeed:{value:r*7.31+1.7},uW:{value:[1,.8,.62][r]},uA:{value:[.24,.18,.13][r]}});
+  const u=Object.assign({},smokeU,{uSeed:{value:r*7.31+1.7},uW:{value:[1,.8,.62][r]},uA:{value:[.5,.38,.27][r]}});
   const mat=new T.SM({transparent:true,depthWrite:false,side:2,uniforms:u,
     vertexShader:`attribute float aT,aS;uniform float uT,uSeed,uW,uG;uniform vec3 uBase,uWind,uCamL;varying float vT,vS;varying vec2 vN;
       vec3 spine(float t){float h=t*${SMOKE_H.toFixed(1)};vec3 side=normalize(cross(uWind,vec3(0.,1.,0.)));
@@ -803,16 +810,16 @@ for(let r=0;r<3;r++){
         return uBase+vec3(0.,h*(1.-.18*t),0.)+uWind*(lean+sway*.4)+side*(curl+sway*.5);}
       void main(){vT=aT;vS=aS;vec3 p=spine(aT),p2=spine(min(aT+.02,1.)),q=spine(max(aT-.02,0.));
         vec3 tg=normalize(p2-q+vec3(0.,1e-4,0.)),vd=normalize(uCamL-p),sd=normalize(cross(tg,vd));
-        float w=mix(.6,4.6,pow(aT,.65))*uW;vec3 wp=p+sd*aS*w*.5;vN=vec2(aS*w*.5,aT*${SMOKE_H.toFixed(1)});
+        float w=mix(.7,5.,pow(aT,.65))*uW;vec3 wp=p+sd*aS*w*.5;vN=vec2(aS*w*.5,aT*${SMOKE_H.toFixed(1)});
         gl_Position=projectionMatrix*modelViewMatrix*vec4(wp,1.);}`,
-    fragmentShader:`uniform float uT,uSeed,uA,uOp;uniform vec3 uCol;varying float vT,vS;varying vec2 vN;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uSeed,uA,uOp,uNt;uniform vec3 uCol;varying float vT,vS;varying vec2 vN;${GLSL_NOISE}
       void main(){vec2 p=vec2(vN.x*1.1,vN.y*.5-uT*.5)+uSeed;
         float d=dfbm(p+vec2(dfbm(p*.6+uT*.04)*2.4,0.));float wisp=smoothstep(.3,.78,d);
         float across=1.-abs(vS+(d-.5)*.9*smoothstep(.05,.45,vT));float core=exp(-pow(1.-max(across,0.),2.)*1.8)*smoothstep(0.,.45,across);
         float a=uA*uOp*core*mix(.35,1.,wisp)*mix(1.,wisp*1.3,smoothstep(.02,.35,vT));
         float puff=dn2(vec2(uSeed*3.1,vN.y*.3-uT*.4));a*=mix(1.,.3+.7*smoothstep(.15,.6,puff),smoothstep(.03,.3,vT));
-        a*=smoothstep(0.,.16,vT)*(1.-smoothstep(.25,.85,vT));
-        if(a<.006)discard;gl_FragColor=vec4(uCol*mix(.95,1.04,vT),a);
+        a*=smoothstep(0.,.1,vT)*(1.-smoothstep(.22,.78,vT))*mix(1.9,.75,smoothstep(.06,.45,vT));
+        if(a<.006)discard;gl_FragColor=vec4(uCol*mix(.86,1.04,smoothstep(0.,.4,vT))+vec3(.42,.2,.07)*uNt*(1.-smoothstep(.02,.3,vT)),a);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`});
@@ -978,9 +985,9 @@ function phaseNow(){
   if(Ct.mode==="follow"){const h=new Date().getHours();if(h>=9&&h<16)return"day"}
   return"sunset"}
 const LIT={
-  sunset:{el:15,col:"#ffb469",I:3.05,sky:"#8c86c8",gnd:"#c08a62",hI:.5,exp:1,clear:0x8a6a70,mode:0,con:.09,sat:1.07,ray:.34,vig:.26,tint:[1.02,1,.96],lift:.012},
-  day:{el:46,col:"#fff0d8",I:2.9,sky:"#b4cdea",gnd:"#d8b483",hI:.95,exp:1,clear:0x9ab8d0,mode:1,con:.05,sat:1.03,ray:.1,vig:.2,tint:[1,1,1],lift:.008},
-  night:{el:29,col:"#7e9ff2",I:1.05,sky:"#1f3159",gnd:"#101218",hI:.14,exp:.7,clear:0x0a1428,mode:2,con:.12,sat:.78,ray:0,vig:.36,tint:[.86,.93,1.12],lift:0}};
+  sunset:{el:15,col:"#ffb469",I:3.05,sky:"#8c86c8",gnd:"#c08a62",hI:.5,exp:1,clear:0x8a6a70,mode:0,con:.09,sat:1.07,ray:.44,vig:.26,tint:[1.02,1,.96],lift:.012},
+  day:{el:46,col:"#fff0d8",I:2.9,sky:"#b4cdea",gnd:"#d8b483",hI:.95,exp:1,clear:0x9ab8d0,mode:1,con:.05,sat:1.03,ray:.16,vig:.2,tint:[1,1,1],lift:.008},
+  night:{el:21,col:"#abc9f0",I:1.6,sky:"#18295c",gnd:"#0b0d14",hI:.085,exp:.7,clear:0x0a1428,mode:2,con:.14,sat:.86,ray:0,vig:.36,tint:[.86,.93,1.12],lift:0}};
 const _c1=new C3(),_c2=new C3();
 let LK={sunset:1,day:0,night:0};
 function blendL(k){return LK.sunset*LIT.sunset[k]+LK.day*LIT.day[k]+LK.night*LIT.night[k]}
@@ -1054,11 +1061,11 @@ UPD.push((dt,t)=>{
   pondU.uT.value=t;pondU.uWind.value=wn;pondU.uNight.value=nk;pondU.uCamL.value.copy(_cl);
   {const d=pi.position.clone().normalize();d.applyAxisAngle(new V3(0,1,0),-YAW);pondU.uSunL.value.copy(d);pondU.uSunCol.value.copy(pi.color)}
   pondU.uSkyA.value.set(nk>.5?"#1a2440":st.day>.5?"#a8c4dc":"#d4aab8");sandU.uHaze.value.copy(pondU.uSkyA.value);pondU.uSkyB.value.set(nk>.5?"#0c1428":st.day>.5?"#5c88c0":"#7a6eb0");
-  smokeU.uT.value=t;smokeU.uG.value+=(gustAt(FIRE.x,FIRE.z)-smokeU.uG.value)*Math.min(1,dt*1.5);smokeU.uCamL.value.copy(_cl);smokeU.uCol.value.setRGB(mix(.66,.3,nk),mix(.6,.31,nk),mix(.56,.38,nk));
+  smokeU.uT.value=t;smokeU.uG.value+=(gustAt(FIRE.x,FIRE.z)-smokeU.uG.value)*Math.min(1,dt*1.5);smokeU.uCamL.value.copy(_cl);smokeU.uCol.value.setRGB(mix(.6,.3,nk),mix(.56,.31,nk),mix(.54,.38,nk));smokeU.uNt.value=nk;
   SMOKE.forEach(m=>{m.material.uniforms.uT.value=t});
   tentU.uWInv.value.copy(W.matrixWorld).invert();
   fireU.uT.value=t;fireU.uNight.value=nk;
-  if(fireL)fireL.intensity=(mix(.5,3.6,nk))*(1+.12*Math.sin(t*9)+.07*Math.sin(t*23));
+  if(fireL)fireL.intensity=(mix(.5,5.2,nk))*(1+.12*Math.sin(t*9)+.07*Math.sin(t*23));
   if(fireG.userData.charM)fireG.userData.charM.emissiveIntensity=mix(.25,.9,nk)*(1+.2*Math.sin(t*5));
   if(RACK.cloths){const gR=gustAt(RACK.x,RACK.z);RACK.cloths.forEach((c,i)=>{c.rotation.x=(Math.sin(t*1.6+c.userData.ph)*.06*(.6+.8*gR)+.05*(.4+1.2*gR))*(.4+wn)})}
   /* sand wisps: grains hop and drift with the local gust */
@@ -1140,8 +1147,32 @@ function steer(o,dy,max,dt){o.yr+=(cl(dy*1.8,-max,max)-o.yr)*ease(3,dt);o.yaw=wr
 const ANIM_MATS=[];
 function animalMats(o,tan){matsOf(o,m=>{cleanMat(m);m.roughness=Math.max(m.roughness||0,.75);if(!ANIM_MATS.includes(m))ANIM_MATS.push(m);
   /* Tripo's camel bakes a dark rust coat; keep its detail but shift it to a sun-faded dromedary tan */
-  if(tan&&m.map){m.color.set("#ffffff");m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace("#include <map_fragment>",`vec4 tx=texture2D(map,vMapUv);float l=dot(tx.rgb,vec3(.3,.59,.11));
-    diffuseColor.rgb=min(vec3(.86,.66,.42)*(.42+2.*l),vec3(1.));`)};m.customProgramCacheKey=()=>"des44tan";m.needsUpdate=true}});o.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;c.frustumCulled=false}})}
+  /* the texture is a patchwork atlas whose islands differ in brightness, so only its fine fold detail is kept;
+     the coat itself is painted in bind-pose metres (y up, 0..1.98 tall, ±1.4 long) so it runs continuously across seams */
+  if(tan&&m.map){m.color.set("#ffffff");m.roughness=.92;m.roughnessMap=null;m.metalness=0;m.metalnessMap=null;m.userData.coat=1;m.onBeforeCompile=sh=>{
+    sh.uniforms.uNight=sandU.uNight;
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nvarying vec3 vBP;varying vec3 vBN;")
+      .replace("#include <begin_vertex>","#include <begin_vertex>\nvBP=position;vBN=normal;");
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uNight;varying vec3 vBP;varying vec3 vBN;"+GLSL_NOISE+`
+float fur3(vec3 p,vec3 w,float k){return dn2(vec2(p.z*k,p.y*k*.22))*w.x+dn2(vec2(p.x*k,p.y*k*.22))*w.z+dn2(vec2(p.x*k,p.z*k*.3))*w.y;}`)
+    .replace("#include <map_fragment>",`vec3 bp=vBP,bn=normalize(vBN),tw=abs(bn);tw/=tw.x+tw.y+tw.z;
+      float l0=dot(texture2D(map,vMapUv).rgb,vec3(.3,.59,.11)),l4=dot(texture2D(map,vMapUv,4.).rgb,vec3(.3,.59,.11));
+      float h=bp.y/1.98;
+      vec3 col=vec3(.75,.51,.27);
+      col=mix(col,vec3(.86,.66,.42),smoothstep(.45,.95,bn.y)*smoothstep(.55,.8,h));
+      col=mix(col,vec3(.90,.74,.52),smoothstep(-.2,-.75,bn.y));
+      col=mix(col,vec3(.66,.49,.33),smoothstep(.36,.12,h));
+      col=mix(col,vec3(.24,.18,.14),smoothstep(.05,.0,h));
+      col=mix(col,vec3(.30,.22,.16),smoothstep(.035,.0,abs(h-.27))*.7);
+      float fw=length(fwidth(bp))*190.,fa=1.-smoothstep(.35,1.1,fw);
+      float clump=fur3(bp,tw,7.)-.5,strand=fur3(bp,tw,190.)-.5,mid=fur3(bp,tw,45.)-.5;
+      col*=1.+clump*.22+mid*.16*(1.-smoothstep(.6,2.,fw*.24))+strand*.3*fa;
+      col*=clamp(1.+(l0-l4)*1.7+(l4-.45)*.12,.55,1.35);
+      col=mix(col,vec3(dot(col,vec3(.3,.59,.11)))*vec3(.82,.9,1.),uNight*.6)*mix(1.,.62,uNight);
+      diffuseColor.rgb=col;`)
+    .replace("#include <opaque_fragment>",`{float fr=pow(1.-clamp(dot(normal,normalize(vViewPosition)),0.,1.),2.4);
+      outgoingLight+=fr*.45*vec3(1.,.8,.55)*(reflectedLight.directDiffuse+reflectedLight.indirectDiffuse);}
+      #include <opaque_fragment>`)};m.customProgramCacheKey=()=>"des48coat";m.needsUpdate=true}});o.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;c.frustumCulled=false}})}
 function groundFrame(x,z,yaw,L,Wd){
   const fx=Math.sin(yaw),fz=Math.cos(yaw),hf=hTop(x+fx*L,z+fz*L),hb=hTop(x-fx*L,z-fz*L),hc=hTop(x,z);
   const hl=hTop(x+fz*Wd,z-fx*Wd),hr=hTop(x-fz*Wd,z+fx*Wd);
@@ -1454,7 +1485,7 @@ const animalsReady=propsReady.then(()=>Promise.all([
   glb("snake_v3").then(({scene,animations})=>{const s=snakeSpawn(scene,animations);ANIM.snake=s;
     const sp=randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;Object.assign(s,{x:sp.x,z:sp.z,yaw:-.8,mode:"idle",timer:rr(1,3)});play(s.r,"slither",.01,.12)}).catch(()=>{})]));
 UPD.push((dt,t)=>{
-  {const envI=mix(.3,.08,st.night);for(const m of ANIM_MATS)m.envMapIntensity=envI}
+  {const envI=mix(.3,.08,st.night);for(const m of ANIM_MATS)m.envMapIntensity=m.userData.coat?envI*.7:envI}
   if(dt<=0)return;const d=Math.min(dt,.1);
   ANIM.camels.forEach(a=>camelUpdate(a,d));
   if(ANIM.eagle)eagleUpdate(ANIM.eagle,d);

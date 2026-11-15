@@ -41,6 +41,13 @@ SOURCES = {
     447319: ("antoineopeng", "Dragonfly.wav", "https://cdn.freesound.org/previews/447/447319_6400805-hq.mp3"),
     570203: ("RatBird", "Dragonfly Flying By.wav", "https://cdn.freesound.org/previews/570/570203_12508711-hq.mp3"),
     573935: ("TRP", "Grasshopper wing clicks snaps hot BADLANDS AB 190818.flac", "https://cdn.freesound.org/previews/573/573935_97550-hq.mp3"),
+    # weather: Sonoran monsoon rain and thunder, rain on tent cloth, mountain and distant thunder, sandstorm
+    866246: ("Fhmediahmo", "Lluvia y Truenos Monzon Hermosillo", "https://cdn.freesound.org/previews/866/866246_2797317-hq.mp3"),
+    484723: ("Breviceps", "Rain on tent", "https://cdn.freesound.org/previews/484/484723_9159316-hq.mp3"),
+    476231: ("felix.blume", "Thunders and sheperd in the mountain Las Narices", "https://cdn.freesound.org/previews/476/476231_1661766-hq.mp3"),
+    347562: ("mikala_oidua", "Distant Thunder Clap_Gentle.wav", "https://cdn.freesound.org/previews/347/347562_5481182-hq.mp3"),
+    632771: ("gbayles", "Sandstorm Looping", "https://cdn.freesound.org/previews/632/632771_4537135-hq.mp3"),
+    438877: ("craigsmith", "G56-22-Sandstorm.wav", "https://cdn.freesound.org/previews/438/438877_2524442-hq.mp3"),
 }
 
 # one-shots: key -> (source, start s, end s, high-pass Hz, fade-in s, fade-out s[, low-pass Hz])
@@ -75,6 +82,12 @@ SHOT = {
     "dDf3": (570203, 0.00, 1.95, 300, .05, .2, 9000),
     "dGh1": (573935, 3.65, 4.95, 2000, .03, .15),
     "dGh2": (573935, 9.88, 11.80, 2000, .03, .2),
+    # thunder: a close crack with its long roll (monsoon), two more monsoon claps, a mountain roll, a gentle distant clap
+    "dTh1": (866246, 47.0, 63.0, 22, .01, 2.5),
+    "dTh2": (866246, 640.2, 652.0, 22, .01, 2.5),
+    "dTh3": (866246, 730.6, 743.0, 22, .01, 2.5),
+    "dTh4": (476231, 10.0, 26.0, 22, .2, 2.5),
+    "dTh5": (347562, 0.0, 18.4, 22, .05, 2.5),
 }
 # loops: key -> (source, start s, length s, high-pass Hz, target rms dB, stereo)
 LOOPS = {
@@ -82,6 +95,10 @@ LOOPS = {
     "dCalm": (697217, 0.5, 36.0, 30, -22, True),
     "dSnd": (825860, 0.5, 20.0, 250, -22, True),
     "dFire": (363092, 0.5, 19.0, 90, -20, True),
+    "dRn": (866246, 19.0, 22.0, 120, -20, True),
+    "dRt": (484723, 30.0, 22.0, 150, -20, True),
+    "dStm": (632771, 20.0, 30.0, 30, -18, True),
+    "dStS": (438877, 3.0, 30.0, 200, -20, True),
 }
 GRAIN = {"dSnk": (851733, 8.0, -20)}
 

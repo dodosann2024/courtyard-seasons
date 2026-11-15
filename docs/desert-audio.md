@@ -23,6 +23,12 @@ desert scene, through its own bus under the app's master volume.
 | [447319](https://freesound.org/people/antoineopeng/sounds/447319/) | antoineopeng | Dragonfly.wav | `dDf1`, `dDf2` dragonfly wing passes over the water |
 | [570203](https://freesound.org/people/RatBird/sounds/570203/) | RatBird | Dragonfly Flying By.wav | `dDf3` dragonfly fly-by |
 | [573935](https://freesound.org/people/TRP/sounds/573935/) | TRP | Grasshopper wing clicks snaps hot BADLANDS | `dGh1`, `dGh2` grasshopper wing snaps in the vegetation |
+| [866246](https://freesound.org/people/Fhmediahmo/sounds/866246/) | Fhmediahmo | Lluvia y Truenos Monzon Hermosillo | `dRn` desert monsoon rain bed; `dTh1`–`dTh3` close thunder cracks with their roll |
+| [484723](https://freesound.org/people/Breviceps/sounds/484723/) | Breviceps | Rain on tent | `dRt` rain drumming on the tent cloth |
+| [476231](https://freesound.org/people/felix.blume/sounds/476231/) | felix.blume | Thunders and sheperd in the mountain Las Narices | `dTh4` far rolling thunder |
+| [347562](https://freesound.org/people/mikala_oidua/sounds/347562/) | mikala_oidua | Distant Thunder Clap_Gentle.wav | `dTh5` distant thunder |
+| [632771](https://freesound.org/people/gbayles/sounds/632771/) | gbayles | Sandstorm Looping | `dStm` sandstorm roar |
+| [438877](https://freesound.org/people/craigsmith/sounds/438877/) | craigsmith | G56-22-Sandstorm.wav | `dStS` sandstorm sand hiss |
 
 Playback (`src/desert.js`, `sound()`): every voice is panned, attenuated and low-passed from its position
 relative to the camera. The eagle screams on a random 11–24 s timer while soaring and gives short cries on
@@ -40,3 +46,12 @@ grass, two water frogs at the edge, one dragonfly over the water and two grassho
   overview.
 - **Wind:** while the wind and gusts are strong the insects stop (the bus dips and no new calls start); they
   resume in the lulls.
+
+Weather (`wxUpdate()` and `sound()` in `src/desert.js`). The weather sounds load only when that weather comes.
+- **Showers:** the rain bed follows the rain's strength, and the tent loop sits at the tent, so it is heard only
+  close by. Wet sand stops the blowing-sand hiss until it dries. Insects fall silent in the rain, and after it
+  the frogs call for a few minutes, by day too.
+- **Thunderstorm:** each strike is seen first and heard after the sound's travel time (up to about 5 s). Near
+  strikes crack and far ones roll, and the sound comes from the side the bolt fell on.
+- **Sand/dust storm:** the roar and the sand hiss rise with the storm level (浮尘 to 强沙尘暴). The insects stop,
+  and the wind bed rises with the stronger wind.

@@ -696,12 +696,12 @@ const propsReady=Promise.all([
         float band=mix(.84,1.06,sh)*(1.-.14*smoothstep(.42,.5,abs(fract(ac/.55)-.5)));
         vec2 wv=vec2(al,vTI.y)/.03;float aw=1.-smoothstep(.3,.8,max(fwidth(wv.x),fwidth(wv.y)));
         float weave=1.+.1*aw*sin(wv.x*6.2832)*sin(wv.y*6.2832+1.5708*step(.5,fract(wv.x*.5)));
-        vec3 cloth=vec3(.47,.37,.27)*(.7+2.2*l)*band*weave;
-        diffuseColor.rgb=mix(vec3(.30,.20,.12),min(cloth,vec3(.62,.5,.37)),smoothstep(.015,.07,l));
+        vec3 cloth=vec3(.4,.33,.26)*(.7+2.*l)*band*weave;
+        diffuseColor.rgb=mix(vec3(.30,.20,.12),min(cloth,vec3(.52,.43,.33)),smoothstep(.015,.07,l));
         #endif`).replace("#include <lights_fragment_end>",`#include <lights_fragment_end>
-        reflectedLight.indirectDiffuse*=vec3(1.06,.98,.88);
+        reflectedLight.indirectDiffuse*=vec3(1.02,.99,.95);
         {vec3 Ld=normalize((viewMatrix*vec4(uSunD,0.)).xyz);float back=pow(max(dot(-geometryViewDir,Ld),0.),2.);
-         float trans=max(-dot(normal,Ld),0.);vec3 warm=mix(vec3(1.,.6,.3),vec3(1.),uNt);
+         float trans=max(-dot(normal,Ld),0.);vec3 warm=mix(vec3(1.,.72,.45),vec3(1.),uNt);
          float cm=smoothstep(.12,.22,diffuseColor.r);
          reflectedLight.indirectDiffuse+=diffuseColor.rgb*uSunC*warm*trans*(.03+.16*back)*cm;
          float rim=pow(1.-clamp(abs(dot(normal,geometryViewDir)),0.,1.),3.);

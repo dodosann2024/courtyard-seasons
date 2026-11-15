@@ -44,7 +44,7 @@ const rimF=th=>1+.06*Math.sin(2*th+.7)+.05*Math.sin(3*th-1.2)+.03*Math.sin(5*th+
 function sN(x,z){const qx=x/AX,qz=z/AZ;return Math.hypot(qx,qz)/rimF(Math.atan2(qz,qx))}
 function edgeXZ(th,s){const f=rimF(th)*s;return[AX*f*Math.cos(th),AZ*f*Math.sin(th)]}
 
-const POND={x:-9.2,z:6.4,rx:6.9,rz:5,wy:-.42};
+const POND={x:-7.2,z:6.2,rx:6.9,rz:5,wy:-.42};
 const pondF=th=>1+.09*Math.sin(2*th+1.1)+.06*Math.sin(3*th-.4)+.04*Math.sin(5*th+2.3);
 function pN(x,z){const qx=(x-POND.x)/POND.rx,qz=(z-POND.z)/POND.rz;return Math.hypot(qx,qz)/pondF(Math.atan2(qz,qx))}
 /* two open sandy beaches: camels drink at the east one, the eagle at the west one */
@@ -94,12 +94,12 @@ function dDelta(x,z){if(!DLIVE)return 0;const m=dMaskG(x,z);return m>0?m*(duneP(
 
 /* reference2 layout: pond left-front by the rim, palms just behind it, tent + fire centre-right,
    dune behind-right, tall saguaro on the left rim, small one front-right */
-const TENT={x:4.2,z:-3.9,yaw:-.24,L:6,D:4,H:2.2};
+const TENT={x:5.4,z:-3.9,yaw:-.24,L:6,D:4,H:2.2};
 const tentFwd={x:Math.sin(TENT.yaw),z:Math.cos(TENT.yaw)},tentRt={x:Math.cos(TENT.yaw),z:-Math.sin(TENT.yaw)};
 const FIRE={x:TENT.x+tentFwd.x*(TENT.D*.5+2.3)-tentRt.x*1.5,z:TENT.z+tentFwd.z*(TENT.D*.5+2.3)-tentRt.z*1.5};
 const RACK={x:TENT.x+tentRt.x*5.1+tentFwd.x*.9,z:TENT.z+tentRt.z*5.1+tentFwd.z*.9,yaw:TENT.yaw};
-const PALMS=[{x:-5.6,z:-1.6,h:11.8,lean:[.05,-.06],ry:.4},{x:-2.4,z:-3.6,h:10.8,lean:[.07,.05],ry:2.1},{x:-9.4,z:-.2,h:7.6,lean:[-.06,.04],ry:4.0}];
-const SAG=[{x:-19.6,z:-3.4,h:5.2,ry:.6},{x:7.4,z:8.6,h:2.0,ry:2.4}];
+const PALMS=[{x:-3.6,z:-1.8,h:11.8,lean:[.05,-.06],ry:.4},{x:-1.0,z:-4.2,h:10.8,lean:[.07,.05],ry:2.1},{x:-7.2,z:-.5,h:7.6,lean:[-.06,.04],ry:4.0}];
+const SAG=[{x:-19.6,z:-3.4,h:5.2,ry:.6},{x:12.6,z:6.2,h:2.0,ry:2.4}];
 const PADS=[{x:TENT.x,z:TENT.z,rx:5.2,rz:4.2,yaw:TENT.yaw},{x:FIRE.x,z:FIRE.z,rx:2.2,rz:2.2,yaw:0},{x:RACK.x,z:RACK.z,rx:2.4,rz:1.6,yaw:RACK.yaw}];
 
 function hRaw(x,z){
@@ -454,41 +454,47 @@ function vegMat(opt){
       .replace("#include <beginnormal_vertex>","vec3 objectNormal=normalize(mix(normal,vec3(0.,1.,0.),"+opt.up.toFixed(2)+"));\n#ifdef USE_TANGENT\nvec3 objectTangent=vec3(tangent.xyz);\n#endif");
   };
   m.customProgramCacheKey=()=>"des45veg"+opt.sway+opt.up;return m}
+/* a tuft is 2–4 offset sub-clumps leaning mostly one way, with uneven blade lengths, so it never reads as a ball */
 function tuftGeo(nb,lean,wid,c0,c1,seed){
   const pos=[],col=[],idx=[];sd=seed;
-  for(let b=0;b<nb;b++){const a=b/nb*TAU+rr(-.3,.3),ln=rr(lean[0],lean[1]),hh=rr(.65,1),w=wid*rr(.7,1.2),seg=4,base=pos.length/3;
-    const dx=Math.cos(a),dz=Math.sin(a),px=-dz,pz=dx;
+  const nc=2+Math.floor(rnd()*3),bias=rnd()*TAU,subs=[];for(let k=0;k<nc;k++){const a=rnd()*TAU,r=rr(.04,.24);subs.push([Math.cos(a)*r,Math.sin(a)*r,rr(.55,1)])}
+  for(let b=0;b<nb;b++){const sb=subs[b%nc],a=rnd()<.6?bias+rr(-1.1,1.1):rnd()*TAU,ln=rr(lean[0],lean[1])*rr(.6,1.15),hh=sb[2]*rr(.45,1)*(rnd()<.15?1.25:1),w=wid*rr(.5,1),seg=4,base=pos.length/3;
+    const dx=Math.cos(a),dz=Math.sin(a),px=-dz,pz=dx,ox=sb[0]*hh,oz=sb[1]*hh;
     for(let i=0;i<=seg;i++){const u=i/seg,bend=ln*u*u*1.3+ln*.3*u,y=hh*u*(1-.15*bend),r=bend*hh*.55+.02,ww=w*(1-u*.92);
-      const cx=dx*r,cz=dz*r;pos.push(cx-px*ww,y,cz-pz*ww,cx+px*ww,y,cz+pz*ww);
+      const cx=ox+dx*r,cz=oz+dz*r;pos.push(cx-px*ww,y,cz-pz*ww,cx+px*ww,y,cz+pz*ww);
       const k=Math.pow(u,.8),cc=[c0[0]+(c1[0]-c0[0])*k,c0[1]+(c1[1]-c0[1])*k,c0[2]+(c1[2]-c0[2])*k];col.push(...cc,...cc);
       if(i<seg){const o=base+i*2;idx.push(o,o+1,o+2,o+1,o+3,o+2)}}}
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("color",new T.BA(new Float32Array(col),3));g.setIndex(idx);g.computeVertexNormals();return g}
 const lin=h=>{const c=new C3(h);return[c.r,c.g,c.b]};
 const VEG=[];
 /* per-instance tint (multiplies the vertex colours) so no two clumps share a hue */
-const TINTS=[[1,1,1],[1.12,1.04,.78],[.86,.96,.92],[.9,.84,.66],[1.05,1.08,.9],[.78,.86,.72]];
+const TINTS=[[1,1,1],[1.04,.98,.8],[.86,.94,.9],[.92,.86,.7],[.96,1.,.88],[.78,.84,.72]];
 function scatter(geo,mat,list){const im=new T.IM(geo,mat,list.length),m=new T.M4(),q=new T.Quat(),c=new C3();
   list.forEach((p,i)=>{q.setFromAxisAngle(new V3(0,1,0),p.ry);m.compose(new V3(p.x,hTop(p.x,p.z)-.04,p.z),q,new V3(p.s,p.h,p.s*(p.sz||1)));im.setMatrixAt(i,m);
     const t=TINTS[p.tint!=null?p.tint:Math.floor(rnd()*TINTS.length)],j=p.j||rr(.85,1.12);im.setColorAt(i,c.setRGB(t[0]*j,t[1]*j,t[2]*j))});
   im.castShadow=true;im.receiveShadow=true;im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;W.add(im);VEG.push(im);return im}
 (function plantOasis(){
-  const grassG=tuftGeo(11,[.25,.75],.022,lin("#3a6420"),lin("#b5c95c"),11),dryG=tuftGeo(9,[.35,.9],.016,lin("#6a5a2c"),lin("#c9b06a"),12);
-  const reedG=tuftGeo(7,[.02,.16],.016,lin("#3a4a22"),lin("#8f9a4c"),13),clumpG=tuftGeo(23,[.15,.95],.02,lin("#2f5a1c"),lin("#a7c25a"),14);
-  /* desert shrubs: splayed, twiggy, sage-to-olive — same blade system, many more blades and a wider fan */
-  const shrubG=[tuftGeo(38,[.55,1.25],.026,lin("#3d4a24"),lin("#9aa864"),15),tuftGeo(30,[.7,1.4],.022,lin("#4a4524"),lin("#b3a868"),16)];
+  /* three shape variants per kind; olive and sage rather than spring green */
+  const V3G=(nb,ln,w,a,b,sd0)=>[0,1,2].map(k=>tuftGeo(nb,ln,w,lin(a),lin(b),sd0*7+k*101));
+  const grassG=V3G(13,[.25,.8],.02,"#2a4419","#7f9a4c",11),dryG=V3G(9,[.35,.9],.016,"#5e5030","#b09a62",12);
+  const reedG=V3G(7,[.02,.16],.014,"#34441f","#7f8a48",13),clumpG=V3G(28,[.2,1.],.019,"#243c16","#748c48",14);
+  /* desert shrubs: splayed, twiggy, sage-to-olive — same blade system, more blades and a wider, lopsided fan */
+  const shrubG=[V3G(44,[.55,1.3],.021,"#2e3c1c","#748450",15),V3G(34,[.7,1.4],.019,"#433f24","#948a5c",16)];
   const gm=vegMat({sway:.07,up:.65}),rm=vegMat({sway:.05,up:.5}),sm=vegMat({sway:.025,up:.55});
   const L=[],C=[],D=[],R=[],SH=[[],[]];const N=MOB?0.55:1;
   const okW=(x,z)=>hTop(x,z)>=POND.wy+.04&&sN(x,z)<.93;
   /* waterline: dense, uneven clumps that thin out with distance from the water */
-  for(let c=0;c<Math.round(84*N);c++){const th=c/Math.round(84*N)*TAU+rr(-.05,.05);if(beachGap(th)<.28)continue;
-    const k0=1+Math.pow(rnd(),1.6)*.3,[cx,cz]=pondEdge(th,k0),rad=rr(.5,1.4),n=Math.round(rr(6,16)*(rnd()<.2?.45:1)),tint=Math.floor(rnd()*TINTS.length);
+  for(let c=0;c<Math.round(60*N);c++){const th=c/Math.round(60*N)*TAU+rr(-.06,.06);if(beachGap(th)<.28)continue;
+    /* density drifts around the shore: thick stands, thin stretches and a few bare gaps */
+    const dens=.5+.5*Math.sin(th*2.3+1.1)*Math.sin(th*1.3+.4);if(dens<.12)continue;
+    const k0=1+Math.pow(rnd(),1.6)*.3,[cx,cz]=pondEdge(th,k0),rad=rr(.45,1.4),n=Math.round(rr(4,16)*dens),tint=Math.floor(rnd()*TINTS.length);
     for(let i=0;i<n;i++){const a=rnd()*TAU,r=Math.sqrt(rnd())*rad,x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;if(!okW(x,z))continue;const near=1-ss(1,1.6,pN(x,z));
       (rnd()<.35?C:L).push({x,z,ry:rnd()*TAU,s:rr(.7,1.35),h:rr(.3,.55)+.45*near*rr(.5,1),tint:rnd()<.7?tint:undefined})}}
   /* sparse fill between clumps so the ring reads continuous but not mown */
-  for(let i=0;i<Math.round(420*N);i++){const th=rnd()*TAU,k=1+Math.pow(rnd(),2.2)*.9,[x,z]=pondEdge(th,k);if((beachGap(th)<.3&&k<1.5)||!okW(x,z))continue;
+  for(let i=0;i<Math.round(190*N);i++){const th=rnd()*TAU,k=1+Math.pow(rnd(),2.2)*.9,[x,z]=pondEdge(th,k);if((beachGap(th)<.3&&k<1.5)||!okW(x,z)||rnd()>.35+.65*(.5+.5*Math.sin(th*2.3+1.1)*Math.sin(th*1.3+.4)))continue;
     L.push({x:x+rr(-.3,.3),z:z+rr(-.3,.3),ry:rnd()*TAU,s:rr(.6,1.1),h:rr(.2,.45)})}
   /* patches under the palms */
-  PALMS.forEach((p,pi_)=>{for(let c=0;c<4;c++){const a=rnd()*TAU,r=rr(.8,3.4),cx=p.x+Math.cos(a)*r,cz=p.z+Math.sin(a)*r,n=Math.round(rr(4,12)*N);
+  PALMS.forEach((p,pi_)=>{for(let c=0;c<2+pi_%2;c++){const a=rnd()*TAU,r=rr(.8,3.4),cx=p.x+Math.cos(a)*r,cz=p.z+Math.sin(a)*r,n=Math.round(rr(4,12)*N);
     for(let i=0;i<n;i++){const b=rnd()*TAU,q=Math.sqrt(rnd())*rr(.6,1.3),x=cx+Math.cos(b)*q,z=cz+Math.sin(b)*q;if(pN(x,z)<1.02||!okW(x,z))continue;(rnd()<.3?C:L).push({x,z,ry:rnd()*TAU,s:rr(.7,1.2),h:rr(.28,.62)})}}});
   /* dry tufts in the open sand: small groups, never on the dune face */
   for(let c=0;c<Math.round(26*N);c++){let x0,z0,ok=0;for(let t=0;t<20&&!ok;t++){const a=rnd()*TAU,r=Math.sqrt(rnd())*.86;[x0,z0]=edgeXZ(a,r);ok=pN(x0,z0)>2.3&&clearOf(x0,z0,1)&&duneH(x0,z0)<.5}
@@ -497,17 +503,18 @@ function scatter(geo,mat,list){const im=new T.IM(geo,mat,list.length),m=new T.M4
     for(let i=0;i<rr(3,9);i++)R.push({x:x0+rr(-.6,.6),z:z0+rr(-.6,.6),ry:rnd()*TAU,s:rr(.9,1.3),h:rr(1.,2.1)})}
   /* few, irregular shrubs: back of the pond and under the palms; two weathered ones out on the sand */
   const shrub=(x,z,s,h,v)=>{if(pN(x,z)<1.15||!clearOf(x,z,s*.5))return;SH[v].push({x,z,s,h,sz:rr(.7,1.15),ry:rnd()*TAU});addOb(x,z,s*.45,"shrub")};
-  [[3.6,1.35,1.5,1.05],[3.95,1.5,1.1,.8],[4.4,1.28,1.9,1.25],[4.9,1.42,.9,.6],[5.5,1.3,1.4,.95],[2.2,1.45,1.2,.85]].forEach(([th,k,s,h],i)=>{const[x,z]=pondEdge(th,k);shrub(x,z,s,h,i%2)});
-  PALMS.forEach((p,i)=>{const a=1.3+i*2.1,r=rr(1.8,2.8);shrub(p.x+Math.cos(a)*r,p.z+Math.sin(a)*r,rr(1.1,1.7),rr(.75,1.15),0)});
+  [[3.7,1.38,1.4,.95],[4.45,1.3,1.8,1.15],[5.4,1.33,1.2,.8],[2.2,1.48,1.,.7]].forEach(([th,k,s,h],i)=>{const[x,z]=pondEdge(th,k);shrub(x,z,s,h,i%2)});
+  PALMS.forEach((p,i)=>{if(i===1)return;const a=1.3+i*2.1,r=rr(1.8,2.8);shrub(p.x+Math.cos(a)*r,p.z+Math.sin(a)*r,rr(1.1,1.7),rr(.75,1.15),0)});
   shrub(-16.5,-9,.8,.55,1);shrub(12.5,7.4,.7,.5,1);
-  scatter(grassG,gm,L);scatter(clumpG,gm,C);scatter(dryG,gm,D);scatter(reedG,rm,R);scatter(shrubG[0],sm,SH[0]);scatter(shrubG[1],sm,SH[1]);
+  const scatterV=(gs,m,l)=>gs.forEach((g,k)=>scatter(g,m,l.filter((_,i)=>i%gs.length===k)));
+  scatterV(grassG,gm,L);scatterV(clumpG,gm,C);scatterV(dryG,gm,D);scatterV(reedG,rm,R);scatterV(shrubG[0],sm,SH[0]);scatterV(shrubG[1],sm,SH[1]);
 })();
 /* ---------------- rim boulders + scattered stones (0.3–2 m) ---------------- */
 (function rocks(){
   const L=[];
   const put=(x,z,s)=>{if(pN(x,z)<1.5||!clearOf(x,z,s*.6+.3))return false;L.push({x,z,s,sx:rr(.8,1.3),sz:rr(.8,1.25),ry:rnd()*TAU});addOb(x,z,s*.75,"rock");return true};
   /* clusters along the rim: a big one with satellites */
-  for(let c=0;c<11;c++){const th=c/11*TAU+rr(-.2,.2),[x,z]=edgeXZ(th,rr(.91,.95));const big=rnd()<.3?rr(.75,1.1):rr(.4,.7);
+  for(let c=0;c<11;c++){const th=c/11*TAU+rr(-.2,.2),[x,z]=edgeXZ(th,rr(.91,.95));if(duneH(x,z)>.35)continue;const big=rnd()<.3?rr(.75,1.1):rr(.4,.7);
     if(!put(x,z,big))continue;for(let k=0;k<rr(0,2.6);k++){const a=rnd()*TAU,r=big*rr(.9,1.6);put(x+Math.cos(a)*r,z+Math.sin(a)*r,rr(.25,.4))}}
   /* front cluster (reference: just right of the pond, near the front rim) */
   [[.8,13.4,1.1],[2.1,14.1,.55],[-.4,14.3,.4],[1.6,12.3,.3]].forEach(([x,z,s])=>put(x,z,s));
@@ -769,7 +776,7 @@ function sandSeed(i,init){
 for(let i=0;i<SAND.n;i++)sandSeed(i,true);
 /* crest veil: fine sand torn off the dune crest, streaming downwind and up over the slip face, thicker in gusts */
 const CUR={NS:MOB?28:44,NK:MOB?7:10};
-const curU={uT:{value:0},uCol:{value:new C3()},uSheen:{value:new C3()},uLd:sandU.uLd};
+const curU={uNt:{value:0},uT:{value:0},uCol:{value:new C3()},uSheen:{value:new C3()},uLd:sandU.uLd};
 const CURT=(()=>{const{NS,NK}=CUR,n=(NS+1)*(NK+1),g=new T.BG(),P=new Float32Array(n*3),U=new Float32Array(n*2),Hv=new Float32Array(n),idx=[];
   for(let i=0;i<=NS;i++)for(let k=0;k<=NK;k++){const o=i*(NK+1)+k;U[o*2]=i/NS;U[o*2+1]=k/NK}
   for(let i=0;i<NS;i++)for(let k=0;k<NK;k++){const a=i*(NK+1)+k,b=a+NK+1;idx.push(a,b,a+1,b,b+1,a+1)}
@@ -778,13 +785,15 @@ const CURT=(()=>{const{NS,NK}=CUR,n=(NS+1)*(NK+1),g=new T.BG(),P=new Float32Arra
     vertexShader:`attribute float aH;varying vec2 vUv;varying float vH,vFs;varying vec3 vW;uniform vec3 uLd;
       void main(){vUv=uv;vH=aH;vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);
         gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uT;uniform vec3 uCol,uSheen;varying vec2 vUv;varying float vH,vFs;varying vec3 vW;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uNt;uniform vec3 uCol,uSheen;varying vec2 vUv;varying float vH,vFs;varying vec3 vW;${GLSL_NOISE}
       void main(){float k=vUv.y,s=vUv.x;
         float st=dn2(vec2(s*60.,k*1.4-uT*1.2))*.45+dn2(vec2(s*160.+3.,k*3.-uT*2.4))*.55;
         float gr=dn2(vec2(s*420.,k*40.-uT*8.));
         float fr=dn2(vec2(s*7.+uT*.3,k*2.-uT*.8));
         float wp=smoothstep(.32,.68,dn2(vec2(s*11.+uT*.25,k*1.3-uT*.7)));
-        float a=vH*smoothstep(0.,.04,k)*pow(1.-k,2.)*(1.-smoothstep(.2+.65*fr,1.,k))*mix(.1,1.,smoothstep(.3,.75,st))*(.55+.45*gr)*mix(.05,1.,wp)*smoothstep(0.,.12,s)*smoothstep(1.,.88,s);
+        /* mostly separate grains over a thin haze, so it reads as sand rather than mist */
+        float sp=smoothstep(.5,.8,dn2(vec2(s*560.+7.,k*60.-uT*10.)))+.7*smoothstep(.52,.82,dn2(vec2(s*300.,k*30.-uT*6.5)));
+        float a=vH*smoothstep(0.,.04,k)*pow(1.-k,2.2)*(1.-smoothstep(.15+.6*fr,1.,k))*mix(.08,1.,smoothstep(.35,.78,st))*(.2+.45*gr+1.5*sp)*mix(.03,1.,wp)*smoothstep(0.,.12,s)*smoothstep(1.,.88,s);
         /* a sheet seen edge-on piles up alpha into a hard line; thin it at grazing angles */
         vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.15,1.,smoothstep(.08,.6,abs(dot(N,normalize(cameraPosition-vW)))));
         if(a<.004)discard;
@@ -792,7 +801,7 @@ const CURT=(()=>{const{NS,NK}=CUR,n=(NS+1)*(NK+1),g=new T.BG(),P=new Float32Arra
         gl_FragColor=vec4(uCol*(1.+.2*k)+uSheen*vFs*(1.-.4*k),1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
-        a=min(a*1.7*mix(.45,1.,vFs),.9);gl_FragColor=vec4(gl_FragColor.rgb*a,a*mix(.4,.3,vFs));
+        a=min(a*2.3*mix(.45,1.,vFs),.85);gl_FragColor=vec4(gl_FragColor.rgb*mix(vec3(1.),vec3(1.,.78,.42),.75*(1.-uNt))*a,a*mix(.4,.3,vFs));
       }`});
   const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=6;W.add(o);return{o,g,P,Hv}})();
 function curtainUpdate(t){
@@ -971,8 +980,8 @@ UPD.push((dt,t)=>{
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
     curU.uCol.value.set("#f0d2a0").multiply(_c1.clone().multiplyScalar(.5).add(_c2.clone().multiplyScalar(.5)).add(dc?dc.color.clone().multiplyScalar(dc.intensity):_c2));
-    curU.uSheen.value.set("#f6d6a0").multiply(_c1).multiplyScalar(.85)}
-  curU.uT.value=t;curtainUpdate(t);
+    curU.uSheen.value.set("#ffb45c").multiply(_c1).multiplyScalar(.55)}
+  curU.uT.value=t;curU.uNt.value=nk;curtainUpdate(t);
   const gT=gustAt(TENT.x,TENT.z);
   vegU.uT.value=t;vegU.uWind.value=.4+wn;propU.uT.value=t;propU.uWind.value=(.4+wn)*(.55+.9*gT);
   pondU.uT.value=t;pondU.uWind.value=wn;pondU.uNight.value=nk;pondU.uCamL.value.copy(_cl);
@@ -1061,7 +1070,7 @@ function groundFrame(x,z,yaw,L,Wd){
   return{y:Math.max((hf+hb)*.5,hc-.12),pitch:-Math.atan2(hf-hb,2*L),roll:cl(Math.atan2(hl-hr,2*Wd),-.2,.2)}}
 
 /* ---- camels ---- */
-const REST=[{...tl(4.2,5.2),yaw:TENT.yaw+Math.PI/2+.15},{x:11.6,z:4.6,yaw:-Math.PI/2-.35}];
+const REST=[{...tl(4.2,5.2),yaw:TENT.yaw+Math.PI/2+.15},{x:14.2,z:2.6,yaw:-Math.PI/2-.35}];
 const DRINK=(()=>{const th=BEACH[0],[x,z]=pondEdge(th,1),nx=Math.cos(th),nz=Math.sin(th);return{x:x+nx*1.0,z:z+nz*1.0,yaw:Math.atan2(-nx,-nz)}})();
 /* kneel/lie: fold each leg segment about the camel's lateral axis (degrees, + swings the lower end back) */
 const KNEEL=[["tripo0_Left_Limb_1",-72],["tripo0_Left_Limb_2",152],["tripo0_Right_Limb_1",-72],["tripo0_Right_Limb_2",152],

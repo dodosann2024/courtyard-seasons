@@ -206,7 +206,8 @@ function sandMat(){
       .replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
         {float fw=length(fwidth(vSP.xz));
          float pn2=pondN(vSP.xz);
-         float k=uRip*(1.-smoothstep(.05,.22,fw))*smoothstep(1.3,1.8,pn2)*smoothstep(.55,.85,normalize(vSN).y);
+         vec3 nS=normalize(vSN);float lee=smoothstep(.08,.3,dot(nS.xz,uRipDir));
+         float k=uRip*(1.-smoothstep(.05,.22,fw))*smoothstep(1.3,1.8,pn2)*smoothstep(.35,.7,nS.y)*(1.-.85*lee);
          if(k>.001){float e=.04,h0=ripH(vSP.xz);
            vec2 g=vec2(ripH(vSP.xz+vec2(e,0.))-h0,ripH(vSP.xz+vec2(0.,e))-h0)/e*.022*k;
            vec3 nL=normalize(normalize(vSN)-vec3(g.x,0.,g.y));

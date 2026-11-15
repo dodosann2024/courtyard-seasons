@@ -163,7 +163,7 @@ const sandU={uWy:{value:POND.wy},uRipDir:{value:new T.V2(WIND.x,WIND.z)},uRip:{v
   uSandA:{value:new C3("#e8a95c")},uSandB:{value:new C3("#c98444")},uWet:{value:new C3("#8a6c4c")},uSoil:{value:new C3("#a39457")},
   uPond:{value:new T.V4(POND.x,POND.z,POND.rx,POND.rz)},
   uDA:{value:new T.V4()},uDB:{value:new T.V4()},uDA0:{value:new T.V4(DUNE0.x,DUNE0.z,DUNE0.H,DUNE0.w)},uDB0:{value:new T.V4(DUNE0.Lw,DUNE0.Ll,DUNE0.cv,DUNE0.sk)},uDYaw:{value:DUNE0.yaw},
-  uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)}};
+  uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)},uHaze:{value:new C3("#d4aab8")}};
 const GLSL_DUNE=`uniform vec4 uDA,uDB,uDA0,uDB0;uniform float uDYaw;
   float duneG(vec2 p,vec4 A,vec4 B){float c=cos(uDYaw),s=sin(uDYaw);vec2 d=p-A.xy;float u=d.x*c-d.y*s,v=d.x*s+d.y*c,vn=v/A.w,dd=u-B.z*vn*vn+B.w*vn;
     float hv=exp(-vn*vn*1.15),pp=dd<0.?exp(-(dd/B.x)*(dd/B.x)):pow(max(0.,1.-dd/B.y),1.3);return A.z*hv*pp;}
@@ -185,7 +185,7 @@ function sandMat(){
       .replace("#include <begin_vertex>",`#include <begin_vertex>
         ${SAND_DISP}vSP=transformed;vSN=objectNormal;vWP=(modelMatrix*vec4(transformed,1.)).xyz;`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh;uniform vec2 uRipDir;uniform vec3 uLd;
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh;uniform vec2 uRipDir;uniform vec3 uLd,uHaze;
       uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;${GLSL_NOISE}${GLSL_GUST}
       float pondN(vec2 p){vec2 q=(p-uPond.xy)/uPond.zw;float th=atan(q.y,q.x);
         return length(q)/(1.+.09*sin(2.*th+1.1)+.06*sin(3.*th-.4)+.04*sin(5.*th+2.3));}
@@ -203,14 +203,20 @@ function sandMat(){
         sc=mix(sc,uSoil,soil*.8);
         float wet=smoothstep(uWy+.32,uWy+.04,vSP.y)*smoothstep(1.25,.9,pn);
         sc=mix(sc,uWet,wet);
+        /* close up the sand resolves into grains: per-grain brightness scatter and the odd dark mineral fleck */
+        {float fwc=length(fwidth(vSP.xz)),gd=1.-smoothstep(.012,.07,fwc);
+         float g1=dh2(floor(vSP.xz*64.)),g2=dn2(vSP.xz*17.+5.);
+         sc*=1.+gd*((g1-.5)*.12+(g2-.5)*.1);sc=mix(sc,sc*vec3(.58,.52,.48),gd*step(.97,g1)*.7*(1.-wet));}
         diffuseColor.rgb=mix(sc,vec3(dot(sc,vec3(.3,.59,.11)))*vec3(.54,.68,1.08),uNight*.8)*mix(1.,.46,uNight);`)
       .replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
+        float ripAO=1.;
         {float fw=length(fwidth(vSP.xz));
          float pn2=pondN(vSP.xz);
          vec3 nS=normalize(vSN);float lee=smoothstep(.08,.3,dot(nS.xz,uRipDir));
-         float k=uRip*(1.-smoothstep(.05,.22,fw))*smoothstep(1.3,1.8,pn2)*smoothstep(.35,.7,nS.y)*(1.-.85*lee);
+         float k=uRip*(1.-smoothstep(.07,.3,fw))*smoothstep(1.3,1.8,pn2)*smoothstep(.35,.7,nS.y)*(1.-.85*lee);
          if(k>.001){float e=.04,h0=ripH(vSP.xz);
-           vec2 g=vec2(ripH(vSP.xz+vec2(e,0.))-h0,ripH(vSP.xz+vec2(0.,e))-h0)/e*.022*k;
+           vec2 g=vec2(ripH(vSP.xz+vec2(e,0.))-h0,ripH(vSP.xz+vec2(0.,e))-h0)/e*.036*k;
+           ripAO=1.-.13*k*(.5-.5*h0);
            vec3 nL=normalize(normalize(vSN)-vec3(g.x,0.,g.y));
            normal=normalize(normalMatrix*nL);}}`)
       /* drifting sand: ground-hugging streamers of fine grains running downwind, denser in gusts and over the dune;
@@ -223,10 +229,13 @@ function sandMat(){
         ${MOB?"float grain=1.;":"float gr=dn2(vec2(al*13.,ac*9.)+vec2(0.,3.));float grain=mix(1.,.55+.9*smoothstep(.25,.85,gr),1.-smoothstep(.012,.05,fwf));"}
         float fl=str*grain*smoothstep(.12,.8,g)*uFlowK*smoothstep(1.45,2.1,pondN(p))*(1.+.7*smoothstep(1.,3.5,vSP.y))*(.45+.55*(1.-smoothstep(.06,.25,fwf)));
         vec3 V=normalize(cameraPosition-vWP);float fs=pow(max(dot(V,-uLd),0.),5.);
-        outgoingLight+=(reflectedLight.directDiffuse*(1.6+4.*fs)+reflectedLight.indirectDiffuse*.5)*fl*.85;}
+        outgoingLight*=ripAO;
+        outgoingLight+=(reflectedLight.directDiffuse*(1.6+4.*fs)+reflectedLight.indirectDiffuse*.5)*fl*.85;
+        /* aerial perspective: far sand takes a little of the sky's colour */
+        float dC=length(cameraPosition-vWP);outgoingLight=mix(outgoingLight,uHaze*(.55+.45*(1.-uNight))*.9,.14*smoothstep(22.,75.,dC));}
       #include <opaque_fragment>`);
   };
-  m.customProgramCacheKey=()=>"des45sand";
+  m.customProgramCacheKey=()=>"des47sand";
   return m}
 /* shadow caster for the sand: same dune displacement */
 const sandDepthM=new T.SM({uniforms:sandU,
@@ -383,7 +392,7 @@ function placeRocks(list){
 
 /* ---------------- oasis pond: sea-style water, depth tint, sky fresnel, palm reflection, sun glint ---------------- */
 const pondU={uT:{value:0},uCamL:{value:new V3()},uSunL:{value:new V3(0,1,0)},uSunCol:{value:new C3("#ffb469")},
-  uDeep:{value:new C3("#0e6d66")},uShal:{value:new C3("#3fc2a6")},uBed:{value:new C3("#b89462")},uSkyA:{value:new C3("#c9a6c4")},uSkyB:{value:new C3("#6f6aa8")},
+  uDeep:{value:new C3("#0a3f42")},uShal:{value:new C3("#3d8f84")},uBed:{value:new C3("#a8875a")},uSkyA:{value:new C3("#c9a6c4")},uSkyB:{value:new C3("#6f6aa8")},
   uRefl:{value:null},uReflM:{value:new T.M4()},uReflOn:{value:0},uNight:{value:0},uWind:{value:.35}};
 let pondMesh=null;
 (function buildPond(){
@@ -403,17 +412,21 @@ let pondMesh=null;
         float amp=.05+.12*uWind;vec3 n=normalize(vec3(-g.x*amp,1.,-g.y*amp));
         vec3 V=normalize(uCamL-vP);
         float fr=.02+.98*pow(1.-max(dot(n,V),0.),5.);
+        /* oasis water: clear over the sand bed at the margin, absorbing to a deep green-teal in the middle */
         float dd=smoothstep(.02,1.3,vD);
         vec3 body=mix(uShal,uDeep,dd);
-        body=mix(uBed*.8,body,smoothstep(0.,.32,vD))*mix(1.,.28,uNight);
+        vec3 bed=uBed*exp(-vD*vec3(2.6,1.15,1.05)*3.)*(.8+.2*dn2(vP.xz*3.+uT*.05));
+        body=mix(bed,body,smoothstep(.0,.45,vD))*mix(1.,.28,uNight);
         vec3 rd=reflect(-V,n);
         vec3 sky=mix(uSkyA,uSkyB,smoothstep(.0,.8,rd.y));
         vec3 refl=sky;
         if(uReflOn>.5){vec2 ruv=vR.xy/vR.w+n.xz*.035;vec4 rc=texture2D(uRefl,clamp(ruv,0.,1.));
-          rc=(any(isnan(rc))||any(isinf(rc)))?vec4(0.):clamp(rc,0.,1.);refl=mix(refl,rc.rgb,rc.a*.92);}
-        vec3 c=mix(body,refl,clamp(fr*1.1+.12,0.,.85));
-        float gl=pow(max(dot(rd,uSunL),0.),220.)*(1.-uNight);
-        c+=uSunCol*gl*2.2;
+          rc=(any(isnan(rc))||any(isinf(rc)))?vec4(0.):clamp(rc,0.,1.);refl=mix(refl,rc.rgb*.7,rc.a*.92);}
+        vec3 c=mix(body,refl,clamp(fr*1.05+.06,0.,.9));
+        /* a faint darker band where the water meets the shore, and fine wind-roughened sparkle */
+        c*=1.-.18*(1.-smoothstep(.0,.12,vD));
+        float gl=pow(max(dot(rd,uSunL),0.),220.)*(1.-uNight),sp=pow(max(dot(rd,uSunL),0.),36.)*smoothstep(.55,.85,dn2(vP.xz*9.+uT*1.3))*(1.-uNight);
+        c+=uSunCol*(gl*2.2+sp*.6);
         float a=smoothstep(0.,.05,vD);
         gl_FragColor=vec4(c,a);
         #include <tonemapping_fragment>
@@ -693,12 +706,14 @@ const propsReady=Promise.all([
           .replace("#include <map_fragment>",`#ifdef USE_MAP
         vec4 tx=texture2D(map,vMapUv);float l=dot(tx.rgb,vec3(.3,.59,.11));
         vec2 rel=vTI.xz-uTC;float ac=dot(rel,uTF),al=dot(rel,vec2(uTF.y,-uTF.x));
-        float sh=fract(sin(floor(ac/.55)*91.7)*4375.85);
+        float si=floor(ac/.55),sh=fract(sin(si*91.7)*4375.85),wool=step(3.5,mod(si+40.,5.));
         float band=mix(.84,1.06,sh)*(1.-.14*smoothstep(.42,.5,abs(fract(ac/.55)-.5)));
         vec2 wv=vec2(al,vTI.y)/.03;float aw=1.-smoothstep(.3,.8,max(fwidth(wv.x),fwidth(wv.y)));
         float weave=1.+.1*aw*sin(wv.x*6.2832)*sin(wv.y*6.2832+1.5708*step(.5,fract(wv.x*.5)));
-        vec3 cloth=vec3(.4,.33,.26)*(.7+2.*l)*band*weave;
-        diffuseColor.rgb=mix(vec3(.30,.20,.12),min(cloth,vec3(.52,.43,.33)),smoothstep(.015,.07,l));
+        /* Bedouin goat-hair cloth: dark brown strips, every fifth a pale undyed-wool stripe */
+        float hair=.9+.2*fract(sin(dot(floor(vec2(al,vTI.y)/.012),vec2(12.9,78.2)))*43758.5);
+        vec3 cloth=mix(vec3(.15,.105,.074),vec3(.46,.39,.3),wool)*(.8+1.2*l)*band*weave*mix(hair,1.,aw*.5);
+        diffuseColor.rgb=mix(vec3(.2,.13,.08),min(cloth,vec3(.5,.43,.33)),smoothstep(.006,.025,l));
         #endif`).replace("#include <lights_fragment_end>",`#include <lights_fragment_end>
         reflectedLight.indirectDiffuse*=vec3(1.02,.99,.95);
         {vec3 Ld=normalize((viewMatrix*vec4(uSunD,0.)).xyz);float back=pow(max(dot(-geometryViewDir,Ld),0.),2.);
@@ -1038,7 +1053,7 @@ UPD.push((dt,t)=>{
   vegU.uT.value=t;vegU.uWind.value=.4+wn;propU.uT.value=t;propU.uWind.value=(.4+wn)*(.55+.9*gT);
   pondU.uT.value=t;pondU.uWind.value=wn;pondU.uNight.value=nk;pondU.uCamL.value.copy(_cl);
   {const d=pi.position.clone().normalize();d.applyAxisAngle(new V3(0,1,0),-YAW);pondU.uSunL.value.copy(d);pondU.uSunCol.value.copy(pi.color)}
-  pondU.uSkyA.value.set(nk>.5?"#1a2440":st.day>.5?"#a8c4dc":"#d4aab8");pondU.uSkyB.value.set(nk>.5?"#0c1428":st.day>.5?"#5c88c0":"#7a6eb0");
+  pondU.uSkyA.value.set(nk>.5?"#1a2440":st.day>.5?"#a8c4dc":"#d4aab8");sandU.uHaze.value.copy(pondU.uSkyA.value);pondU.uSkyB.value.set(nk>.5?"#0c1428":st.day>.5?"#5c88c0":"#7a6eb0");
   smokeU.uT.value=t;smokeU.uG.value+=(gustAt(FIRE.x,FIRE.z)-smokeU.uG.value)*Math.min(1,dt*1.5);smokeU.uCamL.value.copy(_cl);smokeU.uCol.value.setRGB(mix(.66,.3,nk),mix(.6,.31,nk),mix(.56,.38,nk));
   SMOKE.forEach(m=>{m.material.uniforms.uT.value=t});
   tentU.uWInv.value.copy(W.matrixWorld).invert();

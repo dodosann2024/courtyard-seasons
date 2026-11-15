@@ -793,7 +793,7 @@ const CURT=(()=>{const{NS,NK}=CUR,n=(NS+1)*(NK+1),g=new T.BG(),P=new Float32Arra
         float wp=smoothstep(.32,.68,dn2(vec2(s*11.+uT*.25,k*1.3-uT*.7)));
         /* mostly separate grains over a thin haze, so it reads as sand rather than mist */
         float sp=smoothstep(.5,.8,dn2(vec2(s*560.+7.,k*60.-uT*10.)))+.7*smoothstep(.52,.82,dn2(vec2(s*300.,k*30.-uT*6.5)));
-        float a=vH*smoothstep(0.,.04,k)*pow(1.-k,2.2)*(1.-smoothstep(.15+.6*fr,1.,k))*mix(.08,1.,smoothstep(.35,.78,st))*(.2+.45*gr+1.5*sp)*mix(.03,1.,wp)*smoothstep(0.,.12,s)*smoothstep(1.,.88,s);
+        float a=vH*smoothstep(0.,.04,k)*pow(1.-k,2.2)*(1.-smoothstep(.15+.6*fr,1.,k))*mix(.08,1.,smoothstep(.35,.78,st))*(.1+.3*gr+1.7*sp)*mix(.03,1.,wp)*smoothstep(0.,.12,s)*smoothstep(1.,.88,s);
         /* a sheet seen edge-on piles up alpha into a hard line; thin it at grazing angles */
         vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.15,1.,smoothstep(.08,.6,abs(dot(N,normalize(cameraPosition-vW)))));
         if(a<.004)discard;
@@ -801,7 +801,7 @@ const CURT=(()=>{const{NS,NK}=CUR,n=(NS+1)*(NK+1),g=new T.BG(),P=new Float32Arra
         gl_FragColor=vec4(uCol*(1.+.2*k)+uSheen*vFs*(1.-.4*k),1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
-        a=min(a*2.3*mix(.45,1.,vFs),.85);gl_FragColor=vec4(gl_FragColor.rgb*mix(vec3(1.),vec3(1.,.78,.42),.75*(1.-uNt))*a,a*mix(.4,.3,vFs));
+        a=.55*(1.-exp(-a*2.8*mix(.45,1.,vFs)));gl_FragColor=vec4(gl_FragColor.rgb*mix(vec3(1.),vec3(1.,.64,.28),.85*(1.-uNt))*a,a*mix(.4,.3,vFs));
       }`});
   const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=6;W.add(o);return{o,g,P,Hv}})();
 function curtainUpdate(t){

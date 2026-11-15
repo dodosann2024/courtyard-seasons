@@ -293,9 +293,10 @@ function rockMat(extra){
   return m}
 const ROCK_M=rockMat(),ROCK_MI=rockMat({inst:1});
 let rockMesh=null;
-/* underside: an inverted, eroded wedge — short crust wall, then stepped blocky ledges narrowing to an off-centre jagged point */
-const islandDepth=th=>19.5+2.2*Math.sin(th*1+.8)+1.6*Math.sin(th*2-1.1)+2*(fbm2(Math.cos(th)*2.1+5,Math.sin(th)*2.1)-.5);
-const KEEL_TIP={x:-1.8,z:2.2},KEEL_STEPS=6;
+/* underside: a rounded, eroded bowl in the sky-series proportion (the sea island's bowl is 6 deep under an 18 wide top,
+   1/3): rim to lowest point ~14 m under a ~43 m top. Short crust wall, a few soft ledges, short hanging lobes. */
+const islandDepth=th=>11.6+1.1*Math.sin(th*1+.8)+.8*Math.sin(th*2-1.1)+1.2*(fbm2(Math.cos(th)*2.1+5,Math.sin(th)*2.1)-.5);
+const KEEL_TIP={x:-.6,z:.7},KEEL_STEPS=4;
 (function buildRock(){
   const rows=[];
   /* each row: [s, yFn(th,x,z,edgeY), wall/underside weight, t(depth fraction)] */
@@ -305,13 +306,13 @@ const KEEL_TIP={x:-1.8,z:2.2},KEEL_STEPS=6;
   const TW=4;for(let k=1;k<=TW;k++)rows.push({s:1.004,wall:k/TW});
   const NU=MOB?40:64;for(let k=1;k<=NU;k++)rows.push({u:k/NU});
   const nR=rows.length,pos=new Float32Array(nR*NT*3),idx=[];
-  const Dc=21;
+  const Dc=12.4;
   for(let j=0;j<NT;j++){
-    const th=j/NT*TAU,[ex,ez]=edgeXZ(th,1),eY=hTop(ex,ez),tw=2.2+1.8*fbm2(Math.cos(th)*3+1,Math.sin(th)*3),D=islandDepth(th);
+    const th=j/NT*TAU,[ex,ez]=edgeXZ(th,1),eY=hTop(ex,ez),tw=1.5+1.1*fbm2(Math.cos(th)*3+1,Math.sin(th)*3),D=islandDepth(th);
     const ox=Math.cos(Math.atan2(ez/AZ,ex/AX)),oz=Math.sin(Math.atan2(ez/AZ,ex/AX));
     /* per-angle ledge phase + a few hanging chunks (narrow angular sectors that drop deeper, still part of the mass) */
     const lph=.55*(fbm2(Math.cos(th)*2.4+3,Math.sin(th)*2.4-1)-.5)+.25*(vn2(th*6.3,4.1)-.5);
-    const hang=Math.pow(Math.max(0,vn2(th*5.2+1.3,.7)*2-1),1.6)*5.5+Math.pow(Math.max(0,vn2(th*11.7+7,2.9)*2-1),2.5)*3.2;
+    const hang=Math.pow(Math.max(0,vn2(th*5.2+1.3,.7)*2-1),1.6)*1.8+Math.pow(Math.max(0,vn2(th*11.7+7,2.9)*2-1),2.5)*1.1;
     for(let r=0;r<nR;r++){
       const R=rows[r];let x,z,y,disp=0;
       if(R.u==null&&R.wall==null){[x,z]=edgeXZ(th,R.s);const ln=fbm2(x*.35,z*.35);y=eY+R.dy*(R.lip?(.5+1.1*ln):1)+(R.lip?.25*(ln-.5):0)}
@@ -321,8 +322,8 @@ const KEEL_TIP={x:-1.8,z:2.2},KEEL_STEPS=6;
         else{const t=R.u,Dd=mix(D+hang*.6,Dc,ss(.82,1,t));
           /* stair-stepped taper: each band is a near-vertical face, then a flat-ish ledge cutting inward */
           const tj=t*KEEL_STEPS+lph+.45,li=Math.floor(tj),fj=tj-li,ts=cl((li+ss(.62,.96,fj))/KEEL_STEPS,0,1);
-          const prof=u=>Math.pow(Math.max(0,1-u),.9);
-          rf=(.55*prof(ts)+.45*prof(t))*(1.004-.02);
+          const prof=u=>Math.pow(Math.max(0,1-Math.pow(u,2.1)),.6);
+          rf=(.3*prof(ts)+.7*prof(t))*(1.004-.02);
           yy=eY+.12-tw-(Dd-tw)*Math.pow(t,1.06)-hang*ss(.35,.85,t)*(1-ss(.9,1,t))}
         [x,z]=edgeXZ(th,rf);y=yy;
         if(R.u!=null){const tt=ss(.15,1,R.u);x+=KEEL_TIP.x*tt;z+=KEEL_TIP.z*tt}

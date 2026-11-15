@@ -1134,8 +1134,9 @@ function rigUp(scene,anims){const mx=new VT.THREE.AnimationMixer(scene),acts={};
 /* clip changes blend on smoothstep weights from whatever mix is playing (three's crossFadeTo ramps linearly, which kicks
    the pose at both ends of the fade, and restarts a clip that is still fading out) */
 function play(r,name,fade,ts){const n=r.acts[name];if(!n)return;if(ts!=null)n.timeScale=ts;if(r.cur===name)return;
-  const w={};let any=0;for(const k in r.acts){const a=r.acts[k];if(a.isRunning()&&a.getEffectiveWeight()>1e-4){w[k]=a.getEffectiveWeight();any=1}}
-  if(!(name in w)){n.reset();n.play();w[name]=any?0:1}
+  /* a finished clamped one-shot is paused rather than running, but it still weighs in until it is faded out and stopped */
+  const w={};let any=0;for(const k in r.acts){const a=r.acts[k];if(a.enabled&&a.isScheduled()&&a.getEffectiveWeight()>1e-4){w[k]=a.getEffectiveWeight();any=1}}
+  if(!(name in w)||n.paused){n.reset();n.play();if(!(name in w))w[name]=any?0:1}
   r.fd={w,to:name,u:any?0:1,T:Math.max(fade,1e-3)};r.cur=name;rigW(r)}
 function rigW(r){const f=r.fd;if(!f)return;const e=ss(0,1,f.u);
   for(const k in f.w){const s=f.w[k];r.acts[k].setEffectiveWeight(k===f.to?s+(1-s)*e:s*(1-e))}

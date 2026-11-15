@@ -9,6 +9,7 @@ The palms are built procedurally in `desert.js`; there is no palm model.
 | `bactrian_v1.glb` | Bactrian camel, scaled to ~1.8 m at the withers; walk played at 90 % with ground speed matched | same as `camel_v4b` |
 | `bald_eagle_v1.glb` | bald eagle, one mesh for flight and perch (scaled x.9 to a 1.8 m span); takeoff/land root motion is kept and handed over to the flight path | `glide`, `flap`, `dive` (held pose, faded in for the stoop), `takeoff`, `land`, `perch`, `head_turn` |
 | `snake_v4.glb` | horned viper (~1.35 m); crawling is procedural on `Body_01..30` | `coil`, `tongue_flick` |
+| `rattlesnake_v1.glb` | western diamondback, 1.28 m. **In development, not live and not committed**: it loads only with `?rs=1`, in place of `snake_v4`, until the v1b head arrives (same skeleton). The tongue is driven in code (lowered onto the mouth line, out through the notch with the jaw held shut) | `defensive_coil`, `tongue_flick`, `relaxed_coil` |
 | `saguaro.glb` | saguaro cacti | — |
 | `tent.glb` | Bedouin tent | — |
 

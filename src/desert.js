@@ -1093,7 +1093,7 @@ const HIDE=[];
 /* ---------------- animals: Tripo + Blender rigs (camel v4b, Bactrian, bald eagle, snake v4) at real size ----------------
    camel_v4 native metres (2.8 m long) x1.15 -> ~3.2 m long, hump ~2.1 m (palm 13 m, tent 6 m long); its in-place walk is
    authored for .99 m/s; bald_eagle_v1 2.0 m span x.9 -> 1.8 m (body 1.04 m); snake_v4 1.22 m x1.1 -> 1.35 m. */
-const ANIM={camels:[],eagle:null,snake:null};
+const ANIM={camels:[],eagle:null,snake:null,rs:null};
 const CAM_SC=1.15,CAM_V=.989*CAM_SC,EAG_SC=.9,SNK_SC=1.1,SNK_V=.425*SNK_SC;
 const tl=(lx,lz)=>({x:TENT.x+Math.cos(TENT.yaw)*lx+Math.sin(TENT.yaw)*lz,z:TENT.z-Math.sin(TENT.yaw)*lx+Math.cos(TENT.yaw)*lz});
 /* light comes from +x/-z (local azimuth SUN.lazL), so shade falls toward -x/+z of anything */
@@ -1436,6 +1436,66 @@ function snakeUpdate(s,dt){
   s.g.position.set(s.x,s.gy-.01,s.z);s.g.rotation.set(s.gp,s.yaw,s.gr);
   rigTick(s.r,dt);snakeCrawl(s)}
 
+/* ---- rattlesnake_v1: in development behind ?rs=1, and not live until the v1b head (snake_v4 stays the scene's snake) ----
+   A snake tastes the air with its mouth shut: the tongue slides out through the notch at the front-centre of the upper lip,
+   on the mouth line, the tines spread, the protruded part sweeps up and down a few times, and it pulls back in.
+   v1's tongue (bone and mesh) runs 10 mm above that line and would leave through the top of the snout by the nostrils, so it
+   is lowered onto the seam between the Head- and Jaw-skinned shells found in the mesh, pivots at the notch, and the jaw is
+   held shut over the clips' slight opening. All of this is worked in bind-pose metres, so v1b's same skeleton drops in. */
+const RS_DEV=/[?&]rs=1(&|$)/.test(location.search),RS_SC=1;
+const RS_NOTCH={y:.0057,z:.1245};
+function rsNotch(sk,proto){
+  const iH=sk.bones.findIndex(b=>b.name==="Head"),iJ=sk.bones.findIndex(b=>b.name==="Jaw");let mesh=null;
+  proto.traverse(o=>{if(!mesh&&o.isSkinnedMesh&&o.skeleton===sk){const a=o.geometry.attributes.skinIndex;
+    if(a)for(let i=0;i<a.count&&!mesh;i++)for(let k=0;k<4;k++)if(a.getComponent(i,k)===iJ){mesh=o;break}}});
+  if(!mesh)return RS_NOTCH;
+  const P=mesh.geometry.attributes.position,I=mesh.geometry.attributes.skinIndex,Wt=mesh.geometry.attributes.skinWeight,v=new V3(),pts=[];
+  for(let i=0;i<P.count;i++){let bw=-1,bi=-1;for(let k=0;k<4;k++){const w=Wt.getComponent(i,k);if(w>bw){bw=w;bi=I.getComponent(i,k)}}
+    if(bi!==iH&&bi!==iJ)continue;v.fromBufferAttribute(P,i).applyMatrix4(mesh.bindMatrix);if(Math.abs(v.x)<.006)pts.push([v.y,v.z,bi===iJ])}
+  const zF=Math.max(...pts.map(p=>p[1])),fr=pts.filter(p=>p[1]>zF-.004);
+  const jt=Math.max(...fr.filter(p=>p[2]).map(p=>p[0])),hb=Math.min(...fr.filter(p=>!p[2]&&p[0]>jt).map(p=>p[0]));
+  if(!isFinite(jt)||!isFinite(hb)||hb-jt>.006)return RS_NOTCH;
+  const y=(jt+hb)/2,z=Math.max(...pts.filter(p=>Math.abs(p[0]-y)<.0015).map(p=>p[1]));
+  return{y,z:isFinite(z)?z:zF}}
+function rsSpawn(proto,anims){
+  const M=VT.THREE,g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";proto.position.y=0;
+  inner.add(proto);inner.scale.setScalar(RS_SC);g.add(inner);animalMats(g);W.add(g);onDes(g);
+  let sk=null;proto.traverse(o=>{if(o.isSkinnedMesh&&!sk&&o.skeleton.bones.some(b=>b.name==="Tongue"))sk=o.skeleton});
+  const s={g,r:rigUp(proto,anims),x:0,z:0,yaw:0,gy:null,mode:"relax",timer:rr(6,10),tg:{next:rr(.8,2),b:null},tq:null};
+  if(!sk)return s;
+  const B=n=>sk.bones.find(b=>b.name===n),bind=n=>new M.Matrix4().copy(sk.boneInverses[sk.bones.indexOf(B(n))]).invert();
+  const N=rsNotch(sk,proto),tg=B("Tongue"),MT=bind("Tongue"),MP=bind(tg.parent.name).invert(),ty=new M.Vector3().setFromMatrixPosition(MT).y;
+  const fork=n=>{const b=B(n),MF=bind(n);return{b,MF,p:new M.Vector3().setFromMatrixPosition(MF),side:n==="Tongue_L"?1:-1}};
+  const jaw=B("Jaw");
+  s.tq={M,tg,MT,MTi:MT.clone().invert(),MP,N,dy:ty-N.y,fk:[fork("Tongue_L"),fork("Tongue_R")].filter(f=>f.b),
+    jaw,jq:jaw?jaw.quaternion.clone():null,jp:jaw?jaw.position.clone():null,A:new M.Matrix4(),R:new M.Matrix4(),X:new M.Matrix4(),L:new M.Matrix4()};
+  return s}
+/* one bout: out in ~70 ms with the tines spreading and the tongue dipping, n up-and-down sweeps pivoting at the notch (the tines
+   whip a little behind the shaft), then back in; e = protrusion (m), th = pitch (+ down), sp = tine spread, wh = tine whip */
+function rsBout(s,n){s.tg.b={t:0,n:n||(1+(rnd()*3|0)),f:rr(6.5,8.5),E:rr(.036,.044),dn:rr(.1,.2),A:rr(.22,.3)};s.tg.next=0}
+function rsTongue(s,dt){const q=s.tq;if(!q)return;const G=s.tg;let e=0,th=0,sp=0,wh=0;
+  if(!G.b){G.next-=dt;if(G.next<0)rsBout(s)}
+  if(G.b){const b=G.b;b.t+=dt;const tO=.075,tS=b.n/b.f,tI=.07,t=b.t;
+    let u,ph=0,env=0;
+    if(t<tO)u=ss(0,1,t/tO);else if(t<tO+tS){u=1;ph=(t-tO)*b.f*TAU;const k=(t-tO)/tS;env=ss(0,.18,k)*(1-ss(.82,1,k))}else u=1-ss(0,1,(t-tO-tS)/tI);
+    e=b.E*u;th=u*b.dn+env*b.A*Math.sin(ph);wh=env*.24*Math.sin(ph-1.1);sp=u*(.3+.08*env*Math.cos(2*ph));
+    if(t>tO+tS+tI){G.b=null;G.next=s.mode==="alert"?rr(.7,2.2):rr(3.5,8)}}
+  const{M,A,R,X,L,N}=q;
+  /* tongue: lowered onto the mouth line and slid forward, then pitched about the notch */
+  A.makeTranslation(0,-q.dy,e).premultiply(X.makeTranslation(0,-N.y,-N.z)).premultiply(R.makeRotationX(th)).premultiply(X.makeTranslation(0,N.y,N.z));
+  L.copy(q.MP).multiply(A).multiply(q.MT);L.decompose(q.tg.position,q.tg.quaternion,q.tg.scale);
+  for(const f of q.fk){R.makeRotationY(f.side*sp).multiply(X.makeRotationX(wh));
+    A.makeTranslation(-f.p.x,-f.p.y,-f.p.z).premultiply(R).premultiply(X.makeTranslation(f.p.x,f.p.y,f.p.z));
+    L.copy(q.MTi).multiply(A).multiply(f.MF);L.decompose(f.b.position,f.b.quaternion,f.b.scale)}
+  if(q.jaw){q.jaw.quaternion.copy(q.jq);q.jaw.position.copy(q.jp)}}
+/* for now it rests in a loose coil and now and then lifts its head to taste the air; crawling comes with the track system */
+function rsUpdate(s,dt){
+  s.timer-=dt;if(s.timer<0){if(s.mode==="relax"){s.mode="alert";s.timer=rr(7,11);play(s.r,"tongue_flick",.8,1);s.tg.next=Math.min(s.tg.next,.6)}
+    else{s.mode="relax";s.timer=rr(9,15);play(s.r,"relaxed_coil",.9,1)}}
+  const y=hTop(s.x,s.z);s.gy=s.gy==null?y:s.gy+(y-s.gy)*ease(8,dt);
+  s.g.position.set(s.x,s.gy,s.z);s.g.rotation.set(0,s.yaw,0);
+  rigTick(s.r,dt);rsTongue(s,dt)}
+
 /* ---- dust devil: a slender sand whirl that wanders across the open sand now and then (day / sunset) ---- */
 const DEV=softPoints(MOB?140:260,"#e4bf88",.2,false);DEV.o.renderOrder=6;W.add(DEV.o);
 const DV={on:0,life:0,dur:14,x:12,z:6,vx:-.6,vz:.25,wait:rr(6,14),P:[]};
@@ -1558,6 +1618,8 @@ const animalsReady=propsReady.then(()=>Promise.all([
     const gs=grazeSpot(c0);Object.assign(c0,{x:gs.x,z:gs.z,yaw:gs.yaw,mode:"job",job:"graze",timer:rr(8,14)});play(c0.r,"drink",.01,.85)}).catch(()=>{}),
   glb("bald_eagle_v1").then(({scene,animations})=>{const e=eagleSpawn(scene,animations);ANIM.eagle=e;
     const sp=eagleSpots();if(sp[0])eaglePerchAt(e,sp[0]);else{e.mode="soar";play(e.r,"glide",.01,1)}}).catch(()=>{}),
+  RS_DEV?glb("rattlesnake_v1").then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
+    const sp=randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;Object.assign(s,{x:sp.x,z:sp.z,yaw:-.8});play(s.r,"relaxed_coil",.01,1)}).catch(()=>{}):
   glb("snake_v4").then(({scene,animations})=>{const s=snakeSpawn(scene,animations);ANIM.snake=s;
     const sp=randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;Object.assign(s,{x:sp.x,z:sp.z,yaw:-.8,mode:"idle",timer:rr(1,3)});play(s.r,"tongue_flick",.01,1)}).catch(()=>{})]));
 UPD.push((dt,t)=>{
@@ -1566,6 +1628,7 @@ UPD.push((dt,t)=>{
   ANIM.camels.forEach(a=>camelUpdate(a,d));
   if(ANIM.eagle)eagleUpdate(ANIM.eagle,d);
   if(ANIM.snake)snakeUpdate(ANIM.snake,d);
+  if(ANIM.rs)rsUpdate(ANIM.rs,d);
   devilUpdate(d,t);
   sound(d);
 });
@@ -1593,7 +1656,7 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,
   dune:{DP,DUNE0,DCLK,GUST,crestXZ,dMask,gustAt},
   /* sound capture for the recorded videos: every voice's level/pan/low-pass per step, mixed offline */
   audCap(on){if(on){AU.cap={t0:st.t,ev:[]};return 0}const c=AU.cap;AU.cap=null;return c?c.ev:[]},AU,OAS,oasisNear,
-  Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,snakeGo,play}};
+  Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,snakeGo,play,rsBout}};
 animalsReady.then(()=>{QA.ready=true});
 window.__desReady=true;
 }

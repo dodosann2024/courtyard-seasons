@@ -34,9 +34,16 @@ SOURCES = {
     825860: ("Vrymaa", "Desert sand - Dune atmosphere", "https://cdn.freesound.org/previews/825/825860_13973196-hq.mp3"),
     363092: ("TheWoodlandNomad", "Fire Crackle and Flames 002", "https://cdn.freesound.org/previews/363/363092_6612464-hq.mp3"),
     851733: ("IENBA", "Thick Sand Movements", "https://cdn.freesound.org/previews/851/851733_9616576-hq.mp3"),
+    # oasis insects and frogs (only around the water; see docs/desert-audio.md)
+    166176: ("felix.blume", "Cricket in the desert (close recording)", "https://cdn.freesound.org/previews/166/166176_1661766-hq.mp3"),
+    583074: ("Breviceps", "Cricket chirping", "https://cdn.freesound.org/previews/583/583074_9159316-hq.mp3"),
+    513978: ("remmert", "Pool Frogs with birds (Pelophylax Lessonae)", "https://cdn.freesound.org/previews/513/513978_11272383-hq.mp3"),
+    447319: ("antoineopeng", "Dragonfly.wav", "https://cdn.freesound.org/previews/447/447319_6400805-hq.mp3"),
+    570203: ("RatBird", "Dragonfly Flying By.wav", "https://cdn.freesound.org/previews/570/570203_12508711-hq.mp3"),
+    573935: ("TRP", "Grasshopper wing clicks snaps hot BADLANDS AB 190818.flac", "https://cdn.freesound.org/previews/573/573935_97550-hq.mp3"),
 }
 
-# one-shots: key -> (source, start s, end s, high-pass Hz, fade-in s, fade-out s)
+# one-shots: key -> (source, start s, end s, high-pass Hz, fade-in s, fade-out s[, low-pass Hz])
 SHOT = {
     "dEg1": (479610, 2.55, 4.50, 700, .01, .25),
     "dEg2": (479610, 7.50, 9.35, 700, .01, .25),
@@ -48,6 +55,26 @@ SHOT = {
     "dCm3": (437937, 3.75, 7.40, 60, .08, .45),
     "dCm4": (437937, 13.25, 16.70, 60, .08, .45),
     "dCm5": (685761, 3.85, 7.40, 60, .06, .4),
+    # oasis: single desert-cricket calls, field-cricket chirp bouts, water-frog croaks (low-passed under the birds
+    # in the recording), dragonfly wing passes and grasshopper wing snaps
+    "dOk1": (166176, 2.74, 3.82, 1500, .01, .08),
+    "dOk2": (166176, 7.45, 8.37, 1500, .01, .08),
+    "dOk3": (166176, 10.76, 11.79, 1500, .01, .08),
+    "dOk4": (166176, 18.24, 19.37, 1500, .01, .08),
+    "dOc1": (583074, 26.10, 34.45, 3000, .02, .2),
+    "dOc2": (583074, 53.76, 60.70, 3000, .02, .2),
+    "dOc3": (583074, 35.43, 37.15, 3000, .02, .1),
+    "dFr1": (513978, 3.83, 4.40, 150, .01, .08, 2800),
+    "dFr2": (513978, 5.64, 6.30, 150, .01, .1, 2800),
+    "dFr3": (513978, 10.55, 11.05, 150, .01, .08, 2800),
+    "dFr4": (513978, 181.61, 182.90, 150, .01, .12, 2800),
+    "dFr5": (513978, 184.02, 185.07, 150, .01, .12, 2800),
+    "dFr6": (513978, 192.10, 192.75, 150, .01, .1, 2800),
+    "dDf1": (447319, 1.80, 2.95, 300, .05, .15, 9000),
+    "dDf2": (447319, 20.50, 21.65, 300, .05, .15, 9000),
+    "dDf3": (570203, 0.00, 1.95, 300, .05, .2, 9000),
+    "dGh1": (573935, 3.65, 4.95, 2000, .03, .15),
+    "dGh2": (573935, 9.88, 11.80, 2000, .03, .2),
 }
 # loops: key -> (source, start s, length s, high-pass Hz, target rms dB, stereo)
 LOOPS = {
@@ -77,6 +104,10 @@ def load(fid, a=0.0, d=None, ch=2):
 
 def hp(x, f):
     return signal.sosfiltfilt(signal.butter(2, f / (SR / 2), "highpass", output="sos"), x, axis=-1)
+
+
+def lp(x, f):
+    return signal.sosfiltfilt(signal.butter(4, f / (SR / 2), "lowpass", output="sos"), x, axis=-1)
 
 
 def N(s):
@@ -183,11 +214,11 @@ def main():
         if only and k not in only:
             continue
         rep.append((k,) + encode(k, grains(fid, T, db), "112k"))
-    for k, (fid, a, b, hpf, fi, fo) in SHOT.items():
+    for k, (fid, a, b, hpf, fi, fo, *lpf) in SHOT.items():
         if only and k not in only:
             continue
-        y = load(fid, a, b - a, 1)
-        y = fade(hp(y, hpf), fi, fo)
+        y = hp(load(fid, a, b - a, 1), hpf)
+        y = fade(lp(y, lpf[0]) if lpf else y, fi, fo)
         rep.append((k,) + encode(k, norm_peak(y, -1.5)[0], "96k"))
     for k, f, s in rep:
         print(f"{f:28s} {s/1024:7.1f} KB")

@@ -1,0 +1,21 @@
+name: e2e
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  scene-panel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install the browser driver
+        working-directory: tools/e2e
+        run: npm install --no-audit --no-fund --no-package-lock
+      - name: Click every scene in the panel
+        run: node tools/e2e/scenes.mjs
+        env:
+          CHROME: /usr/bin/google-chrome

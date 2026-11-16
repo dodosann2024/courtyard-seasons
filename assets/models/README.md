@@ -29,4 +29,11 @@ primitives of a static mesh that share a material are joined into one draw. Geom
 materials; `cactusAlpha()` in `desert.js` renders them with alpha-to-coverage and builds mip chains that keep their
 coverage at a distance.
 
+All eleven files are then meshopt-compressed by `tools/glbpack/pack.mjs` (gltf-transform + meshoptimizer; run on the
+files above, `npm install` in `tools/glbpack` first): `EXT_meshopt_compression` with normals, uvs, joints and weights
+quantised, positions left as floats (the coat and sway shaders read bind-pose metres from them), and textures re-encoded
+as WebP (`EXT_texture_webp`) except the phone snake's JPEGs; the desktop snake's body strips are 1260x2456. Together
+they went from 43.2 MB to 21.1 MB on desktop and from 35.5 MB to 16.7 MB on phones. `glb()` hands the loader the
+self-hosted decoder `assets/vendor/meshopt_decoder.module.js` (meshoptimizer 1.3, MIT).
+
 Format: binary glTF with embedded textures, Y-up, metres, origin at ground contact.

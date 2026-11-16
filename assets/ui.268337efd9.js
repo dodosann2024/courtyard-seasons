@@ -1,5 +1,6 @@
 (()=>{
-const C=window.CY,Y=["def","jp","cn","kr","eu","sea"],$=s=>document.querySelector(s);
+/* the yard list comes from boot.js (CY.names), so a new yard is switchable everywhere it is listed */
+const C=window.CY,Y=Object.keys(C.names),$=s=>document.querySelector(s);
 const raf=()=>new Promise(r=>requestAnimationFrame(()=>r()));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const narrow=()=>innerWidth<=600;
@@ -135,7 +136,7 @@ async function go(y,dir,push){
 }
 window.__go=(y,dir=1)=>go(y,dir,true);
 document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("[data-y]");if(!b)return;e.stopImmediatePropagation();e.preventDefault();go(b.dataset.y,1,true)},true);
-addEventListener("popstate",e=>{const s=e.state;let y=s&&s.cy;if(!y){const m=location.pathname.match(/\/(jp|cn|kr|eu|sea)\/?(?:index\.html)?$/);y=m?m[1]:"def"}const i=s&&typeof s.i=="number"?s.i:0;const dir=i<idx?-1:1;idx=i;go(y,dir,false)});
+addEventListener("popstate",e=>{const s=e.state;let y=s&&s.cy;if(!y){const m=location.pathname.match(/\/([a-z]+)\/?(?:index\.html)?$/);y=m&&Y.includes(m[1])?m[1]:"def"}const i=s&&typeof s.i=="number"?s.i:0;const dir=i<idx?-1:1;idx=i;go(y,dir,false)});
 addEventListener("keydown",e=>{if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))return;if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight"||e.metaKey||e.ctrlKey||e.altKey)return;const k=Y.indexOf(cur);go(Y[(k+(e.key==="ArrowRight"?1:Y.length-1))%Y.length],e.key==="ArrowRight"?1:-1,true)});
 
 /* ---------- panels on narrow screens: one open at a time ---------- */

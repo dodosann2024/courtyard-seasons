@@ -219,7 +219,7 @@ function sandMat(){
       .replace("#include <begin_vertex>",`#include <begin_vertex>
         ${SAND_DISP}vSP=transformed;vSN=objectNormal;vWP=(modelMatrix*vec4(transformed,1.)).xyz;`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;float mkO=0.;
       uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}
       float pondN(vec2 p){vec2 q=(p-uPond.xy)/uPond.zw;float th=atan(q.y,q.x);
         return length(q)/(1.+.09*sin(2.*th+1.1)+.06*sin(3.*th-.4)+.04*sin(5.*th+2.3));}
@@ -310,11 +310,10 @@ function sandMat(){
           float pl=dn2(vec2(ax*.16+uTm*.045,ay*.5-uTm*.035))*.68+dn2(vec2(ax*.45-uTm*.08,ay*1.3+uTm*.05))*.32;
           float sm=dn2(vec2(ax*1.6,ay*11.-uTm*4.2))*.55+dn2(vec2(ax*4.2+3.,ay*24.-uTm*7.))*.45;
           float mk=min(1.,w*1.45)*smoothstep(.54,.7,pl+.08*w)*(.45+.55*smoothstep(.2,.7,sm));
-          /* the reflected sky near the horizon: pale and greyed, a cool blue-grey whatever the sky's hue (a sunset pink would read as lavender) */
-          float mL=dot(uMirC,vec3(.3,.59,.11)),mB=dot(uMirB,vec3(.3,.59,.11));
-          vec3 mc=mix(mix(vec3(mL),uMirC,.18)*vec3(.84,.93,1.05),mix(vec3(mB),uMirB,.3)*vec3(.8,.9,1.04),.12+.25*smoothstep(.02,.35,V.y))*(.93+.14*sm);
-          outgoingLight=mix(outgoingLight,mc,mk*.85);}}
-      #include <opaque_fragment>`);
+          mkO=mk;}}
+      #include <opaque_fragment>
+        /* the mirage itself is drawn by the screen pass (mirP): sand tells it where it is and how strong, in alpha */
+        if(uHeat>.01)gl_FragColor.a=.985-.48*mkO;`);
   };
   if(TRK){const f=m.onBeforeCompile;m.onBeforeCompile=sh=>{f(sh);Object.assign(sh.uniforms,TRK.U);
     sh.fragmentShader=sh.fragmentShader.replace("uniform vec4 uPond;","uniform vec4 uPond;uniform sampler2D uTrk;uniform vec4 uTrkW;\n float trkH(vec2 q){vec2 t=texture2D(uTrk,q).rg;return t.g*.005-t.r*.011;}")
@@ -1368,6 +1367,29 @@ const gradeM=new T.SM({uniforms:{tDiffuse:{value:null},uCon:{value:.08},uSat:{va
 const gradeQ=new T.Mesh(new T.Plane(2,2),gradeM);gradeQ.frustumCulled=false;const gradeC=new T.OC(-1,1,1,-1,0,1);
 const grade={enabled:false,needsSwap:true,clear:false,renderToScreen:false,setSize(){},dispose(){},render(r,w,rd){gradeM.uniforms.tDiffuse.value=rd.texture;r.setRenderTarget(this.renderToScreen?null:w);r.render(gradeQ,gradeC)}};
 Ta.insertPass(grade,Ta.passes.length-1);
+/* mirage: rays grazing the hot sand bend up, so a pool shows what stands above the sand line, upside down and squashed
+   (sky, the cloud sea past the rim, a trunk or a camel's legs), trembling with the hot air. The sand marks its pools in
+   alpha (.985 sand, down to ~.5 in a pool; everything else 1); this pass, right after the scene and before bloom, looks
+   straight up the screen for the first pixel that is not sand and mirrors the image about it */
+const mirM=new T.SM({uniforms:{tDiffuse:{value:null},uT:{value:0},uPx:{value:new T.V2(1,1)},uSky:{value:new C3()}},depthTest:false,depthWrite:false,
+  vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
+  fragmentShader:`uniform sampler2D tDiffuse;uniform float uT;uniform vec2 uPx;uniform vec3 uSky;varying vec2 vUv;${GLSL_NOISE}
+    float isSand(float a){return step(.3,a)*step(a,.993);}
+    void main(){vec4 c=texture2D(tDiffuse,vUv);float mk=isSand(c.a)*clamp((.985-c.a)/.48,0.,1.);
+      if(mk<.004){gl_FragColor=vec4(c.rgb,1.);return;}
+      vec2 px=vUv/uPx;
+      vec2 sh=vec2(dn2(vec2(px.x*.035,px.y*.16-uT*4.))-.5,(dn2(vec2(px.x*.05+7.,px.y*.11-uT*3.))-.5)*.5)*uPx*(2.+5.*mk);
+      float y0=vUv.y,yl=-1.;
+      for(int i=1;i<=20;i++){float y=y0+float(i)*.012;if(y>.999)break;if(isSand(texture2D(tDiffuse,vec2(vUv.x,y)).a)<.5){yl=y;break;}}
+      float sl=dot(uSky,vec3(.3,.59,.11));vec3 r=mix(vec3(sl),uSky,.25)*vec3(.86,.93,1.04);
+      if(yl>0.){float lo=yl-.012,hi=yl;for(int k=0;k<4;k++){float m=.5*(lo+hi);if(isSand(texture2D(tDiffuse,vec2(vUv.x,m)).a)<.5)hi=m;else lo=m;}
+        float ym=hi+(hi-y0)*1.4+uPx.y*1.5;if(ym<.999)r=texture2D(tDiffuse,vec2(vUv.x,ym)+sh*2.).rgb;}
+      vec3 b=texture2D(tDiffuse,vUv+sh).rgb;
+      gl_FragColor=vec4(mix(b,r*vec3(.9,.95,1.02),smoothstep(0.,.6,mk)*.92),1.);}`});
+const mirQ=new T.Mesh(new T.Plane(2,2),mirM);mirQ.frustumCulled=false;
+const mirP={enabled:false,needsSwap:true,clear:false,renderToScreen:false,setSize(){},dispose(){},render(r,w,rd){const u=mirM.uniforms;u.tDiffuse.value=rd.texture;u.uPx.value.set(1/rd.width,1/rd.height);
+  r.setRenderTarget(this.renderToScreen?null:w);r.render(mirQ,gradeC)}};
+Ta.insertPass(mirP,1);
 const bloom=Ta.passes.find(p=>p&&p.strength!=null&&p.threshold!=null&&p.radius!=null)||null;
 
 /* ---------------- time of day ---------------- */
@@ -1523,7 +1545,8 @@ UPD.push((dt,t)=>{
      streamers running down it; streak speed follows the wind */
   const salt=ss(.14,.55,wd);SALT=salt;
   sandU.uFlowT.value+=dt*(1.6+2.2*gD)*(.3+wd*2.2);sandU.uRipPh.value+=dt*.1*(.3+gD)*wk;sandU.uFlowK.value=salt*cl(.55+wd*.9,0,1.35)*(1-.85*WX.wet)*(1+1.3*WX.dust);
-  sandU.uWetK.value=WX.wet;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.25);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;
+  sandU.uWetK.value=WX.wet;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.25);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}
+  mirP.enabled=root.visible&&WX.heat>.01;mirM.uniforms.uT.value=t;mirM.uniforms.uSky.value.copy(sandU.uMirC.value);rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;
   pondU.uRainP.value=WX.rain;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
@@ -2795,7 +2818,7 @@ UPD.push((dt,t)=>{
 });
 
 function show(on){
-  root.visible=on;De.layers.set(on?3:0);window.__desA=on;grade.enabled=on;
+  root.visible=on;De.layers.set(on?3:0);window.__desA=on;grade.enabled=on;if(!on)mirP.enabled=false;
   if(bloom){if(on){if(!_bloomSave)_bloomSave={t:bloom.threshold,s:bloom.strength,r:bloom.radius};bloom.threshold=.9;bloom.strength=.2;bloom.radius=.45}
     else if(_bloomSave){bloom.threshold=_bloomSave.t;bloom.strength=_bloomSave.s;bloom.radius=_bloomSave.r;_bloomSave=null}}
   if(on){if(Ct.mode==="manual"&&!Ct.night)Ct.mode="sunset";if(Ct.mode==="night"){Ct.mode="full";Ct.night=true}

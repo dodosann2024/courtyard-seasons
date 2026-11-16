@@ -173,7 +173,7 @@ const sandU={uWy:{value:POND.wy},uRipDir:{value:new T.V2(WIND.x,WIND.z)},uRip:{v
   uSandA:{value:new C3("#e8a95c")},uSandB:{value:new C3("#c98444")},uWet:{value:new C3("#8a6c4c")},uSoil:{value:new C3("#a39457")},
   uPond:{value:new T.V4(POND.x,POND.z,POND.rx,POND.rz)},uGrv:{value:GRV.map(g=>new T.V4(g.x,g.z,g.r,0))},
   uDA:{value:new T.V4()},uDB:{value:new T.V4()},uDA0:{value:new T.V4(DUNE0.x,DUNE0.z,DUNE0.H,DUNE0.w)},uDB0:{value:new T.V4(DUNE0.Lw,DUNE0.Ll,DUNE0.cv,DUNE0.sk)},uDYaw:{value:DUNE0.yaw},
-  uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)},uHaze:{value:new C3("#d4aab8")},uWetK:{value:0},uHeat:{value:0},uTm:{value:0},uMirC:{value:new C3("#cfe1f2")}};
+  uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)},uHaze:{value:new C3("#d4aab8")},uWetK:{value:0},uHeat:{value:0},uTm:{value:0},uMirC:{value:new C3("#cfe1f2")},uMirB:{value:new C3("#8fb3dc")}};
 const GLSL_DUNE=`uniform vec4 uDA,uDB,uDA0,uDB0;uniform float uDYaw;
   float duneG(vec2 p,vec4 A,vec4 B){float c=cos(uDYaw),s=sin(uDYaw);vec2 d=p-A.xy;float u=d.x*c-d.y*s,v=d.x*s+d.y*c,vn=v/A.w,dd=u-B.z*vn*vn+B.w*vn;
     float hv=exp(-vn*vn*1.15),pp=dd<0.?exp(-(dd/B.x)*(dd/B.x)):pow(max(0.,1.-dd/B.y),1.3);return A.z*hv*pp;}
@@ -195,7 +195,7 @@ function sandMat(){
       .replace("#include <begin_vertex>",`#include <begin_vertex>
         ${SAND_DISP}vSP=transformed;vSN=objectNormal;vWP=(modelMatrix*vec4(transformed,1.)).xyz;`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC;
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;
       uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}
       float pondN(vec2 p){vec2 q=(p-uPond.xy)/uPond.zw;float th=atan(q.y,q.x);
         return length(q)/(1.+.09*sin(2.*th+1.1)+.06*sin(3.*th-.4)+.04*sin(5.*th+2.3));}
@@ -267,10 +267,17 @@ function sandMat(){
         /* aerial perspective: far sand takes a little of the sky's colour */
         float dC=length(cameraPosition-vWP);outgoingLight=mix(outgoingLight,uHaze*(.55+.45*(1.-uNight))*.9,.14*smoothstep(22.,75.,dC));
         /* heat: far sand shimmers, and at grazing angles a mirage pool shows the sky in the sand */
-        if(uHeat>.01){float sh=dn2(vec2(vWP.x*1.7+vWP.z*.6,vWP.y*30.-uTm*2.2))*.6+dn2(vec2(vWP.x*5.+vWP.z*3.,uTm*3.1))*.4;
-          outgoingLight*=1.+uHeat*.07*(sh-.5)*smoothstep(2.5,8.,dC);
-          float mk=uHeat*smoothstep(.07,.015,V.y)*smoothstep(3.,8.,dC)*smoothstep(.9,.97,normalize(vSN).y);
-          outgoingLight=mix(outgoingLight,uMirC*(.62+.2*sh),mk*(.3+.35*sh));}}
+        /* the island is small, so the grazing range is wider than a real mirage's (under ~9 degrees, from ~5 m out) */
+        if(uHeat>.01){float dM=dC/${S.toFixed(3)},gz=smoothstep(.16,.035,V.y)*smoothstep(4.,12.,dM)*smoothstep(.85,.95,normalize(vSN).y);
+          float sh=dn2(vec2(vWP.x*1.7+vWP.z*.6,vWP.y*30.-uTm*2.2))*.6+dn2(vec2(vWP.x*5.+vWP.z*3.,uTm*3.1))*.4;
+          float wv=dn2(vec2((vWP.x+vWP.z)*7.,V.y*700.-uTm*6.5)),hz=uHeat*gz;
+          outgoingLight*=1.+uHeat*(.07+.16*gz)*(sh-.5)+.14*hz*(wv-.5);
+          outgoingLight=mix(outgoingLight,uMirC*.95,.08*hz);
+          /* the pool is the sky seen upside down: pale at its far edge, bluer nearer, torn by the rising heat */
+          float pn=dn2(vSP.xz*.4+vec2(uTm*.04,-uTm*.03)),pe=dn2(vec2(vSP.x*1.6,vSP.z*1.6+uTm*1.7));
+          float mk=uHeat*smoothstep(.55,.8,gz*(.66+.6*pn)+.12*(pe-.5)+.08*(wv-.5));
+          vec3 mc=mix(uMirC*vec3(.3,.45,.68),uMirB*vec3(.26,.43,.7),smoothstep(.015,.09,V.y))*(.88+.22*wv);
+          outgoingLight=mix(outgoingLight,mc,mk*(.74+.2*wv));}}
       #include <opaque_fragment>`);
   };
   if(TRK){const f=m.onBeforeCompile;m.onBeforeCompile=sh=>{f(sh);Object.assign(sh.uniforms,TRK.U);
@@ -1261,7 +1268,8 @@ function applyLighting(dt){
   skyU.uRbDir.value.copy(d).negate();
   [X.Dc,X.qc].forEach(o=>{if(o&&o.layers)o.traverse(c=>c.layers.disable(3))});
   /* dust and heavy rain close the air in; the haze is lit like the sky */
-  if(Jt.fog){const dz=WX.dust,fd=ss(0,.25,dz),far=mix(mix(900,150,ss(.3,1,WX.rain)*.85),mix(240,34,ss(.3,1,dz)),fd);
+  /* the island's centre stays at most ~70% fogged however far the camera is (the phone view sits ~60 out) */
+  if(Jt.fog){const dz=WX.dust,fd=ss(0,.25,dz),far=Math.max(mix(mix(900,150,ss(.3,1,WX.rain)*.85),mix(240,34,ss(.3,1,dz)),fd),De.position.distanceTo(_v.setFromMatrixPosition(W.matrixWorld))/.69);
     Jt.fog.far=far;Jt.fog.near=far*mix(.45,.04,fd);
     _c1.copy(jt?jt.bot.value:_c1.set("#c8b8b0")).multiplyScalar(.9);Jt.fog.color.copy(_c1).lerp(skyU.uDustC.value,ss(0,.2,dz))}
   const g=gradeM.uniforms;g.uCon.value=blendL("con")*(1-.45*WX.ovc);g.uSat.value=blendL("sat")*(1-.25*WX.ovc)*(1-.22*WX.dust);g.uRay.value=blendL("ray")*(1-WX.ovc)*(1-WX.dust);g.uVig.value=blendL("vig")+.12*WX.dust;g.uLift.value=blendL("lift")+.02*WX.dust;
@@ -1299,7 +1307,7 @@ UPD.push((dt,t)=>{
   duneEvolve(dt*(.35+.9*gD)*wk*(1-.9*WX.wet)*(1+2.5*WX.dust));CURK=(1-.9*WX.wet)*(1+1.4*WX.dust);
   sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk);
   sandU.uFlowT.value+=dt*(2.4+2.2*gD)*wk;sandU.uRipPh.value+=dt*.1*(.3+gD)*wk;sandU.uFlowK.value=cl(.3+wn*1.4,0,1.3)*(1-.85*WX.wet)*(1+1.3*WX.dust);
-  sandU.uWetK.value=WX.wet;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;if(jt)sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.3);rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;
+  sandU.uWetK.value=WX.wet;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.25);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;
   pondU.uRainP.value=WX.rain;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
@@ -2080,7 +2088,9 @@ function oasis(dt,nk,W){const zone=oasisNear(),hush=1-ss(.22,.6,W),v=zone*hush;
     const S=OSET[e.ty],k=pick(S[0]);let x=e.x,z=e.z;if(e.ty==="df"){const[px,pz]=pondEdge(rr(-3.1,3.1),rr(.3,.95));x=px;z=pz}
     e.t+=OLEN[k];shotS(k,S[1]*rr(.8,1.05),_oP.set(x,hTop(x,z)+(e.ty==="df"?.8:.15),z),S[2],e.r*rr(.98,1.02),1)}}
 function sound(dt){if(!root.visible&&!AU.cap)return;
-  if(!AU.pre&&aOK()){AU.pre=1;Object.keys(LL).filter(k=>!WXA.has(k)).forEach(dec);setTimeout(()=>Object.keys(AQ).filter(k=>!WXA.has(k)).forEach(dec),1500)}
+  /* the ambient loops at once; the calls once the models are in, so on a slow link they don't compete with them */
+  if(aOK()){if(!AU.pre){AU.pre=1;Object.keys(LL).filter(k=>!WXA.has(k)).forEach(dec)}
+    if(AU.pre===1&&AU.big){AU.pre=2;Object.keys(AQ).filter(k=>!WXA.has(k)).forEach(dec)}}
   if(Ct.weather==="storm"&&aOK())["dTh1","dTh2","dTh3","dTh4","dTh5"].forEach(dec);
   if(ANIM.rs&&aOK())["dRtl","dRtlOn"].forEach(dec);
   if(aOK()&&aBus())AU.bus.gain.setTargetAtTime(1,SX().s.currentTime,.6);
@@ -2114,16 +2124,18 @@ HIDE.push(on=>{const x=SX();if(!on&&AU.bus&&x&&x.s){AU.bus.gain.setTargetAtTime(
   if(x&&x.C)x.C()});
 
 /* ---- load + per-frame ---- */
-const animalsReady=propsReady.then(()=>Promise.all([
+const animalsReady=propsReady.then(()=>{const big=[
   Promise.all(CAMEL_SLOTS.map((_,i)=>glb(camelKind(i).file))).then(ms=>{const used=new Set(),[c0,c1]=ms.map((m,i)=>{const s=used.has(m)?VT.cloneSkinned(m.scene):m.scene;used.add(m);return camelSpawn(s,m.animations,i,camelKind(i))});ANIM.camels.push(c0,c1);
     Object.assign(c1,{x:REST[1].x,z:REST[1].z,yaw:REST[1].yaw,mode:"rest",job:"kneel",k:1,timer:rr(20,40),goal:REST[1]});play(c1.r,"kneel_rest",.01,1);
     const gs=grazeSpot(c0);Object.assign(c0,{x:gs.x,z:gs.z,yaw:gs.yaw,mode:"job",job:"graze",timer:rr(8,14)});play(c0.r,"drink",.01,.85)}).catch(()=>{}),
   glb("bald_eagle_v1").then(({scene,animations})=>{const e=eagleSpawn(scene,animations);ANIM.eagle=e;
     const sp=eagleSpots();if(sp[0])eaglePerchAt(e,sp[0]);else{e.mode="soar";play(e.r,"glide",.01,1)}}).catch(()=>{}),
-  glb(RS_FILE).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
+  ];
+  /* the snake's file is the largest and the snake starts hidden in shade: on a slow link it must not hold up the rest */
+  return Promise.all(big.concat(Promise.all(big).then(()=>{AU.big=1;return glb(RS_FILE)}).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
     const day=st.phase==="day",sp=day?snakeShadeSpot():randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;
     Object.assign(s,{x:sp.x,z:sp.z,yaw:sp.yaw!=null?sp.yaw:-.8,inShade:day?1:0});s.gy=hTop(s.x,s.z);s.g.position.set(s.x,s.gy,s.z);s.g.rotation.set(0,s.yaw,0);
-    play(s.r,"relaxed_coil",.01,1)}).catch(()=>{})]));
+    play(s.r,"relaxed_coil",.01,1)}).catch(()=>{})))});
 UPD.push((dt,t)=>{
   {const envI=mix(.3,.08,st.night);for(const m of ANIM_MATS)m.envMapIntensity=m.userData.coat?envI*.7:envI}
   if(dt<=0)return;const d=Math.min(dt,.1);
@@ -2142,12 +2154,13 @@ function show(on){
     if(Ct.weather==="hail"||Ct.weather==="snow")Ct.weather="cloud";applyLighting(0)}
   else{const as=appSkyMesh();if(as){as.layers.disable(3);as.position.set(0,0,0)}if(pi&&_shMask!=null){pi.shadow.camera.layers.mask=_shMask;_shMask=null}
     if(Ct.weather==="dust")Ct.weather="sun"}
-  if(window.__Ui)try{window.__Ui()}catch(e){}
+  if(X.Ui)try{X.Ui()}catch(e){}
   HIDE.forEach(f=>f(on));
 }
 onDes(root);
 window.__desShow=show;window.__desU=update;
-window.__desQA=()=>QA;
+/* test hooks only with ?debug=1 */
+if(X.dbg)window.__desQA=()=>QA;
 const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,

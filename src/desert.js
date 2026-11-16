@@ -735,11 +735,13 @@ function buildPalms(){
     sd=4100+pi_*77;
     const H=pp.h,cw=H>10?1:.78,grp=new T.Group();
     const spine=t=>new V3(pp.lean[0]*H*t*t*.9+Math.sin(t*2.2)*.25*pp.lean[0]*H,H*t,pp.lean[1]*H*t*t*.9);
+    /* the trunk's centre line and radius, kept for anything that climbs it */
+    pp.spine=spine;pp.rad=t=>(.23+.17*Math.exp(-t*22)-.03*t+(t>.95?.04:0))*(H>10?1:.85)*(1+.035*Math.sin(t*H*1.1+pi_*2)+.025*Math.sin(t*H*2.9+pi_));
     /* trunk */
     {const NR=40,NA=12,pos=[],col=[],uv=[],idx=[];
      for(let r=0;r<=NR;r++){const t=r/NR,P=spine(t),Tg=spine(Math.min(1,t+.01)).sub(spine(Math.max(0,t-.01))).normalize();
        const N=new V3().crossVectors(Tg,new V3(0,0,1)).normalize(),B=new V3().crossVectors(Tg,N);
-       const rad=(.23+.17*Math.exp(-t*22)-.03*t+(t>.95?.04:0))*(H>10?1:.85)*(1+.035*Math.sin(t*H*1.1+pi_*2)+.025*Math.sin(t*H*2.9+pi_));
+       const rad=pp.rad(t);
        for(let a=0;a<=NA;a++){const an=a/NA*TAU,c=Math.cos(an),s2=Math.sin(an),q=P.clone().addScaledVector(N,c*rad).addScaledVector(B,s2*rad);
          pos.push(q.x,q.y,q.z);const k=.8+.25*hs2(r*3.1,a);col.push(.42*k,.31*k,.21*k);uv.push(a/NA,t*H)}}
      for(let r=0;r<NR;r++)for(let a=0;a<NA;a++){const i0=r*(NA+1)+a,i1=i0+1,i2=i0+NA+1,i3=i2+1;idx.push(i0,i2,i1,i1,i2,i3)}
@@ -787,7 +789,7 @@ function buildPalms(){
     const cm=new T.Mesh(g,palmMat(H,false));cm.customDepthMaterial=palmDepthMat(H);cm.castShadow=true;cm.receiveShadow=true;grp.add(cm);
     for(let c=0;c<(H>10?4:2);c++){const az=c/4*TAU+pp.ry+.4,base=top.clone().add(new V3(Math.cos(az)*.35,-.35,Math.sin(az)*.35));
       for(let k=0;k<46;k++){const u=rnd(),r=.06+.16*u;dates.push({p:base.clone().add(new V3(Math.cos(az)*u*.3+rr(-r,r),-u*.8+rr(-.05,.05),Math.sin(az)*u*.3+rr(-r,r))),g:grp,c:rnd()})}}
-    grp.position.set(pp.x,hTop(pp.x,pp.z)-.1,pp.z);W.add(grp);reflSet.push(grp);PROPS.palms.push(grp);grp.userData.top=top.clone().add(grp.position)});
+    grp.position.set(pp.x,hTop(pp.x,pp.z)-.1,pp.z);W.add(grp);reflSet.push(grp);PROPS.palms.push(grp);pp.g=grp;grp.userData.top=top.clone().add(grp.position)});
   const dm=new T.MSM({color:"#ffffff",roughness:.55,metalness:0});
   const im=new T.IM(DATE_GEO,dm,dates.length),m=new T.M4(),q=new T.Quat(),c=new C3();
   dates.forEach((d,i)=>{const wp=d.p.clone().add(d.g.position);m.compose(wp,q,new V3(1,1,1));im.setMatrixAt(i,m);im.setColorAt(i,c.set(d.c<.6?"#c9731f":d.c<.85?"#a8521a":"#e0a040"))});
@@ -2469,6 +2471,118 @@ function pfLoad(){return Promise.all([glb("pupfish_male_v3"),glb("pupfish_female
     else{const[cx,cz]=pondEdge(PF.sch.th,.74);f.x=cx+Math.cos(f.off.a)*f.off.d;f.z=cz+Math.sin(f.off.a)*f.off.d;[f.x,f.z]=pfFit(f,f.x,f.z)}
     f.y=POND.wy-pfDep(f.x,f.z)+f.hY;f.gx=f.x;f.gz=f.z;f.g.position.set(f.x,f.y,f.z);PF.list.push(f)}})}
 
+/* ---------------- Sinai agama (Pseudotrapelus sinaitus), real size (25 cm, 62 % of it tail) ----------------
+   Two of them, a male and a female, living round the grove. They sprint in short bursts and pause, bask flat on a rock
+   in the sun, head-bob, climb the date palms (along the trunk's own lean and sway) to sit in the crown's shade when hot,
+   climb up under the crown when it rains, and hide by a rock at night. Body temperature follows sun, shade and rain;
+   the male turns blue as he warms (sandy and blue base colours blended per pixel) and fades back when he cools.
+   sinai_agama_v1b clips: idle, bask, head_bob, run (.236 m/s), climb (.0349 m/s on the plane z=0, head +y, back +z). */
+const AG={list:[],vis:1,spots:[],blue:null};
+const AG_RUN=.236,AG_CLIMB=.0349,AG_V=1.05,AG_VC=.16;
+const _ap=new V3(),_an=new V3(),_ax=new V3(),_ay=new V3(),_az=new V3(),_am=new T.M4(),_aq=new T.Quat(),_aq2=new T.Quat();
+/* the palm trunk's wind sway, the same as palmSway() in the trunk shader */
+function palmSwayAt(pp,t){if(!pp.wp){pp.wp=new V3();pp.g.getWorldPosition(pp.wp)}const ph=pp.wp.x*.9+pp.wp.z*.7,u=propU.uT.value,
+  s=(Math.sin(u*.8+ph)*.7+Math.sin(u*1.6+ph*1.3)*.3)*(.25+propU.uWind.value)*.16;return _ap.set(s*t*t,0,s*.45*t*t)}
+/* a point on the trunk surface at height fraction t and angle az, and the frame there (tg up the trunk, n out of it) */
+function trunkAt(pp,t,az){const P=pp.spine(t),tg=pp.spine(Math.min(1,t+.01)).sub(pp.spine(Math.max(0,t-.01))).normalize();
+  const N=new V3().crossVectors(tg,new V3(0,0,1)).normalize(),B=new V3().crossVectors(tg,N),n=N.multiplyScalar(Math.cos(az)).addScaledVector(B,Math.sin(az));
+  return{p:P.add(pp.g.position).addScaledVector(n,pp.rad(t)).add(palmSwayAt(pp,t)),tg,n,N,B}}
+function agTrunkPose(a){const f=trunkAt(a.palm,a.ct,a.az);a.g.position.copy(f.p);
+  const q=(down,o)=>{_ay.copy(f.tg).multiplyScalar(down?-1:1);_ax.crossVectors(_ay,f.n);_am.makeBasis(_ax,_ay,f.n);return o.setFromRotationMatrix(_am)};
+  if(a.turn!=null){q(!a.down,_aq);q(a.down,_aq2);a.g.quaternion.slerpQuaternions(_aq,_aq2,ss(0,1,a.turn))}else q(a.down,a.g.quaternion)}
+function agGroundPose(a){const n=a.ry>-50?_an.set(0,1,0):nTop(a.x,a.z);a.g.position.set(a.x,a.ry>-50?a.ry:hTop(a.x,a.z),a.z);
+  _az.set(Math.sin(a.yaw),0,Math.cos(a.yaw));_ax.crossVectors(n,_az).normalize();_az.crossVectors(_ax,n);_am.makeBasis(_ax,n,_az);a.g.quaternion.setFromRotationMatrix(_am)}
+/* the top of a rock under (x,z), or -99 */
+const _rc={r:null,o:new V3(),d:new V3(0,-1,0)};
+function rockTop(x,z){if(!_rc.r)_rc.r=new VT.THREE.Raycaster();W.updateMatrixWorld();_rc.o.set(x,6,z);W.localToWorld(_rc.o);_rc.d.set(0,-1,0);_rc.r.set(_rc.o,_rc.d);
+  const h=_rc.r.intersectObjects(rockInst,false)[0];if(!h)return-99;const p=W.worldToLocal(h.point.clone());return p.y>hTop(x,z)+.05?p.y:-99}
+/* basking rocks near the grove with a fairly flat top, and each one's hiding place at its foot */
+function agSpots(){const L=[];
+  for(const o of OBST){if(o.k!=="rock"||o.r<.22||Math.hypot(o.x-GROVE.x,o.z-GROVE.z)>17||pN(o.x,o.z)<1.2)continue;const y=rockTop(o.x,o.z);if(y<-50)continue;
+    let ok=true;for(let k=0;k<4;k++){const a=k*TAU/4,yy=rockTop(o.x+Math.cos(a)*.12,o.z+Math.sin(a)*.12);if(Math.abs(yy-y)>.05)ok=false}
+    if(ok)L.push({x:o.x,z:o.z,y,r:o.r,ta:0})}
+  if(!L.length)L.push({x:GROVE.x+3,z:GROVE.z+3,y:-99,r:.3,ta:0});AG.spots=L}
+function agSpawn(scene,anims,male){const g=new T.Group();g.add(scene);W.add(g);onDes(g);
+  scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}});
+  animalMats(scene,false);
+  const U={uWarm:{value:0},uBlue:{value:null}};
+  if(male)matsOf(scene,(m,o)=>{const c=m.clone();o.material=c;if(!ANIM_MATS.includes(c))ANIM_MATS.push(c);U.uBlue.value=c.map;
+    c.onBeforeCompile=sh=>{Object.assign(sh.uniforms,U);sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform sampler2D uBlue;uniform float uWarm;")
+      .replace("#include <map_fragment>",`#ifdef USE_MAP
+        vec4 sampledDiffuseColor=texture2D(map,vMapUv);sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,texture2D(uBlue,vMapUv).rgb,uWarm);diffuseColor*=sampledDiffuseColor;
+        #endif`)};c.customProgramCacheKey=()=>"agBlue"});
+  const a={g,r:rigUp(scene,anims),male,U,x:0,z:0,ry:-99,yaw:rr(-3,3),mode:"idle",timer:rr(1,3),Tb:male?.8:.6,warm:male?.6:0,
+    palm:null,ct:0,az:0,down:false,turn:null,ctGoal:0,path:null,pi:0,then:null,goal:null,burst:0,bob:rr(4,10),cond:"",spot:null};
+  for(const k of["climb","run","idle","bask","head_bob"]){const c=a.r.acts[k];if(c&&k==="head_bob")c.setLoop(VT.THREE.LoopOnce,1),c.clampWhenFinished=true}
+  play(a.r,"idle",.01,1);return a}
+const agSun=()=>(1-st.night)*WX.sunK*(1-WX.rain)*(1-.5*WX.dust)*(st.phase==="day"?1:.65);
+const agGrid=()=>navGrid("agama",.05,1.12,.86);
+function agGo(a,goal,then){const p=navPath(agGrid(),a.x,a.z,goal.x,goal.z)||[{x:a.x,z:a.z},{x:goal.x,z:goal.z}];
+  a.path=p;a.pi=1;a.then=then;a.goal=goal;a.mode="run";a.burst=rr(.8,2.8);play(a.r,"run",.12,AG_V/AG_RUN)}
+function agNearPalm(a){let b=null,bd=1e9;for(const pp of PALMS){const d=Math.hypot(pp.x-a.x,pp.z-a.z);if(d<bd){bd=d;b=pp}}return b}
+function agPalmBase(a,pp){const dx=a.x-pp.x,dz=a.z-pp.z,l=Math.hypot(dx,dz)||1,r=pp.rad(0)+.14;return{x:pp.x+dx/l*r,z:pp.z+dz/l*r,pp}}
+function agMount(a,pp){const f=trunkAt(pp,.03,0),dx=a.x-pp.x,dz=a.z-pp.z;a.palm=pp;a.az=Math.atan2(dx*f.B.x+dz*f.B.z,dx*f.N.x+dz*f.N.z);
+  a.ct=.12/pp.h;a.down=false;a.turn=null;a.mode="climb";play(a.r,"climb",.1,AG_VC/AG_CLIMB)}
+function agClimb(a,goal){a.ctGoal=goal;const dn=goal<a.ct;if(dn!==a.down){a.down=dn;a.turn=0}a.mode="climb";play(a.r,"climb",.15,AG_VC/AG_CLIMB)}
+function agDismount(a){const f=trunkAt(a.palm,.02,a.az),pp=a.palm;a.x=pp.x+f.n.x*(pp.rad(0)+.2);a.z=pp.z+f.n.z*(pp.rad(0)+.2);a.yaw=Math.atan2(f.n.x,f.n.z);
+  a.palm=null;a.ry=-99;a.down=false;a.turn=null;a.mode="idle";a.timer=rr(.5,1.5);play(a.r,"idle",.15,1)}
+function agBask(a,sp){a.mode="bask";a.spot=sp;a.timer=rr(25,50);
+  /* broadside to the sun to take in the most heat */
+  a.yaw=wrapA(SUN.lazL+Math.PI/2*(rnd()<.5?1:-1)+rr(-.3,.3));play(a.r,"bask",.4,1)}
+function agDecide(a){const night=st.night>.5,rain=WX.rain>.25,sun=agSun();a.cond=night?"n":rain?"r":"d";a.then=null;
+  if(night){if(a.palm){agClimb(a,0);return}const sp=a.spot||AG.spots[0],h={x:sp.x+.25*Math.sin(SUN.lazL),z:sp.z+.25*Math.cos(SUN.lazL)};
+    if(Math.hypot(a.x-h.x,a.z-h.z)<.3){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}agGo(a,h,"hide");return}
+  a.g.visible=true;
+  if(rain){if(a.palm){const tg=(a.palm.h-1.1)/a.palm.h;if(Math.abs(a.ct-tg)>.01){agClimb(a,tg);return}a.mode="perch";a.timer=rr(8,14);play(a.r,"climb",.2,0);return}
+    const pp=agNearPalm(a);agGo(a,agPalmBase(a,pp),"climb");a.goal.rain=1;return}
+  if(a.palm){if(a.Tb<.55&&sun>.3){agClimb(a,0);return}
+    if(rnd()<.35){agClimb(a,cl(a.ct+rr(-.15,.2),.15/a.palm.h,(a.palm.h-1.4)/a.palm.h));return}
+    a.mode="perch";a.timer=rr(8,20);play(a.r,"climb",.25,0);if(!a.down&&rnd()<.6){a.down=true;a.turn=0}return}
+  if(a.Tb<.85&&sun>.35){const fr=AG.spots.filter(s=>s!==a.spot||a.mode==="bask");const sp=fr.length?fr[Math.floor(rnd()*fr.length)]:AG.spots[0];
+    if(a.spot===sp&&a.ry>-50){agBask(a,sp);return}agGo(a,{x:sp.x,z:sp.z,y:sp.y,sp},"bask");return}
+  if(sun>.35&&rnd()<.65){const pp=PALMS[Math.floor(rnd()*PALMS.length)];agGo(a,agPalmBase(a,pp),"climb");return}
+  const w=randFree(agGrid(),GROVE.x,GROVE.z,9);if(w){agGo(a,w,"idle");return}
+  a.mode="idle";a.timer=rr(3,8);play(a.r,"idle",.3,1)}
+function agArrive(a){const k=a.then,g=a.goal;a.path=null;
+  if(k==="climb"){agMount(a,g.pp);a.ctGoal=g.rain?(g.pp.h-1.1)/g.pp.h:rr(1.5,4)/g.pp.h;return}
+  if(k==="bask"){agBask(a,g.sp);return}
+  if(k==="hide"){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}
+  a.mode="idle";a.timer=rr(2,6);play(a.r,"idle",.25,1)}
+function agUpdate(dt){
+  const night=st.night>.5,rain=WX.rain>.25,sun=agSun();
+  for(const a of AG.list){
+    const c=night?"n":rain?"r":"d";if(c!==a.cond&&a.mode!=="run"&&a.mode!=="climb")agDecide(a);else if(c!==a.cond&&a.mode==="run"&&(c!=="d"))agDecide(a);
+    /* body temperature: fast to warm flat in the sun, slower in the open, cools in shade, rain and at night */
+    const ex=a.mode==="bask"?1:a.mode==="hide"?0:a.palm?.3:.6,tgt=.12+.88*sun*ex;a.Tb+=(tgt-a.Tb)*dt/(tgt>a.Tb?(a.mode==="bask"?35:90):160);
+    if(a.male){a.warm+=(ss(.42,.82,a.Tb)-a.warm)*ease(.25,dt);a.U.uWarm.value=a.warm}
+    if(a.mode==="run"){const p=a.path[a.pi],dx=p.x-a.x,dz=p.z-a.z,d=Math.hypot(dx,dz);
+      const dy=wrapA(Math.atan2(dx,dz)-a.yaw);a.yaw=wrapA(a.yaw+cl(dy,-9*dt,9*dt));const v=AG_V*(Math.abs(dy)>1.2?.25:1),st_=Math.min(d,v*dt);
+      a.x+=Math.sin(a.yaw)*st_;a.z+=Math.cos(a.yaw)*st_;a.burst-=st_;
+      /* onto and off rocks: the body follows the rock top while over it */
+      const g=a.goal;if(g&&g.y>-50&&Math.hypot(a.x-g.x,a.z-g.z)<(g.sp?g.sp.r:.4)+.05){const ty=rockTop(a.x,a.z);a.ry=ty>-50?(a.ry>-50?a.ry+(ty-a.ry)*ease(14,dt):ty):-99}else if(a.ry>-50){const ty=rockTop(a.x,a.z);a.ry=ty>-50?ty:-99}
+      if(d<.06){a.pi++;if(a.pi>=a.path.length){agArrive(a);agPose(a);rigTick(a.r,dt);continue}}
+      if(a.burst<=0&&a.mode==="run"&&d>.4){a.mode="pause";a.timer=rr(.35,1.4);play(a.r,"idle",.12,1)}}
+    else if(a.mode==="pause"){a.timer-=dt;if(a.timer<=0){a.mode="run";a.burst=rr(.8,2.8);play(a.r,"run",.12,AG_V/AG_RUN)}}
+    else if(a.mode==="climb"){if(a.turn!=null){a.turn+=dt/.7;if(a.turn>=1)a.turn=null}else{
+      const s=Math.sign(a.ctGoal-a.ct),dv=AG_VC*dt/a.palm.h;a.ct+=s*Math.min(dv,Math.abs(a.ctGoal-a.ct));
+      if(Math.abs(a.ctGoal-a.ct)<1e-4){if(a.ctGoal<=.15/a.palm.h+1e-3&&a.down){agDismount(a);agDecide(a)}else{a.mode="perch";a.timer=rr(8,20);play(a.r,"climb",.25,0)}}}}
+    else if(a.mode==="perch"){if(a.turn!=null){a.turn+=dt/.7;if(a.turn>=1)a.turn=null}a.timer-=dt;if(a.timer<=0)agDecide(a)}
+    else if(a.mode==="bask"){a.timer-=dt;a.bob-=dt;
+      if(a.bob<=0&&a.Tb>.45){a.bob=a.male?rr(7,15):rr(15,30);play(a.r,"head_bob",.2,1);a.mode="bob";a.timer2=3}
+      else if(a.timer<=0||a.Tb>.97)agDecide(a)}
+    else if(a.mode==="bob"){a.timer2-=dt;if(a.timer2<=.25){a.mode="bask";play(a.r,"bask",.3,1)}}
+    else{a.timer-=dt;if(a.timer<=0)agDecide(a)}
+    agPose(a);if(AG.vis>0&&a.g.visible)rigTick(a.r,dt)}}
+function agPose(a){if(a.palm)agTrunkPose(a);else agGroundPose(a)}
+/* lizards under ~1.5 px are hidden and their rigs not updated */
+const _agc=new V3();
+function agVis(){const c=_agc.copy(De.position);W.worldToLocal(c);const ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
+  let v=0;for(const a of AG.list){const D=c.distanceTo(a.g.position),on=.25*ppm/Math.max(D,.05)>1.5;a.g.children[0].visible=on;if(on)v=1}AG.vis=v}
+function agLoad(){return glb("sinai_agama_v1b").then(({scene,animations})=>{agSpots();
+  const M=agSpawn(scene,animations,true),F=agSpawn(VT.cloneSkinned(scene),animations,false);
+  new VT.THREE.TextureLoader().load(ROOT()+"assets/models/sinai_agama_v1b_blue.webp",t=>{t.flipY=false;t.colorSpace="srgb";t.anisotropy=MOB?4:8;
+    const m=M.U.uBlue.value;if(m){t.wrapS=m.wrapS;t.wrapT=m.wrapT}t.needsUpdate=true;M.U.uBlue.value=t;AG.blue=t});
+  [M,F].forEach((a,i)=>{const sp=AG.spots[i%AG.spots.length];a.x=sp.x+(i?.6:0);a.z=sp.z+(i?-.5:0);a.spot=sp;a.ry=i?-99:sp.y;agDecide(a);agPose(a);AG.list.push(a)})})}
 /* ---- load + per-frame ---- */
 const animalsReady=propsReady.then(()=>{const big=[
   Promise.all(CAMEL_SLOTS.map((_,i)=>glb(camelKind(i).file))).then(ms=>{const used=new Set(),[c0,c1]=ms.map((m,i)=>{const s=used.has(m)?VT.cloneSkinned(m.scene):m.scene;used.add(m);return camelSpawn(s,m.animations,i,camelKind(i))});ANIM.camels.push(c0,c1);
@@ -2479,7 +2593,7 @@ const animalsReady=propsReady.then(()=>{const big=[
   ];
   /* the snake's file is the largest and the snake starts hidden in shade: on a slow link it must not hold up the rest */
   const after=Promise.all(big).then(()=>{AU.big=1});
-  return Promise.all(big.concat(after.then(pfLoad).catch(()=>{}),after.then(()=>glb(RS_FILE)).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
+  return Promise.all(big.concat(after.then(pfLoad).catch(()=>{}),after.then(agLoad).catch(()=>{}),after.then(()=>glb(RS_FILE)).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
     const day=st.phase==="day",sp=day?snakeShadeSpot():randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;
     Object.assign(s,{x:sp.x,z:sp.z,yaw:sp.yaw!=null?sp.yaw:-.8,inShade:day?1:0});s.gy=hTop(s.x,s.z);s.g.position.set(s.x,s.gy,s.z);s.g.rotation.set(0,s.yaw,0);
     play(s.r,"relaxed_coil",.01,1)}).catch(()=>{})))});
@@ -2490,6 +2604,7 @@ UPD.push((dt,t)=>{
   if(ANIM.eagle)eagleUpdate(ANIM.eagle,d);
   if(ANIM.rs)rsUpdate(ANIM.rs,d);
   if(PF.list.length){pfVis();pfUpdate(d)}
+  if(AG.list.length){agVis();agUpdate(d)}
   devilUpdate(d,t);
   sound(d);
 });
@@ -2509,7 +2624,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},
@@ -2538,7 +2653,7 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,s
   audCap(on){if(on){AU.cap={t0:st.t,ev:[]};return 0}const c=AU.cap;AU.cap=null;return c?c.ev:[]},AU,OAS,oasisNear,
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,play,rsBout}};
 animalsReady.then(()=>{QA.ready=true});
-window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1","pupfish_male_v3","pupfish_female_v3",RS_FILE])];
+window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1","pupfish_male_v3","pupfish_female_v3","sinai_agama_v1b",RS_FILE])];
   let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],E=desPre()[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;l+=Math.min(sz,Math.max(P?P.l:0,E?E.l:0));if(P)d+=P.d}return{p:t?l/t:1,done:d===ks.length}};
 window.__desReady=true;
 }

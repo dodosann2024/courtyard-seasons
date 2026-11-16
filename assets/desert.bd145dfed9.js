@@ -1872,6 +1872,7 @@ function rsSpawn(proto,anims){
   s.tq={M,tg,MT,MTi:MT.clone().invert(),MP,N,dy:ty-N.y,fk:[fork("Tongue_L"),fork("Tongue_R")].filter(f=>f.b),
     jaw,jq:jaw?jaw.quaternion.clone():null,jp:jaw?jaw.position.clone():null,A:new M.Matrix4(),R:new M.Matrix4(),X:new M.Matrix4(),L:new M.Matrix4()};
 
+  s.rtK=0;s.rtS=1;{const rt=RTL_B.map(([n,a])=>[B(n),a]);if(rt.every(x=>x[0]))s.rt=rt}
   const hb=B("Head");if(hb&&hb.parent)s.hl={H:hb,bi:sk.boneInverses[sk.bones.indexOf(hb)],a:0,on:0,q0:new T.Quat(),qw:new T.Quat()};
   return s}
 /* one bout: out in ~70 ms with the tines spreading and the tongue dipping, n up-and-down sweeps pivoting at the notch (the tines
@@ -1892,6 +1893,36 @@ function rsTongue(s,dt){const q=s.tq;if(!q)return;const G=s.tg;let e=0,th=0,sp=0
     A.makeTranslation(-f.p.x,-f.p.y,-f.p.z).premultiply(R).premultiply(X.makeTranslation(f.p.x,f.p.y,f.p.z));
     L.copy(q.MTi).multiply(A).multiply(f.MF);L.decompose(f.b.position,f.b.quaternion,f.b.scale)}
   if(q.jaw){q.jaw.quaternion.copy(q.jq);q.jaw.position.copy(q.jp)}}
+/* ---- the rattle: the raised tail buzzes side to side (~60 Hz in life, far above the frame rate, so each frame catches it at
+   a random point of its swing and a faint fan shows the blur either side). Its strength follows the loudness of the sound
+   being heard: dRtlOn's envelope at 20 per second (a few warning buzzes rising into the full rattle), then the steady loop. ---- */
+const RTL_ENV="0003321142452144421343007888778789887978776766657544655565677666888777777887665665554555554543321100";
+const RTL_B=[["Spine_42",.9],["Spine_43",1.8],["Spine_44",3],["Rattle",4.5],["Rattle_2",3.2],["Rattle_3",2]];
+function rtlLevel(s){if(s.mode!=="def")return 0;const t=s.defT,e=t<5?+RTL_ENV[Math.min(99,t*20|0)]/9:0;return Math.max(e,.85*ss(3,4.5,t))}
+/* two strips, one each side of the rattle, from just inside its edge (u 0) out to where the tip travels (u 1) */
+const RFAN=(()=>{const N=32,d=new Uint8ClampedArray(N*N*4);
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const u=(i+.5)/N,v=(j+.5)/N,a=.55*Math.pow(1-u,1.6)*ss(0,.3,u*4)*ss(0,.3,v)*(1-ss(.88,1,v));d.set([0,a*255,0,255],(j*N+i)*4)}
+  const am=new T.CTex(new ImageData(d,N,N));am.needsUpdate=true;
+  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(24),3));g.setAttribute("normal",new T.BA(new Float32Array(24),3));
+  g.setAttribute("uv",new T.BA(new Float32Array([0,0,1,0,0,1,1,1,0,0,1,0,0,1,1,1]),2));g.setIndex([0,1,2,2,1,3,4,5,6,6,5,7]);
+  const m=new T.MSM({color:0x97785a,roughness:.6,metalness:0,transparent:true,alphaMap:am,depthWrite:false,side:2});
+  const o=new T.Mesh(g,m);o.frustumCulled=false;o.visible=false;o.renderOrder=2;o.castShadow=o.receiveShadow=false;W.add(o);onDes(o);return o})();
+const _ra=new V3(),_rb=new V3(),_rc=new V3(),_rs=new V3(),_rn=new V3(),_rQ=new T.Quat(),_rZ=new V3(0,0,1);
+function rsRattle(s,dt){const R=s.rt;s.rtK+=(rtlLevel(s)-s.rtK)*ease(s.mode==="def"?30:8,dt);RFAN.visible=false;if(!R||s.rtK<.02)return;
+  /* the fan: on the rattle's resting line, from its base out past its last segment, as wide as the tip travels, turned to the
+     camera about its axis */
+  const r0=R[3][0],r2=R[5][0];s.g.updateMatrixWorld(true);
+  r0.getWorldPosition(_ra);r2.getWorldPosition(_rb);W.worldToLocal(_ra);W.worldToLocal(_rb);
+  _rc.subVectors(_rb,_ra);_rb.addScaledVector(_rc,.45);_rc.subVectors(_rb,_ra);
+  _rn.addVectors(_ra,_rb).multiplyScalar(.5).sub(_cl).multiplyScalar(-1);_rs.crossVectors(_rc,_rn).normalize();
+  const ri=.008,wb=.004,wt=.006+.02*s.rtK,P=RFAN.geometry.attributes.position,Nn=RFAN.geometry.attributes.normal;
+  for(let sd=-1,o=0;sd<=1;sd+=2,o+=4){const pt=(i,c,w)=>P.setXYZ(o+i,c.x+_rs.x*sd*w,c.y+_rs.y*sd*w,c.z+_rs.z*sd*w);
+    pt(0,_ra,ri);pt(1,_ra,ri+wb);pt(2,_rb,ri);pt(3,_rb,ri+wt)}
+  /* lit as the average of the rattle's round surface: mostly from above */
+  _rn.crossVectors(_rs,_rc).normalize();if(_rn.dot(_cl)<_rn.dot(_ra))_rn.negate();_rn.y+=1.5;_rn.normalize();for(let i=0;i<8;i++)Nn.setXYZ(i,_rn.x,_rn.y,_rn.z);
+  P.needsUpdate=Nn.needsUpdate=true;RFAN.material.opacity=ss(.05,.5,s.rtK);RFAN.visible=true;
+  s.rtS=-s.rtS;const k=s.rtK*D2R;
+  for(const[b,a]of R)b.quaternion.multiply(_rQ.setFromAxisAngle(_rZ,s.rtS*a*k*rr(.45,1)))}
 /* ---- rattlesnake crawl ----
    The body is the 44 spine bones (Spine_01 behind the head .. Spine_44 before the rattle, .024 m apart). Each frame every bone
    is placed in island metres, framed by the body line (bone +y runs tailward, +z up) and given the local matrix that puts it
@@ -2116,7 +2147,7 @@ function rsUpdate(s,dt){
   if(s.w>.002&&s.mode!=="coil"&&s.mode!=="def"&&s.mode!=="coiling"){for(let i=0;i<RS_N*2;i++)b.Pp[i]=b.P[i];
     if(s.gait==="side")rsBodySide(s,dt);else rsBodyTrail(s,dt)}
   else s.spd=0;
-  rsPose(s);rsHeadLift(s,dt);rsTongue(s,dt);trkTick(s,dt)}
+  rsPose(s);rsHeadLift(s,dt);rsTongue(s,dt);rsRattle(s,dt);trkTick(s,dt)}
 
 /* ---- dust devil: a slender sand whirl that wanders across the open sand now and then (day / sunset) ---- */
 const DEV=softPoints(MOB?140:260,"#e4bf88",.2,false);DEV.o.renderOrder=6;W.add(DEV.o);

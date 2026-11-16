@@ -932,8 +932,8 @@ let fireL=null;
   fireL=new T.PL(new C3("#ff9a4a"),0,4.4,2);fireL.position.set(FIRE.x,hTop(FIRE.x,FIRE.z)+1.1,FIRE.z);W.add(fireL);fireL.layers.enable(3);
 })();
 
-/* campfire smoke: soft warm-grey wisps, camera-facing ribbons that widen, curl downwind (upper right
-   of the default view) and are gone by ~7 m */
+/* campfire smoke: thin, torn wisps, camera-facing ribbons that leave the fire narrow, bend downwind as they rise,
+   spread and thin out to nothing by ~5 m; a fire this small never makes a sheet */
 const SMOKE_H=7.5;
 const smokeU={uT:{value:0},uBase:{value:new V3(FIRE.x,fireG.position.y+.4,FIRE.z)},uWind:{value:new V3(WIND.x,0,WIND.z)},uCamL:{value:new V3()},uOp:{value:1},uCol:{value:new C3(.66,.6,.56)},uG:{value:.4},uNt:{value:0}};
 const SMOKE=[];
@@ -941,25 +941,31 @@ for(let r=0;r<3;r++){
   const SEG=56,n=SEG+1,aT=new Float32Array(n*2),aS=new Float32Array(n*2),pos=new Float32Array(n*6),idx=[];
   for(let i=0;i<n;i++){aT[i*2]=aT[i*2+1]=i/SEG;aS[i*2]=-1;aS[i*2+1]=1;if(i<SEG){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}}
   const g=new T.BG();g.setAttribute("position",new T.BA(pos,3));g.setAttribute("aT",new T.BA(aT,1));g.setAttribute("aS",new T.BA(aS,1));g.setIndex(idx);
-  const u=Object.assign({},smokeU,{uSeed:{value:r*7.31+1.7},uW:{value:[1,.8,.62][r]},uA:{value:[.5,.38,.27][r]}});
+  const u=Object.assign({},smokeU,{uSeed:{value:r*7.31+1.7},uW:{value:[1,.75,.55][r]},uA:{value:[.3,.2,.13][r]}});
   const mat=new T.SM({transparent:true,depthWrite:false,side:2,uniforms:u,
     vertexShader:`attribute float aT,aS;uniform float uT,uSeed,uW,uG;uniform vec3 uBase,uWind,uCamL;varying float vT,vS;varying vec2 vN;
       vec3 spine(float t){float h=t*${SMOKE_H.toFixed(1)};vec3 side=normalize(cross(uWind,vec3(0.,1.,0.)));
-        float lean=h*(.3+1.15*t)*(.7+.6*uG);
+        float lean=h*(.22+1.35*t)*(.6+.8*uG);
         float sway=sin(uT*.45+t*3.6+uSeed)*.3*t*t*h+sin(uT*1.1+t*8.+uSeed*2.)*.05*t*h;
         float curl=sin(uT*.33+t*4.4+uSeed*1.7)*.32*t*h+sin(uT*.8+t*9.3+uSeed)*.08*h*t+sin(uT*1.3+t*16.+uSeed*3.)*.5*sqrt(t)*(1.-t);
         return uBase+vec3(0.,h*(1.-.18*t),0.)+uWind*(lean+sway*.4)+side*(curl+sway*.5);}
       void main(){vT=aT;vS=aS;vec3 p=spine(aT),p2=spine(min(aT+.02,1.)),q=spine(max(aT-.02,0.));
         vec3 tg=normalize(p2-q+vec3(0.,1e-4,0.)),vd=normalize(uCamL-p),sd=normalize(cross(tg,vd));
-        float w=mix(.7,5.,pow(aT,.65))*uW;vec3 wp=p+sd*aS*w*.5;vN=vec2(aS*w*.5,aT*${SMOKE_H.toFixed(1)});
+        float w=mix(.16,2.,pow(aT,.85))*uW;vec3 wp=p+sd*aS*w*.5;vN=vec2(aS*w*.5,aT*${SMOKE_H.toFixed(1)});
         gl_Position=projectionMatrix*modelViewMatrix*vec4(wp,1.);}`,
     fragmentShader:`uniform float uT,uSeed,uA,uOp,uNt;uniform vec3 uCol;varying float vT,vS;varying vec2 vN;${GLSL_NOISE}
-      void main(){vec2 p=vec2(vN.x*1.1,vN.y*.5-uT*.5)+uSeed;
-        float d=dfbm(p+vec2(dfbm(p*.6+uT*.04)*2.4,0.));float wisp=smoothstep(.3,.78,d);
-        float across=1.-abs(vS+(d-.5)*.9*smoothstep(.05,.45,vT));float core=exp(-pow(1.-max(across,0.),2.)*1.8)*smoothstep(0.,.45,across);
-        float a=uA*uOp*core*mix(.35,1.,wisp)*mix(1.,wisp*1.3,smoothstep(.02,.35,vT));
-        float puff=dn2(vec2(uSeed*3.1,vN.y*.3-uT*.4));a*=mix(1.,.3+.7*smoothstep(.15,.6,puff),smoothstep(.03,.3,vT));
-        a*=smoothstep(0.,.1,vT)*(1.-smoothstep(.22,.78,vT))*mix(1.9,.75,smoothstep(.06,.45,vT));
+      void main(){float t=vT,h=vN.y;
+        /* the column curls: its centre line wanders across the ribbon more the higher it gets */
+        float cw=(dfbm(vec2(h*.32-uT*.42,uSeed))-.5)*1.3*smoothstep(.02,.4,t);
+        float x=vS-cw,ax=abs(x);
+        /* filaments drawn out along the rise, torn wider apart as it climbs */
+        vec2 q=vec2(x*mix(1.6,3.4,t)+uSeed,h*.42-uT*.65);
+        float f=dfbm(q+vec2(dfbm(q*.7+vec2(0.,uT*.05))*1.6,0.)),st=smoothstep(mix(.36,.5,t),mix(.62,.82,t),f);
+        float core=exp(-ax*ax*mix(5.,2.2,t))*smoothstep(1.,.7,ax);
+        float a=uA*uOp*core*mix(mix(.55,1.,st),st*st,smoothstep(.04,.45,t));
+        /* gaps open between the puffs the fire sends up */
+        float puff=dn2(vec2(uSeed*3.1,h*.28-uT*.38));a*=mix(1.,.15+.85*smoothstep(.2,.62,puff),smoothstep(.05,.35,t));
+        a*=smoothstep(0.,.05,t)*(1.-smoothstep(.12,.62,t))*mix(1.25,.45,smoothstep(.04,.5,t));
         if(a<.006)discard;gl_FragColor=vec4(uCol*mix(.86,1.04,smoothstep(0.,.4,vT))+vec3(.42,.2,.07)*uNt*(1.-smoothstep(.02,.3,vT)),a);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

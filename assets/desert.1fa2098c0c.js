@@ -314,9 +314,9 @@ let sandMesh=null;
   const pos=[],idx=[];
   pos.push(0,hTop(0,0),0);
   const rs=[];for(let k=1;k<=NSR;k++){const u=k/NSR;rs.push(Math.pow(u,.8))}
-  /* the outer ring tucks in under the rock lip, which dips below the sand in places; left at the very edge it showed through the cliff face */
-  const nk=rs.length-1;rs[nk]=.992;
-  for(let k=0;k<rs.length;k++)for(let j=0;j<NT;j++){const th=j/NT*TAU,[x,z]=edgeXZ(th,rs[k]);pos.push(x,hTop(x,z)-(k===nk?.14:0),z)}
+  /* the sand stops inside the rock lip and its outer ring tucks under it, so no sand shows in the fissures of the cliff face */
+  const nk=rs.length-1;for(let k=0;k<rs.length;k++)rs[k]*=.98;
+  for(let k=0;k<rs.length;k++)for(let j=0;j<NT;j++){const th=j/NT*TAU,[x,z]=edgeXZ(th,rs[k]);pos.push(x,hTop(x,z)-(k===nk?.3:0),z)}
   for(let j=0;j<NT;j++)idx.push(0,1+(j+1)%NT,1+j);
   for(let k=0;k<rs.length-1;k++)for(let j=0;j<NT;j++){const a=1+k*NT+j,b=1+k*NT+(j+1)%NT,c=a+NT,d=b+NT;idx.push(a,b,c,b,d,c)}
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("aM",new T.BA(new Float32Array(pos.length/3),1));g.setIndex(idx);g.computeVertexNormals();
@@ -424,6 +424,8 @@ const KEEL_TIP={x:-.6,z:.7},KEEL_STEPS=4;
         const crag=(fbm3(x*.11,y*.13,z*.11)-.5)*2.6+(fbm3(x*.3+4,y*.28,z*.3)-.5)*1.1;
         const fis=-1.1*Math.pow(1-Math.abs(2*vn2(arc/2.4,y*.05+th)-1),5);
         disp=(ledge+bk*.9+crag+fis)*wgt*.8;
+        /* just under the lip a fissure may not cut in behind the sand's edge */
+        if(R.wall!=null)disp=Math.max(disp,-(.25+.9*R.wall));
         if(R.u!=null)y+=(fbm3(x*.09+1,y*.05,z*.09)-.5)*2.2*ss(.1,.6,R.u)*(1-ss(.85,1,R.u))}
       x+=ox*disp;z+=oz*disp;
       const o=(r*NT+j)*3;pos[o]=x;pos[o+1]=y;pos[o+2]=z}}

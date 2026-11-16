@@ -1791,6 +1791,7 @@ function rsSpawn(proto,anims){
   const jaw=B("Jaw");
   s.tq={M,tg,MT,MTi:MT.clone().invert(),MP,N,dy:ty-N.y,fk:[fork("Tongue_L"),fork("Tongue_R")].filter(f=>f.b),
     jaw,jq:jaw?jaw.quaternion.clone():null,jp:jaw?jaw.position.clone():null,A:new M.Matrix4(),R:new M.Matrix4(),X:new M.Matrix4(),L:new M.Matrix4()};
+
   return s}
 /* one bout: out in ~70 ms with the tines spreading and the tongue dipping, n up-and-down sweeps pivoting at the notch (the tines
    whip a little behind the shaft), then back in; e = protrusion (m), th = pitch (+ down), sp = tine spread, wh = tine whip */
@@ -1955,13 +1956,14 @@ function trkTick(s,dt){const K=TRK;if(!K||!s.bd)return;const b=s.bd;
 function rsGaitAt(s,x,z){if(s.caut>0)return"rect";if(pN(x,z)<2.1||!clearOf(x,z,.7))return"serp";return s.hg||"side"}
 /* dawn and dusk: it hunts, out in the open where it can be found — legs of 2.5-7 m across the interior sand, each crossed
    sidewinding (separate J-hooked bars) or in serpentine (one S-wave groove), then a pause, head up, tasting the air */
-function rsHuntSpot(s){const g=navGrid("snake",.32,1.3,.82),P=s.bd.P,ok=(x,z)=>pN(x,z)>2.8&&sN(x,z)<.72&&clearOf(x,z,1)&&Math.hypot(x-P[0],z-P[1])>2.5;
-  return randFree(g,P[0]+Math.sin(s.yaw)*4,P[1]+Math.cos(s.yaw)*4,3,ok)||randFree(g,P[0]*.5,P[1]*.5,8,ok)}
+function rsHuntSpot(s,away){const g=navGrid("snake",.32,1.3,.82),P=s.bd.P,ok=(x,z)=>pN(x,z)>2&&sN(x,z)<.72&&clearOf(x,z,1)&&Math.hypot(x-P[0],z-P[1])>2.5&&
+    (!away||Math.hypot(x-away.x,z-away.z)>4.5)&&ANIM.camels.every(a=>Math.hypot(a.x-x,a.z-z)>4&&(!a.goal||Math.hypot(a.goal.x-x,a.goal.z-z)>4));
+  return randFree(g,P[0]+Math.sin(s.yaw)*4,P[1]+Math.cos(s.yaw)*4,3,ok)||randFree(g,P[0]*.5,P[1]*.5,8,ok)||randFree(g,2,0,15,ok)}
 function rsCentre(s){const P=s.bd.P;let x=0,z=0;for(let i=0;i<RS_N;i++){x+=P[2*i];z+=P[2*i+1]}return{x:x/RS_N,z:z/RS_N}}
 function rsGoTo(s,to){const P=s.bd.P,g=navGrid("snake",.32,1.3,.82),p=navPath(g,P[0],P[1],to.x,to.z);if(!p)return false;
   s.path=p;s.pi=1;s.goal=to;s.arr=0;s.legT=0;return true}
 function rsThreat(s){const P=s.bd.P,hx=P[0],hz=P[1];if(s.qth&&st.t<s.qth.until)return s.qth;if(s.noTh)return null;
-  for(const a of ANIM.camels)if(a.mode!=="rest"&&Math.hypot(a.x-hx,a.z-hz)<2.6)return{x:a.x,z:a.z};
+  for(const a of ANIM.camels){const d=Math.hypot(a.x-hx,a.z-hz);if(a.mode!=="rest"&&(d<1.6||a.spd>.1&&d<2.6))return{x:a.x,z:a.z}}
   const e=ANIM.eagle;if(e&&e.mode!=="perch"&&e.pos&&Math.hypot(e.pos.x-hx,e.pos.z-hz)<4&&e.pos.y-hTop(hx,hz)<3.5)return{x:e.pos.x,z:e.pos.z};
   return null}
 function rsCoilAt(s,clip,fade){const P=s.bd.P,ya=Math.atan2(P[0]-P[6],P[1]-P[7]);
@@ -1977,7 +1979,7 @@ function rsUpdate(s,dt){
   if(th&&s.mode!=="def"){if(s.mode==="crawl"||s.mode==="rest")rsCoilAt(s,"defensive_coil",.55);else{play(s.r,"defensive_coil",.4,1)}
     s.mode="def";s.defT=0;s.calm=0;s.th=th;capE(["R","on"]);shotS("dRtlOn",.8,_snP.set(b.P[0],hTop(b.P[0],b.P[1])+.2,b.P[1]),4)}
   if(s.mode==="def"){s.defT+=dt;if(th){s.th=th;s.calm=0}else s.calm+=dt;
-    if(s.calm>2.5&&s.defT>5){s.mode="uncoil";s.caut=rr(12,20);const P=b.P,dx=P[0]-s.th.x,dz=P[1]-s.th.z,l=Math.hypot(dx,dz)||1;s.next={x:P[0]+dx/l*2.2,z:P[1]+dz/l*2.2}}}
+    if(s.calm>2.5&&s.defT>5){s.mode="uncoil";s.caut=rr(12,20);const P=b.P,dx=P[0]-s.th.x,dz=P[1]-s.th.z,l=Math.hypot(dx,dz)||1;const hs=s.hunt&&rsHuntSpot(s,s.th);if(hs)hs.hunt=1;s.next=hs||{x:P[0]+dx/l*3.5,z:P[1]+dz/l*3.5}}}
   /* coiled: the clip pose, tongue now and then; leave at dusk or to reach shade */
   if(s.mode==="coil"){s.timer-=dt;
     if(s.timer<0){if(s.r.cur==="relaxed_coil"){play(s.r,"tongue_flick",.8,1);s.timer=rr(6,9)}else{play(s.r,"relaxed_coil",.9,1);s.timer=rr(9,15)}}

@@ -272,7 +272,7 @@ function sandMat(){
           rWM=max(blob,dots*.85)*(1.-wet);sc=mix(sc,sc*vec3(.42,.37,.32),rWM);
           if(uPitK>.002&&near>.01){
             for(int L=0;L<2;L++){vec2 cg=vSP.xz*(L==0?16.:27.)+float(L)*5.7,ci=floor(cg),cf=fract(cg)-.5,off=(vec2(dh2(ci+1.9),dh2(ci+4.4))-.5)*.4;
-              float h=dh2(ci+8.8);if(h>uPitK)continue;float rp=.17+.09*dh2(ci+6.1);vec2 d=cf-off;float r=length(d)/rp;
+              float h=dh2(ci+8.8)/(L==0?.7:.45);if(h>uPitK)continue;float rp=.1+.2*pow(dh2(ci+6.1),1.5);vec2 d=cf-off;float r=length(d)/rp;
               /* bowl falling to the centre, rim heaped just outside it; fresh pits are sharp, older ones slumped */
               float age=clamp((uPitK-h)*6.,0.,1.),dr=(r<1.?2.*r:0.)-.7*(r-1.1)/.03*exp(-(r-1.1)*(r-1.1)/.03);
               pitG+=d/max(length(d),1e-4)*dr*(1.-.55*age)*(L==0?1.:.7);
@@ -549,7 +549,10 @@ let pondMesh=null;
       void main(){
         float e=.06,h0=wv(vP.xz);vec2 g=vec2(wv(vP.xz+vec2(e,0.))-h0,wv(vP.xz+vec2(0.,e))-h0)/e;
         float amp=.022+.07*uWind;vec3 n=normalize(vec3(-g.x*amp,1.,-g.y*amp));
-        if(uRainP>.003)n=normalize(n+vec3(ringG(vP.xz).x,0.,ringG(vP.xz).y)*smoothstep(.0,.1,vD));
+        if(uRainP>.003){vec2 rg=ringG(vP.xz);n=normalize(n+vec3(rg.x,0.,rg.y)*smoothstep(.0,.1,vD));
+          /* between the rings the surface is roughened by the drops all over it */
+          float fr2=1.-smoothstep(.006,.025,length(fwidth(vP.xz))),r0=dn2(vP.xz*75.+uT*3.1),rx=dn2(vP.xz*75.+vec2(1.6,0.)+uT*3.1),rz=dn2(vP.xz*75.+vec2(0.,1.6)+uT*3.1);
+          n=normalize(n+vec3(r0-rx,0.,r0-rz)*.22*uRainP*fr2);}
         vec3 V=normalize(uCamL-vP);
         float fr=.02+.98*pow(1.-max(dot(n,V),0.),5.);
         /* oasis water: clear over the sand bed at the margin, absorbing to a deep green-teal in the middle */
@@ -1715,6 +1718,34 @@ function tentWater(g){W.updateMatrixWorld(true);const Wi=new T.M4().copy(W.matri
   const o=new T.Points(G,m);o.frustumCulled=false;o.renderOrder=8;o.visible=false;W.add(o);onDes(o);TWS.o=o}
 UPD.push((dt,t)=>{if(!TWS.o)return;const d=Math.max(ss(.03,.4,WX.rain),ss(.88,1,WX.after)*.8);
   TWS.o.visible=WX.rain>.004||d>.01;if(!TWS.o.visible)return;TWS.U.uT.value=t;TWS.U.uRain.value=WX.rain;TWS.U.uDrip.value=d;TWS.U.uH.value=innerHeight});
+/* splash crowns on the pond, in step with its rings (the same cells and phases as the water shader): a drop throws up a thin
+   crown of water whose rim breaks into droplets, it falls back, and a little jet rises from the middle as the ring spreads */
+const CROWN=(()=>{const pts=[],at=[],Ls=MOB?[0]:[0,1];
+  for(const L of Ls){const sc=L===0?2.6:3.7,of=L*7.31;
+    for(let cx=Math.floor((POND.x-POND.rx)*sc+of);cx<=Math.ceil((POND.x+POND.rx)*sc+of);cx++)for(let cz=Math.floor((POND.z-POND.rz)*sc+of);cz<=Math.ceil((POND.z+POND.rz)*sc+of);cz++){
+      const x=(cx+.5-of)/sc,z=(cz+.5-of)/sc;if(pN(x,z)>.93)continue;pts.push(x,POND.wy+.004,z);at.push(cx,cz,L,0)}}
+  const G=new T.BG();G.setAttribute("position",new T.BA(new Float32Array(pts),3));G.setAttribute("aC",new T.BA(new Float32Array(at),4));
+  const m=new T.SM({uniforms:{uT:pondU.uT,uRainP:pondU.uRainP,uH:{value:innerHeight},uCol:rainU.uCol},transparent:true,depthWrite:false,
+    vertexShader:`attribute vec4 aC;uniform float uT,uRainP,uH;varying float vK,vA,vS;${GLSL_NOISE}
+      void main(){float L=aC.z,sc=L<.5?2.6:3.7;vec2 c=aC.xy;float h=dh2(c+L*3.1);vec2 o=(vec2(dh2(c+1.3),dh2(c+2.7))-.5)*.5;
+        vec3 P=vec3((c+.5+o-L*7.31)/sc,0.).xzy;P.y=position.y;
+        float ph=fract(uT*(.9+.6*h)+h*7.);vK=ph/.3;vS=dh2(c+9.7);vA=step(h,uRainP*1.15)*step(ph,.3);
+        vec4 mv=modelViewMatrix*vec4(P+vec3(0.,.025,0.),1.);gl_Position=projectionMatrix*mv;
+        float px=.07*(.8+.4*vS)*${S.toFixed(3)}*projectionMatrix[1][1]*uH*.5/max(.05,-mv.z);vA*=smoothstep(4.,9.,px);gl_PointSize=min(px,90.);}`,
+    fragmentShader:`uniform vec3 uCol;varying float vK,vA,vS;void main(){vec2 q=gl_PointCoord-.5;q.y=-q.y;float a=0.,y=q.y+.38;
+      if(vK<.55){float k=vK/.55,hg=.38*sin(k*3.1416)*(.8+.4*vS),rad=.06+.2*k+max(y,0.)*.45;
+        a=smoothstep(.035,.0,abs(abs(q.x)-rad))*step(0.,y)*step(y,hg);
+        float e=length(vec2(q.x/max(rad,.01),(y-hg)/(rad*.32+.01)));a=max(a,smoothstep(.2,.0,abs(e-1.))*.7*step(.02,hg));
+        for(int i=0;i<6;i++){float an=float(i)/6.*6.2832+vS*6.;vec2 d=vec2(cos(an)*rad*1.1,hg+.05+sin(an)*rad*.32+.08*k)-vec2(q.x,y);a=max(a,smoothstep(.035,.015,length(d))*step(.25,k));}
+        a=max(a,smoothstep(.04,.0,abs(length(vec2(q.x,y*3.))-rad))*.6);a*=1.-smoothstep(.75,1.,k);}
+      else{float k=(vK-.55)/.45,jh=.32*sin(k*3.1416);a=smoothstep(.03,.0,abs(q.x))*step(0.,y)*step(y,jh)*.8;
+        a=max(a,smoothstep(.05,.03,length(vec2(q.x,y-jh-.04)))*step(.15,k));}
+      a*=vA;if(a<.01)discard;gl_FragColor=vec4(uCol*1.6+.1,a*.7);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+      }`});
+  const o=new T.Points(G,m);o.frustumCulled=false;o.renderOrder=9;o.visible=false;W.add(o);onDes(o);return{o,m}})();
+UPD.push(()=>{CROWN.o.visible=WX.rain>.01;if(CROWN.o.visible)CROWN.m.uniforms.uH.value=innerHeight});
 /* dust storm: big soft puffs streaming downwind close over the sand, recycled upwind */
 const DUST=(()=>{const n=MOB?26:56,P=new Float32Array(n*3),A=new Float32Array(n),Z=new Float32Array(n),Q=[];
   const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("a",new T.BA(A,1));g.setAttribute("z",new T.BA(Z,1));

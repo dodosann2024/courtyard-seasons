@@ -48,6 +48,8 @@ SOURCES = {
     347562: ("mikala_oidua", "Distant Thunder Clap_Gentle.wav", "https://cdn.freesound.org/previews/347/347562_5481182-hq.mp3"),
     632771: ("gbayles", "Sandstorm Looping", "https://cdn.freesound.org/previews/632/632771_4537135-hq.mp3"),
     438877: ("craigsmith", "G56-22-Sandstorm.wav", "https://cdn.freesound.org/previews/438/438877_2524442-hq.mp3"),
+    # rattlesnake (in development behind ?rs=1)
+    437958: ("craigsmith", "G12-26-Rattlesnake Rattle.wav", "https://cdn.freesound.org/previews/437/437958_2524442-hq.mp3"),
 }
 
 # one-shots: key -> (source, start s, end s, high-pass Hz, fade-in s, fade-out s[, low-pass Hz])
@@ -88,6 +90,8 @@ SHOT = {
     "dTh3": (866246, 730.6, 743.0, 22, .01, 2.5),
     "dTh4": (476231, 10.0, 26.0, 22, .2, 2.5),
     "dTh5": (347562, 0.0, 18.4, 22, .05, 2.5),
+    # rattle: a few warning buzzes rising into the full rattle
+    "dRtlOn": (437958, 7.5, 12.5, 300, .01, .6),
 }
 # loops: key -> (source, start s, length s, high-pass Hz, target rms dB, stereo)
 LOOPS = {
@@ -99,6 +103,7 @@ LOOPS = {
     "dRt": (484723, 30.0, 22.0, 150, -20, True),
     "dStm": (632771, 20.0, 30.0, 30, -18, True),
     "dStS": (438877, 3.0, 30.0, 200, -20, True),
+    "dRtl": (437958, 14.0, 12.0, 300, -20, False),
 }
 GRAIN = {"dSnk": (851733, 8.0, -20)}
 

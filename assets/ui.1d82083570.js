@@ -2,6 +2,7 @@
 /* the yard list comes from boot.js (CY.names), so a new yard is switchable everywhere it is listed */
 const C=window.CY,Y=Object.keys(C.names),$=s=>document.querySelector(s);
 const raf=()=>new Promise(r=>requestAnimationFrame(()=>r()));
+const reduceM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const narrow=()=>innerWidth<=600;
 const title=y=>(y==="def"?"":C.names[y]+" · ")+"天空之境 | Sky Haven";
@@ -124,7 +125,8 @@ async function go(y,dir,push){
   if(y===cur)return;
   busy=true;
   const toD=y==="desert";desWant=toD;
-  if(toD&&desBusy()){desLoad();await raf();await raf()}
+  /* capturing the old scene can hold the main thread for a moment: let the panel finish closing first */
+  if(toD&&desBusy()){desLoad();await raf();if(document.body.classList.contains("col")&&!reduceM())await sleep(460)}
   const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
   try{
     const oldS=await snap();

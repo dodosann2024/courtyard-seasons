@@ -304,7 +304,9 @@ let sandMesh=null;
   const pos=[],idx=[];
   pos.push(0,hTop(0,0),0);
   const rs=[];for(let k=1;k<=NSR;k++){const u=k/NSR;rs.push(Math.pow(u,.8))}
-  for(let k=0;k<rs.length;k++)for(let j=0;j<NT;j++){const th=j/NT*TAU,[x,z]=edgeXZ(th,rs[k]);pos.push(x,hTop(x,z),z)}
+  /* the outer ring tucks in under the rock lip, which dips below the sand in places; left at the very edge it showed through the cliff face */
+  const nk=rs.length-1;rs[nk]=.992;
+  for(let k=0;k<rs.length;k++)for(let j=0;j<NT;j++){const th=j/NT*TAU,[x,z]=edgeXZ(th,rs[k]);pos.push(x,hTop(x,z)-(k===nk?.14:0),z)}
   for(let j=0;j<NT;j++)idx.push(0,1+(j+1)%NT,1+j);
   for(let k=0;k<rs.length-1;k++)for(let j=0;j<NT;j++){const a=1+k*NT+j,b=1+k*NT+(j+1)%NT,c=a+NT,d=b+NT;idx.push(a,b,c,b,d,c)}
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("aM",new T.BA(new Float32Array(pos.length/3),1));g.setIndex(idx);g.computeVertexNormals();

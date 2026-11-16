@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Headless end-to-end check of the scene panel (tools/e2e/scenes.mjs)",
+  "dependencies": {
+    "puppeteer-core": "23.11.1"
+  }
+}

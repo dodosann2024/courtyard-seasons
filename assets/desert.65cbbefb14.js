@@ -1788,8 +1788,9 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
         float a=clamp(vK.z*exp(-max(uE-vK.y,0.)),0.,1.);if(a<.01)discard;float w=1.-min(1.,a*1.15);
         float e=.1,h0=hW(p,k,v,w),hx=hW(p+vec2(e,0.),k,v,w),hz=hW(p+vec2(0.,e),k,v,w);a=smoothstep(0.,.25,a);
         vec3 n=normalize(vec3(-(hx-h0)/e*a,1.,-(hz-h0)/e*a)),L=normalize(vec3(dot(uLd,vAx),max(uLd.y,.03),dot(uLd,vAz)));
-        /* the floor of a print sits in its own shadow, so a track still reads as a line of dark dents from far off */
-        float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-(k>3.5?.08:.45)*clamp(-h0*a/(k>3.5?4.:1.2),0.,1.);
+        /* the floor of a print sits in its own shadow, so a track still reads as a line of dark dents from far off; close up the
+           relief carries it and the floor is only a little darker than the sand round it */
+        float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-(k>3.5?.08:mix(.2,.45,smoothstep(.4,2.,max(fwidth(p.x),fwidth(p.y)))))*clamp(-h0*a/(k>3.5?4.:1.2),0.,1.);
         float F=clamp(mix(1.,df,uKs)*ao,.12,1.7);
         /* a print only a few pixels across: its lit rim and shaded floor would average out to nothing, so it settles to a soft dent */
         float lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y)))*step(k,2.5),R=k<1.5?9.*vG:6.*vG;

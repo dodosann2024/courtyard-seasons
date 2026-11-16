@@ -3,7 +3,7 @@
 
 Outputs: index.html, {jp,cn,kr,eu,sea,desert}/index.html, sw.js and content-hashed files in assets/.
 """
-import hashlib, json, os, re, shutil
+import hashlib, json, os, re, shutil, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "src")
@@ -40,7 +40,35 @@ def write(rel, text):
         f.write(text)
 
 
+def check_yards():
+    """Every yard in YARDS must be switchable from every page: boot.js lists it (yard names and its URL list), the app's
+    style switch accepts it, the page has its button, and ui.js takes its list from CY.names instead of keeping one
+    (a stale copy there once made the desert button do nothing)."""
+    def lists(src):
+        return [re.findall(r'"(\w+)"', m) for m in re.findall(r'\[((?:"\w+",)+"\w+")\]', src) if '"def"' in m and '"jp"' in m]
+    boot, app, ui, page = rd("boot.js"), rd("app.js"), rd("ui.js"), rd("page.html")
+    errs = []
+    for name, src in (("boot.js", boot), ("app.js", app)):
+        found = lists(src)
+        if not found:
+            errs.append(f"{name}: no yard list found")
+        errs += [f"{name}: yard list {l} is not {YARDS}" for l in found if l != YARDS]
+    errs += [f"ui.js: keeps its own yard list {l}" for l in lists(ui)]
+    if "Object.keys(C.names)" not in ui:
+        errs.append("ui.js: the yard list is not taken from CY.names")
+    m = re.search(r"C\.names=\{([^}]*)\}", boot)
+    names = dict(re.findall(r'(\w+):"([^"]+)"', m.group(1))) if m else {}
+    if list(names) != YARDS or any(names[y] != NAMES[y] for y in YARDS):
+        errs.append(f"boot.js: C.names {names} does not match YARDS/NAMES")
+    btn = re.findall(r'data-y="(\w+)"', page)
+    if btn != YARDS:
+        errs.append(f"page.html: yard buttons {btn} are not {YARDS}")
+    if errs:
+        sys.exit("yard check failed:\n  " + "\n  ".join(errs))
+
+
 def main():
+    check_yards()
     # Audio never changes, so the hashed files in assets/audio are the only copy.
     audio = {}
     adir = os.path.join(ASSETS, "audio")

@@ -1936,7 +1936,9 @@ function eagleMarks(e,off){const yaw=e.spot.yaw,fx=Math.sin(yaw),fz=Math.cos(yaw
   for(const nm of["Foot_L","Foot_R"]){const b=e.g.getObjectByName(nm);if(!b)continue;b.getWorldPosition(_pf);W.worldToLocal(_pf);cx+=_pf.x;cz+=_pf.z;n++;
     prAdd(PRK.talon,_pf.x,_pf.z,yaw+(nm==="Foot_L"?-.12:.12),0,off?1.3:1,nm==="Foot_R")}
   if(!n){cx=e.spot.p.x;cz=e.spot.p.z}else{cx/=n;cz/=n}
-  for(const sd of[-1,1]){const lx=fz*sd,lz=-fx*sd,k=off?.95:.85;prAdd(PRK.wing,cx+lx*k-fx*.12,cz+lz*k-fz*.12,Math.atan2(lx,lz)+sd*(off?-.25:.2),0,off?1:.9,sd>0)}}
+  /* the beach curves with the shore, so a wingtip that would brush the water is moved out from it onto the sand */
+  for(const sd of[-1,1]){const lx=fz*sd,lz=-fx*sd,k=off?.95:.85;let wx=cx+lx*k-fx*.12,wz=cz+lz*k-fz*.12;for(let t=0;t<14&&pN(wx,wz)<1.05;t++){const gx=pN(wx+.05,wz)-pN(wx-.05,wz),gz=pN(wx,wz+.05)-pN(wx,wz-.05),gl=Math.hypot(gx,gz)||1;wx+=gx/gl*.08;wz+=gz/gl*.08}
+    prAdd(PRK.wing,wx,wz,Math.atan2(lx,lz)+sd*(off?-.25:.2),0,off?1:.9,sd>0)}}
 function eaglePuff(p){for(let i=0;i<PUFF.n;i++){const a=rnd()*TAU,u=rr(.5,1.5);
     PUFFP[i]={x:p.x+Math.cos(a)*.12,y:p.y+rr(.05,.35),z:p.z+Math.sin(a)*.12,vx:Math.cos(a)*u,vy:rr(.1,.7),vz:Math.sin(a)*u,life:-rr(0,.12),dur:rr(.7,1.3)};PUFF.Z[i]=rr(.6,1.5)}
   PUFF.o.visible=true}

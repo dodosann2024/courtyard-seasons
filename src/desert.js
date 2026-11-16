@@ -278,12 +278,16 @@ function sandMat(){
           float sh=dn2(vec2(vWP.x*1.7+vWP.z*.6,vWP.y*30.-uTm*2.2))*.6+dn2(vec2(vWP.x*5.+vWP.z*3.,uTm*3.1))*.4;
           float wv=dn2(vec2((vWP.x+vWP.z)*7.,V.y*700.-uTm*6.5)),hz=uHeat*gz;
           outgoingLight*=1.+uHeat*(.07+.16*gz)*(sh-.5)+.14*hz*(wv-.5);
-          outgoingLight=mix(outgoingLight,uMirC*.95,.08*hz);
-          /* the pool is the sky seen upside down: pale at its far edge, bluer nearer, torn by the rising heat */
-          float pn=dn2(vSP.xz*.4+vec2(uTm*.04,-uTm*.03)),pe=dn2(vec2(vSP.x*1.6,vSP.z*1.6+uTm*1.7));
-          float mk=uHeat*smoothstep(.55,.8,gz*(.66+.6*pn)+.12*(pe-.5)+.08*(wv-.5));
-          vec3 mc=mix(uMirC*vec3(.3,.45,.68),uMirB*vec3(.26,.43,.7),smoothstep(.015,.09,V.y))*(.88+.22*wv);
-          outgoingLight=mix(outgoingLight,mc,mk*(.74+.2*wv));}}
+          outgoingLight=mix(outgoingLight,uMirC*vec3(.82,.88,.95),.035*hz);
+          /* the mirage: a thin band of the sky seen upside down just above the far sand, broken into drifting pieces that
+             shimmer as the hot air rises; desaturated blue-grey and faint, never a sheet */
+          float band=smoothstep(.09,.04,V.y)*smoothstep(.003,.014,V.y);
+          float ax=(vWP.x*.83-vWP.z*.56)*1.3,pc1=dn2(vec2(ax*.9+uTm*.05,3.1)),pc2=dn2(vec2(ax*3.2-uTm*.11,7.7));
+          float br=smoothstep(.42,.66,pc1*.65+pc2*.35);
+          float sm=dn2(vec2(ax*6.,V.y*900.-uTm*7.5))*.6+dn2(vec2(ax*14.+3.,V.y*1500.-uTm*11.))*.4;
+          float mk=uHeat*gz*band*br*smoothstep(.25,.62,sm);
+          vec3 mc=uMirB*vec3(.8,.86,.95);mc=mix(mc,vec3(dot(mc,vec3(.3,.59,.11))),.45)*(.9+.2*sm);
+          outgoingLight=mix(outgoingLight,mc,mk*.55);}}
       #include <opaque_fragment>`);
   };
   if(TRK){const f=m.onBeforeCompile;m.onBeforeCompile=sh=>{f(sh);Object.assign(sh.uniforms,TRK.U);

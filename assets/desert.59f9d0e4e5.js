@@ -218,14 +218,20 @@ function sandMat(){
         for(int i=0;i<${GRV.length};i++){vec4 g=uGrv[i];vec2 q=vSP.xz-g.xy;float sh=(dfbm(q*.42+g.xy)-.5)*.75+(nz2-.5)*.3;grv=max(grv,smoothstep(1.,.35,length(q)/g.z+sh));}
         grv*=.55+.45*smoothstep(.3,.65,dfbm(vSP.xz*1.1+2.));
         grv*=1.-wet;
-        if(grv>.002){vec2 gc=vSP.xz*22.,gi=floor(gc),gf=fract(gc);float md=9.,id=0.,on=0.,rad=.4;
-          for(int j=-1;j<=1;j++)for(int k=-1;k<=1;k++){vec2 o=vec2(float(k),float(j)),c=gi+o;vec2 r=o+.2+.6*vec2(dh2(c),dh2(c+5.3))-gf;float h=dh2(c+11.3),dd=dot(r,r)/(.35+.9*h*h);
-            if(dd<md){md=dd;id=dh2(c+1.7);on=step(.45-.35*grv,dh2(c+9.1));}}
-          vec3 pc=mix(vec3(.17,.155,.14),vec3(.33,.25,.17),smoothstep(.2,.7,id));pc=mix(pc,vec3(.11,.06,.045),step(.78,id));pc=mix(pc,vec3(.42,.38,.33),step(.95,id));
-          float gv=1.-smoothstep(.35,1.1,length(fwidth(gc))),d1=sqrt(md),peb=on*smoothstep(.5,.4,d1);
+        if(grv>.002){vec2 gc=vSP.xz*20.,gi=floor(gc),gf=fract(gc),rv=vec2(0.);float md=9.,id=0.,on=0.;
+          /* each cell may hold one pebble: an ellipse of its own size, elongation and heading, edge broken by noise */
+          for(int j=-1;j<=1;j++)for(int k=-1;k<=1;k++){vec2 o=vec2(float(k),float(j)),c=gi+o;vec2 r=o+.15+.7*vec2(dh2(c),dh2(c+5.3))-gf;
+            float h=dh2(c+11.3),rad=.16+.3*h,an=dh2(c+3.7)*6.283,el=1.+.7*dh2(c+8.1);vec2 ax=vec2(cos(an),sin(an));
+            float dd=length(vec2(dot(r,ax)/el,dot(r,vec2(-ax.y,ax.x))))/rad;
+            if(dd<md){md=dd;id=dh2(c+1.7);on=step(.62-.42*grv,dh2(c+9.1));rv=r/(rad*el);}}
           vec3 grit=sc*vec3(.72,.66,.6);
-          vec3 gr=mix(grit*(1.-.25*on*smoothstep(.62,.5,d1)),pc*(.85+.3*smoothstep(.45,.05,d1)),peb);
-          sc=mix(sc,mix(mix(grit,vec3(.24,.19,.15),.4),gr,gv),grv*.92);}
+          vec3 pc=mix(vec3(.15,.12,.1),vec3(.32,.2,.11),smoothstep(.2,.7,id));pc=mix(pc,vec3(.09,.055,.04),step(.8,id));pc=mix(pc,vec3(.42,.34,.25),step(.95,id));
+          pc=mix(pc,grit,.25);
+          float fg=length(fwidth(gc)),gv=1.-smoothstep(.2,.7,fg),d1=md+(dn2(gc*3.1+id*17.)-.5)*.3,ew=.07+fg*.6,peb=on*smoothstep(1.+ew,1.-ew,d1);
+          vec2 L2=normalize(uLd.xz+vec2(1e-4)),lo=-rv;float lit=dot(lo,L2);
+          float sh=on*(1.-peb)*smoothstep(1.55,1.05,d1)*clamp(-lit*1.4+.25,0.,1.);
+          vec3 gr=mix(grit*(1.-.35*sh),pc*(.8+.22*lit*smoothstep(1.,.3,d1)+.12*(1.-d1*d1)),peb);
+          sc=mix(sc,mix(mix(grit,vec3(.3,.24,.19),.35),gr,gv),grv*.9);}
         /* rain: the first drops pock the sand with dark spots that merge into an even wet skin; crests and the dune top dry first */
         float rWM=0.;
         if(uWetK>.002){float fwc2=length(fwidth(vSP.xz));
@@ -234,10 +240,10 @@ function sandMat(){
           float dryB=.35*smoothstep(1.,4.5,vSP.y)+.15*nz2;
           float even=smoothstep(.22,.55,uWetK-dryB*.6+(nz-.5)*.25);
           rWM=max(even,dotM*.85)*(1.-wet);sc=mix(sc,sc*vec3(.42,.37,.32),rWM);}
-        /* close up the sand resolves into grains: per-grain brightness scatter and the odd dark mineral fleck */
-        {float fwc=length(fwidth(vSP.xz)),gd=1.-smoothstep(.012,.07,fwc);
-         float g1=dh2(floor(vSP.xz*64.)),g2=dn2(vSP.xz*17.+5.);
-         sc*=1.+gd*((g1-.5)*.12+(g2-.5)*.1);sc=mix(sc,sc*vec3(.58,.52,.48),gd*step(.97,g1)*.7*(1.-wet));}
+        /* close up the sand shows a fine, soft mottle of lighter and darker grains (smooth noise only: no cells to alias into squares) */
+        {float fwc=length(fwidth(vSP.xz)),gd=1.-smoothstep(.006,.035,fwc);
+         float g1=dn2(vSP.xz*71.+1.3),g2=dn2(vSP.xz*17.+5.);
+         sc*=1.+gd*((g1-.5)*.09+(g2-.5)*.1);}
         diffuseColor.rgb=mix(sc,vec3(dot(sc,vec3(.3,.59,.11)))*vec3(.74,.88,1.04),uNight*.7)*mix(1.,.54,uNight);`)
       .replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
         roughnessFactor=mix(roughnessFactor,.5,rWM);`)

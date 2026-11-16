@@ -155,7 +155,9 @@ const GLB={};
 /* the GLBs are meshopt-compressed (EXT_meshopt_compression); the decoder is a small self-hosted wasm module */
 let _mo=null;
 function meshopt(){if(_mo)return _mo;const r=ROOT(),url=r?r+"assets/vendor/meshopt_decoder.module.js":new URL("../assets/vendor/meshopt_decoder.module.js",location.href).href;
-  return _mo=import(url).then(x=>x.MeshoptDecoder.ready.then(()=>x.MeshoptDecoder)).catch(()=>{_mo=null;return Promise.reject(0)})}
+  return _mo=import(url).then(x=>x.MeshoptDecoder.ready.then(()=>{const d=x.MeshoptDecoder;
+    /* decode on worker threads: the 9 MB snake otherwise holds the main thread (and the loading pill) for seconds */
+    try{if(typeof Worker!=="undefined")d.useWorkers(MOB?2:4)}catch(_){}return d})).catch(()=>{_mo=null;return Promise.reject(0)})}
 const GLP={};
 /* ui.js starts every model's download when the desert is chosen (window.__desPre); one that arrived is parsed from its buffer */
 const desPre=()=>window.__desPre||{};
@@ -2658,7 +2660,8 @@ const QA={AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,play,rsBout}};
 animalsReady.then(()=>{QA.ready=true});
 window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1","pupfish_male_v3","pupfish_female_v3","sinai_agama_v1b",RS_FILE])];
-  let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],E=desPre()[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;l+=Math.min(sz,Math.max(P?P.l:0,E?E.l:0));if(P)d+=P.d}return{p:t?l/t:1,done:d===ks.length}};
+  let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],E=desPre()[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;
+    l+=.88*Math.min(sz,Math.max(P?P.l:0,E?E.l:0))+(P&&P.d?.12*sz:0);if(P)d+=P.d}return{p:t?l/t:1,done:d===ks.length}};
 window.__desReady=true;
 }
 })();

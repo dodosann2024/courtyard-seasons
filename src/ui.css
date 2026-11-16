@@ -85,5 +85,7 @@ html.ldn #ld{background:#1c2230}html.ldn #ld .bg{filter:blur(7px) brightness(.42
 #tp{position:fixed;top:calc(max(14px,var(--sa-t)) + 150px);transform:translateX(-50%);z-index:8;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;padding:12px 22px 14px}
 #ld .nm{white-space:nowrap}
 #tp.on{opacity:1}
-#tp.pr{font-variant-numeric:tabular-nums}#tp.pr .bar i{width:var(--p,3%);animation:none;transition:width .3s ease}
+/* landscape: the opening view's palm crowns sit right where the pill would; the top edge between title and sound button is open sky */
+@media (orientation:landscape){#tp{top:max(14px,var(--sa-t))}}
+#tp.pr{font-variant-numeric:tabular-nums}#tp.pr .bar i{width:var(--p,3%);animation:none;transition:none}
 @media (prefers-reduced-motion:reduce){.p,#fab,#snd,#sbtn{transition-duration:.01s!important}#ld .bar i,#tp .bar i{animation:none}}

@@ -1556,8 +1556,8 @@ function groundFrame(x,z,yaw,L,Wd){
    and a shaded wall and a dark floor. Prints are laid where a foot actually comes to rest, and wind, blowing sand and rain
    wear them away (slowly in still air, within seconds in a dust storm). instanceColor carries (kind + variant/4, wear clock
    at birth, depth). ---- */
-const PRK={drom:0,bact:1,talon:2,wing:3};
-const PR_SZ=[.28,.32,.2,.9];
+const PRK={drom:0,bact:1,talon:2,wing:3,lie:4};
+const PR_SZ=[.28,.32,.2,.9,2.1];
 const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
   const m=new T.SM({transparent:true,depthWrite:false,side:2,blending:5,blendSrc:208,blendDst:202,blendSrcAlpha:200,blendDstAlpha:201,
     polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,uniforms:{uE:{value:0},uKs:{value:.7},uLd:sandU.uLd,uWD:sandU.uWD},
@@ -1588,7 +1588,16 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
       float wing(vec2 p){float h=0.;for(int i=0;i<6;i++){float f=float(i),a=(f-2.5)*.1;vec2 d=vec2(sin(a),cos(a)),q=p-vec2((f-2.5)*5.,-34.);
         float t=dot(q,d),s=dot(q,vec2(d.y,-d.x))+.9*sin(t*.11+f+vSd*6.),L=50.+9.*sin(f*1.7+vSd*5.);
         h+=smoothstep(0.,9.,t)*smoothstep(L,L-16.,t)*(-.5*exp(-s*s/.45)+.16*exp(-(abs(s)-1.3)*(abs(s)-1.3)/.35));}return h;}
-      float hgt(vec2 p,float k,float v){if(k<1.5)return camel(p,v,k);if(k<2.5)return talon(p);return wing(p);}
+      /* where a camel lay: its weight rests on the callosities, deepest under the chest pad, then the elbows, the folded knees
+         and the stifles, in a soft hollow pressed by the belly with the displaced sand heaped round it */
+      float pad(vec2 p,vec2 c,vec2 r){vec2 q=(p-c)/r;return exp(-dot(q,q));}
+      float lie(vec2 p,float bk){p/=bk>.5?1.1:1.;vec2 m=vec2(abs(p.x),p.y);float q=length((p-vec2(0.,-4.))/vec2(43.,80.))+(dn2(p*.06+vSd*4.)-.5)*.12;
+        float h=-3.4*smoothstep(1.02,.4,q)+2.*exp(-(q-1.08)*(q-1.08)*18.);
+        h-=4.5*pad(p,vec2(0.,36.),vec2(14.,12.))+3.*pad(m,vec2(25.,28.),vec2(8.,9.))+3.4*pad(m,vec2(15.,62.),vec2(8.,11.))+2.8*pad(m,vec2(33.,-40.),vec2(10.,9.));
+        /* kneeling down and getting up, the folded forelegs drag two short scuffs forward of the knee pads */
+        float sx=m.x-15.-.08*(p.y-62.),sy=p.y-62.;h-=1.6*exp(-sx*sx/18.)*smoothstep(0.,6.,sy)*smoothstep(34.,18.,sy);
+        return h+.35*(dn2(p*.5+vSd*9.)-.5);}
+      float hgt(vec2 p,float k,float v){if(k<1.5)return camel(p,v,k);if(k<2.5)return talon(p);if(k<3.5)return wing(p);return lie(p,v);}
       /* wear (w 0 fresh .. 1 gone): the heaped rims blow away first and the walls slump, while drifting sand fills the print
          from its upwind edge in a ragged front that creeps downwind */
       float hW(vec2 p,float k,float v,float w){float h=hgt(p,k,v);h*=h>0.?(1.-w)*(1.-w):1.-.35*w;
@@ -1599,10 +1608,10 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
         float e=.1,h0=hW(p,k,v,w),hx=hW(p+vec2(e,0.),k,v,w),hz=hW(p+vec2(0.,e),k,v,w);a=smoothstep(0.,.25,a);
         vec3 n=normalize(vec3(-(hx-h0)/e*a,1.,-(hz-h0)/e*a)),L=normalize(vec3(dot(uLd,vAx),max(uLd.y,.03),dot(uLd,vAz)));
         /* the floor of a print sits in its own shadow, so a track still reads as a line of dark dents from far off */
-        float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-.45*clamp(-h0*a/1.2,0.,1.);
+        float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-(k>3.5?.08:.45)*clamp(-h0*a/(k>3.5?4.:1.2),0.,1.);
         float F=clamp(mix(1.,df,uKs)*ao,.12,1.7);
         /* a print only a few pixels across: its lit rim and shaded floor would average out to nothing, so it settles to a soft dent */
-        float lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y))),R=k<1.5?9.*vG:6.*vG;
+        float lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y)))*step(k,2.5),R=k<1.5?9.*vG:6.*vG;
         F=mix(F,1.-.42*(k<2.5?exp(-dot(p,p)/(R*R)):clamp(-h0*1.4,0.,1.)),lod);
         F=mix(1.,F,a*smoothstep(.5,.42,max(abs(vQ.x),abs(vQ.y))/vG));
         if(abs(F-1.)<.004)discard;gl_FragColor=vec4(vec3(.5*F),1.);}`});
@@ -1654,6 +1663,8 @@ function camelSpawn(sc,anims,i,kind){smoothRoot(anims);
   return a}
 function camelPrints(a,dt){if(a.spd<.05){for(const f of a.feet)f.p=null;return}const bk=CAMEL_SLOTS[a.i]==="bact";
   for(const f of a.feet){const h=footPlant(f,f.b,a.spd,dt,.3);if(h)prAdd(bk?PRK.bact:PRK.drom,h.x,h.z,a.yaw+.06*Math.sin(h.x*7.1+h.z*3.3),f.hind,1,f.R)}}
+/* the hollow it lay in, left as it gets up: centred under the chest and belly, a little ahead of the root */
+function camelLie(a){const bk=CAMEL_SLOTS[a.i]==="bact",f=.12*a.sc;prAdd(PRK.lie,a.x+Math.sin(a.yaw)*f,a.z+Math.cos(a.yaw)*f,a.yaw,bk?1:0,1,0,a.sc)}
 function camelGo(a,to,job){
   const g=navGrid("camel",1.05,1.12,.84),blk=ANIM.camels.filter(o=>o!==a&&o.spd<.05).map(o=>({x:o.x,z:o.z,r:2.6})),p=navPath(g,a.x,a.z,to.x,to.z,blk);
   if(!p){a.mode="job";a.job="idle";a.timer=rr(3,6);play(a.r,"idle",1,1);return false}
@@ -1697,7 +1708,7 @@ function camelUpdate(a,dt){
     else play(a.r,"walk",.6,Math.max(.3,a.spd/a.v)*a.gait)}
   else if(a.mode==="down"){a.k=Math.min(1,a.k+dt/CK.down);if(a.k>=1){a.mode="rest";a.timer=rr(30,55);play(a.r,"kneel_rest",.3,night?.7:1)}}
   else if(a.mode==="rest"){if(a.r.acts.kneel_rest)a.r.acts.kneel_rest.timeScale=night?.7:1;
-    if(!stay){a.timer-=dt;if(a.timer<0){a.mode="up";play(a.r,"stand_up",.3,1);if(rnd()<.8)camelCall(a,"up")}}}
+    if(!stay){a.timer-=dt;if(a.timer<0){a.mode="up";play(a.r,"stand_up",.3,1);if(rnd()<.8)camelCall(a,"up");camelLie(a)}}}
   else if(a.mode==="up"){a.k=Math.max(0,a.k-dt/CK.up);if(a.k<=0){a.job="idle";play(a.r,"idle",.3,1);camelPlan(a)}}
   else if(a.mode==="job"){a.timer-=dt;if(a.timer<0)camelPlan(a)}
   /* one integrator for every mode: speed and heading carry over mode changes instead of snapping */
@@ -2508,7 +2519,7 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,s
   /* age the tracks by `sec` seconds of the current wind (for the fade time-lapse) */
   trkAge:sec=>{const r=ANIM.rs;if(!r||!TRK)return;for(let k=0;k<sec*2;k++){TRK.dc=.5;TRK.any=1;const w=r.w;r.w=0;trkTick(r,0);r.w=w}TRK.tex.needsUpdate=true},
   /* footprints: PR itself, prAdd for stamping, prAge(sec) wears every print by `sec` seconds of the current weather */
-  PR,PRK,prAdd,prAge:sec=>{const P=PR;P.E+=sec*(1/240+st.wn*.3/35+WX.dust/6+WX.rain/9);P.im.material.uniforms.uE.value=P.E},camelGo,eagleLand:s=>eagleLand(ANIM.eagle,s||eagleSpots()[1]),eagleSpots,
+  PR,PRK,prAdd,camelLie,prAge:sec=>{const P=PR;P.E+=sec*(1/240+st.wn*.3/35+WX.dust/6+WX.rain/9);P.im.material.uniforms.uE.value=P.E},camelGo,eagleLand:s=>eagleLand(ANIM.eagle,s||eagleSpots()[1]),eagleSpots,
   freeze(on){st.lock=!!on},
   step(n,dt){for(let i=0;i<(n||1);i++)step(dt||1/30)},
   tod(p){st.tod=p||null;const ph=phaseNow();for(const k in LK)LK[k]=k===ph?1:0;applyLighting(0)},

@@ -310,7 +310,7 @@ function sandMat(){
           float mk=min(1.,w*1.45)*smoothstep(.54,.7,pl+.08*w)*(.45+.55*smoothstep(.2,.7,sm));
           /* the reflected sky near the horizon: pale and greyed, a cool blue-grey whatever the sky's hue (a sunset pink would read as lavender) */
           float mL=dot(uMirC,vec3(.3,.59,.11)),mB=dot(uMirB,vec3(.3,.59,.11));
-          vec3 mc=mix(mix(vec3(mL),uMirC,.18)*vec3(.88,.94,1.),mix(vec3(mB),uMirB,.3)*vec3(.84,.92,1.),.12+.25*smoothstep(.02,.35,V.y))*(.93+.14*sm);
+          vec3 mc=mix(mix(vec3(mL),uMirC,.18)*vec3(.84,.93,1.05),mix(vec3(mB),uMirB,.3)*vec3(.8,.9,1.04),.12+.25*smoothstep(.02,.35,V.y))*(.93+.14*sm);
           outgoingLight=mix(outgoingLight,mc,mk*.85);}}
       #include <opaque_fragment>`);
   };

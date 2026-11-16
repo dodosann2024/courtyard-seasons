@@ -124,7 +124,7 @@ async function go(y,dir,push){
   if(y===cur)return;
   busy=true;
   const toD=y==="desert";desWant=toD;
-  if(toD&&desBusy())desLoad();
+  if(toD&&desBusy()){desLoad();await raf();await raf()}
   const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
   try{
     const oldS=await snap();

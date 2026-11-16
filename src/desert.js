@@ -1268,7 +1268,8 @@ function applyLighting(dt){
   skyU.uRbDir.value.copy(d).negate();
   [X.Dc,X.qc].forEach(o=>{if(o&&o.layers)o.traverse(c=>c.layers.disable(3))});
   /* dust and heavy rain close the air in; the haze is lit like the sky */
-  if(Jt.fog){const dz=WX.dust,fd=ss(0,.25,dz),far=mix(mix(900,150,ss(.3,1,WX.rain)*.85),mix(240,34,ss(.3,1,dz)),fd);
+  /* the island's centre stays at most ~70% fogged however far the camera is (the phone view sits ~60 out) */
+  if(Jt.fog){const dz=WX.dust,fd=ss(0,.25,dz),far=Math.max(mix(mix(900,150,ss(.3,1,WX.rain)*.85),mix(240,34,ss(.3,1,dz)),fd),De.position.distanceTo(_v.setFromMatrixPosition(W.matrixWorld))/.69);
     Jt.fog.far=far;Jt.fog.near=far*mix(.45,.04,fd);
     _c1.copy(jt?jt.bot.value:_c1.set("#c8b8b0")).multiplyScalar(.9);Jt.fog.color.copy(_c1).lerp(skyU.uDustC.value,ss(0,.2,dz))}
   const g=gradeM.uniforms;g.uCon.value=blendL("con")*(1-.45*WX.ovc);g.uSat.value=blendL("sat")*(1-.25*WX.ovc)*(1-.22*WX.dust);g.uRay.value=blendL("ray")*(1-WX.ovc)*(1-WX.dust);g.uVig.value=blendL("vig")+.12*WX.dust;g.uLift.value=blendL("lift")+.02*WX.dust;

@@ -118,9 +118,12 @@ def main():
     snd = rd("snd.html")
     tpl = rd("page.html")
 
+    # desert model sizes, so the loading indicator can show real progress
+    msz = {fn[:-4]: os.path.getsize(os.path.join(mdir, fn)) for fn in sorted(os.listdir(mdir)) if fn.endswith(".glb")} if os.path.isdir(mdir) else {}
+
     for y in [None] + YARDS[1:]:
         p = "" if y is None else "../"
-        cy = {"p": p, "yard": y or "", "app": app_rel, "sea": sea_rel, "desert": desert_rel, "th": thumbs, "au": {k: audio[k] for k in PREFETCH_AUDIO}}
+        cy = {"p": p, "yard": y or "", "app": app_rel, "sea": sea_rel, "desert": desert_rel, "th": thumbs, "ms": msz, "au": {k: audio[k] for k in PREFETCH_AUDIO}}
         title = "天空之境 | Sky Haven" if y is None else f"{NAMES[y]} · 天空之境 | Sky Haven"
         html = tpl
         for k, v in {

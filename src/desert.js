@@ -151,7 +151,13 @@ function gltfMod(){if(_gltf)return _gltf;
     .catch(()=>{if(tag!==undefined)window.__THREE__=tag;_gltf=null;return Promise.reject(0)});
   return _gltf}
 const GLB={};
-function glb(key){if(!GLB[key])GLB[key]=gltfMod().then(m=>m.loadGLB(ROOT()+"assets/models/"+key+".glb"));return GLB[key]}
+/* download progress per model file, against the byte sizes the build records in CY.ms, for the loading indicator */
+const GLP={};
+function glb(key){if(!GLB[key]){const P=GLP[key]={l:0,t:((window.CY||{}).ms||{})[key]||3e6,d:0};
+  GLB[key]=gltfMod().then(m=>new Promise((res,rej)=>{(m.__ld||(m.__ld=new m.GLTFLoader())).load(ROOT()+"assets/models/"+key+".glb",
+    g=>res({scene:g.scene||g.scenes&&g.scenes[0],animations:g.animations||[],gltf:g}),e=>{if(e&&e.loaded)P.l=Math.min(P.t,e.loaded)},rej)}));
+  GLB[key].then(()=>{P.l=P.t;P.d=1},()=>{P.l=P.t;P.d=1})}
+  return GLB[key]}
 function boxOf(o){
   const mn=new V3(1e9,1e9,1e9),mx=new V3(-1e9,-1e9,-1e9),p=new V3();o.updateMatrixWorld(true);
   o.traverse(c=>{if(!c.isMesh||!c.geometry)return;const a=c.geometry.attributes.position;if(!a)return;
@@ -2474,6 +2480,8 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,s
   audCap(on){if(on){AU.cap={t0:st.t,ev:[]};return 0}const c=AU.cap;AU.cap=null;return c?c.ev:[]},AU,OAS,oasisNear,
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,play,rsBout}};
 animalsReady.then(()=>{QA.ready=true});
+window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1","pupfish_male_v3","pupfish_female_v3",RS_FILE])];
+  let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;if(P){l+=P.l;d+=P.d}}return{p:t?l/t:1,done:d===ks.length}};
 window.__desReady=true;
 }
 })();

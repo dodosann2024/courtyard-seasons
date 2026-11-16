@@ -106,19 +106,31 @@ window.__turnFrame=async(t,dir=1)=>{if(!G||!G.last)return;setTex(G.last[0],G.las
 
 /* ---------- yard switching ---------- */
 const tp=()=>$("#tp");
-function pill(on,y){const p=tp();if(!p)return;if(on)p.querySelector("span").textContent="前往 · "+C.names[y];p.classList.toggle("on",!!on)}
+function pill(on,y){const p=tp();if(!p)return;clearTimeout(desT);p.classList.remove("pr");if(on)p.querySelector("span").textContent="前往 · "+C.names[y];p.classList.toggle("on",!!on)}
+/* the desert's models stream in after the page turn (tens of MB on a cold visit), so keep the pill up with their real download progress */
+let desT=0,desWant=false;
+const desBusy=()=>!window.__desProg||!window.__desProg().done;
+function desLoad(){const p=tp();clearTimeout(desT);if(!p)return;
+  const tick=()=>{const f=window.__desProg,s=f&&f();
+    if(!desWant&&cur!=="desert"||s&&s.done||window.__desErr){p.classList.remove("on");desT=setTimeout(()=>p.classList.remove("pr"),250);return}
+    if(s){p.querySelector("span").textContent="载入沙漠 · "+Math.round(s.p*100)+"%";p.style.setProperty("--p",(3+97*s.p).toFixed(1)+"%");p.classList.add("pr")}
+    else{p.querySelector("span").textContent="前往 · "+C.names.desert;p.classList.remove("pr")}
+    p.classList.add("on");desT=setTimeout(tick,250)};
+  tick()}
 async function go(y,dir,push){
   if(!Y.includes(y))return;
   if(!ready||!window.__style)return;
   if(busy){pending=[y,dir,push];return}
   if(y===cur)return;
   busy=true;
+  const toD=y==="desert";desWant=toD;
+  if(toD&&desBusy())desLoad();
   const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
   try{
     const oldS=await snap();
     const shown=oldS?showFlat(oldS):false;
     const cold=!built.has(y);
-    if(cold)pill(1,y);
+    if(cold&&!toD)pill(1,y);
     await raf();await raf();
     window.__style(y);cur=y;built.add(y);
     {const w=window.__styleWait&&window.__styleWait(y);if(w)await w}
@@ -126,7 +138,7 @@ async function go(y,dir,push){
     document.title=title(y);document.documentElement.dataset.yard=y;
     await raf();await raf();
     const newS=shown?await snap():null;
-    pill(0);
+    if(!toD)pill(0);
     if(G&&!G.fail&&window.__keepTurn)G.last=[oldS,newS];
     await turn(shown?oldS:null,newS,dir,reduce);
     window.__turnP=1;
@@ -135,7 +147,9 @@ async function go(y,dir,push){
   if(pending){const p=pending;pending=null;go(...p)}
 }
 window.__go=(y,dir=1)=>go(y,dir,true);
-document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("[data-y]");if(!b)return;e.stopImmediatePropagation();e.preventDefault();go(b.dataset.y,1,true)},true);
+/* the desert is a long cold load: the panel gets out of the way at once so the progress pill and the island show */
+document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("[data-y]");if(!b)return;e.stopImmediatePropagation();e.preventDefault();
+  if(b.dataset.y==="desert"&&cur!=="desert")document.body.classList.add("col");go(b.dataset.y,1,true)},true);
 addEventListener("popstate",e=>{const s=e.state;let y=s&&s.cy;if(!y){const m=location.pathname.match(/\/([a-z]+)\/?(?:index\.html)?$/);y=m&&Y.includes(m[1])?m[1]:"def"}const i=s&&typeof s.i=="number"?s.i:0;const dir=i<idx?-1:1;idx=i;go(y,dir,false)});
 addEventListener("keydown",e=>{if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))return;if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight"||e.metaKey||e.ctrlKey||e.altKey)return;const k=Y.indexOf(cur);go(Y[(k+(e.key==="ArrowRight"?1:Y.length-1))%Y.length],e.key==="ArrowRight"?1:-1,true)});
 
@@ -163,6 +177,7 @@ function panels(){
   built.add(cur);document.title=title(cur);
   try{const s=history.state||{};history.replaceState({cy:cur,i:typeof s.i=="number"?s.i:0},"",C.canon&&cur===C.cur?C.canon:location.href)}catch{}
   panels();
+  if(cur==="desert"&&desBusy()){desWant=true;desLoad()}
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     const l=$("#ld");if(l){l.classList.add("gone");setTimeout(()=>l.remove(),900)}
     window.__firstFrame=performance.now();

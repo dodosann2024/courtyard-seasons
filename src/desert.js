@@ -1002,7 +1002,7 @@ function sandSeed(i,init){
   const crest=rnd()<.55;let x,z;
   if(crest){[x,z]=crestXZ(rr(-1,1)*1.1)}
   else{const[a,b]=edgeXZ(rnd()*TAU,Math.sqrt(rnd())*.88);x=a;z=b}
-  const q={x,z,y:hTop(x,z)+.05,vx:WIND.x*rr(1.5,3.4),vz:WIND.z*rr(1.5,3.4)+rr(-.3,.3),vy:crest?rr(.15,.5):rr(0,.12),life:init?rnd():0,dur:rr(2.5,6),crest};
+  const q={x,z,y:hTop(x,z)+.05,s:rr(1.5,3.4),lat:rr(-.1,.1),vy:crest?rr(.15,.5):rr(0,.12),life:init?rnd():0,dur:rr(2.5,6),crest};
   SANDP[i]=q;SAND.Z[i]=rr(.4,1.3)}
 for(let i=0;i<SAND.n;i++)sandSeed(i,true);
 /* crest veil: fine sand torn off the dune crest, streaming downwind and up over the slip face, thicker in gusts */
@@ -1035,7 +1035,7 @@ const CURT=(()=>{const{NS,NK}=CUR,n=(NS+1)*(NK+1),g=new T.BG(),P=new Float32Arra
         a=.55*(1.-exp(-a*2.8*mix(.45,1.,vFs)));gl_FragColor=vec4(gl_FragColor.rgb*mix(vec3(1.),vec3(1.,.64,.28),.85*(1.-uNt))*a,a*mix(.4,.3,vFs));
       }`});
   const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=6;W.add(o);return{o,g,P,Hv}})();
-let CURK=1;
+let CURK=1,SALT=1;
 function curtainUpdate(t){
   const{NS,NK}=CUR,P=CURT.P,Hv=CURT.Hv;
   for(let i=0;i<=NS;i++){const vn=(i/NS*2-1)*.95,[x,z]=crestXZ(vn),y=hTop(x,z),hv=Math.exp(-vn*vn*1.15),g=gustAt(x,z);
@@ -1167,6 +1167,7 @@ function sfDust(q){const F=SF.F,pr=SFD.pr;let f=F[q.f];
   q.x=f.E.x+f.E.nx*(d+.2)+f.E.tx*lat+WIND.x*dr;q.z=f.E.z+f.E.nz*(d+.2)+f.E.tz*lat+WIND.z*dr;q.y=y;
   q.vx=WIND.x*(.4+.6*pr())+f.E.nx*.35;q.vz=WIND.z*(.4+.6*pr())+f.E.nz*.35;q.vy=-1.2-1.2*pr();q.life=0;q.dur=2.5+3*pr()}
 function sandFallsUpdate(dt,t,wn,nk){
+  wn=Math.max(wn,.35+WX.dust*.7);
   /* the rate follows the wind and its gusts; dust storms feed it, wet sand barely moves */
   const fr=cl((.3+.8*wn)*(.75+.5*gustAt(0,0))*(1+1.3*WX.dust)*(1-.25*WX.wet),0,2.2);
   sfU.uFR.value=SF.pin!=null?SF.pin:sfU.uFR.value+(fr-sfU.uFR.value)*Math.min(1,dt*.6);sfU.uFT.value+=dt;sfU.uT.value=t;sfU.uWet.value=WX.wet;sfU.uDust.value=WX.dust;sfU.uNt.value=nk;
@@ -1391,7 +1392,7 @@ function wxUpdate(dt){
   if(w==="storm"&&WX.rain>.5){WX.ic-=dt;if(WX.ic<0){WX.ic=rr(2.5,8);WX.icF=1;WX.icA=rr(-Math.PI,Math.PI)}}
   WX.icF=Math.max(0,WX.icF-dt*3.5);
   WX.flash=Math.max(WX.bolt,WX.icF*.35*(.6+.4*Math.sin(st.t*61)));
-  st.wn=Math.max(st.wn,.35+WX.dust*.7,w==="storm"?.35+.45*WX.rain:0)}
+  st.wn=Math.max(st.wn,WX.dust*1.05,w==="storm"?.35+.45*WX.rain:0)}
 /* far: 0 overhead .. 1 at the horizon; the bolt falls somewhere in front of the camera, lower and smaller the farther it is */
 function strike(far){WX.bAge=0;WX.boltA=wrapA(Math.atan2(-De.matrixWorld.elements[8],-De.matrixWorld.elements[10])+(rnd()<.5?-1:1)*rr(.3,.7));
   WX.boltS=rr(0,100);WX.boltE=SKY_HOR-mix(.12,.02,far);thunder(far)}
@@ -1480,13 +1481,16 @@ UPD.push((dt,t)=>{
   _cl.copy(De.position);W.worldToLocal(_cl);
   /* wind: shared gust clock, dune creep, drifting-sand phase */
   WS.d+=(wn-WS.d)*Math.min(1,dt*(wn>WS.d?.5:.035));WS.ph+=dt*(.012+.05*WS.d);
-  WS.a=DUNE.yaw+(.1+.4*ss(.4,1.1,WS.d))*(.62*Math.sin(WS.ph*1.3)+.38*Math.sin(WS.ph*2.9+1.1));
+  WS.a=WS.pin!=null?WS.pin:DUNE.yaw+(.1+.4*ss(.4,1.1,WS.d))*(.62*Math.sin(WS.ph*1.3)+.38*Math.sin(WS.ph*2.9+1.1));
   WIND.x=Math.cos(WS.a);WIND.z=-Math.sin(WS.a);sandU.uWD.value.set(WIND.x,WIND.z);smokeU.uWind.value.set(WIND.x,0,WIND.z);rainU.uWD.value.set(WIND.x,WIND.z);
   GUST.t+=dt;sandU.uGT.value=GUST.t;
   const wd=WS.d,gD=gustAt(DUNE0.x,DUNE0.z),wk=.5+wd*1.4;
-  duneEvolve(dt*(.35+.9*gD)*wk*(1-.9*WX.wet)*(1+2.5*WX.dust));CURK=(1-.9*WX.wet)*(1+1.4*WX.dust);
+  duneEvolve(dt*(.35+.9*gD)*wk*(1-.9*WX.wet)*(1+2.5*WX.dust));CURK=ss(.2,.6,wd)*(1-.9*WX.wet)*(1+1.4*WX.dust);
   sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk);
-  sandU.uFlowT.value+=dt*(2.4+2.2*gD)*wk;sandU.uRipPh.value+=dt*.1*(.3+gD)*wk;sandU.uFlowK.value=cl(.3+wd*1.4,0,1.3)*(1-.85*WX.wet)*(1+1.3*WX.dust);
+  /* sand only moves above a threshold wind (saltation): a light breeze leaves the surface still, a strong wind sets fast, dense
+     streamers running down it; streak speed follows the wind */
+  const salt=ss(.14,.55,wd);SALT=salt;
+  sandU.uFlowT.value+=dt*(1.6+2.2*gD)*(.3+wd*2.2);sandU.uRipPh.value+=dt*.1*(.3+gD)*wk;sandU.uFlowK.value=salt*cl(.55+wd*.9,0,1.35)*(1-.85*WX.wet)*(1+1.3*WX.dust);
   sandU.uWetK.value=WX.wet;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.25);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;
   pondU.uRainP.value=WX.rain;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
@@ -1511,11 +1515,11 @@ UPD.push((dt,t)=>{
   /* sand wisps: grains hop and drift with the local gust */
   for(let i=0;i<SAND.n;i++){const q=SANDP[i];q.life+=dt/q.dur;
     if(q.life>=1){sandSeed(i,false);continue}
-    const gq=gustAt(q.x,q.z),sp=(.5+wd)*(.35+1.3*gq)*(1+1.2*WX.dust);
-    q.x+=q.vx*dt*sp;q.z+=q.vz*dt*sp;q.y+=q.vy*dt*(.5+gq);const g=hTop(q.x,q.z);if(q.y<g+.03)q.y=g+.03;
+    const gq=gustAt(q.x,q.z),sp=(.2+1.3*wd)*(.35+1.3*gq)*(1+1.2*WX.dust)*q.s;
+    q.x+=(WIND.x-WIND.z*q.lat)*dt*sp;q.z+=(WIND.z+WIND.x*q.lat)*dt*sp;q.y+=q.vy*dt*(.5+gq);const g=hTop(q.x,q.z);if(q.y<g+.03)q.y=g+.03;
     q.vy+=(q.crest?-.08:-.02)*dt;
     const o=i*3;SAND.P[o]=q.x;SAND.P[o+1]=q.y;SAND.P[o+2]=q.z;
-    SAND.A[i]=Math.sin(q.life*Math.PI)*(q.crest?.3:.16)*(.3+wd*1.4)*(.25+gq)*(1-ss(.86,.97,sN(q.x,q.z)))*(1-.92*WX.wet)*(1+1.5*WX.dust)}
+    SAND.A[i]=Math.sin(q.life*Math.PI)*(q.crest?.3:.16)*SALT*(.3+wd*1.4)*(.25+gq)*(1-ss(.86,.97,sN(q.x,q.z)))*(1-.92*WX.wet)*(1+1.5*WX.dust)}
   SAND.g.attributes.position.needsUpdate=SAND.g.attributes.a.needsUpdate=true;SAND.m.uniforms.uH.value=innerHeight;
   SAND.m.uniforms.uC.value.copy(curU.uCol.value).multiplyScalar(1.15);
   sandFallsUpdate(dt,t,wd,nk);
@@ -2639,7 +2643,7 @@ const QA={AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW
   /* age the tracks by `sec` seconds of the current wind (for the fade time-lapse) */
   trkAge:sec=>{const r=ANIM.rs;if(!r||!TRK)return;for(let k=0;k<sec*2;k++){TRK.dc=.5;TRK.any=1;const w=r.w;r.w=0;trkTick(r,0);r.w=w}TRK.tex.needsUpdate=true},
   /* sand falls: count, rate (sfR(v) pins it, null to release), and each fall's rim point, half width and threshold */
-  sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z}),sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty}))}),sfR:v=>{SF.pin=v},
+  sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty}))}),sfR:v=>{SF.pin=v},
   freeze(on){st.lock=!!on},
   step(n,dt){for(let i=0;i<(n||1);i++)step(dt||1/30)},
   tod(p){st.tod=p||null;const ph=phaseNow();for(const k in LK)LK[k]=k===ph?1:0;applyLighting(0)},

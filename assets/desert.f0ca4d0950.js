@@ -2123,7 +2123,7 @@ function trkTick(s,dt){const K=TRK;if(!K||!s.bd)return;const b=s.bd;
       const dep=(side?1:s.rk>.5?.6:.8)*mix(.75,1,ss(.3,1,i/8)),j=i<RS_N-1&&on(i+1)?i+1:i>0&&on(i-1)?i-1:i;
       trkSeg(K,x,z,b.P[2*j],b.P[2*j+1],dep,qx,qz)}}
   K.dc+=dt;
-  if(K.dc>.5&&K.any){const g=gustAt(b.P[0],b.P[1]),r=K.dc*(1/160+st.wn*(.4+.6*g)/35+WX.dust/6+WX.rain/9),d=K.d;let any=0;K.dc=0;
+  if(K.dc>=.5&&K.any){const g=gustAt(b.P[0],b.P[1]),r=K.dc*(1/160+st.wn*(.4+.6*g)/35+WX.dust/6+WX.rain/9),d=K.d;let any=0;K.dc=0;
     for(let i=0;i<d.length;i+=4){const a=d[i],c=d[i+1];if(!(a|c))continue;any=1;
       if(a)d[i]=a-Math.min(a,Math.floor(a*r+rnd()));if(c)d[i+1]=c-Math.min(c,Math.floor(c*r*1.6+rnd()))}
     K.any=any;K.dirty=1}

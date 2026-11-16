@@ -2107,6 +2107,8 @@ function rsTongueMesh(proto){proto.traverse(o=>{if(!o.isMesh||!/tongue/i.test((o
 function rsSpawn(proto,anims){
   const M=VT.THREE,g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";proto.position.y=0;
   inner.add(proto);inner.scale.setScalar(RS_SC);g.add(inner);animalMats(g);W.add(g);onDes(g);
+  /* light thrown back up off the sand: its own pattern lit softly from below, most when a low sun barely reaches its back */
+  matsOf(g,m=>{if(m.map&&!m.userData.snFill){m.userData.snFill=1;m.emissiveMap=m.map;m.emissive=new C3(0,0,0);m.needsUpdate=true;SN_FILL.push(m)}});
   /* any transmission > 0 (cornea glass, rattle keratin) makes three re-render the whole scene into a transmission target every frame */
   matsOf(g,m=>{const tr=m.transmission||0;m.transmission=0;
     if(/cornea/i.test(m.name||"")){if(tr>0||!m.transparent){m.transparent=true;m.opacity=.22;m.roughness=.06}m.depthWrite=false}
@@ -2809,8 +2811,11 @@ const animalsReady=propsReady.then(()=>{const big=[
     const day=st.phase==="day",sp=day?snakeShadeSpot():randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;
     Object.assign(s,{x:sp.x,z:sp.z,yaw:sp.yaw!=null?sp.yaw:-.8,inShade:day?1:0});s.gy=hTop(s.x,s.z);s.g.position.set(s.x,s.gy,s.z);s.g.rotation.set(0,s.yaw,0);
     play(s.r,"relaxed_coil",.01,1)}).catch(()=>{})))});
+const SN_FILL=[];
 UPD.push((dt,t)=>{
   {const envI=mix(.3,.08,st.night);for(const m of ANIM_MATS)m.envMapIntensity=m.userData.coat?envI*.7:envI}
+  if(SN_FILL.length&&pi){const k=(1-st.night)*(1-.6*WX.ovc)*(.05+.3*(1-ss(.12,.55,sandU.uLd.value.y)));
+    for(const m of SN_FILL)m.emissive.setRGB(pi.color.r*.95*k,pi.color.g*.78*k,pi.color.b*.55*k)}
   if(dt<=0)return;const d=Math.min(dt,.1);
   ANIM.camels.forEach(a=>camelUpdate(a,d));prTick(d);
   if(ANIM.eagle)eagleUpdate(ANIM.eagle,d);

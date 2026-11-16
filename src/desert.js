@@ -1551,7 +1551,10 @@ UPD.push((dt,t)=>{
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
     curU.uCol.value.set("#f0d2a0").multiply(_c1.clone().multiplyScalar(.5).add(_c2.clone().multiplyScalar(.5)).add(dc?dc.color.clone().multiplyScalar(dc.intensity):_c2));
-    curU.uSheen.value.set("#ffb45c").multiply(_c1).multiplyScalar(.55)}
+    curU.uSheen.value.set("#ffb45c").multiply(_c1).multiplyScalar(.55);
+    /* a low red sun saturates the airborne sand into glowing orange: grey it toward its own brightness and dim it as the sun warms */
+    const wS=ss(.25,.8,1-pi.color.b/Math.max(pi.color.r,1e-3)),cu=curU.uCol.value,lu=cu.r*.3+cu.g*.59+cu.b*.11;
+    cu.lerp(_c3.setRGB(lu,lu,lu),.45*wS).multiplyScalar(1-.2*wS);curU.uSheen.value.multiplyScalar(1-.55*wS)}
   curU.uT.value=t;curU.uNt.value=nk;curtainUpdate(t);
   const gT=gustAt(TENT.x,TENT.z);
   vegU.uT.value=t;vegU.uWind.value=.4+wn;propU.uT.value=t;propU.uWind.value=(.4+wn)*(.55+.9*gT);cactusLod();

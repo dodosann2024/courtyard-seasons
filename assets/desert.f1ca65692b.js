@@ -1533,6 +1533,75 @@ function groundFrame(x,z,yaw,L,Wd){
   const hl=hTop(x+fz*Wd,z-fx*Wd),hr=hTop(x-fz*Wd,z+fx*Wd);
   return{y:Math.max((hf+hb)*.5,hc-.12),pitch:-Math.atan2(hf-hb,2*L),roll:cl(Math.atan2(hl-hr,2*Wd),-.2,.2)}}
 
+/* ---- footprints: one instanced decal per print, drawn over the sand as a 2x multiply (0.5 = no change). Each kind is a
+   height field in centimetres that the shader lights from the key light, so a print reads as pressed into the sand with a lit
+   and a shaded wall and a dark floor. Prints are laid where a foot actually comes to rest, and wind, blowing sand and rain
+   wear them away (slowly in still air, within seconds in a dust storm). instanceColor carries (kind + variant/4, wear clock
+   at birth, depth). ---- */
+const PRK={drom:0,bact:1,talon:2,wing:3};
+const PR_SZ=[.28,.32,.2,.9];
+const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
+  const m=new T.SM({transparent:true,depthWrite:false,side:2,blending:5,blendSrc:208,blendDst:202,blendSrcAlpha:200,blendDstAlpha:201,
+    polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,uniforms:{uE:{value:0},uKs:{value:.7},uLd:sandU.uLd},
+    vertexShader:`varying vec2 vQ;varying vec3 vK,vAx,vAz;varying float vS,vL,vSd,vG;
+      void main(){vK=instanceColor;mat4 M=modelMatrix*instanceMatrix;vAx=normalize((M*vec4(1.,0.,0.,0.)).xyz);vAz=normalize((M*vec4(0.,0.,1.,0.)).xyz);
+        vS=length(instanceMatrix[0].xyz);vL=length(instanceMatrix[2].xyz);vSd=fract(sin(dot(instanceMatrix[3].xz,vec2(12.9898,78.233)))*43758.5453);
+        /* seen from afar a track is the trampled strip, not single prints: the quad grows to carry a soft dent wider than the foot */
+        vec3 c=(M*vec4(0.,0.,0.,1.)).xyz;vG=vK.x<2.5?clamp(length(cameraPosition-c)/(26.*vS),1.,2.):1.;vQ=position.xz*vG;
+        gl_Position=projectionMatrix*viewMatrix*M*vec4(position*vG,1.);}`,
+    fragmentShader:`uniform float uE,uKs;uniform vec3 uLd;varying vec2 vQ;varying vec3 vK,vAx,vAz;varying float vS,vL,vSd,vG;
+      ${GLSL_NOISE}
+      /* camel: two broad toe lobes fused behind into one soft heel pad, parted at the front by a short cleft with a nail pock
+         at each toe tip; the sand the pad spreads is heaped round it, most where the foot rolls off the toes. Hind feet are
+         narrower than fore feet; the Bactrian's pads are larger and its toes splay wider. */
+      float camel(vec2 p,float hind,float bk){p/=vec2(hind>.5?.84:1.,hind>.5?.92:1.)*(bk>.5?1.13:1.);float sp=bk>.5?3.1:2.7;
+        float t1=length((p-vec2(-sp,2.6))/vec2(4.1,5.4)),t2=length((p-vec2(sp,2.6))/vec2(4.1,5.4)),hl=length((p-vec2(0.,-2.))/vec2(6.3,5.8));
+        float q=-.22*log(exp(-t1/.22)+exp(-t2/.22)+exp(-hl/.22));
+        float h=-smoothstep(1.,.45,q)*(1.-.8*exp(-p.x*p.x/(bk>.5?1.4:.9))*smoothstep(2.,6.5,p.y));
+        vec2 n1=p-vec2(-sp+.2,7.7),n2=p-vec2(sp-.2,7.7);h-=.5*(exp(-dot(n1,n1)/1.1)+exp(-dot(n2,n2)/1.1));
+        h+=.34*exp(-(q-1.17)*(q-1.17)*14.)*(1.+.9*smoothstep(-2.,8.,p.y));
+        return 1.6*(h+.08*(dn2(p*1.4+vSd*9.)-.5)*smoothstep(1.1,.6,q));}
+      /* eagle: three forward toes and the hallux behind, each a chain of knuckle pads ending in a deep talon pock */
+      float toe(vec2 p,vec2 b,float an,float L){vec2 d=vec2(sin(an),cos(an));float t=clamp(dot(p-b,d),0.,L);float r=length(p-b-d*t)/(1.05-.3*t/L);
+        vec2 tp=p-b-d*(L+.9);return -smoothstep(1.,.35,r)*(.75+.25*cos(t*2.4))-1.1*exp(-dot(tp,tp)/.3);}
+      float talon(vec2 p){float h=min(min(toe(p,vec2(0.),0.,6.3),toe(p,vec2(-.3,0.),-.6,5.)),min(toe(p,vec2(.3,0.),.58,4.8),toe(p,vec2(0.,-.3),3.14159,3.8)));
+        h=min(h,-.8*smoothstep(1.,.3,length(p/vec2(1.9,1.7))));return h+.12*(dn2(p*1.2+vSd*7.)-.5);}
+      /* wing: the primaries' tips brushed through the sand on landing or take-off, a fan of shallow grooves with low ridges */
+      float wing(vec2 p){float h=0.;for(int i=0;i<6;i++){float f=float(i),a=(f-2.5)*.1;vec2 d=vec2(sin(a),cos(a)),q=p-vec2((f-2.5)*5.,-34.);
+        float t=dot(q,d),s=dot(q,vec2(d.y,-d.x))+.9*sin(t*.11+f+vSd*6.),L=50.+9.*sin(f*1.7+vSd*5.);
+        h+=smoothstep(0.,9.,t)*smoothstep(L,L-16.,t)*(-.5*exp(-s*s/.45)+.16*exp(-(abs(s)-1.3)*(abs(s)-1.3)/.35));}return h;}
+      float hgt(vec2 p,float k,float v){if(k<1.5)return camel(p,v,k);if(k<2.5)return talon(p);return wing(p);}
+      void main(){float k=floor(vK.x+.001),v=fract(vK.x)*4.;vec2 p=vec2(vQ.x*vS,vQ.y*vL)*100.;
+        float a=clamp(vK.z*exp(-max(uE-vK.y,0.)),0.,1.);if(a<.01)discard;
+        float e=.1,h0=hgt(p,k,v),hx=hgt(p+vec2(e,0.),k,v),hz=hgt(p+vec2(0.,e),k,v);
+        vec3 n=normalize(vec3(-(hx-h0)/e*a,1.,-(hz-h0)/e*a)),L=normalize(vec3(dot(uLd,vAx),max(uLd.y,.03),dot(uLd,vAz)));
+        /* the floor of a print sits in its own shadow, so a track still reads as a line of dark dents from far off */
+        float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-.45*clamp(-h0*a/1.2,0.,1.);
+        float F=clamp(mix(1.,df,uKs)*ao,.12,1.7);
+        /* a print only a few pixels across: its lit rim and shaded floor would average out to nothing, so it settles to a soft dent */
+        float lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y))),R=k<1.5?9.*vG:6.*vG;
+        F=mix(F,1.-.42*(k<2.5?exp(-dot(p,p)/(R*R)):clamp(-h0*1.4,0.,1.)),lod);
+        F=mix(1.,F,a*smoothstep(.5,.42,max(abs(vQ.x),abs(vQ.y))/vG));
+        if(abs(F-1.)<.004)discard;gl_FragColor=vec4(vec3(.5*F),1.);}`});
+  const im=new T.IM(geo,m,N);im.count=0;im.frustumCulled=false;im.renderOrder=1;im.castShadow=im.receiveShadow=false;
+  const c=new C3(0,0,0);for(let i=0;i<N;i++)im.setColorAt(i,c);W.add(im);onDes(im);
+  return{N,im,i:0,n:0,E:0,dirty:0,up:0,m4:new T.M4(),q:new T.Quat(),q2:new T.Quat(),v:new V3(),s:new V3(),c}})();
+const _up=new V3(0,1,0);
+/* kind, island-metre position, heading of the print's forward (+z), variant 0-3, depth (1 = typical), mirrored, scale */
+function prAdd(k,x,z,yaw,v,dep,mir,sc){if(pN(x,z)<1.02)return;const P=PR,i=P.i;P.i=(i+1)%P.N;P.n=Math.min(P.n+1,P.N);
+  P.q2.setFromUnitVectors(_up,nTop(x,z));P.q.setFromAxisAngle(_up,yaw).premultiply(P.q2);
+  const s=PR_SZ[k]*(sc||1);P.s.set(mir?-s:s,1,s);P.v.set(x,hTop(x,z)+.003,z);P.m4.compose(P.v,P.q,P.s);P.im.setMatrixAt(i,P.m4);
+  P.im.setColorAt(i,P.c.setRGB(k+(v||0)/4,P.E,dep==null?1:dep));P.dirty=1;P.im.count=P.n}
+function prTick(dt){const P=PR;P.E+=dt*(1/240+st.wn*.3/35+WX.dust/6+WX.rain/9);P.im.material.uniforms.uE.value=P.E;
+  if(pi&&dc)P.im.material.uniforms.uKs.value=cl(pi.intensity/(pi.intensity+dc.intensity*1.4+1e-3),.12,.85);
+  P.up+=dt;if(P.dirty&&P.up>.15){P.up=0;P.dirty=0;P.im.instanceMatrix.needsUpdate=true;P.im.instanceColor.needsUpdate=true}}
+/* a foot comes to rest: after a swing (moving faster than the body) it slows almost to a stop at the ground */
+const _pf=new V3();
+function footPlant(f,b,spd,dt,lift){b.getWorldPosition(_pf);W.worldToLocal(_pf);let hit=null;
+  if(f.p){const v=Math.hypot(_pf.x-f.p.x,_pf.z-f.p.z)/Math.max(dt,1e-3);
+    if(v>spd*.6)f.sw=1;else if(f.sw&&v<spd*.25&&_pf.y-hTop(_pf.x,_pf.z)<lift){f.sw=0;hit=_pf}
+    f.p.copy(_pf)}else f.p=_pf.clone();return hit}
+
 /* ---- camels ---- */
 const REST=[{...tl(4.2,5.2),yaw:TENT.yaw+Math.PI/2+.15},{x:14.2,z:2.6,yaw:-Math.PI/2-.35}];
 const DRINK=(()=>{const th=BEACH[0],[x,z]=pondEdge(th,1),nx=Math.cos(th),nz=Math.sin(th);return{x:x+nx*1.0,z:z+nz*1.0,yaw:Math.atan2(-nx,-nz)}})();
@@ -1556,7 +1625,12 @@ function camelSpawn(sc,anims,i,kind){smoothRoot(anims);
   const a={i,kind,sc:s,gait:kind.gait,v:.989*s*kind.gait,voice:kind.voice[i]||1,g,inner,mdl:sc,r:rigUp(sc,anims),bones:{},x:0,z:0,yaw:0,yr:0,spd:0,gy:null,gp:0,gr:0,k:0,mode:"job",job:"idle",timer:rr(2,5),path:null,pi:0,face:null,stuck:0};
   sc.traverse(o=>{if(o.isBone)a.bones[o.name]=o});
   for(const k of["kneel_down","stand_up"]){const c=a.r.acts[k];if(c){c.setLoop(VT.THREE.LoopOnce,1);c.clampWhenFinished=true}}
+  /* the four feet: the tip below each leg's last joint, fore or hind by where it stands in the bind pose */
+  a.feet=[];for(const n in a.bones){const m=n.match(/([01])_(Left|Right)_Limb_3$/);if(!m)continue;const b=a.bones[n];a.feet.push({b:b.children.find(c=>c.isBone)||b,R:m[2]==="Right",p:null,sw:0,hind:0})}
+  if(a.feet.length===4){g.updateMatrixWorld(true);const z=a.feet.map(f=>g.worldToLocal(f.b.getWorldPosition(new V3())).z),mid=[...z].sort((x,y)=>x-y).slice(1,3).reduce((x,y)=>x+y)/2;a.feet.forEach((f,i)=>{f.hind=z[i]<mid?1:0})}
   return a}
+function camelPrints(a,dt){if(a.spd<.05){for(const f of a.feet)f.p=null;return}const bk=CAMEL_SLOTS[a.i]==="bact";
+  for(const f of a.feet){const h=footPlant(f,f.b,a.spd,dt,.3);if(h)prAdd(bk?PRK.bact:PRK.drom,h.x,h.z,a.yaw+.06*Math.sin(h.x*7.1+h.z*3.3),f.hind,1,f.R)}}
 function camelGo(a,to,job){
   const g=navGrid("camel",1.05,1.12,.84),blk=ANIM.camels.filter(o=>o!==a&&o.spd<.05).map(o=>({x:o.x,z:o.z,r:2.6})),p=navPath(g,a.x,a.z,to.x,to.z,blk);
   if(!p){a.mode="job";a.job="idle";a.timer=rr(3,6);play(a.r,"idle",1,1);return false}
@@ -1611,7 +1685,7 @@ function camelUpdate(a,dt){
   if(a.gy==null||Math.abs(f.y-a.gy)>.6){a.gy=f.y;a.gp=f.pitch;a.gr=f.roll}
   const gk=ease(9,dt);a.gy+=(f.y-a.gy)*gk;a.gp+=(f.pitch-a.gp)*gk;a.gr+=(f.roll-a.gr)*gk;
   a.g.position.set(a.x,a.gy,a.z);a.g.rotation.set(a.gp*(1-.5*kk),a.yaw,a.gr*(1-.5*kk));
-  rigTick(a.r,dt)}
+  rigTick(a.r,dt);camelPrints(a,dt)}
 
 /* ---- eagle: soars in a thermal, lands on the saguaro top or at the west beach ---- */
 const _e0=new V3(),_e1=new V3(),_t0=new V3(),_t1=new V3(),_ev=new V3();
@@ -1641,6 +1715,12 @@ function eaglePlace(e){const o=e.ro;_eo.set(0,0,0);
   e.g.position.copy(e.pos).add(_eo);e.g.position.y+=E_FLY}
 const PUFF=softPoints(MOB?24:44,"#e6d7bd",.1,false);PUFF.o.renderOrder=6;PUFF.o.visible=false;W.add(PUFF.o);
 const PUFFP=[];
+/* where it comes down on the beach (or pushes off it): both feet's talon prints, and each wing's primaries brushed into the sand */
+function eagleMarks(e,off){const yaw=e.spot.yaw,fx=Math.sin(yaw),fz=Math.cos(yaw);let cx=0,cz=0,n=0;
+  for(const nm of["Foot_L","Foot_R"]){const b=e.g.getObjectByName(nm);if(!b)continue;b.getWorldPosition(_pf);W.worldToLocal(_pf);cx+=_pf.x;cz+=_pf.z;n++;
+    prAdd(PRK.talon,_pf.x,_pf.z,yaw+(nm==="Foot_L"?-.12:.12),0,off?1.3:1,nm==="Foot_R")}
+  if(!n){cx=e.spot.p.x;cz=e.spot.p.z}else{cx/=n;cz/=n}
+  for(const sd of[-1,1]){const lx=fz*sd,lz=-fx*sd,k=off?.95:.85;prAdd(PRK.wing,cx+lx*k-fx*.12,cz+lz*k-fz*.12,Math.atan2(lx,lz)+sd*(off?-.25:.2),0,off?1:.9,sd>0)}}
 function eaglePuff(p){for(let i=0;i<PUFF.n;i++){const a=rnd()*TAU,u=rr(.5,1.5);
     PUFFP[i]={x:p.x+Math.cos(a)*.12,y:p.y+rr(.05,.35),z:p.z+Math.sin(a)*.12,vx:Math.cos(a)*u,vy:rr(.1,.7),vz:Math.sin(a)*u,life:-rr(0,.12),dur:rr(.7,1.3)};PUFF.Z[i]=rr(.6,1.5)}
   PUFF.o.visible=true}
@@ -1693,14 +1773,14 @@ function eagleFinal(e){const spot=e.spot;e.final=true;const p1=spot.p.clone();
   play(e.fr,"glide",.7,1)}
 function eagleUpdate(e,dt){
   const ph=st.phase,wantPerch=ph!=="day"||WX.shel>0||WX.rain>.4;puffTick(dt);
-  {const L=e.r.acts.land;if(e.r.cur==="land"&&!e.pf&&L&&L.time>=1.96){e.pf=1;if(e.spot.k==="pond")eaglePuff(e.spot.p)}}
+  {const L=e.r.acts.land;if(e.r.cur==="land"&&!e.pf&&L&&L.time>=1.96){e.pf=1;if(e.spot.k==="pond"){eaglePuff(e.spot.p);eagleMarks(e,0)}}}
   if(e.mode==="perch"){
     if(e.r.acts.perch)e.r.acts.perch.timeScale=ph==="night"?.35:1;
     if(e.settle>0){e.settle-=dt;if(e.settle<=0)play(e.r,e.spot.k==="pond"?"head_turn":"perch",.4,1)}
     else if(wantPerch){if(e.spot.k!=="sag"){e.timer-=dt;if(e.timer<0)eagleTakeoff(e)}}
     else{e.timer-=dt;if(e.timer<0)eagleTakeoff(e)}
     if(e.mode==="perch"){rigTick(e.r,dt);eaglePlace(e);return}}
-  if(e.mode==="rise"){e.hold-=dt;if(!e.pf&&e.hold<1.45){e.pf=1;if(e.spot.k==="pond")eaglePuff(e.spot.p)}
+  if(e.mode==="rise"){e.hold-=dt;if(!e.pf&&e.hold<1.45){e.pf=1;if(e.spot.k==="pond"){eaglePuff(e.spot.p);eagleMarks(e,1)}}
     if(e.hold>0){rigTick(e.r,dt);eaglePlace(e);return}eagleLaunch(e,-e.hold-dt)}
   /* to land, the thermal first drifts away from the perch (its drift is part of the bird's velocity), then the bird leaves
      the circle when its heading points at the perch, which leaves room for a straight stoop */
@@ -1962,7 +2042,7 @@ function trkTick(s,dt){const K=TRK;if(!K||!s.bd)return;const b=s.bd;
       const dep=(side?1:s.rk>.5?.6:.8)*mix(.75,1,ss(.3,1,i/8)),j=i<RS_N-1&&on(i+1)?i+1:i>0&&on(i-1)?i-1:i;
       trkSeg(K,x,z,b.P[2*j],b.P[2*j+1],dep,qx,qz)}}
   K.dc+=dt;
-  if(K.dc>.5&&K.any){const g=gustAt(b.P[0],b.P[1]),r=K.dc*(1/160+st.wn*(.4+.6*g)/35+WX.dust/6+WX.rain/9),d=K.d;let any=0;K.dc=0;
+  if(K.dc>=.5&&K.any){const g=gustAt(b.P[0],b.P[1]),r=K.dc*(1/160+st.wn*(.4+.6*g)/35+WX.dust/6+WX.rain/9),d=K.d;let any=0;K.dc=0;
     for(let i=0;i<d.length;i+=4){const a=d[i],c=d[i+1];if(!(a|c))continue;any=1;
       if(a)d[i]=a-Math.min(a,Math.floor(a*r+rnd()));if(c)d[i+1]=c-Math.min(c,Math.floor(c*r*1.6+rnd()))}
     K.any=any;K.dirty=1}
@@ -2317,7 +2397,7 @@ const animalsReady=propsReady.then(()=>{const big=[
 UPD.push((dt,t)=>{
   {const envI=mix(.3,.08,st.night);for(const m of ANIM_MATS)m.envMapIntensity=m.userData.coat?envI*.7:envI}
   if(dt<=0)return;const d=Math.min(dt,.1);
-  ANIM.camels.forEach(a=>camelUpdate(a,d));
+  ANIM.camels.forEach(a=>camelUpdate(a,d));prTick(d);
   if(ANIM.eagle)eagleUpdate(ANIM.eagle,d);
   if(ANIM.rs)rsUpdate(ANIM.rs,d);
   if(PF.list.length){pfVis();pfUpdate(d)}
@@ -2354,6 +2434,8 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,s
     r.g.position.set(x,r.gy,z);r.g.rotation.set(0,r.yaw,0);r.g.updateMatrixWorld(true);play(r.r,"relaxed_coil",.01,1)},trk:TRK,RS_N,
   /* age the tracks by `sec` seconds of the current wind (for the fade time-lapse) */
   trkAge:sec=>{const r=ANIM.rs;if(!r||!TRK)return;for(let k=0;k<sec*2;k++){TRK.dc=.5;TRK.any=1;const w=r.w;r.w=0;trkTick(r,0);r.w=w}TRK.tex.needsUpdate=true},
+  /* footprints: PR itself, prAdd for stamping, prAge(sec) wears every print by `sec` seconds of the current weather */
+  PR,PRK,prAdd,prAge:sec=>{const P=PR;P.E+=sec*(1/240+st.wn*.3/35+WX.dust/6+WX.rain/9);P.im.material.uniforms.uE.value=P.E},camelGo,eagleLand:s=>eagleLand(ANIM.eagle,s||eagleSpots()[1]),eagleSpots,
   freeze(on){st.lock=!!on},
   step(n,dt){for(let i=0;i<(n||1);i++)step(dt||1/30)},
   tod(p){st.tod=p||null;const ph=phaseNow();for(const k in LK)LK[k]=k===ph?1:0;applyLighting(0)},

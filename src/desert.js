@@ -197,7 +197,7 @@ const sandU={uWy:{value:POND.wy},uRipDir:{value:new T.V2(WIND.x,WIND.z)},uRip:{v
   uSandA:{value:new C3("#e8a95c")},uSandB:{value:new C3("#c98444")},uWet:{value:new C3("#8a6c4c")},uSoil:{value:new C3("#a39457")},
   uPond:{value:new T.V4(POND.x,POND.z,POND.rx,POND.rz)},uGrv:{value:GRV.map(g=>new T.V4(g.x,g.z,g.r,0))},
   uDA:{value:new T.V4()},uDB:{value:new T.V4()},uDA0:{value:new T.V4(DUNE0.x,DUNE0.z,DUNE0.H,DUNE0.w)},uDB0:{value:new T.V4(DUNE0.Lw,DUNE0.Ll,DUNE0.cv,DUNE0.sk)},uDYaw:{value:DUNE0.yaw},
-  uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)},uHaze:{value:new C3("#d4aab8")},uWetK:{value:0},uHeat:{value:0},uTm:{value:0},uMirC:{value:new C3("#cfe1f2")},uMirB:{value:new C3("#8fb3dc")}};
+  uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)},uHaze:{value:new C3("#d4aab8")},uWetK:{value:0},uPitK:{value:0},uHeat:{value:0},uTm:{value:0},uMirC:{value:new C3("#cfe1f2")},uMirB:{value:new C3("#8fb3dc")}};
 const GLSL_DUNE=`uniform vec4 uDA,uDB,uDA0,uDB0;uniform float uDYaw;
   float duneG(vec2 p,vec4 A,vec4 B){float c=cos(uDYaw),s=sin(uDYaw);vec2 d=p-A.xy;float u=d.x*c-d.y*s,v=d.x*s+d.y*c,vn=v/A.w,dd=u-B.z*vn*vn+B.w*vn;
     float hv=exp(-vn*vn*1.15),pp=dd<0.?exp(-(dd/B.x)*(dd/B.x)):pow(max(0.,1.-dd/B.y),1.3);return A.z*hv*pp;}
@@ -219,7 +219,7 @@ function sandMat(){
       .replace("#include <begin_vertex>",`#include <begin_vertex>
         ${SAND_DISP}vSP=transformed;vSN=objectNormal;vWP=(modelMatrix*vec4(transformed,1.)).xyz;`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;float mkO=0.;
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uPitK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;float mkO=0.;
       uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}
       float pondN(vec2 p){vec2 q=(p-uPond.xy)/uPond.zw;float th=atan(q.y,q.x);
         return length(q)/(1.+.09*sin(2.*th+1.1)+.06*sin(3.*th-.4)+.04*sin(5.*th+2.3));}
@@ -256,21 +256,36 @@ function sandMat(){
           float sh=on*(1.-peb)*smoothstep(1.55,1.05,d1)*clamp(-lit*1.4+.25,0.,1.);
           vec3 gr=mix(grit*(1.-.35*sh),pc*(.8+.22*lit*smoothstep(1.,.3,d1)+.12*(1.-d1*d1)),peb);
           sc=mix(sc,mix(mix(grit,vec3(.3,.24,.19),.35),gr,gv),grv*.9);}
-        /* rain: the first drops pock the sand with dark spots that merge into an even wet skin; crests and the dune top dry first */
-        float rWM=0.;
-        if(uWetK>.002){float fwc2=length(fwidth(vSP.xz));
-          vec2 cg=vSP.xz*14.,ci=floor(cg),cf=fract(cg)-.5,off=vec2(dh2(ci+3.1),dh2(ci+7.3))-.5;
-          float dotM=step(dh2(ci),uWetK*2.2)*smoothstep(.34,.2,length(cf-off*.5))*(1.-smoothstep(.02,.08,fwc2));
-          float dryB=.35*smoothstep(1.,4.5,vSP.y)+.15*nz2;
-          float even=smoothstep(.22,.55,uWetK-dryB*.6+(nz-.5)*.25);
-          rWM=max(even,dotM*.85)*(1.-wet);sc=mix(sc,sc*vec3(.42,.37,.32),rWM);}
+        /* rain: the first drops print small dark spots; as it keeps raining wet blobs spread out of the noise and merge into
+           an even wet skin. Drying runs the other way and breaks the skin up again: crests, slopes and the dune top first,
+           hollows last. Each drop also leaves a pit, a little crater with a thrown-up rim, which the wind wears away later. */
+        float rWM=0.;vec2 pitG=vec2(0.);
+        if(uWetK>.002||uPitK>.002){float fwc2=length(fwidth(vSP.xz)),near=1.-smoothstep(.002,.006,fwc2);
+          float dryB=.35*smoothstep(1.,4.5,vSP.y)+.15*nz2+.25*smoothstep(.12,.4,slope);
+          float lvl=uWetK*1.25-dryB*.7+(nz-.5)*.3+(dn2(vSP.xz*1.7+4.)-.5)*.35;
+          float blob=smoothstep(-.04,.14,lvl-.25+(dn2(vSP.xz*7.)-.5)*.35+(dn2(vSP.xz*19.+2.)-.5)*.18);
+          float dots=0.;
+          for(int L=0;L<2;L++){vec2 cg=vSP.xz*(L==0?19.:31.)+float(L)*17.3,ci=floor(cg),cf=fract(cg)-.5,off=vec2(dh2(ci+3.1),dh2(ci+7.3))-.5;
+            float h=dh2(ci),rd=.13+.17*dh2(ci+5.9);
+            dots=max(dots,step(h,uWetK*2.6)*smoothstep(rd,rd*.6,length(cf-off*.45))*(.65+.35*dh2(ci+2.2)));}
+          dots*=1.-smoothstep(.006,.03,fwc2);
+          rWM=max(blob,dots*.85)*(1.-wet);sc=mix(sc,sc*vec3(.42,.37,.32),rWM);
+          if(uPitK>.002&&near>.01){
+            for(int L=0;L<2;L++){vec2 cg=vSP.xz*(L==0?16.:27.)+float(L)*5.7,ci=floor(cg),cf=fract(cg)-.5,off=(vec2(dh2(ci+1.9),dh2(ci+4.4))-.5)*.4;
+              float h=dh2(ci+8.8);if(h>uPitK)continue;float rp=.17+.09*dh2(ci+6.1);vec2 d=cf-off;float r=length(d)/rp;
+              /* bowl falling to the centre, rim heaped just outside it; fresh pits are sharp, older ones slumped */
+              float age=clamp((uPitK-h)*6.,0.,1.),dr=(r<1.?2.*r:0.)-.7*(r-1.1)/.03*exp(-(r-1.1)*(r-1.1)/.03);
+              pitG+=d/max(length(d),1e-4)*dr*(1.-.55*age)*(L==0?1.:.7);
+              sc*=1.-.12*smoothstep(1.,.3,r)*(1.-.5*age)*(.4+.6*uWetK);}
+            pitG*=near*.32;}
+          sc*=1.-.05*uPitK*(1.-near);}
         /* close up the sand shows a fine, soft mottle of lighter and darker grains (smooth noise only: no cells to alias into squares) */
         {float fwc=length(fwidth(vSP.xz)),gd=1.-smoothstep(.006,.035,fwc);
          float g1=dn2(vSP.xz*71.+1.3),g2=dn2(vSP.xz*17.+5.);
          sc*=1.+gd*((g1-.5)*.09+(g2-.5)*.1);}
         diffuseColor.rgb=mix(sc,vec3(dot(sc,vec3(.3,.59,.11)))*vec3(.74,.88,1.04),uNight*.7)*mix(1.,.54,uNight);`)
       .replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
-        roughnessFactor=mix(roughnessFactor,.5,rWM);`)
+        roughnessFactor=mix(roughnessFactor,.64,rWM);`)
       .replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
         float ripAO=1.;
         {float fw=length(fwidth(vSP.xz));
@@ -281,7 +296,8 @@ function sandMat(){
            vec2 g=vec2(ripH(vSP.xz+vec2(e,0.))-h0,ripH(vSP.xz+vec2(0.,e))-h0)/e*.036*k*(1.+.9*uNight);
            ripAO=1.-(.13+.17*uNight)*k*(.5-.5*h0);
            vec3 nL=normalize(normalize(vSN)-vec3(g.x,0.,g.y));
-           normal=normalize(normalMatrix*nL);}}`)
+           normal=normalize(normalMatrix*nL);}}
+        if(dot(pitG,pitG)>1e-6)normal=normalize(normal+normalMatrix*vec3(-pitG.x,0.,-pitG.y));`)
       /* drifting sand: ground-hugging streamers of fine grains running downwind, denser in gusts and over the dune;
          lit by the scene's own direct light (so shadowed, warm, or moonlit as the sand is) plus forward scatter against the light */
       .replace("#include <opaque_fragment>",`{
@@ -1421,7 +1437,7 @@ let _shMask=null;
    晴 sun (clear/scattered/towering/cirrus), 阴 overcast, 阵雨 showers (light/moderate/heavy/thunderstorm), 沙尘 dust (four levels).
    Showers come and go over tens of seconds, darken the sand where they fall, and the sand dries again with sun and wind;
    dust storms raise the wind, haze out the cloud sea and the sun, and send the animals to shelter. */
-const WX={nb:3,rain:0,ovc:0,dark:0,dust:0,wet:0,heat:0,after:0,shel:0,flash:0,bolt:0,boltA:0,boltS:0,boltE:0,bAge:9,icF:0,icA:0,ic:4,rb:0,shaft:0,sunK:1};
+const WX={nb:3,rain:0,pit:0,ovc:0,dark:0,dust:0,wet:0,heat:0,after:0,shel:0,flash:0,bolt:0,boltA:0,boltS:0,boltE:0,bAge:9,icF:0,icA:0,ic:4,rb:0,shaft:0,sunK:1};
 const DUSTLV=[0,.32,.56,.8,1];
 const WXT={sun:[0,0,0],cloud:[.86,.25,.2],lrain:[.42,.22,.55],mrain:[.62,.4,.7],hrain:[.86,.62,.9],storm:[.95,.8,1],dust:[0,.25,0]};
 function wxUpdate(dt){
@@ -1429,9 +1445,10 @@ function wxUpdate(dt){
   const rT={lrain:.32,mrain:.62,hrain:1,storm:1}[w]||0,dT=w==="dust"?DUSTLV[Ct.dustLv||2]:0;
   WX.rain+=(rT-WX.rain)*k;WX.dust+=(dT-WX.dust)*k*.7;WX.ovc+=(T[0]-WX.ovc)*k;WX.dark+=(T[1]-WX.dark)*k;
   WX.shaft+=(Math.max(T[2]*(rT>0?1:0),w==="cloud"?.25:0)-WX.shaft)*k;
-  if(dt<=0)WX.wet=WX.rain>.05?1:WX.wet;
-  else if(WX.rain>.02)WX.wet=Math.min(1,WX.wet+dt*WX.rain*.13);
-  else WX.wet=Math.max(0,WX.wet-dt*.011*(.35+.9*(1-st.night)*(1-WX.ovc))*(.6+st.wn));
+  /* sand soaks up over tens of seconds of rain and takes minutes to dry; pits pile up while it rains and blow away after */
+  if(dt<=0){WX.wet=WX.rain>.05?1:WX.wet;WX.pit=WX.rain>.05?1:WX.pit}
+  else if(WX.rain>.02){WX.wet=Math.min(1,WX.wet+dt*WX.rain*.045);WX.pit=Math.min(1,WX.pit+dt*WX.rain*.022)}
+  else{WX.wet=Math.max(0,WX.wet-dt*.0042*(.35+.9*(1-st.night)*(1-WX.ovc))*(.6+st.wn));WX.pit=Math.max(0,WX.pit-dt*(.001+.01*st.wn*(1-WX.wet)))}
   WX.after=WX.rain>.2?1:Math.max(0,WX.after-dt/240);
   const hot=w==="sun"?(Ct.ct==="clear"||Ct.ct==="cirrus"?1:.75):0;
   WX.heat+=(hot*(LK.day+.3*LK.sunset+.15*LK.sunrise)*(1-WX.wet)-WX.heat)*k;
@@ -1545,7 +1562,7 @@ UPD.push((dt,t)=>{
      streamers running down it; streak speed follows the wind */
   const salt=ss(.14,.55,wd);SALT=salt;
   sandU.uFlowT.value+=dt*(1.6+2.2*gD)*(.3+wd*2.2);sandU.uRipPh.value+=dt*.1*(.3+gD)*wk;sandU.uFlowK.value=salt*cl(.55+wd*.9,0,1.35)*(1-.85*WX.wet)*(1+1.3*WX.dust);
-  sandU.uWetK.value=WX.wet;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.25);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}
+  sandU.uWetK.value=WX.wet;sandU.uPitK.value=WX.pit;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.25);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}
   mirP.enabled=root.visible&&WX.heat>.01;mirM.uniforms.uT.value=t;mirM.uniforms.uSky.value.copy(sandU.uMirC.value);rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;
   pondU.uRainP.value=WX.rain;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
@@ -1601,28 +1618,40 @@ const HMAP=(()=>{const N=128,x0=-27,z0=-23,w=54,d=46,c=document.createElement("c
   return{t,v:new T.V4(x0,z0,w,d)}})();
 const GLSL_HM=`uniform sampler2D uHT;uniform vec4 uHM;
   float gH(vec2 p){vec2 uv=(p-uHM.xy)/uHM.zw;if(uv.x<0.||uv.y<0.||uv.x>1.||uv.y>1.)return -80.;float v=texture2D(uHT,uv).r*255.;return v<.6?-80.:(v-1.)/254.*12.-2.5;}`;
-const rainU={uT:{value:0},uRain:{value:0},uWS:{value:1},uWD:{value:new T.V2(WIND.x,WIND.z)},uCamL:{value:new V3()},uCol:{value:new C3()},uHT:{value:HMAP.t},uHM:{value:HMAP.v},uLen:{value:1.1}};
+const rainU={uT:{value:0},uRain:{value:0},uWS:{value:1},uWD:{value:new T.V2(WIND.x,WIND.z)},uCamL:{value:new V3()},uCol:{value:new C3()},uHT:{value:HMAP.t},uHM:{value:HMAP.v},uLen:{value:1.1},uRes:{value:new T.V2(1,1)}};
 const GLSL_CELL=`float hc(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float nc(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hc(i),hc(i+vec2(1,0)),f.x),mix(hc(i+vec2(0,1)),hc(i+vec2(1,1)),f.x),f.y);}
   float cellK(vec2 p){float n=nc(p*.03-uWD*uT*.11)*.65+nc(p*.08+uWD*uT*.05+3.)*.35;return smoothstep(.0,.3,n+uRain*1.05-.62);}`;
-const RAIN=(()=>{const n=MOB?1300:2800,R=new Float32Array(n*8),E=new Float32Array(n*2),P=new Float32Array(n*6);
-  for(let i=0;i<n;i++){const x=rr(-30,30),z=rr(-26,26),ph=rnd(),sj=rnd();for(let e=0;e<2;e++){const o=(i*2+e)*4;R[o]=x;R[o+1]=z;R[o+2]=ph;R[o+3]=sj;E[i*2+e]=e}}
-  const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("aR",new T.BA(R,4));g.setAttribute("aE",new T.BA(E,1));
-  const m=new T.SM({uniforms:rainU,transparent:true,depthWrite:false,
-    vertexShader:`attribute vec4 aR;attribute float aE;uniform float uT,uRain,uWS,uLen;uniform vec2 uWD;uniform vec3 uCamL;varying float vA;${GLSL_HM}${GLSL_CELL}
-      void main(){float sp=6.5+3.*aR.w;const float TOP=26.,HC=66.;
-        float y=TOP-mod(uT*sp+aR.z*HC,HC),fall=(TOP-y)/sp;
-        vec2 p=aR.xy+uWD*uWS*(fall-1.5);float g=gH(p);
-        vec3 dir=normalize(vec3(uWD.x*uWS,-sp,uWD.y*uWS));
-        vec3 P=vec3(p.x,max(y,g),p.y)-dir*uLen*aE*step(g,y);
-        float d=length(P-uCamL);
-        vA=step(g,y)*cellK(p)*step(aR.w*.9,uRain*1.6)*(1.-aE*.85)*(.35+.65*smoothstep(260.,25.,d))*smoothstep(-36.,-20.,y);
-        gl_Position=projectionMatrix*modelViewMatrix*vec4(P,1.);}`,
-    fragmentShader:`uniform vec3 uCol;varying float vA;void main(){if(vA<.004)discard;gl_FragColor=vec4(uCol,vA*.5);
-      #include <tonemapping_fragment>
-      #include <colorspace_fragment>
-      }`});
-  const o=new T.LS(g,m);o.frustumCulled=false;o.renderOrder=8;o.visible=false;W.add(o);return o})();
+/* drops are drawn as streaks the length a camera shutter smears them (longer far off, where single drops would vanish),
+   at least a pixel and a bit wide with their alpha thinned to match, brightest at the head. One layer spans the island;
+   a second fills a box that wraps round the camera, so a close view has rain falling right in front of it. */
+const RAIN=(()=>{const mk=(n,near)=>{const R=new Float32Array(n*16),C=new Float32Array(n*8),P=new Float32Array(n*12),I=[];
+    const cs=[-1,0,1,0,-1,1,1,1];
+    for(let i=0;i<n;i++){const x=near?rr(-1,1):rr(-30,30),z=near?rr(-1,1):rr(-26,26),ph=rnd(),sj=rnd();
+      for(let e=0;e<4;e++){const o=(i*4+e)*4;R[o]=x;R[o+1]=z;R[o+2]=ph;R[o+3]=sj;C[(i*4+e)*2]=cs[e*2];C[(i*4+e)*2+1]=cs[e*2+1]}
+      const b=i*4;I.push(b,b+1,b+2,b+2,b+1,b+3)}
+    const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("aR",new T.BA(R,4));g.setAttribute("aC",new T.BA(C,2));g.setIndex(I);
+    const m=new T.SM({uniforms:Object.assign({uNear:{value:near?3.5:0}},rainU),transparent:true,depthWrite:false,side:2,
+      vertexShader:`attribute vec4 aR;attribute vec2 aC;uniform float uT,uRain,uWS,uLen,uNear;uniform vec2 uWD,uRes;uniform vec3 uCamL;varying float vA;varying vec2 vC;${GLSL_HM}${GLSL_CELL}
+        void main(){float sp=6.5+3.*aR.w,y,fall;vec2 p;
+          if(uNear>0.){float B=2.*uNear;y=uCamL.y+mod(-uT*sp-aR.z*B-uCamL.y+uNear,B)-uNear;fall=(uCamL.y+uNear-y)/sp;
+            p=uCamL.xz+mod(aR.xy*uNear+uWD*uWS*(fall-1.5)-uCamL.xz+uNear,B)-uNear;}
+          else{const float TOP=26.,HC=66.;y=TOP-mod(uT*sp+aR.z*HC,HC);fall=(TOP-y)/sp;p=aR.xy+uWD*uWS*(fall-1.5);}
+          float g=gH(p);vec3 H=vec3(p.x,y,p.y),dir=normalize(vec3(uWD.x*uWS,-sp,uWD.y*uWS));
+          float d=length(H-uCamL),len=mix(.14,uLen,smoothstep(1.5,22.,d));
+          vec4 h=projectionMatrix*modelViewMatrix*vec4(H,1.),t=projectionMatrix*modelViewMatrix*vec4(H-dir*len,1.);
+          vC=aC;vA=step(g,y)*cellK(p)*step(aR.w*.9,uRain*1.6)*(.35+.65*smoothstep(260.,25.,d))*smoothstep(-36.,-20.,y)*step(.02,t.w)*step(.02,h.w);
+          if(uNear>0.)vA*=smoothstep(uNear,uNear*.6,length(H-uCamL))*smoothstep(.15,.5,d);
+          vec2 sd=h.xy/h.w-t.xy/t.w;sd*=uRes;vec2 nd=normalize(vec2(-sd.y,sd.x)+1e-5);
+          vec4 c=mix(t,h,aC.y);float px=.004*${S.toFixed(3)}*projectionMatrix[1][1]*uRes.y*.5/max(c.w,.01),wp=max(px,1.3);
+          vA*=clamp(px/wp*1.6,.55,1.)*mix(1.,.5,smoothstep(2.,6.,px));c.xy+=nd*aC.x*wp/uRes*c.w;gl_Position=c;}`,
+      fragmentShader:`uniform vec3 uCol;varying float vA;varying vec2 vC;void main(){float a=vA*(1.-vC.x*vC.x)*smoothstep(0.,.35,vC.y)*(.5+.5*vC.y);
+        if(a<.004)discard;gl_FragColor=vec4(uCol*(1.+.25*vC.y),a*.85);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+        }`});
+    const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=8;o.visible=false;W.add(o);return o};
+  const far=mk(MOB?1300:2800,0),near=mk(MOB?600:1400,1);return{far,near,set visible(v){far.visible=near.visible=v}}})();
 /* splashes: each fires about once a second where the shower is falling; on the pond they are left to the water's rings */
 const SPL=(()=>{const n=MOB?600:1400,S0=new Float32Array(n*4),P=new Float32Array(n*3);let k=0;
   while(k<n){const x=rr(-25,25),z=rr(-20,20);if(sN(x,z)>.93||pN(x,z)<1.02)continue;const o=k*4;S0[o]=x;S0[o+1]=z;S0[o+2]=rnd();S0[o+3]=rnd();P[k*3]=x;P[k*3+1]=hTop0(x,z);P[k*3+2]=z;k++}
@@ -1663,7 +1692,7 @@ UPD.push((dt,t)=>{
   RAIN.visible=on;SPL.o.visible=on;
   if(on){rainU.uT.value=t;rainU.uRain.value=R;rainU.uWS.value=.8+st.wn*3.2;rainU.uCamL.value.copy(_cl);rainU.uLen.value=MOB?1.25:1.1;
     _c1.copy(dc?dc.color:_c1.set("#999")).multiplyScalar(.55).add(_c2.copy(pi?pi.color:_c1).multiplyScalar(.12*(pi?pi.intensity:1)));
-    rainU.uCol.value.copy(_c1).multiplyScalar(1+WX.flash*1.5);SPL.m.uniforms.uH.value=innerHeight}
+    rainU.uCol.value.copy(_c1).multiplyScalar(1.2+WX.flash*1.5);SPL.m.uniforms.uH.value=innerHeight;Cn.getDrawingBufferSize(rainU.uRes.value)}
   const dz=WX.dust;DUST.o.visible=dz>.01;
   if(DUST.o.visible){const sp=(4+10*dz)*(.6+st.wn);DUST.m.uniforms.uT.value=t;DUST.m.uniforms.uH.value=innerHeight;
     DUST.m.uniforms.uC.value.copy(skyU.uDustC.value).multiplyScalar(1.05);
@@ -2841,7 +2870,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={RAIN,rainU,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

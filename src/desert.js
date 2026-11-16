@@ -269,18 +269,22 @@ function sandMat(){
         outgoingLight+=(reflectedLight.directDiffuse*(1.6+4.*fs)+reflectedLight.indirectDiffuse*.5)*fl*.85;
         /* aerial perspective: far sand takes a little of the sky's colour */
         float dC=length(cameraPosition-vWP);outgoingLight=mix(outgoingLight,uHaze*(.55+.45*(1.-uNight))*.9,.14*smoothstep(22.,75.,dC));
-        /* heat: far sand shimmers, and at grazing angles a mirage pool shows the sky in the sand */
-        /* the island is small, so the grazing range is wider than a real mirage's (under ~9 degrees, from ~5 m out) */
-        if(uHeat>.01){float dM=dC/${S.toFixed(3)},gz=smoothstep(.16,.035,V.y)*smoothstep(4.,12.,dM)*smoothstep(.85,.95,normalize(vSN).y);
-          float sh=dn2(vec2(vWP.x*1.7+vWP.z*.6,vWP.y*30.-uTm*2.2))*.6+dn2(vec2(vWP.x*5.+vWP.z*3.,uTm*3.1))*.4;
-          float wv=dn2(vec2((vWP.x+vWP.z)*7.,V.y*700.-uTm*6.5)),hz=uHeat*gz;
-          outgoingLight*=1.+uHeat*(.07+.16*gz)*(sh-.5)+.14*hz*(wv-.5);
-          outgoingLight=mix(outgoingLight,uMirC*.95,.08*hz);
-          /* the pool is the sky seen upside down: pale at its far edge, bluer nearer, torn by the rising heat */
-          float pn=dn2(vSP.xz*.4+vec2(uTm*.04,-uTm*.03)),pe=dn2(vec2(vSP.x*1.6,vSP.z*1.6+uTm*1.7));
-          float mk=uHeat*smoothstep(.55,.8,gz*(.66+.6*pn)+.12*(pe-.5)+.08*(wv-.5));
-          vec3 mc=mix(uMirC*vec3(.3,.45,.68),uMirB*vec3(.26,.43,.7),smoothstep(.015,.09,V.y))*(.88+.22*wv);
-          outgoingLight=mix(outgoingLight,mc,mk*(.74+.2*wv));}}
+        /* heat: far sand shimmers, and a mirage shows the sky in the sand as broken blue-grey pools that drift, split and
+           breathe with the heat. A real mirage needs grazing angles (under ~9 degrees); the island is small and is normally seen
+           from ~20 degrees, so the far sand at that angle gets a fainter form of it */
+        if(uHeat>.01){float dM=dC/${S.toFixed(3)},fl=smoothstep(.85,.95,normalize(vSN).y);
+          float gz=smoothstep(.16,.035,V.y)*smoothstep(4.,12.,dM)*fl,gf=smoothstep(.5,.32,V.y)*smoothstep(25.,45.,dM)*fl;
+          vec2 vh=normalize(V.xz+vec2(1e-5));float ax=dot(vSP.xz,vec2(-vh.y,vh.x)),ay=dot(vSP.xz,vh);
+          float sh=dn2(vec2(ax*.6,ay*2.4-uTm*1.6))*.6+dn2(vec2(ax*1.9,ay*5.-uTm*2.9))*.4;
+          float pu=.62+.38*(.5+.5*sin(uTm*.37+ax*.04))*(.6+.4*sin(uTm*.21+1.3));
+          float w=uHeat*pu*max(gz,gf);
+          outgoingLight*=1.+uHeat*(.05+.14*max(gz,gf))*(sh-.5);
+          /* pools stretched across the line of sight; the shimmer is fine ripples rising through them */
+          float pl=dn2(vec2(ax*.16+uTm*.045,ay*.5-uTm*.035))*.68+dn2(vec2(ax*.45-uTm*.08,ay*1.3+uTm*.05))*.32;
+          float sm=dn2(vec2(ax*1.6,ay*11.-uTm*4.2))*.55+dn2(vec2(ax*4.2+3.,ay*24.-uTm*7.))*.45;
+          float mk=min(1.,w*1.45)*smoothstep(.54,.7,pl+.08*w)*(.45+.55*smoothstep(.2,.7,sm));
+          vec3 mc=mix(vec3(dot(uMirC,vec3(.3,.59,.11)))*vec3(.8,.9,1.04),uMirB*vec3(.6,.72,.9),.3+.4*smoothstep(.02,.35,V.y))*(.9+.2*sm);
+          outgoingLight=mix(outgoingLight,mc,mk*.85);}}
       #include <opaque_fragment>`);
   };
   if(TRK){const f=m.onBeforeCompile;m.onBeforeCompile=sh=>{f(sh);Object.assign(sh.uniforms,TRK.U);

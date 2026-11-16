@@ -63,6 +63,11 @@ async function session(label, mobile) {
     await page.evaluate(el => el.scrollIntoView({block: "center", inline: "center"}), b);
     await sleep(300);
     if (mobile) await b.tap(); else await b.click();
+    if (to === "desert" && before.yard !== "desert") {
+      const ui = await page.evaluate(() => ({col: document.body.classList.contains("col"), pill: document.getElementById("tp").classList.contains("on")}));
+      if (!ui.col) fail(`${label}: the scene panel stayed open after clicking desert`);
+      if (!ui.pill && !(await page.evaluate(() => window.__desProg && window.__desProg().done))) fail(`${label}: no loading indicator after clicking desert`);
+    }
     const s = await settle(to);
     const wantPath = to === "def" ? "/" : `/${to}/`;
     const ok = s.yard === to && s.on === to && s.path === wantPath;

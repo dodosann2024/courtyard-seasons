@@ -152,9 +152,13 @@ function gltfMod(){if(_gltf)return _gltf;
   return _gltf}
 const GLB={};
 /* download progress per model file, against the byte sizes the build records in CY.ms, for the loading indicator */
+/* the GLBs are meshopt-compressed (EXT_meshopt_compression); the decoder is a small self-hosted wasm module */
+let _mo=null;
+function meshopt(){if(_mo)return _mo;const r=ROOT(),url=r?r+"assets/vendor/meshopt_decoder.module.js":new URL("../assets/vendor/meshopt_decoder.module.js",location.href).href;
+  return _mo=import(url).then(x=>x.MeshoptDecoder.ready.then(()=>x.MeshoptDecoder)).catch(()=>{_mo=null;return Promise.reject(0)})}
 const GLP={};
 function glb(key){if(!GLB[key]){const P=GLP[key]={l:0,t:((window.CY||{}).ms||{})[key]||3e6,d:0};
-  GLB[key]=gltfMod().then(m=>new Promise((res,rej)=>{(m.__ld||(m.__ld=new m.GLTFLoader())).load(ROOT()+"assets/models/"+key+".glb",
+  GLB[key]=Promise.all([gltfMod(),meshopt()]).then(([m,md])=>new Promise((res,rej)=>{(m.__ld||(m.__ld=new m.GLTFLoader().setMeshoptDecoder(md))).load(ROOT()+"assets/models/"+key+".glb",
     g=>res({scene:g.scene||g.scenes&&g.scenes[0],animations:g.animations||[],gltf:g}),e=>{if(e&&e.loaded)P.l=Math.min(P.t,e.loaded)},rej)}));
   GLB[key].then(()=>{P.l=P.t;P.d=1},()=>{P.l=P.t;P.d=1})}
   return GLB[key]}

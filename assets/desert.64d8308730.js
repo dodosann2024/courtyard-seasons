@@ -1762,6 +1762,15 @@ function rsNotch(sk,proto){
   if(!isFinite(jt)||!isFinite(hb)||hb-jt>.006)return RS_NOTCH;
   const y=(jt+hb)/2,z=Math.max(...pts.filter(p=>Math.abs(p[0]-y)<.0015).map(p=>p[1]));
   return{y,z:isFinite(z)?z:zF}}
+/* the handover tongue is a 3 mm pale strip that vanishes against sand: thickened ~1.7x about its own centre line in bind
+   pose (which spreads the tines too) and coloured as a live one, wet red-black */
+function rsTongueMesh(proto){proto.traverse(o=>{if(!o.isMesh||!/tongue/i.test((o.material&&o.material.name)||""))return;
+  const P=o.geometry.attributes.position,n=P.count;let sz=0,sy=0,szz=0,szy=0;
+  for(let i=0;i<n;i++){const z=P.getZ(i),y=P.getY(i);sz+=z;sy+=y;szz+=z*z;szy+=z*y}
+  const kz=(n*szy-sz*sy)/Math.max(1e-12,n*szz-sz*sz),y0=(sy-kz*sz)/n;
+  for(let i=0;i<n;i++){const yc=y0+kz*P.getZ(i);P.setXY(i,P.getX(i)*1.75,yc+(P.getY(i)-yc)*1.6)}
+  P.needsUpdate=true;o.geometry.computeBoundingSphere();
+  const m=o.material;m.map=null;m.color.setRGB(.095,.009,.011);m.roughness=.28;m.needsUpdate=true})}
 function rsSpawn(proto,anims){
   const M=VT.THREE,g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";proto.position.y=0;
   inner.add(proto);inner.scale.setScalar(RS_SC);g.add(inner);animalMats(g);W.add(g);onDes(g);
@@ -1770,6 +1779,7 @@ function rsSpawn(proto,anims){
     if(/cornea/i.test(m.name||"")){if(tr>0||!m.transparent){m.transparent=true;m.opacity=.22;m.roughness=.06}m.depthWrite=false}
     else if(/wet/i.test(m.name||"")){if(!m.clearcoat)m.roughness=.3}
     else if(tr>0&&m.emissive){m.emissive.copy(m.color).multiplyScalar(.08*tr/.15);m.roughness=Math.min(m.roughness,.42)}});
+  rsTongueMesh(proto);
   let sk=null;proto.traverse(o=>{if(o.isSkinnedMesh&&!sk&&o.skeleton.bones.some(b=>b.name==="Tongue"))sk=o.skeleton});
   const s={g,r:rigUp(proto,anims),x:0,z:0,yaw:0,yr:0,gy:null,mode:"relax",timer:rr(6,10),tg:{next:rr(.8,2),b:null},tq:null,
     bd:null,w:0,wT:99,wF:1,a:0,rk:0,rph:0,sg:0,spd:0,caut:0,idle:rr(4,9),gait:"serp",hx:0,hz:0,path:null,pi:0,goal:null,next:null,inShade:0};
@@ -1790,8 +1800,8 @@ function rsTongue(s,dt){const q=s.tq;if(!q)return;const G=s.tg;let e=0,th=0,sp=0
   if(G.b){const b=G.b;b.t+=dt;const tO=.075,tS=b.n/b.f,tI=.07,t=b.t;
     let u,ph=0,env=0;
     if(t<tO)u=ss(0,1,t/tO);else if(t<tO+tS){u=1;ph=(t-tO)*b.f*TAU;const k=(t-tO)/tS;env=ss(0,.18,k)*(1-ss(.82,1,k))}else u=1-ss(0,1,(t-tO-tS)/tI);
-    e=b.E*u;th=u*b.dn+env*b.A*Math.sin(ph);wh=env*.24*Math.sin(ph-1.1);sp=u*(.3+.08*env*Math.cos(2*ph));
-    if(t>tO+tS+tI){G.b=null;G.next=s.mode==="alert"?rr(.7,2.2):rr(3.5,8)}}
+    e=b.E*u;th=u*b.dn+env*b.A*Math.sin(ph);wh=env*.24*Math.sin(ph-1.1);sp=u*(.4+.1*env*Math.cos(2*ph));
+    if(t>tO+tS+tI){G.b=null;G.next=s.mode==="alert"||s.hunt?rr(.7,2.2):rr(3.5,8)}}
   const{M,A,R,X,L,N}=q;
   /* tongue: lowered onto the mouth line and slid forward, then pitched about the notch */
   A.makeTranslation(0,-q.dy,e).premultiply(X.makeTranslation(0,-N.y,-N.z)).premultiply(R.makeRotationX(th)).premultiply(X.makeTranslation(0,N.y,N.z));
@@ -1942,10 +1952,14 @@ function trkTick(s,dt){const K=TRK;if(!K||!s.bd)return;const b=s.bd;
 /* behaviour: by day (and in rain) it lies coiled in rock shade; at dusk, night and dawn it roams. Open loose sand is crossed
    sidewinding, the oasis margin, grass and rock edges by serpentine; after a scare it creeps away rectilinear. A camel or a
    low eagle close by throws it into a defensive coil, head raised and rattling, until the threat has gone. */
-function rsGaitAt(s,x,z){if(s.caut>0)return"rect";if(pN(x,z)<2.1||!clearOf(x,z,.7))return"serp";return"side"}
+function rsGaitAt(s,x,z){if(s.caut>0)return"rect";if(pN(x,z)<2.1||!clearOf(x,z,.7))return"serp";return s.hg||"side"}
+/* dawn and dusk: it hunts, out in the open where it can be found — legs of 2.5-7 m across the interior sand, each crossed
+   sidewinding (separate J-hooked bars) or in serpentine (one S-wave groove), then a pause, head up, tasting the air */
+function rsHuntSpot(s){const g=navGrid("snake",.32,1.3,.82),P=s.bd.P,ok=(x,z)=>pN(x,z)>2.8&&sN(x,z)<.72&&clearOf(x,z,1)&&Math.hypot(x-P[0],z-P[1])>2.5;
+  return randFree(g,P[0]+Math.sin(s.yaw)*4,P[1]+Math.cos(s.yaw)*4,3,ok)||randFree(g,P[0]*.5,P[1]*.5,8,ok)}
 function rsCentre(s){const P=s.bd.P;let x=0,z=0;for(let i=0;i<RS_N;i++){x+=P[2*i];z+=P[2*i+1]}return{x:x/RS_N,z:z/RS_N}}
 function rsGoTo(s,to){const P=s.bd.P,g=navGrid("snake",.32,1.3,.82),p=navPath(g,P[0],P[1],to.x,to.z);if(!p)return false;
-  s.path=p;s.pi=1;s.goal=to;return true}
+  s.path=p;s.pi=1;s.goal=to;s.arr=0;s.legT=0;return true}
 function rsThreat(s){const P=s.bd.P,hx=P[0],hz=P[1];if(s.qth&&st.t<s.qth.until)return s.qth;if(s.noTh)return null;
   for(const a of ANIM.camels)if(a.mode!=="rest"&&Math.hypot(a.x-hx,a.z-hz)<2.6)return{x:a.x,z:a.z};
   const e=ANIM.eagle;if(e&&e.mode!=="perch"&&e.pos&&Math.hypot(e.pos.x-hx,e.pos.z-hz)<4&&e.pos.y-hTop(hx,hz)<3.5)return{x:e.pos.x,z:e.pos.z};
@@ -1956,7 +1970,7 @@ function rsCoilAt(s,clip,fade){const P=s.bd.P,ya=Math.atan2(P[0]-P[6],P[1]-P[7])
 function rsUpdate(s,dt){
   if(!s.bd){s.timer-=dt;if(s.timer<0){if(s.mode==="relax"){s.mode="alert";s.timer=rr(7,11);play(s.r,"tongue_flick",.8,1)}else{s.mode="relax";s.timer=rr(9,15);play(s.r,"relaxed_coil",.9,1)}}
     rigTick(s.r,dt);rsTongue(s,dt);return}
-  const b=s.bd,day=(st.phase==="day"||WX.shel>0||WX.rain>.3)&&!s.force;
+  const b=s.bd,day=(st.phase==="day"||WX.shel>0||WX.rain>.3)&&!s.force;s.hunt=!day&&(st.phase==="sunrise"||st.phase==="sunset")&&!s.force;
   s.caut=Math.max(0,s.caut-dt);
   /* startle */
   const th=rsThreat(s);
@@ -1972,13 +1986,16 @@ function rsUpdate(s,dt){
     s.mode="rest";s.restT=.3;s.gait="serp";s.a=0;s.rk=s.caut>0?1:0;s.wT=0;s.wF=-.4;s.dtgt=null}
   /* travel */
   if(s.mode==="rest"){s.restT-=dt;if(s.restT<0){let to=s.next;s.next=null;
-      if(!to){if(day){const sp=snakeShadeSpot();to={x:sp.x,z:sp.z,shade:1}}else{const g=navGrid("snake",.32,1.3,.82);to=randFree(g,SNK_HOME.x,SNK_HOME.z,9,(x,z)=>Math.hypot(x-b.P[0],z-b.P[1])>2.5)}}
+      s.hg=s.hunt?(rnd()<.6?"side":"serp"):null;
+      if(!to){if(day){const sp=snakeShadeSpot();to={x:sp.x,z:sp.z,shade:1}}else if(s.hunt&&(to=rsHuntSpot(s))){to.hunt=1}else{const g=navGrid("snake",.32,1.3,.82);to=randFree(g,SNK_HOME.x,SNK_HOME.z,9,(x,z)=>Math.hypot(x-b.P[0],z-b.P[1])>2.5)}}
       if(to&&rsGoTo(s,to)){s.mode="crawl";s.a=0;const want=s.lock||rsGaitAt(s,b.P[0],b.P[1]);
         if(want==="side"){s.gait="side";swInit(s,s.path[1])}else{s.gait=want;s.rk=want==="rect"?1:0}}else s.restT=1}}
   if(s.mode==="crawl"){const C=rsCentre(s),ref=s.gait==="side"?C:{x:b.P[0],z:b.P[1]};
     let wp=s.path[s.pi],last=s.pi===s.path.length-1;
     if(!last&&Math.hypot(wp.x-ref.x,wp.z-ref.z)<(s.gait==="side"?.7:.45)){s.pi++;wp=s.path[s.pi];last=s.pi===s.path.length-1}
-    const dist=Math.hypot(s.goal.x-ref.x,s.goal.z-ref.z),arrive=last&&dist<(s.gait==="side"?.6:.3);
+    /* sidewinding turns at most .22 rad/s, so a goal inside that turning circle is reached when it is circled, not hit */
+    s.legT+=dt;const dist=Math.hypot(s.goal.x-ref.x,s.goal.z-ref.z);
+    if(last&&dist<(s.gait==="side"?Math.max(.6,1.2*s.spd/.22):.3)||s.legT>90)s.arr=1;const arrive=!!s.arr;
     const want=s.lock||rsGaitAt(s,b.P[0],b.P[1]);
     if(want!==s.gait){s.gwT=(s.gwT||0)+dt}else s.gwT=0;
     const sw=(s.gait==="side")!==(want==="side")&&s.gwT>.8,stop=arrive||sw;
@@ -1986,7 +2003,7 @@ function rsUpdate(s,dt){
     if(s.gait!=="side"){s.rk=cl(s.rk+((want==="rect"?1:0)-s.rk)*ease(1,dt),0,1);
       const dy=wrapA(Math.atan2(wp.x-b.P[0],wp.z-b.P[1])-s.yaw);steer(s,dy,1.1,dt)}
     else b.sw.goal=wp;
-    if(s.a<.01&&stop){if(arrive){s.mode="rest";s.restT=rr(2.5,6);
+    if(s.a<.01&&stop){if(arrive){s.mode="rest";s.restT=s.goal.hunt?rr(4,9):rr(2.5,6);if(s.goal.hunt)rsBout(s,3);
         if(s.goal.shade&&day){s.inShade=1;s.mode="coiling";rsCoilAt(s,"relaxed_coil",1.8);s.timer=rr(9,15);s.idle=rr(30,60)}}
       else{if(want==="side"){s.gait="side";swInit(s,s.path[s.pi])}else{s.gait=want;trInit(s);s.rk=want==="rect"?1:0}s.gwT=0}}}
   if(s.mode==="rest"&&s.gait==="side"&&s.a<.01){trInit(s);s.gait="serp"}

@@ -1560,14 +1560,14 @@ const PRK={drom:0,bact:1,talon:2,wing:3};
 const PR_SZ=[.28,.32,.2,.9];
 const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
   const m=new T.SM({transparent:true,depthWrite:false,side:2,blending:5,blendSrc:208,blendDst:202,blendSrcAlpha:200,blendDstAlpha:201,
-    polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,uniforms:{uE:{value:0},uKs:{value:.7},uLd:sandU.uLd},
-    vertexShader:`varying vec2 vQ;varying vec3 vK,vAx,vAz;varying float vS,vL,vSd,vG;
-      void main(){vK=instanceColor;mat4 M=modelMatrix*instanceMatrix;vAx=normalize((M*vec4(1.,0.,0.,0.)).xyz);vAz=normalize((M*vec4(0.,0.,1.,0.)).xyz);
+    polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,uniforms:{uE:{value:0},uKs:{value:.7},uLd:sandU.uLd,uWD:sandU.uWD},
+    vertexShader:`uniform vec2 uWD;varying vec2 vQ,vWl;varying vec3 vK,vAx,vAz;varying float vS,vL,vSd,vG;
+      void main(){vK=instanceColor;vWl=vec2(dot(vec3(uWD.x,0.,uWD.y),normalize(instanceMatrix[0].xyz)),dot(vec3(uWD.x,0.,uWD.y),normalize(instanceMatrix[2].xyz)));mat4 M=modelMatrix*instanceMatrix;vAx=normalize((M*vec4(1.,0.,0.,0.)).xyz);vAz=normalize((M*vec4(0.,0.,1.,0.)).xyz);
         vS=length(instanceMatrix[0].xyz);vL=length(instanceMatrix[2].xyz);vSd=fract(sin(dot(instanceMatrix[3].xz,vec2(12.9898,78.233)))*43758.5453);
         /* seen from afar a track is the trampled strip, not single prints: the quad grows to carry a soft dent wider than the foot */
         vec3 c=(M*vec4(0.,0.,0.,1.)).xyz;vG=vK.x<2.5?clamp(length(cameraPosition-c)/(26.*vS),1.,2.):1.;vQ=position.xz*vG;
         gl_Position=projectionMatrix*viewMatrix*M*vec4(position*vG,1.);}`,
-    fragmentShader:`uniform float uE,uKs;uniform vec3 uLd;varying vec2 vQ;varying vec3 vK,vAx,vAz;varying float vS,vL,vSd,vG;
+    fragmentShader:`uniform float uE,uKs;uniform vec3 uLd;varying vec2 vQ,vWl;varying vec3 vK,vAx,vAz;varying float vS,vL,vSd,vG;
       ${GLSL_NOISE}
       /* camel: two broad toe lobes fused behind into one soft heel pad, parted at the front by a short cleft with a nail pock
          at each toe tip; the sand the pad spreads is heaped round it, most where the foot rolls off the toes. Hind feet are
@@ -1589,9 +1589,14 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
         float t=dot(q,d),s=dot(q,vec2(d.y,-d.x))+.9*sin(t*.11+f+vSd*6.),L=50.+9.*sin(f*1.7+vSd*5.);
         h+=smoothstep(0.,9.,t)*smoothstep(L,L-16.,t)*(-.5*exp(-s*s/.45)+.16*exp(-(abs(s)-1.3)*(abs(s)-1.3)/.35));}return h;}
       float hgt(vec2 p,float k,float v){if(k<1.5)return camel(p,v,k);if(k<2.5)return talon(p);return wing(p);}
+      /* wear (w 0 fresh .. 1 gone): the heaped rims blow away first and the walls slump, while drifting sand fills the print
+         from its upwind edge in a ragged front that creeps downwind */
+      float hW(vec2 p,float k,float v,float w){float h=hgt(p,k,v);h*=h>0.?(1.-w)*(1.-w):1.-.35*w;
+        vec2 q=p/(50.*vec2(vS,vL));float up=dot(q,vWl)*.5+.5+(dn2(p*.22+vSd*5.)-.5)*.5+(dn2(p*.9+vSd*2.)-.5)*.15;
+        return h*(1.-smoothstep(-.12,.12,w*1.5-up));}
       void main(){float k=floor(vK.x+.001),v=fract(vK.x)*4.;vec2 p=vec2(vQ.x*vS,vQ.y*vL)*100.;
-        float a=clamp(vK.z*exp(-max(uE-vK.y,0.)),0.,1.);if(a<.01)discard;
-        float e=.1,h0=hgt(p,k,v),hx=hgt(p+vec2(e,0.),k,v),hz=hgt(p+vec2(0.,e),k,v);
+        float a=clamp(vK.z*exp(-max(uE-vK.y,0.)),0.,1.);if(a<.01)discard;float w=1.-min(1.,a*1.15);
+        float e=.1,h0=hW(p,k,v,w),hx=hW(p+vec2(e,0.),k,v,w),hz=hW(p+vec2(0.,e),k,v,w);a=smoothstep(0.,.25,a);
         vec3 n=normalize(vec3(-(hx-h0)/e*a,1.,-(hz-h0)/e*a)),L=normalize(vec3(dot(uLd,vAx),max(uLd.y,.03),dot(uLd,vAz)));
         /* the floor of a print sits in its own shadow, so a track still reads as a line of dark dents from far off */
         float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-.45*clamp(-h0*a/1.2,0.,1.);

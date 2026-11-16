@@ -173,7 +173,7 @@ const sandU={uWy:{value:POND.wy},uRipDir:{value:new T.V2(WIND.x,WIND.z)},uRip:{v
   uSandA:{value:new C3("#e8a95c")},uSandB:{value:new C3("#c98444")},uWet:{value:new C3("#8a6c4c")},uSoil:{value:new C3("#a39457")},
   uPond:{value:new T.V4(POND.x,POND.z,POND.rx,POND.rz)},uGrv:{value:GRV.map(g=>new T.V4(g.x,g.z,g.r,0))},
   uDA:{value:new T.V4()},uDB:{value:new T.V4()},uDA0:{value:new T.V4(DUNE0.x,DUNE0.z,DUNE0.H,DUNE0.w)},uDB0:{value:new T.V4(DUNE0.Lw,DUNE0.Ll,DUNE0.cv,DUNE0.sk)},uDYaw:{value:DUNE0.yaw},
-  uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)},uHaze:{value:new C3("#d4aab8")},uWetK:{value:0},uHeat:{value:0},uTm:{value:0},uMirC:{value:new C3("#cfe1f2")}};
+  uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)},uHaze:{value:new C3("#d4aab8")},uWetK:{value:0},uHeat:{value:0},uTm:{value:0},uMirC:{value:new C3("#cfe1f2")},uMirB:{value:new C3("#8fb3dc")}};
 const GLSL_DUNE=`uniform vec4 uDA,uDB,uDA0,uDB0;uniform float uDYaw;
   float duneG(vec2 p,vec4 A,vec4 B){float c=cos(uDYaw),s=sin(uDYaw);vec2 d=p-A.xy;float u=d.x*c-d.y*s,v=d.x*s+d.y*c,vn=v/A.w,dd=u-B.z*vn*vn+B.w*vn;
     float hv=exp(-vn*vn*1.15),pp=dd<0.?exp(-(dd/B.x)*(dd/B.x)):pow(max(0.,1.-dd/B.y),1.3);return A.z*hv*pp;}
@@ -195,7 +195,7 @@ function sandMat(){
       .replace("#include <begin_vertex>",`#include <begin_vertex>
         ${SAND_DISP}vSP=transformed;vSN=objectNormal;vWP=(modelMatrix*vec4(transformed,1.)).xyz;`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC;
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;
       uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}
       float pondN(vec2 p){vec2 q=(p-uPond.xy)/uPond.zw;float th=atan(q.y,q.x);
         return length(q)/(1.+.09*sin(2.*th+1.1)+.06*sin(3.*th-.4)+.04*sin(5.*th+2.3));}
@@ -267,10 +267,17 @@ function sandMat(){
         /* aerial perspective: far sand takes a little of the sky's colour */
         float dC=length(cameraPosition-vWP);outgoingLight=mix(outgoingLight,uHaze*(.55+.45*(1.-uNight))*.9,.14*smoothstep(22.,75.,dC));
         /* heat: far sand shimmers, and at grazing angles a mirage pool shows the sky in the sand */
-        if(uHeat>.01){float sh=dn2(vec2(vWP.x*1.7+vWP.z*.6,vWP.y*30.-uTm*2.2))*.6+dn2(vec2(vWP.x*5.+vWP.z*3.,uTm*3.1))*.4;
-          outgoingLight*=1.+uHeat*.07*(sh-.5)*smoothstep(2.5,8.,dC);
-          float mk=uHeat*smoothstep(.07,.015,V.y)*smoothstep(3.,8.,dC)*smoothstep(.9,.97,normalize(vSN).y);
-          outgoingLight=mix(outgoingLight,uMirC*(.62+.2*sh),mk*(.3+.35*sh));}}
+        /* the island is small, so the grazing range is wider than a real mirage's (under ~9 degrees, from ~5 m out) */
+        if(uHeat>.01){float dM=dC/${S.toFixed(3)},gz=smoothstep(.16,.035,V.y)*smoothstep(4.,12.,dM)*smoothstep(.85,.95,normalize(vSN).y);
+          float sh=dn2(vec2(vWP.x*1.7+vWP.z*.6,vWP.y*30.-uTm*2.2))*.6+dn2(vec2(vWP.x*5.+vWP.z*3.,uTm*3.1))*.4;
+          float wv=dn2(vec2((vWP.x+vWP.z)*7.,V.y*700.-uTm*6.5)),hz=uHeat*gz;
+          outgoingLight*=1.+uHeat*(.07+.16*gz)*(sh-.5)+.14*hz*(wv-.5);
+          outgoingLight=mix(outgoingLight,uMirC*.95,.08*hz);
+          /* the pool is the sky seen upside down: pale at its far edge, bluer nearer, torn by the rising heat */
+          float pn=dn2(vSP.xz*.4+vec2(uTm*.04,-uTm*.03)),pe=dn2(vec2(vSP.x*1.6,vSP.z*1.6+uTm*1.7));
+          float mk=uHeat*smoothstep(.55,.8,gz*(.66+.6*pn)+.12*(pe-.5)+.08*(wv-.5));
+          vec3 mc=mix(uMirC*vec3(.3,.45,.68),uMirB*vec3(.26,.43,.7),smoothstep(.015,.09,V.y))*(.88+.22*wv);
+          outgoingLight=mix(outgoingLight,mc,mk*(.74+.2*wv));}}
       #include <opaque_fragment>`);
   };
   if(TRK){const f=m.onBeforeCompile;m.onBeforeCompile=sh=>{f(sh);Object.assign(sh.uniforms,TRK.U);
@@ -1299,7 +1306,7 @@ UPD.push((dt,t)=>{
   duneEvolve(dt*(.35+.9*gD)*wk*(1-.9*WX.wet)*(1+2.5*WX.dust));CURK=(1-.9*WX.wet)*(1+1.4*WX.dust);
   sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk);
   sandU.uFlowT.value+=dt*(2.4+2.2*gD)*wk;sandU.uRipPh.value+=dt*.1*(.3+gD)*wk;sandU.uFlowK.value=cl(.3+wn*1.4,0,1.3)*(1-.85*WX.wet)*(1+1.3*WX.dust);
-  sandU.uWetK.value=WX.wet;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;if(jt)sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.3);rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;
+  sandU.uWetK.value=WX.wet;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.25);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;
   pondU.uRainP.value=WX.rain;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);

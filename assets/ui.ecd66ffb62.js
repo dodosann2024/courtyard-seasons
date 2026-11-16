@@ -11,6 +11,7 @@ const built=new Set();
    (shader compilation) can block the main thread for a long time on phones. */
 requestAnimationFrame(()=>setTimeout(()=>{const s=document.createElement("script");s.src=C.root+C.app;document.head.appendChild(s)},0));
 let cur=C.cur,busy=false,pending=null,idx=0,ready=false;try{const s=history.state;if(s&&typeof s.i=="number")idx=s.i}catch{}
+if(cur==="desert")desPre();
 
 /* ---------- snapshots of the live WebGL canvas ----------
    Called from a rAF callback registered after the renderer's own, so the
@@ -111,8 +112,22 @@ function pill(on,y){const p=tp();if(!p)return;clearTimeout(desT);p.classList.rem
 /* the desert's models stream in after the page turn (tens of MB on a cold visit), so keep the pill up with their real download progress */
 let desT=0,desWant=false;
 const desBusy=()=>!window.__desProg||!window.__desProg().done;
+/* the models are fetched the moment the desert is chosen, all at once and alongside the old scene's capture and the
+   desert's start-up, instead of in stages once its script has run; desert.js parses these buffers (window.__desPre).
+   `warm` also pulls its script and loader modules into the cache (plain fetches: an unused <link rel=preload> warns) */
+function desPre(warm){if(window.__desPre)return;const ms=C.ms||{},mob=/Mobi|iPhone|Android/i.test(navigator.userAgent),P=window.__desPre={};
+  if(warm){const u=[C.desert,...["des-gltf","three.module.min","GLTFLoader","SkeletonUtils","meshopt_decoder.module"].map(f=>"assets/vendor/"+f+".js")];
+    for(const f of u)if(f)fetch(C.root+f).then(r=>r.arrayBuffer()).catch(()=>{})}
+  for(const k in ms){if(/_mobile$/.test(k)?!mob:mob&&ms[k+"_mobile"])continue;
+    const e=P[k]={l:0,t:ms[k]};
+    e.p=fetch(C.root+"assets/models/"+k+".glb").then(r=>{if(!r.ok)return null;if(!r.body)return r.arrayBuffer();
+      const rd=r.body.getReader(),ch=[];
+      const pump=()=>rd.read().then(({done,value})=>{if(!done){ch.push(value);e.l+=value.length;return pump()}
+        const b=new Uint8Array(e.l);let o=0;for(const c of ch){b.set(c,o);o+=c.length}return b.buffer});
+      return pump()}).catch(()=>null)}}
+const desPreProg=()=>{const P=window.__desPre;if(!P)return null;let l=0,t=0;for(const k in P){l+=Math.min(P[k].l,P[k].t);t+=P[k].t}return t?{p:l/t,done:false}:null};
 function desLoad(){const p=tp();clearTimeout(desT);if(!p)return;
-  const tick=()=>{const f=window.__desProg,s=f&&f();
+  const tick=()=>{const f=window.__desProg,s=f?f():desPreProg();
     if(!desWant&&cur!=="desert"||s&&s.done||window.__desErr){p.classList.remove("on");desT=setTimeout(()=>p.classList.remove("pr"),250);return}
     if(s){p.querySelector("span").textContent="载入沙漠 · "+Math.round(s.p*100)+"%";p.style.setProperty("--p",(3+97*s.p).toFixed(1)+"%");p.classList.add("pr")}
     else{p.querySelector("span").textContent="前往 · "+C.names.desert;p.classList.remove("pr")}
@@ -124,7 +139,7 @@ async function go(y,dir,push){
   if(busy){pending=[y,dir,push];return}
   if(y===cur)return;
   busy=true;
-  const toD=y==="desert";desWant=toD;
+  const toD=y==="desert";desWant=toD;if(toD)desPre(1);
   /* capturing the old scene can hold the main thread for a moment: let the panel finish closing first */
   if(toD&&desBusy()){desLoad();await raf();if(document.body.classList.contains("col")&&!reduceM())await sleep(460)}
   const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -151,7 +166,7 @@ async function go(y,dir,push){
 window.__go=(y,dir=1)=>go(y,dir,true);
 /* the desert is a long cold load: the panel gets out of the way at once so the progress pill and the island show */
 document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("[data-y]");if(!b)return;e.stopImmediatePropagation();e.preventDefault();
-  if(b.dataset.y==="desert"&&cur!=="desert")document.body.classList.add("col");go(b.dataset.y,1,true)},true);
+  if(b.dataset.y==="desert"&&cur!=="desert"){document.body.classList.add("col");desPre(1)}go(b.dataset.y,1,true)},true);
 addEventListener("popstate",e=>{const s=e.state;let y=s&&s.cy;if(!y){const m=location.pathname.match(/\/([a-z]+)\/?(?:index\.html)?$/);y=m&&Y.includes(m[1])?m[1]:"def"}const i=s&&typeof s.i=="number"?s.i:0;const dir=i<idx?-1:1;idx=i;go(y,dir,false)});
 addEventListener("keydown",e=>{if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))return;if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight"||e.metaKey||e.ctrlKey||e.altKey)return;const k=Y.indexOf(cur);go(Y[(k+(e.key==="ArrowRight"?1:Y.length-1))%Y.length],e.key==="ArrowRight"?1:-1,true)});
 

@@ -157,9 +157,13 @@ let _mo=null;
 function meshopt(){if(_mo)return _mo;const r=ROOT(),url=r?r+"assets/vendor/meshopt_decoder.module.js":new URL("../assets/vendor/meshopt_decoder.module.js",location.href).href;
   return _mo=import(url).then(x=>x.MeshoptDecoder.ready.then(()=>x.MeshoptDecoder)).catch(()=>{_mo=null;return Promise.reject(0)})}
 const GLP={};
-function glb(key){if(!GLB[key]){const P=GLP[key]={l:0,t:((window.CY||{}).ms||{})[key]||3e6,d:0};
-  GLB[key]=Promise.all([gltfMod(),meshopt()]).then(([m,md])=>new Promise((res,rej)=>{(m.__ld||(m.__ld=new m.GLTFLoader().setMeshoptDecoder(md))).load(ROOT()+"assets/models/"+key+".glb",
-    g=>res({scene:g.scene||g.scenes&&g.scenes[0],animations:g.animations||[],gltf:g}),e=>{if(e&&e.loaded)P.l=Math.min(P.t,e.loaded)},rej)}));
+/* ui.js starts every model's download when the desert is chosen (window.__desPre); one that arrived is parsed from its buffer */
+const desPre=()=>window.__desPre||{};
+function glb(key){if(!GLB[key]){const P=GLP[key]={l:0,t:((window.CY||{}).ms||{})[key]||3e6,d:0},E=desPre()[key];
+  GLB[key]=Promise.all([gltfMod(),meshopt(),E&&E.p]).then(([m,md,buf])=>new Promise((res,rej)=>{
+    const ld=m.__ld||(m.__ld=new m.GLTFLoader().setMeshoptDecoder(md)),ok=g=>res({scene:g.scene||g.scenes&&g.scenes[0],animations:g.animations||[],gltf:g});
+    if(buf){delete desPre()[key];P.l=P.t;ld.parse(buf,ROOT()+"assets/models/",ok,rej);return}
+    ld.load(ROOT()+"assets/models/"+key+".glb",ok,e=>{if(e&&e.loaded)P.l=Math.min(P.t,e.loaded)},rej)}));
   GLB[key].then(()=>{P.l=P.t;P.d=1},()=>{P.l=P.t;P.d=1})}
   return GLB[key]}
 function boxOf(o){
@@ -2535,7 +2539,7 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,s
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,play,rsBout}};
 animalsReady.then(()=>{QA.ready=true});
 window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1","pupfish_male_v3","pupfish_female_v3",RS_FILE])];
-  let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;if(P){l+=P.l;d+=P.d}}return{p:t?l/t:1,done:d===ks.length}};
+  let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],E=desPre()[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;l+=Math.min(sz,Math.max(P?P.l:0,E?E.l:0));if(P)d+=P.d}return{p:t?l/t:1,done:d===ks.length}};
 window.__desReady=true;
 }
 })();

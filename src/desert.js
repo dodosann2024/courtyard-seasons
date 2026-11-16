@@ -1792,6 +1792,7 @@ function rsSpawn(proto,anims){
   s.tq={M,tg,MT,MTi:MT.clone().invert(),MP,N,dy:ty-N.y,fk:[fork("Tongue_L"),fork("Tongue_R")].filter(f=>f.b),
     jaw,jq:jaw?jaw.quaternion.clone():null,jp:jaw?jaw.position.clone():null,A:new M.Matrix4(),R:new M.Matrix4(),X:new M.Matrix4(),L:new M.Matrix4()};
 
+  const hb=B("Head");if(hb&&hb.parent)s.hl={H:hb,bi:sk.boneInverses[sk.bones.indexOf(hb)],a:0,on:0,q0:new T.Quat(),qw:new T.Quat()};
   return s}
 /* one bout: out in ~70 ms with the tines spreading and the tongue dipping, n up-and-down sweeps pivoting at the notch (the tines
    whip a little behind the shaft), then back in; e = protrusion (m), th = pitch (+ down), sp = tine spread, wh = tine whip */
@@ -1801,7 +1802,7 @@ function rsTongue(s,dt){const q=s.tq;if(!q)return;const G=s.tg;let e=0,th=0,sp=0
   if(G.b){const b=G.b;b.t+=dt;const tO=.075,tS=b.n/b.f,tI=.07,t=b.t;
     let u,ph=0,env=0;
     if(t<tO)u=ss(0,1,t/tO);else if(t<tO+tS){u=1;ph=(t-tO)*b.f*TAU;const k=(t-tO)/tS;env=ss(0,.18,k)*(1-ss(.82,1,k))}else u=1-ss(0,1,(t-tO-tS)/tI);
-    e=b.E*u;th=u*b.dn+env*b.A*Math.sin(ph);wh=env*.24*Math.sin(ph-1.1);sp=u*(.4+.1*env*Math.cos(2*ph));
+    e=b.E*u;th=u*b.dn+env*b.A*Math.sin(ph);if(s.ncl!=null&&e>.003)th=Math.min(th,Math.asin(cl((s.ncl-.003)/e,-1,1)));wh=env*.24*Math.sin(ph-1.1);sp=u*(.4+.1*env*Math.cos(2*ph));
     if(t>tO+tS+tI){G.b=null;G.next=s.mode==="alert"||s.hunt?rr(.7,2.2):rr(3.5,8)}}
   const{M,A,R,X,L,N}=q;
   /* tongue: lowered onto the mouth line and slid forward, then pitched about the notch */
@@ -1916,6 +1917,22 @@ function rsFromClip(s){const b=s.bd;s.g.updateMatrixWorld(true);W.updateMatrixWo
   for(let i=0;i<RS_N;i++){_bT.setFromMatrixPosition(b.bones[i].matrixWorld).applyMatrix4(_bA);b.P[2*i]=_bT.x;b.P[2*i+1]=_bT.z;
     b.H[i]=Math.max(0,_bT.y-hTop(_bT.x,_bT.z)-RS_R);b.C[i]=b.H[i]<.01?1:0}}
 function rsBusyK(s){return s.mode==="def"?1:0}
+/* laid out along the ground the neck carries the clips' head pitch, which drops the snout ~2 cm into the sand and the tongue
+   with it: the head is tipped up about its joint until the mouth notch rides 14 mm clear, and the tongue's downward sweep is
+   held to that clearance. The lift is taken back off before the next frame if no clip has rewritten the bone. */
+const _hN=new V3(),_hP=new V3(),_hX=new V3(),_hQ=new T.Quat(),_hR=new T.Quat(),_hW=new T.Quat();
+function rsHeadLift(s,dt){const L=s.hl,q=s.tq;if(!L||!q)return;const H=L.H;
+  if(L.on&&H.quaternion.equals(L.qw))H.quaternion.copy(L.q0);L.q0.copy(H.quaternion);L.on=0;s.ncl=null;
+  if(s.w<.002&&L.a<1e-4){L.a=0;return}
+  s.g.updateMatrixWorld(true);
+  _hN.set(0,q.N.y,q.N.z).applyMatrix4(L.bi).applyMatrix4(H.matrixWorld);_hP.setFromMatrixPosition(H.matrixWorld);W.worldToLocal(_hN);W.worldToLocal(_hP);
+  const dx=_hN.x-_hP.x,dz=_hN.z-_hP.z,dh=Math.hypot(dx,dz);if(dh<1e-5)return;
+  const dy=_hN.y-_hP.y,len=Math.hypot(dh,dy),g=hTop(_hN.x,_hN.z),a0=Math.atan2(dy,dh),a1=Math.asin(cl((g+.014-_hP.y)/len,-1,1));
+  L.a+=(s.w*cl(a1-a0,0,.7)-L.a)*ease(10,dt);
+  s.ncl=_hP.y+len*Math.sin(a0+L.a)-g;if(L.a<1e-4)return;
+  W.getWorldQuaternion(_hW);_hX.set(-dz/dh,0,dx/dh).applyQuaternion(_hW);
+  H.parent.getWorldQuaternion(_hQ);_hR.setFromAxisAngle(_hX,L.a).premultiply(_hW.copy(_hQ).invert()).multiply(_hQ);
+  H.quaternion.premultiply(_hR);L.qw.copy(H.quaternion);L.on=1}
 
 /* ---- sand tracks: grooves (r) and pushed-up rims (g) in a 5 m window of 6.7 mm texels that follows the snake;
    wind wears them down (rims first), rain and blowing sand faster ---- */
@@ -2019,7 +2036,7 @@ function rsUpdate(s,dt){
   if(s.w>.002&&s.mode!=="coil"&&s.mode!=="def"&&s.mode!=="coiling"){for(let i=0;i<RS_N*2;i++)b.Pp[i]=b.P[i];
     if(s.gait==="side")rsBodySide(s,dt);else rsBodyTrail(s,dt)}
   else s.spd=0;
-  rsPose(s);rsTongue(s,dt);trkTick(s,dt)}
+  rsPose(s);rsHeadLift(s,dt);rsTongue(s,dt);trkTick(s,dt)}
 
 /* ---- dust devil: a slender sand whirl that wanders across the open sand now and then (day / sunset) ---- */
 const DEV=softPoints(MOB?140:260,"#e4bf88",.2,false);DEV.o.renderOrder=6;W.add(DEV.o);

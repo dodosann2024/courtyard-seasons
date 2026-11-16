@@ -17,6 +17,7 @@ desert scene, through its own bus under the app's master volume.
 | [825860](https://freesound.org/people/Vrymaa/sounds/825860/) | Vrymaa | Desert sand - Dune atmosphere | `dSnd` blowing sand hiss, dust devil |
 | [363092](https://freesound.org/people/TheWoodlandNomad/sounds/363092/) | TheWoodlandNomad | Fire Crackle and Flames 002 | `dFire` campfire (night only) |
 | [851733](https://freesound.org/people/IENBA/sounds/851733/) | IENBA | Thick Sand Movements | `dSnk` snake rustle (granular resynthesis of the recording) |
+| [437958](https://freesound.org/people/craigsmith/sounds/437958/) | craigsmith | G12-26-Rattlesnake Rattle | `dRtlOn` startle burst, `dRtl` sustained rattle loop |
 | [166176](https://freesound.org/people/felix.blume/sounds/166176/) | felix.blume | Cricket in the desert (close recording) — Mojave Desert | `dOk1`–`dOk4` desert cricket calls in the shore grass |
 | [583074](https://freesound.org/people/Breviceps/sounds/583074/) | Breviceps | Cricket chirping | `dOc1`–`dOc3` field cricket chirp bouts in the shore grass |
 | [513978](https://freesound.org/people/remmert/sounds/513978/) | remmert | Pool Frogs with birds (Pelophylax lessonae) | `dFr1`–`dFr6` water-frog croaks (low-passed below the birds) |
@@ -55,3 +56,7 @@ Weather (`wxUpdate()` and `sound()` in `src/desert.js`). The weather sounds load
   strikes crack and far ones roll, and the sound comes from the side the bolt fell on.
 - **Sand/dust storm:** the roar and the sand hiss rise with the storm level (浮尘 to 强沙尘暴). The insects stop,
   and the wind bed rises with the stronger wind.
+
+Rattlesnake (`rsUpdate()` and `sound()` in `src/desert.js`): when a camel comes close or the eagle flies low, the
+snake throws itself into a defensive coil with a short rattle burst, and the rattle keeps buzzing from the coil until
+the threat has gone. The rustle follows the crawling body and scales with its speed.

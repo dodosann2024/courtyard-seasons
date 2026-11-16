@@ -2142,12 +2142,13 @@ function show(on){
     if(Ct.weather==="hail"||Ct.weather==="snow")Ct.weather="cloud";applyLighting(0)}
   else{const as=appSkyMesh();if(as){as.layers.disable(3);as.position.set(0,0,0)}if(pi&&_shMask!=null){pi.shadow.camera.layers.mask=_shMask;_shMask=null}
     if(Ct.weather==="dust")Ct.weather="sun"}
-  if(window.__Ui)try{window.__Ui()}catch(e){}
+  if(X.Ui)try{X.Ui()}catch(e){}
   HIDE.forEach(f=>f(on));
 }
 onDes(root);
 window.__desShow=show;window.__desU=update;
-window.__desQA=()=>QA;
+/* test hooks only with ?debug=1 */
+if(X.dbg)window.__desQA=()=>QA;
 const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,

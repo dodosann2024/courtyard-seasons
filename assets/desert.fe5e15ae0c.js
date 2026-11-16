@@ -810,6 +810,7 @@ let fireL=null;
   const flames=[];
   for(let i=0;i<3;i++){const geo=new T.Plane(1,1,1,4);geo.translate(0,.5,0);const n=geo.attributes.position.count;geo.setAttribute("aK",new T.BA(new Float32Array(n).fill(i*.37+.1),1));
     const f=new T.Mesh(geo,flM);f.scale.set([.42,.32,.26][i],[.62,.48,.38][i],1);f.position.set([0,.08,-.07][i],.08,[0,.05,.06][i]);f.renderOrder=8;f.frustumCulled=false;fireG.add(f);flames.push(f)}
+  fireG.userData.flames=flames.map(f=>({f,s:f.scale.clone()}));
   fireL=new T.PL(new C3("#ff9a4a"),0,4.4,2);fireL.position.set(FIRE.x,hTop(FIRE.x,FIRE.z)+1.1,FIRE.z);W.add(fireL);fireL.layers.enable(3);
 })();
 
@@ -1020,9 +1021,9 @@ const skyM=new T.SM({uniforms:skyU,side:1,depthWrite:false,depthTest:true,fog:fa
         vec3 sc=mix(hz,hz*vec3(.62,.65,.7),.8);rgb=sc*s+rgb*(1.-s);a=s+a*(1.-s);}
       /* a forked bolt from the cloud base down into the cloud sea */
       if(uBolt>.01){float da=yaw-uBoltA;da=da-6.2831853*floor((da+3.1415927)/6.2831853);
-        float e0=uHor+.2,e1=uBoltE,k=clamp((e0-el)/(e0-e1),0.,1.);
+        float e0=uHor+.13,e1=uBoltE,k=clamp((e0-el)/(e0-e1),0.,1.);
         float x=(n1(el*42.+uBoltS)-.5)*.05+(n1(el*130.+uBoltS*3.)-.5)*.016+(n1(el*9.+uBoltS*7.)-.5)*.06;
-        float bw=abs(da-x),core=exp(-bw*bw/.0000035),glw=exp(-bw*bw/.0004)*.25;
+        float bw=abs(da-x),core=exp(-bw*bw/.000006),glw=exp(-bw*bw/.0005)*.35;
         float xb=x+(k-.35)*.09*step(.35,k)*(h1(uBoltS)-.5)*2.;float bb=abs(da-xb),br=exp(-bb*bb/.0000025)*step(.35,k)*step(k,.8)*.6;
         float on=step(e1,el)*step(el,e0)*(1.-smoothstep(.85,1.,k)*.4);
         vec3 bc=vec3(.85,.9,1.)*(core*2.2+glw+br*1.5)*on*uBolt;rgb+=bc;a=max(a,clamp(core+br,0.,1.)*on*uBolt);}
@@ -1120,7 +1121,7 @@ function wxUpdate(dt){
   WX.flash=Math.max(WX.bolt,WX.icF*.35*(.6+.4*Math.sin(st.t*61)));
   st.wn=Math.max(st.wn,.35+WX.dust*.7,w==="storm"?.35+.45*WX.rain:0)}
 /* far: 0 overhead .. 1 at the horizon; the bolt falls somewhere in front of the camera, lower and smaller the farther it is */
-function strike(far){WX.bAge=0;WX.boltA=wrapA(Math.atan2(-De.matrixWorld.elements[8],-De.matrixWorld.elements[10])+rr(-.6,.6));
+function strike(far){WX.bAge=0;WX.boltA=wrapA(Math.atan2(-De.matrixWorld.elements[8],-De.matrixWorld.elements[10])+(rnd()<.5?-1:1)*rr(.3,.7));
   WX.boltS=rr(0,100);WX.boltE=SKY_HOR-mix(.12,.02,far);thunder(far)}
 window.__desThn=()=>{};
 
@@ -1152,10 +1153,10 @@ function applyLighting(dt){
     const lo=LK.sunset+LK.sunrise;
     if(jt.uSunVis)jt.uSunVis.value=sunVis*.95;
     if(jt.uSunDisk)jt.uSunDisk.value.set(1,mix(mix(.62,.97,LK.day),.72,WX.dust),mix(mix(.3,.88,LK.day),.5,WX.dust));
-    if(jt.uGlowA)jt.uGlowA.value=lo*.9*(1-.75*WX.ovc)*(1-WX.dust);
+    if(jt.uGlowA)jt.uGlowA.value=lo*.9*(1-ss(.3,.85,WX.ovc))*(1-WX.dust);
     if(jt.uGlowC)blendC("glow",_c3),jt.uGlowC.value.set(_c3.r,_c3.g,_c3.b);
     blendC("top",_c1);blendC("bot",_c2);
-    _c3.set("#7c8594").multiplyScalar(mix(1,.1,nk));_c1.lerp(_c3,.85*WX.ovc);_c3.set("#b7bec8").multiplyScalar(mix(1,.12,nk));_c2.lerp(_c3,.85*WX.ovc);
+    const oc=Math.min(.95,.85*WX.ovc+.35*WX.rain);_c3.set("#6e7786").multiplyScalar(mix(1,.1,nk));_c1.lerp(_c3,oc);_c3.set("#aab2bd").multiplyScalar(mix(1,.12,nk));_c2.lerp(_c3,oc);
     _c1.multiplyScalar(1-.55*WX.dark);_c2.multiplyScalar(1-.5*WX.dark);
     _c3.set("#86643f").multiplyScalar(mix(1,.08,nk));_c1.lerp(_c3,WX.dust);_c3.set("#c49564").multiplyScalar(mix(1,.08,nk));_c2.lerp(_c3,WX.dust);
     jt.top.value.copy(_c1);jt.bot.value.copy(_c2);
@@ -1227,6 +1228,8 @@ UPD.push((dt,t)=>{
   tentU.uWInv.value.copy(W.matrixWorld).invert();
   fireU.uT.value=t;fireU.uNight.value=nk;
   if(fireL)fireL.intensity=(mix(.5,5.2,nk))*(1+.12*Math.sin(t*9)+.07*Math.sin(t*23))*(1-.55*WX.rain);
+  /* rain drowns the flames to a sputter over glowing embers */
+  if(fireG.userData.flames){const fr=1-.8*ss(.08,.55,WX.rain);fireG.userData.flames.forEach(o=>o.f.scale.set(o.s.x*(.5+.5*fr),o.s.y*fr,1))}
   if(fireG.userData.charM)fireG.userData.charM.emissiveIntensity=mix(.25,.9,nk)*(1+.2*Math.sin(t*5));
   if(RACK.cloths){const gR=gustAt(RACK.x,RACK.z);RACK.cloths.forEach((c,i)=>{c.rotation.x=(Math.sin(t*1.6+c.userData.ph)*.06*(.6+.8*gR)+.05*(.4+1.2*gR))*(.4+wn)})}
   /* sand wisps: grains hop and drift with the local gust */
@@ -1856,7 +1859,7 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   oasis(dt,nk,Math.max(ss(.12,1,wn)*(.45+.75*g),WX.dust*1.3,WX.rain*.9));
   /* placed: dust devil, the night fire, the snake's rustle (speed sets level and grain rate) */
   loopS("devil","dSnd",DV.amp?.55*DV.amp:0,_dvP.set(DV.x,hTop(DV.x,DV.z)+1.5,DV.z),10,1.12);
-  loopS("fire","dFire",.5*ss(.35,.85,nk),_fiP.set(FIRE.x,hTop(FIRE.x,FIRE.z)+.4,FIRE.z),5);
+  loopS("fire","dFire",.5*ss(.35,.85,nk)*(1-.7*ss(.08,.55,WX.rain)),_fiP.set(FIRE.x,hTop(FIRE.x,FIRE.z)+.4,FIRE.z),5);
   const s=ANIM.snake,sv=s?cl(s.spd/SNK_V,0,1):0;
   loopS("snake","dSnk",s?.75*ss(.04,.4,sv):0,s?_snP.set(s.x,hTop(s.x,s.z)+.05,s.z):null,3,.8+.35*sv);
   /* the eagle cries now and then while it circles; perched (dusk, night) it is quiet */

@@ -185,9 +185,14 @@ function cleanMat(m){if(m.map){m.map.colorSpace="srgb";m.map.anisotropy=MOB?4:8;
 
 /* ---------------- island: one coherent mass — sand plateau + stratified sandstone underside ---------------- */
 const NT=MOB?200:320,NSR=MOB?70:120;
-const TRK=(()=>{const N=MOB?512:768,M=5.12,d=new Uint8ClampedArray(N*N*4);for(let i=3;i<d.length;i+=4)d[i]=255;
-  const tex=new T.CTex(new ImageData(d,N,N));tex.flipY=false;tex.colorSpace="";tex.generateMipmaps=false;tex.minFilter=1006;tex.magFilter=1006;tex.needsUpdate=true;
+/* r: groove depth, g: heaped sand (rims, push mounds, thrown grains); for the belly-scale imprint, read from the nearest texel:
+   b: the body's heading there (mod π) in 1..127 where it was set down sidewinding, 129..255 rectilinear (0: slid, none),
+   a: the scale row's phase at the texel centre. Uploaded as raw data so the alpha channel is never premultiplied. */
+const TRK=(()=>{const N=MOB?512:768,M=5.12,d=new Uint8ClampedArray(N*N*4);
+  const tex=new T.CTex(new ImageData(d,N,N));tex.isDataTexture=true;tex.unpackAlignment=1;tex.flipY=false;tex.colorSpace="";tex.generateMipmaps=false;tex.minFilter=1006;tex.magFilter=1006;tex.needsUpdate=true;
   return{N,M,d,tex,ox:0,oz:0,up:0,dc:0,dirty:0,any:0,U:{uTrk:{value:tex},uTrkW:{value:new T.V4(0,0,1/M,1/N)}}}})();
+/* spacing of the rattlesnake's belly scales (m) */
+const RS_SCL=.0058;
 const sandU={uWy:{value:POND.wy},uRipDir:{value:new T.V2(WIND.x,WIND.z)},uRip:{value:1},uNight:{value:0},
   uSandA:{value:new C3("#e8a95c")},uSandB:{value:new C3("#c98444")},uWet:{value:new C3("#8a6c4c")},uSoil:{value:new C3("#a39457")},
   uPond:{value:new T.V4(POND.x,POND.z,POND.rx,POND.rz)},uGrv:{value:GRV.map(g=>new T.V4(g.x,g.z,g.r,0))},
@@ -305,19 +310,34 @@ function sandMat(){
           float pl=dn2(vec2(ax*.16+uTm*.045,ay*.5-uTm*.035))*.68+dn2(vec2(ax*.45-uTm*.08,ay*1.3+uTm*.05))*.32;
           float sm=dn2(vec2(ax*1.6,ay*11.-uTm*4.2))*.55+dn2(vec2(ax*4.2+3.,ay*24.-uTm*7.))*.45;
           float mk=min(1.,w*1.45)*smoothstep(.54,.7,pl+.08*w)*(.45+.55*smoothstep(.2,.7,sm));
-          vec3 mc=mix(vec3(dot(uMirC,vec3(.3,.59,.11)))*vec3(.8,.9,1.04),uMirB*vec3(.6,.72,.9),.3+.4*smoothstep(.02,.35,V.y))*(.9+.2*sm);
+          /* the reflected sky near the horizon: pale and greyed, a cool blue-grey whatever the sky's hue (a sunset pink would read as lavender) */
+          float mL=dot(uMirC,vec3(.3,.59,.11)),mB=dot(uMirB,vec3(.3,.59,.11));
+          vec3 mc=mix(mix(vec3(mL),uMirC,.18)*vec3(.84,.93,1.05),mix(vec3(mB),uMirB,.3)*vec3(.8,.9,1.04),.12+.25*smoothstep(.02,.35,V.y))*(.93+.14*sm);
           outgoingLight=mix(outgoingLight,mc,mk*.85);}}
       #include <opaque_fragment>`);
   };
   if(TRK){const f=m.onBeforeCompile;m.onBeforeCompile=sh=>{f(sh);Object.assign(sh.uniforms,TRK.U);
     sh.fragmentShader=sh.fragmentShader.replace("uniform vec4 uPond;","uniform vec4 uPond;uniform sampler2D uTrk;uniform vec4 uTrkW;\n float trkH(vec2 q){vec2 t=texture2D(uTrk,q).rg;return t.g*.005-t.r*.011;}")
+      /* the track's edges crumble: its lookup is shifted by up to a texel of fine noise, faded out where it would alias */
       .replace("diffuseColor.rgb=mix(sc,vec3(dot(sc",`vec2 tUV=(vSP.xz-uTrkW.xy)*uTrkW.z+.5;float tIn=step(abs(tUV.x-.5),.497)*step(abs(tUV.y-.5),.497);
-        vec2 trk=texture2D(uTrk,tUV).rg*tIn;sc*=(1.-.14*trk.r)*(1.+.05*trk.g);
+        vec2 tU0=tUV;
+        tUV+=(vec2(dn2(vSP.xz*60.),dn2(vSP.xz*60.+7.3))-.5)*uTrkW.w*1.8*(1.-smoothstep(.0025,.007,length(fwidth(vSP.xz))));
+        vec4 trq=texture2D(uTrk,tUV);vec2 trk=trq.rg*tIn;sc*=(1.-.14*trk.r)*(1.+.05*trk.g);
         diffuseColor.rgb=mix(sc,vec3(dot(sc`)
       .replace("float k=uRip*(1.-smoothstep(.07,.3,fw))","float k=uRip*(1.-smoothstep(.12,.5,trk.r+trk.g))*(1.-smoothstep(.07,.3,fw))")
       .replace("normal=normalize(normalMatrix*nL);}}",`normal=normalize(normalMatrix*nL);}}
         if(tIn>0.&&trk.r+trk.g>.004){float e=uTrkW.w;vec2 g=vec2(trkH(tUV+vec2(e,0.))-trkH(tUV-vec2(e,0.)),trkH(tUV+vec2(0.,e))-trkH(tUV-vec2(0.,e)))/(2.*e/uTrkW.z);
-          normal=normalize(normal+normalMatrix*vec3(-g.x,0.,-g.y));ripAO*=1.-.3*trk.r;}`)}}
+          normal=normalize(normal+normalMatrix*vec3(-g.x,0.,-g.y));ripAO*=1.-.3*trk.r;
+          /* where the body was set down rather than slid, its belly scales press fine ridges across the groove floor (~6 mm
+             apart), continuous from texel to texel along the body; seen only close up */
+          float sF=smoothstep(.3,.75,trk.r)*(1.-smoothstep(.0012,.004,length(fwidth(vSP.xz))));
+          if(sF>.01){vec2 tf=fract(tU0/uTrkW.w-.5),t0=(floor(tU0/uTrkW.w-.5)+.5)*uTrkW.w,sg=vec2(0.);
+            /* each of the four nearest texels' rows carried on to this point, blended, so rows that meet at a bend merge softly */
+            for(int k=0;k<4;k++){vec2 o=vec2(mod(float(k),2.),floor(float(k)/2.)),tc=t0+o*uTrkW.w;vec4 tN=texture2D(uTrk,tc);float bc=floor(tN.b*255.+.5);
+              float w=mix(1.-tf.x,tf.x,o.x)*mix(1.-tf.y,tf.y,o.y)*step(.5,bc),rc=step(128.5,bc),th=(bc-1.-128.*rc)/126.*3.14159265;
+              vec2 td=vec2(cos(th),sin(th)),pc=uTrkW.xy+(tc-.5)/uTrkW.z;float ph=6.2831853*(tN.a*255./256.+dot(vSP.xz-pc,td)/${RS_SCL});
+              sg+=w*td*sin(ph)*mix(.15,.06,rc);}
+            sg*=sF*trk.r*(.75+.5*dn2(vSP.xz*90.));normal=normalize(normal+normalMatrix*vec3(-sg.x,0.,-sg.y));}}`)}}
   m.customProgramCacheKey=()=>TRK?"des52sandTg":"des52sandg";
   return m}
 /* shadow caster for the sand: same dune displacement */
@@ -1057,7 +1077,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   /* a seed of their own, so the falls do not shift the rest of the layout */
   let ps=5281;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^ps>>>15,1|ps);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},prr=(a,b)=>a+(b-a)*pr();
   /* [half width min, max, rate threshold min, max] for heavy falls, thinner falls, trickles */
-  const kinds=[[1.1,1.8,0,.05],[.45,.8,.06,.24],[.12,.24,.2,.42]],pat=[0,2,1,2,0,1,2,1,2,1],nF=MOB?13:19,sl=TAU/nF;
+  const kinds=[[1.1,1.8,0,.05],[.45,.8,.06,.24],[.12,.24,.2,.42]],pat=[0,2,1,2,0,1,2,1,2,1],nF=MOB?16:24,sl=TAU/nF;
   const rp=rockMesh.geometry.attributes.position.array,nV=rp.length/3,LIPV=3*NT;
   const frame=th=>{const[x,z]=edgeXZ(th,1),[x1,z1]=edgeXZ(th+.02,1),[x0,z0]=edgeXZ(th-.02,1),l=Math.hypot(x1-x0,z1-z0),tx=(x1-x0)/l,tz=(z1-z0)/l;return{x,z,tx,tz,nx:tz,nz:-tx}};
   /* the cliff under a fall: the furthest-out rock at each 0.5 m of depth below the lip crest, and the lip's crest height and offset */
@@ -1108,6 +1128,10 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);
         gl_Position=projectionMatrix*viewMatrix*w;}`,
     fragmentShader:`uniform float uT,uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vU;varying vec3 vK,vW;varying float vVis,vFs,vLam;${GLSL_NOISE}
+      /* noise carried down with the falling sand at a size that stays even on screen as the sand speeds up (the drop grows as s*s):
+         two copies scrolled half a cycle apart and cross-faded, so the pattern never stretches out over time */
+      float fallN(vec2 q,float s,float f0,float f1){float T=uFT*${(1/SF.Tf/.5).toFixed(4)},p1=fract(T),p2=fract(T+.5),f=f0+f1*s;
+        float a=dn2(vec2(q.x,(s-p1*.5)*f+q.y)),b=dn2(vec2(q.x+17.,(s-p2*.5)*f+q.y));return mix(a,b,abs(p1-.5)*2.);}
       void main(){float x=vU.x,s=vU.y,sd=vK.y,hw=vK.z,vis=vVis;if(vis<.01)discard;
         float ed=min(x,1.-x),Nt=4.+hw*22.,tx=x*Nt+sd;
         /* damp sand is darker and clumps */
@@ -1127,19 +1151,25 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* fine grain texture across the sheet, evened out where it would be finer than a pixel */
           vec2 fq=vec2(x*Nt*9.+sd,u*150.);float fAA=clamp(max(fwidth(fq.x),fwidth(fq.y))-.6,0.,1.),speck=mix(dh2(floor(fq)),.5,fAA);
           /* ragged sides: strands peel off as it falls */
-          float ew=dn2(vec2(x*1.7+sd,u*1.1))*.6+dn2(vec2(x*4.1+sd,u*3.3))*.4;
-          float edge=smoothstep(0.,.05+.12*s,ed-(.04+.2*s)*ew-.05*(1.-n2)*s);
+          float ew=dn2(vec2(x*1.7+sd,u*1.1))*.6+dn2(vec2(x*4.1+sd,u*3.3))*.4,dk=uDust*smoothstep(.04,.3,s);
+          /* in a dust storm the sheet comes off the lip in clumps and surges, its sides fraying into loose strands */
+          float cm=1.,sgU=1.,fr=0.;
+          if(dk>.01){cm=fallN(vec2(Xw*.9+11.,sd),s,5.,24.)*.55+fallN(vec2(Xw*2.6+4.,sd*2.),s,12.,55.)*.45;sgU=fallN(vec2(Xw*.12+sd*.7,sd),s,1.5,6.);fr=fallN(vec2(x*13.+sd,0.),s,10.,40.);
+            str=mix(str,fallN(vec2(Xw*.7,9.),s,3.,14.)*.6+fallN(vec2(Xw*1.8+5.,2.),s,7.,30.)*.4,dk);}
+          float edge=smoothstep(0.,.05+.12*s,ed-(.04+.2*s)*ew*(1.+1.6*dk)-.05*(1.-n2)*s-.1*dk*fr);
           /* a dense sheet off the lip that tears into strands lower down; each strand gives out at its own height, trickles soonest */
           float tear=mix(smoothstep(.36+.2*s,.5+.24*s,str),.45,ab);
-          float body=(.97-.45*smoothstep(.05,.6,s))*edge*mix(1.,tear,smoothstep(.1,.45,s))*mix(1.,smoothstep(.25,.55,str),wet*.45)*(.78+.22*speck);
-          float endS=mix(.3,.62,smoothstep(.15,1.,hw))+.3*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.)),cut=1.-smoothstep(endS-.22,endS+.04,s);
+          float body=(.97-.45*smoothstep(.05,.6,s))*edge*mix(1.,tear,smoothstep(.1,.45,s)*(.55+.45*min(uFR,1.)))*mix(1.,(.08+1.25*smoothstep(.4,.58,cm))*(.25+.95*smoothstep(.25,.75,sgU)),dk)*mix(1.,smoothstep(.25,.55,str),wet*.45)*(.78+.22*speck);
+          float endS=mix(.38,.68,smoothstep(.15,1.,hw))+.3*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
           /* grains, streaked by their speed; more of them shed at the sides and the foot */
           vec2 dq=vec2(x*Nt*2.2+sd,u*70.),dc=floor(dq);float dh=dh2(dc);vec2 df=fract(dq)-.5-(vec2(dh2(dc+3.1),dh2(dc+7.7))-.5)*.6;df.y*=mix(1.,.35,smoothstep(.1,.7,s));
-          vec2 gw=fwidth(dq);float gd=.9-.2*(1.-edge)-.18*smoothstep(.4,.9,s)+.06*wet;
+          vec2 gw=fwidth(dq);float gd=.9-.2*(1.-edge)-.18*smoothstep(.4,.9,s)+.06*wet-.12*dk;
           float grain=step(gd,dh)*exp(-dot(df,df)*26.)*smoothstep(.02,.1,s)*(1.-smoothstep(.9,1.,s))*(1.-clamp(max(gw.x,gw.y)*1.4-.3,0.,1.));
           /* dust shed off the sheet: a soft veil that spreads down the fall, more in a dust storm and off the heavy falls, little off damp sand */
           float du=dn2(vec2(x*2.3+sd,u*2.6))*.6+dn2(vec2(x*5.+sd*2.,u*6.))*.4;
-          float dust=smoothstep(.12,.7,s)*(1.-smoothstep(.78,1.,s))*smoothstep(-.1,.45,ed+.25*du)*(.3+.5*du)*(.7+.6*uDust)*(1.-.8*wet)*(.45+.55*smoothstep(.1,.6,hw));
+          /* in a storm the veil is torn too: drifting clots of dust with ragged sides, not an even haze */
+          float vc=dk>.01?fallN(vec2(x*3.1+sd,5.),s,2.5,10.):.5;
+          float dust=smoothstep(.12,.7,s)*(1.-smoothstep(.78,1.,s))*smoothstep(-.1,.45,ed+.25*du-.35*dk*(fr-.4))*(.3+.5*du)*(.7+.6*uDust)*mix(1.,(.2+.8*cm)*(.05+1.6*smoothstep(.35,.72,vc)),dk)*(1.-.8*wet)*(.45+.55*smoothstep(.1,.6,hw));
           float bc=body*cut;
           a=(bc*(.62+.38*str)+grain*.85*(1.-smoothstep(.9,1.,s)))+dust*(1.-.6*bc);
           /* thick sheet shades itself; thin strands and edges catch the light */
@@ -1149,7 +1179,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* a sheet seen edge-on piles up alpha into a hard line: keep the stream but thin it */
           vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.5,1.,smoothstep(.05,.45,abs(dot(N,normalize(cameraPosition-vW)))));
         }
-        a*=vis*(.6+.4*min(uFR,1.));if(a<.004)discard;
+        a*=vis*(.72+.28*min(uFR,1.));if(a<.004)discard;
         c=mix(c,uFogC,smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW)));
         float ck=c.r+c.g+c.b+a;if(!(ck>-1.&&ck<1e3))discard;
         gl_FragColor=vec4(c,clamp(a,0.,1.));
@@ -1171,7 +1201,7 @@ function sfDust(q){const F=SF.F,pr=SFD.pr;let f=F[q.f];
 function sandFallsUpdate(dt,t,wn,nk){
   wn=Math.max(wn,.35+WX.dust*.7);
   /* the rate follows the wind and its gusts; dust storms feed it, wet sand barely moves */
-  const fr=cl((.3+.8*wn)*(.75+.5*gustAt(0,0))*(1+1.3*WX.dust)*(1-.25*WX.wet),0,2.2);
+  const fr=cl((.45+.7*wn)*(.75+.5*gustAt(0,0))*(1+1.3*WX.dust)*(1-.25*WX.wet),0,2.2);
   sfU.uFR.value=SF.pin!=null?SF.pin:sfU.uFR.value+(fr-sfU.uFR.value)*Math.min(1,dt*.6);sfU.uFT.value+=dt;sfU.uT.value=t;sfU.uWet.value=WX.wet;sfU.uDust.value=WX.dust;sfU.uNt.value=nk;
   sfU.uWV.value.set(WIND.x,WIND.z).multiplyScalar((.4+1.2*wn)*(1+1.2*WX.dust)*(1-.5*WX.wet));
   if(!SF.F.length){SFD.o.visible=false;return}
@@ -1710,6 +1740,90 @@ function groundFrame(x,z,yaw,L,Wd){
   const hl=hTop(x+fz*Wd,z-fx*Wd),hr=hTop(x-fz*Wd,z+fx*Wd);
   return{y:Math.max((hf+hb)*.5,hc-.12),pitch:-Math.atan2(hf-hb,2*L),roll:cl(Math.atan2(hl-hr,2*Wd),-.2,.2)}}
 
+/* ---- footprints: one instanced decal per print, drawn over the sand as a 2x multiply (0.5 = no change). Each kind is a
+   height field in centimetres that the shader lights from the key light, so a print reads as pressed into the sand with a lit
+   and a shaded wall and a dark floor. Prints are laid where a foot actually comes to rest, and wind, blowing sand and rain
+   wear them away (slowly in still air, within seconds in a dust storm). instanceColor carries (kind + variant/4, wear clock
+   at birth, depth). ---- */
+const PRK={drom:0,bact:1,talon:2,wing:3,lie:4};
+const PR_SZ=[.28,.32,.2,.9,2.1];
+const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
+  const m=new T.SM({transparent:true,depthWrite:false,side:2,blending:5,blendSrc:208,blendDst:202,blendSrcAlpha:200,blendDstAlpha:201,
+    polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,uniforms:{uE:{value:0},uKs:{value:.7},uLd:sandU.uLd,uWD:sandU.uWD},
+    vertexShader:`uniform vec2 uWD;varying vec2 vQ,vWl;varying vec3 vK,vAx,vAz;varying float vS,vL,vSd,vG;
+      void main(){vK=instanceColor;vWl=vec2(dot(vec3(uWD.x,0.,uWD.y),normalize(instanceMatrix[0].xyz)),dot(vec3(uWD.x,0.,uWD.y),normalize(instanceMatrix[2].xyz)));mat4 M=modelMatrix*instanceMatrix;vAx=normalize((M*vec4(1.,0.,0.,0.)).xyz);vAz=normalize((M*vec4(0.,0.,1.,0.)).xyz);
+        vS=length(instanceMatrix[0].xyz);vL=length(instanceMatrix[2].xyz);vSd=fract(sin(dot(instanceMatrix[3].xz,vec2(12.9898,78.233)))*43758.5453);
+        /* seen from afar a track is the trampled strip, not single prints: the quad grows to carry a soft dent wider than the foot */
+        vec3 c=(M*vec4(0.,0.,0.,1.)).xyz;vG=vK.x<2.5?clamp(length(cameraPosition-c)/(26.*vS),1.,2.):1.;vQ=position.xz*vG;
+        gl_Position=projectionMatrix*viewMatrix*M*vec4(position*vG,1.);}`,
+    fragmentShader:`uniform float uE,uKs;uniform vec3 uLd;varying vec2 vQ,vWl;varying vec3 vK,vAx,vAz;varying float vS,vL,vSd,vG;
+      ${GLSL_NOISE}
+      /* camel: two broad toe lobes fused behind into one soft heel pad, parted at the front by a short cleft with a nail pock
+         at each toe tip; the sand the pad spreads is heaped round it, most where the foot rolls off the toes. Hind feet are
+         narrower than fore feet; the Bactrian's pads are larger and its toes splay wider. */
+      float camel(vec2 p,float hind,float bk){p/=vec2(hind>.5?.84:1.,hind>.5?.92:1.)*(bk>.5?1.13:1.);float sp=bk>.5?3.1:2.7;
+        float t1=length((p-vec2(-sp,2.6))/vec2(4.1,5.4)),t2=length((p-vec2(sp,2.6))/vec2(4.1,5.4)),hl=length((p-vec2(0.,-2.))/vec2(6.3,5.8));
+        float q=-.22*log(exp(-t1/.22)+exp(-t2/.22)+exp(-hl/.22));
+        float h=-smoothstep(1.,.45,q)*(1.-.8*exp(-p.x*p.x/(bk>.5?1.4:.9))*smoothstep(2.,6.5,p.y));
+        vec2 n1=p-vec2(-sp+.2,7.7),n2=p-vec2(sp-.2,7.7);h-=.5*(exp(-dot(n1,n1)/1.1)+exp(-dot(n2,n2)/1.1));
+        h+=.34*exp(-(q-1.17)*(q-1.17)*14.)*(1.+.9*smoothstep(-2.,8.,p.y));
+        return 1.6*(h+.08*(dn2(p*1.4+vSd*9.)-.5)*smoothstep(1.1,.6,q));}
+      /* eagle: three forward toes and the hallux behind, each a chain of knuckle pads ending in a deep talon pock */
+      float toe(vec2 p,vec2 b,float an,float L){vec2 d=vec2(sin(an),cos(an));float t=clamp(dot(p-b,d),0.,L);float r=length(p-b-d*t)/(1.05-.3*t/L);
+        vec2 tp=p-b-d*(L+.9);return -smoothstep(1.,.35,r)*(.75+.25*cos(t*2.4))-1.1*exp(-dot(tp,tp)/.3);}
+      float talon(vec2 p){float h=min(min(toe(p,vec2(0.),0.,6.3),toe(p,vec2(-.3,0.),-.6,5.)),min(toe(p,vec2(.3,0.),.58,4.8),toe(p,vec2(0.,-.3),3.14159,3.8)));
+        h=min(h,-.8*smoothstep(1.,.3,length(p/vec2(1.9,1.7))));return h+.12*(dn2(p*1.2+vSd*7.)-.5);}
+      /* wing: the primaries' tips brushed through the sand on landing or take-off, a fan of shallow grooves with low ridges */
+      float wing(vec2 p){float h=0.;for(int i=0;i<6;i++){float f=float(i),a=(f-2.5)*.1;vec2 d=vec2(sin(a),cos(a)),q=p-vec2((f-2.5)*5.,-34.);
+        float t=dot(q,d),s=dot(q,vec2(d.y,-d.x))+.9*sin(t*.11+f+vSd*6.),L=50.+9.*sin(f*1.7+vSd*5.);
+        h+=smoothstep(0.,9.,t)*smoothstep(L,L-16.,t)*(-.5*exp(-s*s/.45)+.16*exp(-(abs(s)-1.3)*(abs(s)-1.3)/.35));}return h;}
+      /* where a camel lay: its weight rests on the callosities, deepest under the chest pad, then the elbows, the folded knees
+         and the stifles, in a soft hollow pressed by the belly with the displaced sand heaped round it */
+      float pad(vec2 p,vec2 c,vec2 r){vec2 q=(p-c)/r;return exp(-dot(q,q));}
+      float lie(vec2 p,float bk){p/=bk>.5?1.1:1.;vec2 m=vec2(abs(p.x),p.y);float q=length((p-vec2(0.,-4.))/vec2(43.,80.))+(dn2(p*.06+vSd*4.)-.5)*.12;
+        float h=-3.4*smoothstep(1.02,.4,q)+2.*exp(-(q-1.08)*(q-1.08)*18.);
+        h-=4.5*pad(p,vec2(0.,36.),vec2(14.,12.))+3.*pad(m,vec2(25.,28.),vec2(8.,9.))+3.4*pad(m,vec2(15.,62.),vec2(8.,11.))+2.8*pad(m,vec2(33.,-40.),vec2(10.,9.));
+        /* kneeling down and getting up, the folded forelegs drag two short scuffs forward of the knee pads */
+        float sx=m.x-15.-.08*(p.y-62.),sy=p.y-62.;h-=1.6*exp(-sx*sx/18.)*smoothstep(0.,6.,sy)*smoothstep(34.,18.,sy);
+        return h+.35*(dn2(p*.5+vSd*9.)-.5);}
+      float hgt(vec2 p,float k,float v){if(k<1.5)return camel(p,v,k);if(k<2.5)return talon(p);if(k<3.5)return wing(p);return lie(p,v);}
+      /* wear (w 0 fresh .. 1 gone): the heaped rims blow away first and the walls slump, while drifting sand fills the print
+         from its upwind edge in a ragged front that creeps downwind */
+      float hW(vec2 p,float k,float v,float w){float h=hgt(p,k,v);h*=h>0.?(1.-w)*(1.-w):1.-.35*w;
+        vec2 q=p/(50.*vec2(vS,vL));float up=dot(q,vWl)*.5+.5+(dn2(p*.22+vSd*5.)-.5)*.5+(dn2(p*.9+vSd*2.)-.5)*.15;
+        return h*(1.-smoothstep(-.12,.12,w*1.5-up));}
+      void main(){float k=floor(vK.x+.001),v=fract(vK.x)*4.;vec2 p=vec2(vQ.x*vS,vQ.y*vL)*100.;
+        float a=clamp(vK.z*exp(-max(uE-vK.y,0.)),0.,1.);if(a<.01)discard;float w=1.-min(1.,a*1.15);
+        float e=.1,h0=hW(p,k,v,w),hx=hW(p+vec2(e,0.),k,v,w),hz=hW(p+vec2(0.,e),k,v,w);a=smoothstep(0.,.25,a);
+        vec3 n=normalize(vec3(-(hx-h0)/e*a,1.,-(hz-h0)/e*a)),L=normalize(vec3(dot(uLd,vAx),max(uLd.y,.03),dot(uLd,vAz)));
+        /* the floor of a print sits in its own shadow, so a track still reads as a line of dark dents from far off; close up the
+           relief carries it and the floor is only a little darker than the sand round it */
+        float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-(k>3.5?.08:mix(.2,.45,smoothstep(.4,2.,max(fwidth(p.x),fwidth(p.y)))))*clamp(-h0*a/(k>3.5?4.:1.2),0.,1.);
+        float F=clamp(mix(1.,df,uKs)*ao,.12,1.7);
+        /* a print only a few pixels across: its lit rim and shaded floor would average out to nothing, so it settles to a soft dent */
+        float lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y)))*step(k,2.5),R=k<1.5?9.*vG:6.*vG;
+        F=mix(F,1.-.42*(k<2.5?exp(-dot(p,p)/(R*R)):clamp(-h0*1.4,0.,1.)),lod);
+        F=mix(1.,F,a*smoothstep(.5,.42,max(abs(vQ.x),abs(vQ.y))/vG));
+        if(abs(F-1.)<.004)discard;gl_FragColor=vec4(vec3(.5*F),1.);}`});
+  const im=new T.IM(geo,m,N);im.count=0;im.frustumCulled=false;im.renderOrder=1;im.castShadow=im.receiveShadow=false;
+  const c=new C3(0,0,0);for(let i=0;i<N;i++)im.setColorAt(i,c);W.add(im);onDes(im);
+  return{N,im,i:0,n:0,E:0,dirty:0,up:0,m4:new T.M4(),q:new T.Quat(),q2:new T.Quat(),v:new V3(),s:new V3(),c}})();
+const _up=new V3(0,1,0);
+/* kind, island-metre position, heading of the print's forward (+z), variant 0-3, depth (1 = typical), mirrored, scale */
+function prAdd(k,x,z,yaw,v,dep,mir,sc){if(pN(x,z)<1.02)return;const P=PR,i=P.i;P.i=(i+1)%P.N;P.n=Math.min(P.n+1,P.N);
+  P.q2.setFromUnitVectors(_up,nTop(x,z));P.q.setFromAxisAngle(_up,yaw).premultiply(P.q2);
+  const s=PR_SZ[k]*(sc||1);P.s.set(mir?-s:s,1,s);P.v.set(x,hTop(x,z)+.003,z);P.m4.compose(P.v,P.q,P.s);P.im.setMatrixAt(i,P.m4);
+  P.im.setColorAt(i,P.c.setRGB(k+(v||0)/4,P.E,dep==null?1:dep));P.dirty=1;P.im.count=P.n}
+function prTick(dt){const P=PR;P.E+=dt*(1/240+st.wn*.3/35+WX.dust/6+WX.rain/9);P.im.material.uniforms.uE.value=P.E;
+  if(pi&&dc)P.im.material.uniforms.uKs.value=cl(pi.intensity/(pi.intensity+dc.intensity*1.4+1e-3),.12,.85);
+  P.up+=dt;if(P.dirty&&P.up>.15){P.up=0;P.dirty=0;P.im.instanceMatrix.needsUpdate=true;P.im.instanceColor.needsUpdate=true}}
+/* a foot comes to rest: after a swing (moving faster than the body) it slows almost to a stop at the ground */
+const _pf=new V3();
+function footPlant(f,b,spd,dt,lift){b.getWorldPosition(_pf);W.worldToLocal(_pf);let hit=null;
+  if(f.p){const v=Math.hypot(_pf.x-f.p.x,_pf.z-f.p.z)/Math.max(dt,1e-3);
+    if(v>spd*.6)f.sw=1;else if(f.sw&&v<spd*.25&&_pf.y-hTop(_pf.x,_pf.z)<lift){f.sw=0;hit=_pf}
+    f.p.copy(_pf)}else f.p=_pf.clone();return hit}
+
 /* ---- camels ---- */
 const REST=[{...tl(4.2,5.2),yaw:TENT.yaw+Math.PI/2+.15},{x:14.2,z:2.6,yaw:-Math.PI/2-.35}];
 const DRINK=(()=>{const th=BEACH[0],[x,z]=pondEdge(th,1),nx=Math.cos(th),nz=Math.sin(th);return{x:x+nx*1.0,z:z+nz*1.0,yaw:Math.atan2(-nx,-nz)}})();
@@ -1733,7 +1847,14 @@ function camelSpawn(sc,anims,i,kind){smoothRoot(anims);
   const a={i,kind,sc:s,gait:kind.gait,v:.989*s*kind.gait,voice:kind.voice[i]||1,g,inner,mdl:sc,r:rigUp(sc,anims),bones:{},x:0,z:0,yaw:0,yr:0,spd:0,gy:null,gp:0,gr:0,k:0,mode:"job",job:"idle",timer:rr(2,5),path:null,pi:0,face:null,stuck:0};
   sc.traverse(o=>{if(o.isBone)a.bones[o.name]=o});
   for(const k of["kneel_down","stand_up"]){const c=a.r.acts[k];if(c){c.setLoop(VT.THREE.LoopOnce,1);c.clampWhenFinished=true}}
+  /* the four feet: the tip below each leg's last joint, fore or hind by where it stands in the bind pose */
+  a.feet=[];for(const n in a.bones){const m=n.match(/([01])_(Left|Right)_Limb_3$/);if(!m)continue;const b=a.bones[n];a.feet.push({b:b.children.find(c=>c.isBone)||b,R:m[2]==="Right",p:null,sw:0,hind:0})}
+  if(a.feet.length===4){g.updateMatrixWorld(true);const z=a.feet.map(f=>g.worldToLocal(f.b.getWorldPosition(new V3())).z),mid=[...z].sort((x,y)=>x-y).slice(1,3).reduce((x,y)=>x+y)/2;a.feet.forEach((f,i)=>{f.hind=z[i]<mid?1:0})}
   return a}
+function camelPrints(a,dt){if(a.spd<.05){for(const f of a.feet)f.p=null;return}const bk=CAMEL_SLOTS[a.i]==="bact";
+  for(const f of a.feet){const h=footPlant(f,f.b,a.spd,dt,.3);if(h)prAdd(bk?PRK.bact:PRK.drom,h.x,h.z,a.yaw+.06*Math.sin(h.x*7.1+h.z*3.3),f.hind,1,f.R)}}
+/* the hollow it lay in, left as it gets up: centred under the chest and belly, a little ahead of the root */
+function camelLie(a){const bk=CAMEL_SLOTS[a.i]==="bact",f=.12*a.sc;prAdd(PRK.lie,a.x+Math.sin(a.yaw)*f,a.z+Math.cos(a.yaw)*f,a.yaw,bk?1:0,1,0,a.sc)}
 function camelGo(a,to,job){
   const g=navGrid("camel",1.05,1.12,.84),blk=ANIM.camels.filter(o=>o!==a&&o.spd<.05).map(o=>({x:o.x,z:o.z,r:2.6})),p=navPath(g,a.x,a.z,to.x,to.z,blk);
   if(!p){a.mode="job";a.job="idle";a.timer=rr(3,6);play(a.r,"idle",1,1);return false}
@@ -1777,7 +1898,7 @@ function camelUpdate(a,dt){
     else play(a.r,"walk",.6,Math.max(.3,a.spd/a.v)*a.gait)}
   else if(a.mode==="down"){a.k=Math.min(1,a.k+dt/CK.down);if(a.k>=1){a.mode="rest";a.timer=rr(30,55);play(a.r,"kneel_rest",.3,night?.7:1)}}
   else if(a.mode==="rest"){if(a.r.acts.kneel_rest)a.r.acts.kneel_rest.timeScale=night?.7:1;
-    if(!stay){a.timer-=dt;if(a.timer<0){a.mode="up";play(a.r,"stand_up",.3,1);if(rnd()<.8)camelCall(a,"up")}}}
+    if(!stay){a.timer-=dt;if(a.timer<0){a.mode="up";play(a.r,"stand_up",.3,1);if(rnd()<.8)camelCall(a,"up");camelLie(a)}}}
   else if(a.mode==="up"){a.k=Math.max(0,a.k-dt/CK.up);if(a.k<=0){a.job="idle";play(a.r,"idle",.3,1);camelPlan(a)}}
   else if(a.mode==="job"){a.timer-=dt;if(a.timer<0)camelPlan(a)}
   /* one integrator for every mode: speed and heading carry over mode changes instead of snapping */
@@ -1788,7 +1909,7 @@ function camelUpdate(a,dt){
   if(a.gy==null||Math.abs(f.y-a.gy)>.6){a.gy=f.y;a.gp=f.pitch;a.gr=f.roll}
   const gk=ease(9,dt);a.gy+=(f.y-a.gy)*gk;a.gp+=(f.pitch-a.gp)*gk;a.gr+=(f.roll-a.gr)*gk;
   a.g.position.set(a.x,a.gy,a.z);a.g.rotation.set(a.gp*(1-.5*kk),a.yaw,a.gr*(1-.5*kk));
-  rigTick(a.r,dt)}
+  rigTick(a.r,dt);camelPrints(a,dt)}
 
 /* ---- eagle: soars in a thermal, lands on the saguaro top or at the west beach ---- */
 const _e0=new V3(),_e1=new V3(),_t0=new V3(),_t1=new V3(),_ev=new V3();
@@ -1818,6 +1939,14 @@ function eaglePlace(e){const o=e.ro;_eo.set(0,0,0);
   e.g.position.copy(e.pos).add(_eo);e.g.position.y+=E_FLY}
 const PUFF=softPoints(MOB?24:44,"#e6d7bd",.1,false);PUFF.o.renderOrder=6;PUFF.o.visible=false;W.add(PUFF.o);
 const PUFFP=[];
+/* where it comes down on the beach (or pushes off it): both feet's talon prints, and each wing's primaries brushed into the sand */
+function eagleMarks(e,off){const yaw=e.spot.yaw,fx=Math.sin(yaw),fz=Math.cos(yaw);let cx=0,cz=0,n=0;
+  for(const nm of["Foot_L","Foot_R"]){const b=e.g.getObjectByName(nm);if(!b)continue;b.getWorldPosition(_pf);W.worldToLocal(_pf);cx+=_pf.x;cz+=_pf.z;n++;
+    prAdd(PRK.talon,_pf.x,_pf.z,yaw+(nm==="Foot_L"?-.12:.12),0,off?1.3:1,nm==="Foot_R")}
+  if(!n){cx=e.spot.p.x;cz=e.spot.p.z}else{cx/=n;cz/=n}
+  /* the beach curves with the shore, so a wingtip that would brush the water is moved out from it onto the sand */
+  for(const sd of[-1,1]){const lx=fz*sd,lz=-fx*sd,k=off?.95:.85;let wx=cx+lx*k-fx*.12,wz=cz+lz*k-fz*.12;for(let t=0;t<14&&pN(wx,wz)<1.05;t++){const gx=pN(wx+.05,wz)-pN(wx-.05,wz),gz=pN(wx,wz+.05)-pN(wx,wz-.05),gl=Math.hypot(gx,gz)||1;wx+=gx/gl*.08;wz+=gz/gl*.08}
+    prAdd(PRK.wing,wx,wz,Math.atan2(lx,lz)+sd*(off?-.25:.2),0,off?1:.9,sd>0)}}
 function eaglePuff(p){for(let i=0;i<PUFF.n;i++){const a=rnd()*TAU,u=rr(.5,1.5);
     PUFFP[i]={x:p.x+Math.cos(a)*.12,y:p.y+rr(.05,.35),z:p.z+Math.sin(a)*.12,vx:Math.cos(a)*u,vy:rr(.1,.7),vz:Math.sin(a)*u,life:-rr(0,.12),dur:rr(.7,1.3)};PUFF.Z[i]=rr(.6,1.5)}
   PUFF.o.visible=true}
@@ -1870,14 +1999,14 @@ function eagleFinal(e){const spot=e.spot;e.final=true;const p1=spot.p.clone();
   play(e.fr,"glide",.7,1)}
 function eagleUpdate(e,dt){
   const ph=st.phase,wantPerch=ph!=="day"||WX.shel>0||WX.rain>.4;puffTick(dt);
-  {const L=e.r.acts.land;if(e.r.cur==="land"&&!e.pf&&L&&L.time>=1.96){e.pf=1;if(e.spot.k==="pond")eaglePuff(e.spot.p)}}
+  {const L=e.r.acts.land;if(e.r.cur==="land"&&!e.pf&&L&&L.time>=1.96){e.pf=1;if(e.spot.k==="pond"){eaglePuff(e.spot.p);eagleMarks(e,0)}}}
   if(e.mode==="perch"){
     if(e.r.acts.perch)e.r.acts.perch.timeScale=ph==="night"?.35:1;
     if(e.settle>0){e.settle-=dt;if(e.settle<=0)play(e.r,e.spot.k==="pond"?"head_turn":"perch",.4,1)}
     else if(wantPerch){if(e.spot.k!=="sag"){e.timer-=dt;if(e.timer<0)eagleTakeoff(e)}}
     else{e.timer-=dt;if(e.timer<0)eagleTakeoff(e)}
     if(e.mode==="perch"){rigTick(e.r,dt);eaglePlace(e);return}}
-  if(e.mode==="rise"){e.hold-=dt;if(!e.pf&&e.hold<1.45){e.pf=1;if(e.spot.k==="pond")eaglePuff(e.spot.p)}
+  if(e.mode==="rise"){e.hold-=dt;if(!e.pf&&e.hold<1.45){e.pf=1;if(e.spot.k==="pond"){eaglePuff(e.spot.p);eagleMarks(e,1)}}
     if(e.hold>0){rigTick(e.r,dt);eaglePlace(e);return}eagleLaunch(e,-e.hold-dt)}
   /* to land, the thermal first drifts away from the perch (its drift is part of the bird's velocity), then the bird leaves
      the circle when its heading points at the perch, which leaves room for a straight stoop */
@@ -1969,6 +2098,7 @@ function rsSpawn(proto,anims){
   s.tq={M,tg,MT,MTi:MT.clone().invert(),MP,N,dy:ty-N.y,fk:[fork("Tongue_L"),fork("Tongue_R")].filter(f=>f.b),
     jaw,jq:jaw?jaw.quaternion.clone():null,jp:jaw?jaw.position.clone():null,A:new M.Matrix4(),R:new M.Matrix4(),X:new M.Matrix4(),L:new M.Matrix4()};
 
+  s.rtK=0;s.rtS=1;{const rt=RTL_B.map(([n,a])=>[B(n),a]);if(rt.every(x=>x[0]))s.rt=rt}
   const hb=B("Head");if(hb&&hb.parent)s.hl={H:hb,bi:sk.boneInverses[sk.bones.indexOf(hb)],a:0,on:0,q0:new T.Quat(),qw:new T.Quat()};
   return s}
 /* one bout: out in ~70 ms with the tines spreading and the tongue dipping, n up-and-down sweeps pivoting at the notch (the tines
@@ -1989,6 +2119,36 @@ function rsTongue(s,dt){const q=s.tq;if(!q)return;const G=s.tg;let e=0,th=0,sp=0
     A.makeTranslation(-f.p.x,-f.p.y,-f.p.z).premultiply(R).premultiply(X.makeTranslation(f.p.x,f.p.y,f.p.z));
     L.copy(q.MTi).multiply(A).multiply(f.MF);L.decompose(f.b.position,f.b.quaternion,f.b.scale)}
   if(q.jaw){q.jaw.quaternion.copy(q.jq);q.jaw.position.copy(q.jp)}}
+/* ---- the rattle: the raised tail buzzes side to side (~60 Hz in life, far above the frame rate, so each frame catches it at
+   a random point of its swing and a faint fan shows the blur either side). Its strength follows the loudness of the sound
+   being heard: dRtlOn's envelope at 20 per second (a few warning buzzes rising into the full rattle), then the steady loop. ---- */
+const RTL_ENV="0003321142452144421343007888778789887978776766657544655565677666888777777887665665554555554543321100";
+const RTL_B=[["Spine_42",.9],["Spine_43",1.8],["Spine_44",3],["Rattle",4.5],["Rattle_2",3.2],["Rattle_3",2]];
+function rtlLevel(s){if(s.mode!=="def")return 0;const t=s.defT,e=t<5?+RTL_ENV[Math.min(99,t*20|0)]/9:0;return Math.max(e,.85*ss(3,4.5,t))}
+/* two strips, one each side of the rattle, from just inside its edge (u 0) out to where the tip travels (u 1) */
+const RFAN=(()=>{const N=32,d=new Uint8ClampedArray(N*N*4);
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const u=(i+.5)/N,v=(j+.5)/N,a=.55*Math.pow(1-u,1.6)*ss(0,.3,u*4)*ss(0,.3,v)*(1-ss(.88,1,v));d.set([0,a*255,0,255],(j*N+i)*4)}
+  const am=new T.CTex(new ImageData(d,N,N));am.needsUpdate=true;
+  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(24),3));g.setAttribute("normal",new T.BA(new Float32Array(24),3));
+  g.setAttribute("uv",new T.BA(new Float32Array([0,0,1,0,0,1,1,1,0,0,1,0,0,1,1,1]),2));g.setIndex([0,1,2,2,1,3,4,5,6,6,5,7]);
+  const m=new T.MSM({color:0x97785a,roughness:.6,metalness:0,transparent:true,alphaMap:am,depthWrite:false,side:2});
+  const o=new T.Mesh(g,m);o.frustumCulled=false;o.visible=false;o.renderOrder=2;o.castShadow=o.receiveShadow=false;W.add(o);onDes(o);return o})();
+const _ra=new V3(),_rb=new V3(),_rc=new V3(),_rs=new V3(),_rn=new V3(),_rQ=new T.Quat(),_rZ=new V3(0,0,1);
+function rsRattle(s,dt){const R=s.rt;s.rtK+=(rtlLevel(s)-s.rtK)*ease(s.mode==="def"?30:8,dt);RFAN.visible=false;if(!R||s.rtK<.02)return;
+  /* the fan: on the rattle's resting line, from its base out past its last segment, as wide as the tip travels, turned to the
+     camera about its axis */
+  const r0=R[3][0],r2=R[5][0];s.g.updateMatrixWorld(true);
+  r0.getWorldPosition(_ra);r2.getWorldPosition(_rb);W.worldToLocal(_ra);W.worldToLocal(_rb);
+  _rc.subVectors(_rb,_ra);_rb.addScaledVector(_rc,.45);_rc.subVectors(_rb,_ra);
+  _rn.addVectors(_ra,_rb).multiplyScalar(.5).sub(_cl).multiplyScalar(-1);_rs.crossVectors(_rc,_rn).normalize();
+  const ri=.008,wb=.004,wt=.006+.02*s.rtK,P=RFAN.geometry.attributes.position,Nn=RFAN.geometry.attributes.normal;
+  for(let sd=-1,o=0;sd<=1;sd+=2,o+=4){const pt=(i,c,w)=>P.setXYZ(o+i,c.x+_rs.x*sd*w,c.y+_rs.y*sd*w,c.z+_rs.z*sd*w);
+    pt(0,_ra,ri);pt(1,_ra,ri+wb);pt(2,_rb,ri);pt(3,_rb,ri+wt)}
+  /* lit as the average of the rattle's round surface: mostly from above */
+  _rn.crossVectors(_rs,_rc).normalize();if(_rn.dot(_cl)<_rn.dot(_ra))_rn.negate();_rn.y+=1.5;_rn.normalize();for(let i=0;i<8;i++)Nn.setXYZ(i,_rn.x,_rn.y,_rn.z);
+  P.needsUpdate=Nn.needsUpdate=true;RFAN.material.opacity=ss(.05,.5,s.rtK);RFAN.visible=true;
+  s.rtS=-s.rtS;const k=s.rtK*D2R;
+  for(const[b,a]of R)b.quaternion.multiply(_rQ.setFromAxisAngle(_rZ,s.rtS*a*k*rr(.45,1)))}
 /* ---- rattlesnake crawl ----
    The body is the 44 spine bones (Spine_01 behind the head .. Spine_44 before the rattle, .024 m apart). Each frame every bone
    is placed in island metres, framed by the body line (bone +y runs tailward, +z up) and given the local matrix that puts it
@@ -2114,30 +2274,49 @@ function rsHeadLift(s,dt){const L=s.hl,q=s.tq;if(!L||!q)return;const H=L.H;
 /* ---- sand tracks: grooves (r) and pushed-up rims (g) in a 5 m window of 6.7 mm texels that follows the snake;
    wind wears them down (rims first), rain and blowing sand faster ---- */
 function trkShift(K,x,z){const N=K.N,te=K.M/N,di=Math.round((x-K.ox)/te),dj=Math.round((z-K.oz)/te),o=new Uint8ClampedArray(N*N*4);
-  for(let i=3;i<o.length;i+=4)o[i]=255;
-  for(let j=0;j<N;j++){const sj=j+dj;if(sj<0||sj>=N)continue;for(let i=0;i<N;i++){const si=i+di;if(si<0||si>=N)continue;const a=(j*N+i)*4,c=(sj*N+si)*4;o[a]=K.d[c];o[a+1]=K.d[c+1]}}
+  for(let j=0;j<N;j++){const sj=j+dj;if(sj<0||sj>=N)continue;for(let i=0;i<N;i++){const si=i+di;if(si<0||si>=N)continue;const a=(j*N+i)*4,c=(sj*N+si)*4;o[a]=K.d[c];o[a+1]=K.d[c+1];o[a+2]=K.d[c+2];o[a+3]=K.d[c+3]}}
   K.d.set(o);K.ox+=di*te;K.oz+=dj*te;K.U.uTrkW.value.x=K.ox;K.U.uTrkW.value.y=K.oz;K.dirty=1}
-/* one groove between two neighbouring contact points (a capsule), so the furrow runs continuous rather than beaded;
-   the rim is heaped on the side the sand is pushed (px,pz), or on both sides when that is zero */
-function trkSeg(K,x0,z0,x1,z1,dep,px,pz){const N=K.N,te=K.M/N,h=N/2,ax=(x0-K.ox)/te+h,az=(z0-K.oz)/te+h,bx=(x1-K.ox)/te+h,bz=(z1-K.oz)/te+h,R=7;
-  const ex=bx-ax,ez=bz-az,L2=ex*ex+ez*ez||1e-9;
+/* the body's girth along its length (thinner neck, tapering tail), so each part presses a groove as wide as itself */
+const rsGirth=i=>mix(.62,1,ss(0,9,i))*mix(1,.42,ss(26,43,i));
+/* one groove between two neighbouring contact points (a capsule), so the furrow runs continuous rather than beaded.
+   The body sinks about a quarter of its girth (wr), so the groove is ~1.6 radii across with a low rim of displaced sand
+   either side, heaped on the side the sand is pushed (px,pz); mk raises a push mound beyond that rim, where a bend
+   shoves sideways against the sand (serpentine) or the body rolls off it (sidewinding). */
+/* sc: scale imprint (1 set down sidewinding, 2 rectilinear, 0 slid); ma, mb: the two points' places along the body (m) */
+function trkSeg(K,x0,z0,x1,z1,dep,px,pz,wr,mk,sc,ma,mb){const N=K.N,te=K.M/N,h=N/2,ax=(x0-K.ox)/te+h,az=(z0-K.oz)/te+h,bx=(x1-K.ox)/te+h,bz=(z1-K.oz)/te+h;
+  const r=RS_R*(wr||1),s2=2*(.68*r)**2,ro=1.25*r+.004,rw=2*(.4*r+.003)**2,mo=ro+.5*r+.007,mw=2*(.55*r+.005)**2,R=Math.ceil((mo+2.4*Math.sqrt(mw/2))/te);
+  const ex=bx-ax,ez=bz-az,L2=ex*ex+ez*ez||1e-9;mk=mk||0;
+  let th=Math.atan2(ez,ex),sg=mb>=ma?1:-1;if(th<0){th+=Math.PI;sg=-sg}if(th>=Math.PI){th=0;sg=-sg}
+  const cb=sc?(sc===1?1:129)+Math.round(th/Math.PI*126)%127:0;
   for(let j=Math.max(0,Math.floor(Math.min(az,bz))-R);j<=Math.min(N-1,Math.floor(Math.max(az,bz))+R);j++)
     for(let i=Math.max(0,Math.floor(Math.min(ax,bx))-R);i<=Math.min(N-1,Math.floor(Math.max(ax,bx))+R);i++){
-      const cx=i+.5,cz=j+.5,u=cl(((cx-ax)*ex+(cz-az)*ez)/L2,0,1),dx=(cx-ax-ex*u)*te,dz=(cz-az-ez*u)*te,d=Math.hypot(dx,dz),sd=d>1e-4?(dx*px+dz*pz)/d:0;
-      const gr=dep*Math.exp(-d*d/2.3e-4),rim=dep*(.5+.5*sd)*Math.exp(-(d-.028)*(d-.028)/1.4e-4),o=(j*N+i)*4,va=gr*255|0,vb=rim*230|0;
-      if(va>K.d[o])K.d[o]=va;if(vb>K.d[o+1])K.d[o+1]=vb}
+      const cx=i+.5,cz=j+.5,uu=((cx-ax)*ex+(cz-az)*ez)/L2,u=cl(uu,0,1),dx=(cx-ax-ex*u)*te,dz=(cz-az-ez*u)*te,d=Math.hypot(dx,dz),sd=d>1e-4?(dx*px+dz*pz)/d:0;
+      const gr=dep*Math.exp(-d*d/s2),rim=dep*(.4+.6*sd)*Math.exp(-(d-ro)*(d-ro)/rw),mnd=dep*mk*Math.max(sd,0)**1.5*1.6*Math.exp(-(d-mo)*(d-mo)/mw);
+      const o=(j*N+i)*4,va=gr*255|0,vb=Math.max(rim,mnd)*230|0;
+      if(va>K.d[o]){K.d[o]=va;K.d[o+2]=cb;if(cb){const ph=sg*(ma+uu*(mb-ma))/RS_SCL;K.d[o+3]=(ph-Math.floor(ph))*256|0}}if(vb>K.d[o+1])K.d[o+1]=vb}
+  K.dirty=K.any=1}
+/* sand thrown off where the neck slaps down at the head of a sidewinding track: a scatter of grains and small clods, most of
+   them in the direction the sand is pushed (px,pz) */
+function trkSpray(K,x,z,px,pz,n){const N=K.N,te=K.M/N,h=N/2,a0=Math.atan2(pz,px);
+  for(let k=0;k<n;k++){const a=a0+rr(-.9,.9)*rr(.3,1),dd=rr(.025,.05)+rr(0,.07)*rnd(),cx=(x+Math.cos(a)*dd-K.ox)/te+h,cz=(z+Math.sin(a)*dd-K.oz)/te+h,i0=cx|0,j0=cz|0,big=rnd()<.25;
+    for(let j=j0-1;j<=j0+1;j++)for(let i=i0-1;i<=i0+1;i++){if(i<0||j<0||i>=N||j>=N)continue;
+      const q=Math.hypot(i+.5-cx,j+.5-cz),v=(big?200:130)*Math.exp(-q*q/(big?.9:.35))*rr(.7,1)|0,o=(j*N+i)*4;if(v>K.d[o+1])K.d[o+1]=v}}
   K.dirty=K.any=1}
 function trkTick(s,dt){const K=TRK;if(!K||!s.bd)return;const b=s.bd;
   if(Math.abs(b.P[0]-K.ox)>1.3||Math.abs(b.P[1]-K.oz)>1.3)trkShift(K,b.P[0],b.P[1]);
   if(s.w>.9){const side=s.gait==="side",w=b.sw;let px=0,pz=0;
     if(side){const U0=Math.sin(w.psi),U1=Math.cos(w.psi),V0=Math.cos(w.psi),V1=-Math.sin(w.psi);px=-(w.fu*U0+w.fv*V0);pz=-(w.fu*U1+w.fv*V1)}
-    const on=i=>b.C[i]>=.6&&b.H[i]<=.004;
-    for(let i=0;i<RS_N;i++){if(!on(i))continue;const x=b.P[2*i],z=b.P[2*i+1];
+    const on=i=>b.C[i]>=.6&&b.H[i]<=.004,Tc=b.Tc||(b.Tc=new Uint8Array(RS_N));
+    for(let i=0;i<RS_N;i++){const was=Tc[i];Tc[i]=on(i)?1:0;if(!Tc[i])continue;const x=b.P[2*i],z=b.P[2*i+1];
+      /* the J: the bent neck comes down first and hardest, digging the hook of each new track and flinging sand */
+      if(side&&!was&&i<7&&s.a>.5)trkSpray(K,x,z,px,pz,MOB?8:14);
       if(Math.hypot(x-b.Ls[2*i],z-b.Ls[2*i+1])<.004)continue;b.Ls[2*i]=x;b.Ls[2*i+1]=z;
-      let qx=px,qz=pz;
-      if(!side&&i>0&&i<RS_N-1){qx=2*x-b.P[2*i-2]-b.P[2*i+2];qz=2*z-b.P[2*i-1]-b.P[2*i+3];const l=Math.hypot(qx,qz);const k=cl(l/.0012,0,1);qx=l>1e-7?qx/l*k:0;qz=l>1e-7?qz/l*k:0}
-      const dep=(side?1:s.rk>.5?.6:.8)*mix(.75,1,ss(.3,1,i/8)),j=i<RS_N-1&&on(i+1)?i+1:i>0&&on(i-1)?i-1:i;
-      trkSeg(K,x,z,b.P[2*j],b.P[2*j+1],dep,qx,qz)}}
+      let qx=px,qz=pz,mk=side?.7:0;
+      /* serpentine: the outside of each bend is where the body shoves against the sand; the tighter the bend, the bigger the mound */
+      if(!side&&i>0&&i<RS_N-1){qx=2*x-b.P[2*i-2]-b.P[2*i+2];qz=2*z-b.P[2*i-1]-b.P[2*i+3];const l=Math.hypot(qx,qz),kv=l/(RS_DS*RS_DS),k=cl(kv/2,0,1);
+        qx=l>1e-7?qx/l*k:0;qz=l>1e-7?qz/l*k:0;mk=ss(2.5,9,kv)*(s.rk>.5?.3:1)}
+      const dep=(side?mix(1.3,1,ss(2,7,i)):(s.rk>.5?.6:.8)*mix(.75,1,ss(.3,1,i/8))),j=i<RS_N-1&&on(i+1)?i+1:i>0&&on(i-1)?i-1:i;
+      trkSeg(K,x,z,b.P[2*j],b.P[2*j+1],dep,qx,qz,(rsGirth(i)+rsGirth(j))/2,mk,side?1:s.rk>.5?2:0,i*RS_DS,j*RS_DS)}}
   K.dc+=dt;
   if(K.dc>=.5&&K.any){const g=gustAt(b.P[0],b.P[1]),r=K.dc*(1/160+st.wn*(.4+.6*g)/35+WX.dust/6+WX.rain/9),d=K.d;let any=0;K.dc=0;
     for(let i=0;i<d.length;i+=4){const a=d[i],c=d[i+1];if(!(a|c))continue;any=1;
@@ -2191,7 +2370,7 @@ function rsUpdate(s,dt){
     if(!last&&Math.hypot(wp.x-ref.x,wp.z-ref.z)<(s.gait==="side"?.7:.45)){s.pi++;wp=s.path[s.pi];last=s.pi===s.path.length-1}
     /* sidewinding turns at most .22 rad/s, so a goal inside that turning circle is reached when it is circled, not hit */
     s.legT+=dt;const dist=Math.hypot(s.goal.x-ref.x,s.goal.z-ref.z);
-    if(last&&dist<(s.gait==="side"?Math.max(.6,1.2*s.spd/.22):.3)||s.legT>90)s.arr=1;const arrive=!!s.arr;
+    if(last&&dist<(s.gait==="side"?Math.max(.6,1.2*Math.min(s.spd,.35)/.22):.3)||s.legT>90)s.arr=1;const arrive=!!s.arr;
     const want=s.lock||rsGaitAt(s,b.P[0],b.P[1]);
     if(want!==s.gait){s.gwT=(s.gwT||0)+dt}else s.gwT=0;
     const sw=(s.gait==="side")!==(want==="side")&&s.gwT>.8,stop=arrive||sw;
@@ -2213,7 +2392,7 @@ function rsUpdate(s,dt){
   if(s.w>.002&&s.mode!=="coil"&&s.mode!=="def"&&s.mode!=="coiling"){for(let i=0;i<RS_N*2;i++)b.Pp[i]=b.P[i];
     if(s.gait==="side")rsBodySide(s,dt);else rsBodyTrail(s,dt)}
   else s.spd=0;
-  rsPose(s);rsHeadLift(s,dt);rsTongue(s,dt);trkTick(s,dt)}
+  rsPose(s);rsHeadLift(s,dt);rsTongue(s,dt);rsRattle(s,dt);trkTick(s,dt)}
 
 /* ---- dust devil: a slender sand whirl that wanders across the open sand now and then (day / sunset) ---- */
 const DEV=softPoints(MOB?140:260,"#e4bf88",.2,false);DEV.o.renderOrder=6;W.add(DEV.o);
@@ -2499,9 +2678,9 @@ function agTrunkPose(a){const f=trunkAt(a.palm,a.ct,a.az);a.g.position.copy(f.p)
 function agGroundPose(a){const n=a.ry>-50?_an.set(0,1,0):nTop(a.x,a.z);a.g.position.set(a.x,a.ry>-50?a.ry:hTop(a.x,a.z),a.z);
   _az.set(Math.sin(a.yaw),0,Math.cos(a.yaw));_ax.crossVectors(n,_az).normalize();_az.crossVectors(_ax,n);_am.makeBasis(_ax,n,_az);a.g.quaternion.setFromRotationMatrix(_am)}
 /* the top of a rock under (x,z), or -99 */
-const _rc={r:null,o:new V3(),d:new V3(0,-1,0)};
-function rockTop(x,z){if(!_rc.r)_rc.r=new VT.THREE.Raycaster();W.updateMatrixWorld();_rc.o.set(x,6,z);W.localToWorld(_rc.o);_rc.d.set(0,-1,0);_rc.r.set(_rc.o,_rc.d);
-  const h=_rc.r.intersectObjects(rockInst,false)[0];if(!h)return-99;const p=W.worldToLocal(h.point.clone());return p.y>hTop(x,z)+.05?p.y:-99}
+const _rtc={r:null,o:new V3(),d:new V3(0,-1,0)};
+function rockTop(x,z){if(!_rtc.r)_rtc.r=new VT.THREE.Raycaster();W.updateMatrixWorld();_rtc.o.set(x,6,z);W.localToWorld(_rtc.o);_rtc.d.set(0,-1,0);_rtc.r.set(_rtc.o,_rtc.d);
+  const h=_rtc.r.intersectObjects(rockInst,false)[0];if(!h)return-99;const p=W.worldToLocal(h.point.clone());return p.y>hTop(x,z)+.05?p.y:-99}
 /* basking rocks near the grove with a fairly flat top, and each one's hiding place at its foot */
 function agSpots(){const L=[];
   for(const o of OBST){if(o.k!=="rock"||o.r<.22||Math.hypot(o.x-GROVE.x,o.z-GROVE.z)>17||pN(o.x,o.z)<1.2)continue;const y=rockTop(o.x,o.z);if(y<-50)continue;
@@ -2606,7 +2785,7 @@ const animalsReady=propsReady.then(()=>{const big=[
 UPD.push((dt,t)=>{
   {const envI=mix(.3,.08,st.night);for(const m of ANIM_MATS)m.envMapIntensity=m.userData.coat?envI*.7:envI}
   if(dt<=0)return;const d=Math.min(dt,.1);
-  ANIM.camels.forEach(a=>camelUpdate(a,d));
+  ANIM.camels.forEach(a=>camelUpdate(a,d));prTick(d);
   if(ANIM.eagle)eagleUpdate(ANIM.eagle,d);
   if(ANIM.rs)rsUpdate(ANIM.rs,d);
   if(PF.list.length){pfVis();pfUpdate(d)}
@@ -2644,6 +2823,8 @@ const QA={AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW
     r.g.position.set(x,r.gy,z);r.g.rotation.set(0,r.yaw,0);r.g.updateMatrixWorld(true);play(r.r,"relaxed_coil",.01,1)},trk:TRK,RS_N,
   /* age the tracks by `sec` seconds of the current wind (for the fade time-lapse) */
   trkAge:sec=>{const r=ANIM.rs;if(!r||!TRK)return;for(let k=0;k<sec*2;k++){TRK.dc=.5;TRK.any=1;const w=r.w;r.w=0;trkTick(r,0);r.w=w}TRK.tex.needsUpdate=true},
+  /* footprints: PR itself, prAdd for stamping, prAge(sec) wears every print by `sec` seconds of the current weather */
+  PR,PRK,prAdd,camelLie,prAge:sec=>{const P=PR;P.E+=sec*(1/240+st.wn*.3/35+WX.dust/6+WX.rain/9);P.im.material.uniforms.uE.value=P.E},camelGo,eagleLand:s=>eagleLand(ANIM.eagle,s||eagleSpots()[1]),eagleSpots,
   /* sand falls: count, rate (sfR(v) pins it, null to release), and each fall's rim point, half width and threshold */
   sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty}))}),sfR:v=>{SF.pin=v},
   freeze(on){st.lock=!!on},

@@ -2123,6 +2123,137 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
 HIDE.push(on=>{const x=SX();if(!on&&AU.bus&&x&&x.s){AU.bus.gain.setTargetAtTime(0,x.s.currentTime,.25);const L=AU.lp;AU.lp={};setTimeout(()=>{for(const k in L)try{L[k].s.stop()}catch(e){}},1500)}
   if(x&&x.C)x.C()});
 
+/* ---------------- desert pupfish (Cyprinodon): a loose school over the shallow sandy ring, males holding small territories
+   along the margin. Real size (~6 cm). They live under the pond's opaque water layer, so they are drawn after it and blended
+   over it by how much light comes back through the surface: absorbed with depth, cut by the surface reflection at grazing
+   views, lifted to their apparent depth and wobbled by the ripples, with caustics on their backs. ---------------- */
+const PF_N=MOB?11:16,PF_TH=MOB?[1.2,1.58]:[1.02,1.36,1.7],PF_R=.3;
+const PF={list:[],ter:[],sch:{th:1.9,dir:1,turn:rr(18,35)},vis:0,thr:[],
+  U:{uWy:{value:0},uS:{value:S},uT:pondU.uT,uWob:{value:.02},uVis:{value:0},uIri:{value:1}}};
+/* water depth over the pond bbox, sampled once (hTop is too dear to call per fish per frame) */
+const PFG=(()=>{const c=.2,x0=POND.x-POND.rx*1.35,z0=POND.z-POND.rz*1.35,nx=Math.ceil(POND.rx*2.7/c)+1,nz=Math.ceil(POND.rz*2.7/c)+1,d=new Float32Array(nx*nz);
+  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++)d[j*nx+i]=POND.wy-hTop(x0+i*c,z0+j*c);return{c,x0,z0,nx,nz,d}})();
+function pfDep(x,z){const G=PFG,u=cl((x-G.x0)/G.c,0,G.nx-1.001),v=cl((z-G.z0)/G.c,0,G.nz-1.001),i=u|0,j=v|0,fu=u-i,fv=v-j,d=G.d,n=G.nx;
+  return mix(mix(d[j*n+i],d[j*n+i+1],fu),mix(d[(j+1)*n+i],d[(j+1)*n+i+1],fu),fv)}
+/* the pond-radius fraction where the water is `d` deep along heading th */
+function pfK(th,d){let k=1.05;for(;k>.3;k-=.01){const[x,z]=pondEdge(th,k);if(pfDep(x,z)>=d)break}return k}
+function pfMats(o,male){matsOf(o,(m,c)=>{c.castShadow=false;c.receiveShadow=true;c.renderOrder=3;if(m.userData.pf)return;m.userData.pf=1;
+  const fin=/fin/i.test(m.name||""),iri=male&&/body/i.test(m.name||"");
+  if(m.map){m.map.colorSpace="srgb";m.map.anisotropy=MOB?2:4}if(m.emissive)m.emissive.setRGB(0,0,0);
+  m.transparent=true;m.depthWrite=true;if(!ANIM_MATS.includes(m))ANIM_MATS.push(m);
+  m.defines=Object.assign({},m.defines,iri?{PF_IRI:""}:{});m.customProgramCacheKey=()=>"pf"+(iri?1:0)+(fin?1:0);
+  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,PF.U);
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uWy,uT,uWob;varying vec3 vPfW;")
+      .replace("#include <project_vertex>",`vec4 pfW=modelMatrix*vec4(transformed,1.);vPfW=pfW.xyz;float pfD=max(uWy-pfW.y,0.);
+        pfW.y+=pfD*.25;
+        pfW.xz+=uWob*pfD*vec2(sin(uT*1.9+pfW.z*31.+pfW.x*17.),cos(uT*1.5+pfW.x*29.-pfW.z*13.));
+        vec4 mvPosition=viewMatrix*pfW;gl_Position=projectionMatrix*mvPosition;`);
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
+uniform float uWy,uS,uT,uVis,uIri;varying vec3 vPfW;
+float pfCau(vec2 p,float t){p=mod(p*6.2832,6.2832)-250.;vec2 i=p;float c=1.;
+  for(int n=0;n<3;n++){float tt=t*(1.-3.5/float(n+1));i=p+vec2(cos(tt-i.x)+sin(tt+i.y),sin(tt-i.y)+cos(tt+i.x));
+    c+=1./length(vec2(p.x/(sin(i.x+tt)/.005),p.y/(cos(i.y+tt)/.005)));}
+  c=1.17-pow(c/3.,1.4);return pow(abs(c),8.);}`)
+      .replace("#include <opaque_fragment>",`{vec3 Vw=normalize(cameraPosition-vPfW);float dW=max(uWy-vPfW.y,0.)/uS;
+        /* sunlight under rippled water: bright caustic threads and dimmer gaps */
+        float ca=pfCau(vPfW.xz/uS*8.,uT*.7)*smoothstep(0.,.02,dW);
+        outgoingLight+=reflectedLight.directDiffuse*(ca*1.5-.3);
+        #ifdef PF_IRI
+        /* the breeding male's blue: a thin-film sheen that runs teal head-on, through blue, to violet at grazing angles */
+        {float f=1.-clamp(dot(normalize(normal),normalize(vViewPosition)),0.,1.);
+          float msk=smoothstep(.15,.45,diffuseColor.b-diffuseColor.r);
+          float h=clamp(f*1.2+.1*sin(vPfW.x*900.+vPfW.z*700.),0.,1.);
+          vec3 ir=h<.5?mix(vec3(.1,.6,.72),vec3(.16,.42,1.),h*2.):mix(vec3(.16,.42,1.),vec3(.34,.3,.98),h*2.-1.);
+          vec3 irr=(reflectedLight.directDiffuse+reflectedLight.indirectDiffuse)/max(diffuseColor.rgb,vec3(.05));
+          outgoingLight+=ir*msk*(.08+.8*f*f)*dot(irr,vec3(.333))*.6*uIri;}
+        #endif
+        float path=dW+dW/max(Vw.y,.25);
+        outgoingLight*=exp(-path*vec3(1.05,.42,.5));
+        float fr=.02+.98*pow(1.-clamp(Vw.y,0.,1.),5.);
+        /* never fully opaque: some of the water's own reflection and glint stays on top of the fish */
+        diffuseColor.a=.86*exp(-dW/max(Vw.y,.2)*1.3)*(1.-fr)*uVis;}
+        #include <opaque_fragment>`)};
+  m.needsUpdate=true})}
+function pfSpawn(src,male,anims){const s=VT.cloneSkinned(src.scene),g=new T.Group();g.rotation.order="YXZ";g.add(s);W.add(g);onDes(g);pfMats(g,male);
+  const f={g,r:rigUp(s,anims),male,ter:-1,x:0,y:0,z:0,yaw:rr(-3,3),yr:0,pit:0,v:0,vt:0,mode:"pause",t:rr(0,1.5),hY:rr(.03,.14),tg:null,
+    off:{a:rr(0,TAU),d:Math.sqrt(rnd())*.85},disp:rr(6,16),ct:0};
+  const sw=f.r.acts.swim;if(sw){sw.play();sw.time=rr(0,.8)}f.r.cur="swim";
+  const it=f.r.acts.idle_turn;if(it)it.setLoop(VT.THREE.LoopOnce,1);return f}
+function pfStart(f,gx,gz,vt,T){f.gx=gx;f.gz=gz;f.vt=vt;f.t=T;f.mode="dart";
+  if(f.r.cur!=="swim")play(f.r,"swim",.12)}
+function pfPause(f){const n=st.night>.5;f.mode="pause";f.vt=0;f.tg=null;f.t=n?rr(2,6):rr(.3,1.7);
+  if(!n&&f.t>1.2&&rnd()<.4&&f.r.acts.idle_turn)play(f.r,"idle_turn",.3,rr(.8,1.3))}
+/* keep a goal over water of the right depth: pull it toward the pond centre when too shallow, out when too deep */
+function pfFit(f,x,z){const lo=f.ter>=0?.05:.08,hi=f.ter>=0?.3:.75;
+  for(let k=0;k<8;k++){const d=pfDep(x,z);if(d<lo){x+=(POND.x-x)*.12;z+=(POND.z-z)*.12}else if(d>hi){x-=(POND.x-x)*.08;z-=(POND.z-z)*.08}else break}return[x,z]}
+function pfDart(f){
+  let gx,gz;const ny=st.night>.5;
+  if(f.ter>=0){const C=PF.ter[f.ter],a=rr(0,TAU),d=Math.hypot(f.x-C.x,f.z-C.z)>PF_R?0:rr(.05,PF_R);gx=C.x+Math.cos(a)*d;gz=C.z+Math.sin(a)*d}
+  else{const[cx,cz]=pondEdge(PF.sch.th,PF.sch.k||.74),a=f.off.a+PF.sch.th;gx=cx+Math.cos(a)*f.off.d+rr(-.25,.25);gz=cz+Math.sin(a)*f.off.d+rr(-.25,.25);
+    /* loose school: step away from the nearest neighbour when crowded */
+    let nb=null,nd=.12;for(const o of PF.list){if(o===f)continue;const d=Math.hypot(o.x-f.x,o.z-f.z);if(d<nd){nd=d;nb=o}}
+    if(nb){gx+=(f.x-nb.x)/Math.max(nd,.01)*.15;gz+=(f.z-nb.z)/Math.max(nd,.01)*.15}}
+  for(const h of PF.thr){const d=Math.hypot(gx-h.x,gz-h.z);if(d<h.r){gx+=(gx-h.x)/Math.max(d,.01)*(h.r-d);gz+=(gz-h.z)/Math.max(d,.01)*(h.r-d)}}
+  [gx,gz]=pfFit(f,gx,gz);
+  pfStart(f,gx,gz,ny?rr(.08,.15):rr(.18,.42),ny?rr(.3,.6):rr(.14,.42))}
+function pfFlee(f,from,sp){const a=Math.atan2(f.x-from.x,f.z-from.z)+rr(-.6,.6);const[gx,gz]=pfFit(f,f.x+Math.sin(a)*.6,f.z+Math.cos(a)*.6);
+  pfStart(f,gx,gz,sp||rr(.5,.65),rr(.35,.7));f.mode="flee";f.tg=from}
+function pfChase(f,o,T){f.mode="chase";f.tg=o;f.t=T;f.vt=rr(.5,.62);if(f.r.cur!=="swim")play(f.r,"swim",.08);pfFlee(o,f)}
+function pfUpdate(dt){
+  const L=PF.list;if(!L.length)return;const ny=st.night>.5;
+  /* threats: a camel's muzzle at the water, the eagle low over the pond */
+  PF.thr.length=0;
+  ANIM.camels.forEach(a=>{const r=1.5*a.sc;PF.thr.push({x:a.x+Math.sin(a.yaw)*r,z:a.z+Math.cos(a.yaw)*r,r:1.6})});
+  const e=ANIM.eagle;if(e&&e.pos.y<POND.wy+6)PF.thr.push({x:e.pos.x,z:e.pos.z,r:e.mode==="perch"?2.2:3.5});
+  /* the school drifts slowly round the shallow ring, turning back now and then, and swings away from threats */
+  const S0=PF.sch;S0.turn-=dt;if(S0.turn<0){S0.turn=rr(18,40);S0.dir*=-1}
+  {const[cx,cz]=pondEdge(S0.th,.74);for(const h of PF.thr)if(Math.hypot(cx-h.x,cz-h.z)<h.r+1)S0.dir=wrapA(S0.th-Math.atan2((h.z-POND.z)/POND.rz,(h.x-POND.x)/POND.rx))>=0?1:-1;
+    S0.th=wrapA(S0.th+S0.dir*dt*(ny?.004:.012))}
+  for(const f of L){
+    for(const h of PF.thr)if(f.mode!=="flee"&&Math.hypot(f.x-h.x,f.z-h.z)<h.r*.8){pfFlee(f,h,rr(.55,.7));f.t+=.4}
+    /* territorial males: chase other males that cross in, now and then square up to a neighbour, follow a passing female */
+    if(f.ter>=0&&!ny&&f.mode!=="chase"&&f.mode!=="flee"){const C=PF.ter[f.ter];f.disp-=dt;
+      for(const o of L){if(o===f||o.mode==="flee")continue;const d=Math.hypot(o.x-C.x,o.z-C.z);
+        if(o.male&&d<PF_R*1.25&&rnd()<dt*4){pfChase(f,o,rr(.7,1.4));break}
+        if(!o.male&&d<PF_R&&f.mode==="pause"&&rnd()<dt*.5){f.mode="court";f.tg=o;f.t=rr(1.5,3);f.vt=.1;if(f.r.cur!=="swim")play(f.r,"swim",.2);break}}
+      if(f.disp<0&&f.mode==="pause"){f.disp=rr(7,18);const nb=PF.ter.map(c=>c.f).filter(o=>o&&o!==f&&Math.abs(PF.ter[o.ter].th-C.th)<.5);
+        if(nb.length){const o=nb[(rnd()*nb.length)|0];if(o.mode==="pause"||o.mode==="dart"){pfChase(f,o,rr(.5,.9));o.back=1}}}}
+    f.t-=dt;
+    if(f.mode==="pause"){f.vt=0;const it=f.r.acts.idle_turn;if(f.r.cur==="idle_turn"&&it&&it.time>3.3)play(f.r,"swim",.35);if(f.t<0)pfDart(f)}
+    else if(f.mode==="dart"){if(f.t<0)pfPause(f)}
+    else if(f.mode==="flee"){if(f.t<0){
+      /* a chased territory holder turns and chases back across the border before both settle */
+      if(f.back&&f.tg&&f.tg.ter>=0&&f.ter>=0){f.back=0;pfChase(f,f.tg,rr(.4,.7))}else{f.back=0;pfPause(f);f.t*=1.6}}}
+    else if(f.mode==="chase"||f.mode==="court"){const o=f.tg;
+      if(!o||f.t<0||(f.ter>=0&&Math.hypot(f.x-PF.ter[f.ter].x,f.z-PF.ter[f.ter].z)>PF_R*2.4)){
+        f.mode="dart";f.tg=null;const C=PF.ter[f.ter];if(C)pfStart(f,C.x,C.z,.3,.6);else pfPause(f)}
+      else{const lead=f.mode==="chase"?.12:-.05;f.gx=o.x+Math.sin(o.yaw)*lead;f.gz=o.z+Math.cos(o.yaw)*lead;if(f.mode==="court")f.vt=Math.hypot(o.x-f.x,o.z-f.z)>.07?o.v+.06:0;
+        if(f.mode==="chase"&&o.mode==="flee"&&o.t<.15)pfFlee(o,f)}}
+    /* heading snaps round at the start of a dart and eases while gliding */
+    const want=Math.atan2(f.gx-f.x,f.gz-f.z),moving=f.mode!=="pause";
+    if(moving&&Math.hypot(f.gx-f.x,f.gz-f.z)>.015){const dy=wrapA(want-f.yaw);f.yr=dy*(f.mode==="court"?3:14);f.yaw=wrapA(f.yaw+dy*ease(f.mode==="court"?3:14,dt))}else f.yr*=1-ease(4,dt);
+    f.v+=(f.vt-f.v)*ease(f.vt>f.v?11:2.4,dt);
+    let nx=f.x+Math.sin(f.yaw)*f.v*dt,nz=f.z+Math.cos(f.yaw)*f.v*dt;
+    if(pfDep(nx,nz)<.035){nx=f.x+(POND.x-f.x)*.02;nz=f.z+(POND.z-f.z)*.02;f.v*=.5}
+    f.x=nx;f.z=nz;
+    const bed=POND.wy-pfDep(f.x,f.z),hy=ny?.015:f.ter>=0?.03:f.hY,ty=Math.min(bed+hy,POND.wy-.03),y0=f.y;
+    f.y=Math.max(f.y+(ty-f.y)*ease(2.5,dt),Math.min(bed+.012,POND.wy-.02));
+    f.pit+=(cl(-(f.y-y0)/dt/Math.max(f.v,.06),-.45,.45)-f.pit)*ease(5,dt);
+    const sw=f.r.acts.swim;if(sw)sw.timeScale=cl(.45+f.v*11,.45,6.5)}
+  if(PF.vis>0)for(const f of L){f.g.position.set(f.x,f.y,f.z);f.g.rotation.set(f.pit,f.yaw,cl(-f.yr*.03,-.35,.35));rigTick(f.r,dt)}}
+/* fish under ~1.5 px are hidden and their rigs left alone */
+const _pfc=new V3();
+function pfVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
+  const D=Math.max(.5,Math.hypot((c.x-POND.x),(c.z-POND.z),c.y-POND.wy)-Math.max(POND.rx,POND.rz)*.6),ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360)),Dm=.06*ppm/1.5;
+  const v=1-ss(Dm*.6,Dm,D);PF.vis=v;PF.U.uVis.value=v;PF.U.uWy.value=W.position.y+POND.wy*W.scale.y;PF.U.uWob.value=(.012+.03*st.wn+.05*WX.rain);
+  for(const f of PF.list)f.g.visible=v>0}
+function pfLoad(){return Promise.all([glb("pupfish_male_v3"),glb("pupfish_female_v3")]).then(([M,F])=>{
+  const ter=PF_TH.map(th=>{const k=pfK(th,.13),[x,z]=pondEdge(th,k);return{th,x,z,f:null}});PF.ter=ter;
+  for(let i=0;i<PF_N;i++){const male=i<ter.length||i%2===0,src=male?M:F,f=pfSpawn(src,male,src.animations);
+    if(i<ter.length){f.ter=i;ter[i].f=f;f.x=ter[i].x;f.z=ter[i].z}
+    else{const[cx,cz]=pondEdge(PF.sch.th,.74);f.x=cx+Math.cos(f.off.a)*f.off.d;f.z=cz+Math.sin(f.off.a)*f.off.d;[f.x,f.z]=pfFit(f,f.x,f.z)}
+    f.y=POND.wy-pfDep(f.x,f.z)+f.hY;f.gx=f.x;f.gz=f.z;f.g.position.set(f.x,f.y,f.z);PF.list.push(f)}})}
+
 /* ---- load + per-frame ---- */
 const animalsReady=propsReady.then(()=>{const big=[
   Promise.all(CAMEL_SLOTS.map((_,i)=>glb(camelKind(i).file))).then(ms=>{const used=new Set(),[c0,c1]=ms.map((m,i)=>{const s=used.has(m)?VT.cloneSkinned(m.scene):m.scene;used.add(m);return camelSpawn(s,m.animations,i,camelKind(i))});ANIM.camels.push(c0,c1);
@@ -2132,7 +2263,8 @@ const animalsReady=propsReady.then(()=>{const big=[
     const sp=eagleSpots();if(sp[0])eaglePerchAt(e,sp[0]);else{e.mode="soar";play(e.r,"glide",.01,1)}}).catch(()=>{}),
   ];
   /* the snake's file is the largest and the snake starts hidden in shade: on a slow link it must not hold up the rest */
-  return Promise.all(big.concat(Promise.all(big).then(()=>{AU.big=1;return glb(RS_FILE)}).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
+  const after=Promise.all(big).then(()=>{AU.big=1});
+  return Promise.all(big.concat(after.then(pfLoad).catch(()=>{}),after.then(()=>glb(RS_FILE)).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
     const day=st.phase==="day",sp=day?snakeShadeSpot():randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;
     Object.assign(s,{x:sp.x,z:sp.z,yaw:sp.yaw!=null?sp.yaw:-.8,inShade:day?1:0});s.gy=hTop(s.x,s.z);s.g.position.set(s.x,s.gy,s.z);s.g.rotation.set(0,s.yaw,0);
     play(s.r,"relaxed_coil",.01,1)}).catch(()=>{})))});
@@ -2142,6 +2274,7 @@ UPD.push((dt,t)=>{
   ANIM.camels.forEach(a=>camelUpdate(a,d));
   if(ANIM.eagle)eagleUpdate(ANIM.eagle,d);
   if(ANIM.rs)rsUpdate(ANIM.rs,d);
+  if(PF.list.length){pfVis();pfUpdate(d)}
   devilUpdate(d,t);
   sound(d);
 });
@@ -2169,6 +2302,8 @@ const QA={st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,s
     else if(r.mode==="crawl"){r.next=null;if(!rsGoTo(r,{x,z}))return false}else if(r.mode==="rest")r.restT=0;return true},
   rsScare:(x,z,sec)=>{const r=ANIM.rs;if(r)r.qth={x,z,until:st.t+(sec||3)}},
   rsSet:o=>Object.assign(ANIM.rs,o),
+  /* pupfish: pf() positions/modes; PF itself for tests */
+  pf:()=>PF.list.map(f=>({x:f.x,y:f.y,z:f.z,yaw:f.yaw,v:f.v,mode:f.mode,male:f.male,ter:f.ter,clip:f.r.cur})),PF,pfDep,
   rsPut:(x,z,yaw)=>{const r=ANIM.rs;if(!r)return;Object.assign(r,{x,z,yaw:yaw||0,gy:hTop(x,z),mode:"coil",w:0,wT:99,wF:1,path:null,next:null});
     r.g.position.set(x,r.gy,z);r.g.rotation.set(0,r.yaw,0);r.g.updateMatrixWorld(true);play(r.r,"relaxed_coil",.01,1)},trk:TRK,RS_N,
   /* age the tracks by `sec` seconds of the current wind (for the fade time-lapse) */

@@ -218,14 +218,20 @@ function sandMat(){
         for(int i=0;i<${GRV.length};i++){vec4 g=uGrv[i];vec2 q=vSP.xz-g.xy;float sh=(dfbm(q*.42+g.xy)-.5)*.75+(nz2-.5)*.3;grv=max(grv,smoothstep(1.,.35,length(q)/g.z+sh));}
         grv*=.55+.45*smoothstep(.3,.65,dfbm(vSP.xz*1.1+2.));
         grv*=1.-wet;
-        if(grv>.002){vec2 gc=vSP.xz*22.,gi=floor(gc),gf=fract(gc);float md=9.,id=0.,on=0.,rad=.4;
-          for(int j=-1;j<=1;j++)for(int k=-1;k<=1;k++){vec2 o=vec2(float(k),float(j)),c=gi+o;vec2 r=o+.2+.6*vec2(dh2(c),dh2(c+5.3))-gf;float h=dh2(c+11.3),dd=dot(r,r)/(.35+.9*h*h);
-            if(dd<md){md=dd;id=dh2(c+1.7);on=step(.45-.35*grv,dh2(c+9.1));}}
-          vec3 pc=mix(vec3(.17,.155,.14),vec3(.33,.25,.17),smoothstep(.2,.7,id));pc=mix(pc,vec3(.11,.06,.045),step(.78,id));pc=mix(pc,vec3(.42,.38,.33),step(.95,id));
-          float gv=1.-smoothstep(.35,1.1,length(fwidth(gc))),d1=sqrt(md),peb=on*smoothstep(.5,.4,d1);
+        if(grv>.002){vec2 gc=vSP.xz*20.,gi=floor(gc),gf=fract(gc),rv=vec2(0.);float md=9.,id=0.,on=0.;
+          /* each cell may hold one pebble: an ellipse of its own size, elongation and heading, edge broken by noise */
+          for(int j=-1;j<=1;j++)for(int k=-1;k<=1;k++){vec2 o=vec2(float(k),float(j)),c=gi+o;vec2 r=o+.15+.7*vec2(dh2(c),dh2(c+5.3))-gf;
+            float h=dh2(c+11.3),rad=.16+.3*h,an=dh2(c+3.7)*6.283,el=1.+.7*dh2(c+8.1);vec2 ax=vec2(cos(an),sin(an));
+            float dd=length(vec2(dot(r,ax)/el,dot(r,vec2(-ax.y,ax.x))))/rad;
+            if(dd<md){md=dd;id=dh2(c+1.7);on=step(.62-.42*grv,dh2(c+9.1));rv=r/(rad*el);}}
           vec3 grit=sc*vec3(.72,.66,.6);
-          vec3 gr=mix(grit*(1.-.25*on*smoothstep(.62,.5,d1)),pc*(.85+.3*smoothstep(.45,.05,d1)),peb);
-          sc=mix(sc,mix(mix(grit,vec3(.24,.19,.15),.4),gr,gv),grv*.92);}
+          vec3 pc=mix(vec3(.15,.12,.1),vec3(.32,.2,.11),smoothstep(.2,.7,id));pc=mix(pc,vec3(.09,.055,.04),step(.8,id));pc=mix(pc,vec3(.42,.34,.25),step(.95,id));
+          pc=mix(pc,grit,.25);
+          float fg=length(fwidth(gc)),gv=1.-smoothstep(.2,.7,fg),d1=md+(dn2(gc*3.1+id*17.)-.5)*.3,ew=.07+fg*.6,peb=on*smoothstep(1.+ew,1.-ew,d1);
+          vec2 L2=normalize(uLd.xz+vec2(1e-4)),lo=-rv;float lit=dot(lo,L2);
+          float sh=on*(1.-peb)*smoothstep(1.55,1.05,d1)*clamp(-lit*1.4+.25,0.,1.);
+          vec3 gr=mix(grit*(1.-.35*sh),pc*(.8+.22*lit*smoothstep(1.,.3,d1)+.12*(1.-d1*d1)),peb);
+          sc=mix(sc,mix(mix(grit,vec3(.3,.24,.19),.35),gr,gv),grv*.9);}
         /* rain: the first drops pock the sand with dark spots that merge into an even wet skin; crests and the dune top dry first */
         float rWM=0.;
         if(uWetK>.002){float fwc2=length(fwidth(vSP.xz));
@@ -234,10 +240,10 @@ function sandMat(){
           float dryB=.35*smoothstep(1.,4.5,vSP.y)+.15*nz2;
           float even=smoothstep(.22,.55,uWetK-dryB*.6+(nz-.5)*.25);
           rWM=max(even,dotM*.85)*(1.-wet);sc=mix(sc,sc*vec3(.42,.37,.32),rWM);}
-        /* close up the sand resolves into grains: per-grain brightness scatter and the odd dark mineral fleck */
-        {float fwc=length(fwidth(vSP.xz)),gd=1.-smoothstep(.012,.07,fwc);
-         float g1=dh2(floor(vSP.xz*64.)),g2=dn2(vSP.xz*17.+5.);
-         sc*=1.+gd*((g1-.5)*.12+(g2-.5)*.1);sc=mix(sc,sc*vec3(.58,.52,.48),gd*step(.97,g1)*.7*(1.-wet));}
+        /* close up the sand shows a fine, soft mottle of lighter and darker grains (smooth noise only: no cells to alias into squares) */
+        {float fwc=length(fwidth(vSP.xz)),gd=1.-smoothstep(.006,.035,fwc);
+         float g1=dn2(vSP.xz*71.+1.3),g2=dn2(vSP.xz*17.+5.);
+         sc*=1.+gd*((g1-.5)*.09+(g2-.5)*.1);}
         diffuseColor.rgb=mix(sc,vec3(dot(sc,vec3(.3,.59,.11)))*vec3(.74,.88,1.04),uNight*.7)*mix(1.,.54,uNight);`)
       .replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
         roughnessFactor=mix(roughnessFactor,.5,rWM);`)
@@ -272,12 +278,16 @@ function sandMat(){
           float sh=dn2(vec2(vWP.x*1.7+vWP.z*.6,vWP.y*30.-uTm*2.2))*.6+dn2(vec2(vWP.x*5.+vWP.z*3.,uTm*3.1))*.4;
           float wv=dn2(vec2((vWP.x+vWP.z)*7.,V.y*700.-uTm*6.5)),hz=uHeat*gz;
           outgoingLight*=1.+uHeat*(.07+.16*gz)*(sh-.5)+.14*hz*(wv-.5);
-          outgoingLight=mix(outgoingLight,uMirC*.95,.08*hz);
-          /* the pool is the sky seen upside down: pale at its far edge, bluer nearer, torn by the rising heat */
-          float pn=dn2(vSP.xz*.4+vec2(uTm*.04,-uTm*.03)),pe=dn2(vec2(vSP.x*1.6,vSP.z*1.6+uTm*1.7));
-          float mk=uHeat*smoothstep(.55,.8,gz*(.66+.6*pn)+.12*(pe-.5)+.08*(wv-.5));
-          vec3 mc=mix(uMirC*vec3(.3,.45,.68),uMirB*vec3(.26,.43,.7),smoothstep(.015,.09,V.y))*(.88+.22*wv);
-          outgoingLight=mix(outgoingLight,mc,mk*(.74+.2*wv));}}
+          outgoingLight=mix(outgoingLight,uMirC*vec3(.82,.88,.95),.035*hz);
+          /* the mirage: a thin band of the sky seen upside down just above the far sand, broken into drifting pieces that
+             shimmer as the hot air rises; desaturated blue-grey and faint, never a sheet */
+          float band=smoothstep(.09,.04,V.y)*smoothstep(.003,.014,V.y);
+          float ax=(vWP.x*.83-vWP.z*.56)*1.3,pc1=dn2(vec2(ax*.9+uTm*.05,3.1)),pc2=dn2(vec2(ax*3.2-uTm*.11,7.7));
+          float br=smoothstep(.42,.66,pc1*.65+pc2*.35);
+          float sm=dn2(vec2(ax*6.,V.y*900.-uTm*7.5))*.6+dn2(vec2(ax*14.+3.,V.y*1500.-uTm*11.))*.4;
+          float mk=uHeat*gz*band*br*smoothstep(.25,.62,sm);
+          vec3 mc=uMirB*vec3(.8,.86,.95);mc=mix(mc,vec3(dot(mc,vec3(.3,.59,.11))),.45)*(.9+.2*sm);
+          outgoingLight=mix(outgoingLight,mc,mk*.55);}}
       #include <opaque_fragment>`);
   };
   if(TRK){const f=m.onBeforeCompile;m.onBeforeCompile=sh=>{f(sh);Object.assign(sh.uniforms,TRK.U);
@@ -1752,6 +1762,15 @@ function rsNotch(sk,proto){
   if(!isFinite(jt)||!isFinite(hb)||hb-jt>.006)return RS_NOTCH;
   const y=(jt+hb)/2,z=Math.max(...pts.filter(p=>Math.abs(p[0]-y)<.0015).map(p=>p[1]));
   return{y,z:isFinite(z)?z:zF}}
+/* the handover tongue is a 3 mm pale strip that vanishes against sand: thickened ~1.7x about its own centre line in bind
+   pose (which spreads the tines too) and coloured as a live one, wet red-black */
+function rsTongueMesh(proto){proto.traverse(o=>{if(!o.isMesh||!/tongue/i.test((o.material&&o.material.name)||""))return;
+  const P=o.geometry.attributes.position,n=P.count;let sz=0,sy=0,szz=0,szy=0;
+  for(let i=0;i<n;i++){const z=P.getZ(i),y=P.getY(i);sz+=z;sy+=y;szz+=z*z;szy+=z*y}
+  const kz=(n*szy-sz*sy)/Math.max(1e-12,n*szz-sz*sz),y0=(sy-kz*sz)/n;
+  for(let i=0;i<n;i++){const yc=y0+kz*P.getZ(i);P.setXY(i,P.getX(i)*1.75,yc+(P.getY(i)-yc)*1.6)}
+  P.needsUpdate=true;o.geometry.computeBoundingSphere();
+  const m=o.material;m.map=null;m.color.setRGB(.095,.009,.011);m.roughness=.28;m.needsUpdate=true})}
 function rsSpawn(proto,anims){
   const M=VT.THREE,g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";proto.position.y=0;
   inner.add(proto);inner.scale.setScalar(RS_SC);g.add(inner);animalMats(g);W.add(g);onDes(g);
@@ -1760,6 +1779,7 @@ function rsSpawn(proto,anims){
     if(/cornea/i.test(m.name||"")){if(tr>0||!m.transparent){m.transparent=true;m.opacity=.22;m.roughness=.06}m.depthWrite=false}
     else if(/wet/i.test(m.name||"")){if(!m.clearcoat)m.roughness=.3}
     else if(tr>0&&m.emissive){m.emissive.copy(m.color).multiplyScalar(.08*tr/.15);m.roughness=Math.min(m.roughness,.42)}});
+  rsTongueMesh(proto);
   let sk=null;proto.traverse(o=>{if(o.isSkinnedMesh&&!sk&&o.skeleton.bones.some(b=>b.name==="Tongue"))sk=o.skeleton});
   const s={g,r:rigUp(proto,anims),x:0,z:0,yaw:0,yr:0,gy:null,mode:"relax",timer:rr(6,10),tg:{next:rr(.8,2),b:null},tq:null,
     bd:null,w:0,wT:99,wF:1,a:0,rk:0,rph:0,sg:0,spd:0,caut:0,idle:rr(4,9),gait:"serp",hx:0,hz:0,path:null,pi:0,goal:null,next:null,inShade:0};
@@ -1771,6 +1791,8 @@ function rsSpawn(proto,anims){
   const jaw=B("Jaw");
   s.tq={M,tg,MT,MTi:MT.clone().invert(),MP,N,dy:ty-N.y,fk:[fork("Tongue_L"),fork("Tongue_R")].filter(f=>f.b),
     jaw,jq:jaw?jaw.quaternion.clone():null,jp:jaw?jaw.position.clone():null,A:new M.Matrix4(),R:new M.Matrix4(),X:new M.Matrix4(),L:new M.Matrix4()};
+
+  const hb=B("Head");if(hb&&hb.parent)s.hl={H:hb,bi:sk.boneInverses[sk.bones.indexOf(hb)],a:0,on:0,q0:new T.Quat(),qw:new T.Quat()};
   return s}
 /* one bout: out in ~70 ms with the tines spreading and the tongue dipping, n up-and-down sweeps pivoting at the notch (the tines
    whip a little behind the shaft), then back in; e = protrusion (m), th = pitch (+ down), sp = tine spread, wh = tine whip */
@@ -1780,8 +1802,8 @@ function rsTongue(s,dt){const q=s.tq;if(!q)return;const G=s.tg;let e=0,th=0,sp=0
   if(G.b){const b=G.b;b.t+=dt;const tO=.075,tS=b.n/b.f,tI=.07,t=b.t;
     let u,ph=0,env=0;
     if(t<tO)u=ss(0,1,t/tO);else if(t<tO+tS){u=1;ph=(t-tO)*b.f*TAU;const k=(t-tO)/tS;env=ss(0,.18,k)*(1-ss(.82,1,k))}else u=1-ss(0,1,(t-tO-tS)/tI);
-    e=b.E*u;th=u*b.dn+env*b.A*Math.sin(ph);wh=env*.24*Math.sin(ph-1.1);sp=u*(.3+.08*env*Math.cos(2*ph));
-    if(t>tO+tS+tI){G.b=null;G.next=s.mode==="alert"?rr(.7,2.2):rr(3.5,8)}}
+    e=b.E*u;th=u*b.dn+env*b.A*Math.sin(ph);if(s.ncl!=null&&e>.003)th=Math.min(th,Math.asin(cl((s.ncl-.003)/e,-1,1)));wh=env*.24*Math.sin(ph-1.1);sp=u*(.4+.1*env*Math.cos(2*ph));
+    if(t>tO+tS+tI){G.b=null;G.next=s.mode==="alert"||s.hunt?rr(.7,2.2):rr(3.5,8)}}
   const{M,A,R,X,L,N}=q;
   /* tongue: lowered onto the mouth line and slid forward, then pitched about the notch */
   A.makeTranslation(0,-q.dy,e).premultiply(X.makeTranslation(0,-N.y,-N.z)).premultiply(R.makeRotationX(th)).premultiply(X.makeTranslation(0,N.y,N.z));
@@ -1895,6 +1917,22 @@ function rsFromClip(s){const b=s.bd;s.g.updateMatrixWorld(true);W.updateMatrixWo
   for(let i=0;i<RS_N;i++){_bT.setFromMatrixPosition(b.bones[i].matrixWorld).applyMatrix4(_bA);b.P[2*i]=_bT.x;b.P[2*i+1]=_bT.z;
     b.H[i]=Math.max(0,_bT.y-hTop(_bT.x,_bT.z)-RS_R);b.C[i]=b.H[i]<.01?1:0}}
 function rsBusyK(s){return s.mode==="def"?1:0}
+/* laid out along the ground the neck carries the clips' head pitch, which drops the snout ~2 cm into the sand and the tongue
+   with it: the head is tipped up about its joint until the mouth notch rides 14 mm clear, and the tongue's downward sweep is
+   held to that clearance. The lift is taken back off before the next frame if no clip has rewritten the bone. */
+const _hN=new V3(),_hP=new V3(),_hX=new V3(),_hQ=new T.Quat(),_hR=new T.Quat(),_hW=new T.Quat();
+function rsHeadLift(s,dt){const L=s.hl,q=s.tq;if(!L||!q)return;const H=L.H;
+  if(L.on&&H.quaternion.equals(L.qw))H.quaternion.copy(L.q0);L.q0.copy(H.quaternion);L.on=0;s.ncl=null;
+  if(s.w<.002&&L.a<1e-4){L.a=0;return}
+  s.g.updateMatrixWorld(true);
+  _hN.set(0,q.N.y,q.N.z).applyMatrix4(L.bi).applyMatrix4(H.matrixWorld);_hP.setFromMatrixPosition(H.matrixWorld);W.worldToLocal(_hN);W.worldToLocal(_hP);
+  const dx=_hN.x-_hP.x,dz=_hN.z-_hP.z,dh=Math.hypot(dx,dz);if(dh<1e-5)return;
+  const dy=_hN.y-_hP.y,len=Math.hypot(dh,dy),g=hTop(_hN.x,_hN.z),a0=Math.atan2(dy,dh),a1=Math.asin(cl((g+.014-_hP.y)/len,-1,1));
+  L.a+=(s.w*cl(a1-a0,0,.7)-L.a)*ease(10,dt);
+  s.ncl=_hP.y+len*Math.sin(a0+L.a)-g;if(L.a<1e-4)return;
+  W.getWorldQuaternion(_hW);_hX.set(-dz/dh,0,dx/dh).applyQuaternion(_hW);
+  H.parent.getWorldQuaternion(_hQ);_hR.setFromAxisAngle(_hX,L.a).premultiply(_hW.copy(_hQ).invert()).multiply(_hQ);
+  H.quaternion.premultiply(_hR);L.qw.copy(H.quaternion);L.on=1}
 
 /* ---- sand tracks: grooves (r) and pushed-up rims (g) in a 5 m window of 6.7 mm texels that follows the snake;
    wind wears them down (rims first), rain and blowing sand faster ---- */
@@ -1932,12 +1970,17 @@ function trkTick(s,dt){const K=TRK;if(!K||!s.bd)return;const b=s.bd;
 /* behaviour: by day (and in rain) it lies coiled in rock shade; at dusk, night and dawn it roams. Open loose sand is crossed
    sidewinding, the oasis margin, grass and rock edges by serpentine; after a scare it creeps away rectilinear. A camel or a
    low eagle close by throws it into a defensive coil, head raised and rattling, until the threat has gone. */
-function rsGaitAt(s,x,z){if(s.caut>0)return"rect";if(pN(x,z)<2.1||!clearOf(x,z,.7))return"serp";return"side"}
+function rsGaitAt(s,x,z){if(s.caut>0)return"rect";if(pN(x,z)<2.1||!clearOf(x,z,.7))return"serp";return s.hg||"side"}
+/* dawn and dusk: it hunts, out in the open where it can be found — legs of 2.5-7 m across the interior sand, each crossed
+   sidewinding (separate J-hooked bars) or in serpentine (one S-wave groove), then a pause, head up, tasting the air */
+function rsHuntSpot(s,away){const g=navGrid("snake",.32,1.3,.82),P=s.bd.P,ok=(x,z)=>pN(x,z)>2&&sN(x,z)<.72&&clearOf(x,z,1)&&Math.hypot(x-P[0],z-P[1])>2.5&&
+    (!away||Math.hypot(x-away.x,z-away.z)>4.5)&&ANIM.camels.every(a=>Math.hypot(a.x-x,a.z-z)>4&&(!a.goal||Math.hypot(a.goal.x-x,a.goal.z-z)>4));
+  return randFree(g,P[0]+Math.sin(s.yaw)*4,P[1]+Math.cos(s.yaw)*4,3,ok)||randFree(g,P[0]*.5,P[1]*.5,8,ok)||randFree(g,2,0,15,ok)}
 function rsCentre(s){const P=s.bd.P;let x=0,z=0;for(let i=0;i<RS_N;i++){x+=P[2*i];z+=P[2*i+1]}return{x:x/RS_N,z:z/RS_N}}
 function rsGoTo(s,to){const P=s.bd.P,g=navGrid("snake",.32,1.3,.82),p=navPath(g,P[0],P[1],to.x,to.z);if(!p)return false;
-  s.path=p;s.pi=1;s.goal=to;return true}
+  s.path=p;s.pi=1;s.goal=to;s.arr=0;s.legT=0;return true}
 function rsThreat(s){const P=s.bd.P,hx=P[0],hz=P[1];if(s.qth&&st.t<s.qth.until)return s.qth;if(s.noTh)return null;
-  for(const a of ANIM.camels)if(a.mode!=="rest"&&Math.hypot(a.x-hx,a.z-hz)<2.6)return{x:a.x,z:a.z};
+  for(const a of ANIM.camels){const d=Math.hypot(a.x-hx,a.z-hz);if(a.mode!=="rest"&&(d<1.6||a.spd>.1&&d<2.6))return{x:a.x,z:a.z}}
   const e=ANIM.eagle;if(e&&e.mode!=="perch"&&e.pos&&Math.hypot(e.pos.x-hx,e.pos.z-hz)<4&&e.pos.y-hTop(hx,hz)<3.5)return{x:e.pos.x,z:e.pos.z};
   return null}
 function rsCoilAt(s,clip,fade){const P=s.bd.P,ya=Math.atan2(P[0]-P[6],P[1]-P[7]);
@@ -1946,14 +1989,14 @@ function rsCoilAt(s,clip,fade){const P=s.bd.P,ya=Math.atan2(P[0]-P[6],P[1]-P[7])
 function rsUpdate(s,dt){
   if(!s.bd){s.timer-=dt;if(s.timer<0){if(s.mode==="relax"){s.mode="alert";s.timer=rr(7,11);play(s.r,"tongue_flick",.8,1)}else{s.mode="relax";s.timer=rr(9,15);play(s.r,"relaxed_coil",.9,1)}}
     rigTick(s.r,dt);rsTongue(s,dt);return}
-  const b=s.bd,day=(st.phase==="day"||WX.shel>0||WX.rain>.3)&&!s.force;
+  const b=s.bd,day=(st.phase==="day"||WX.shel>0||WX.rain>.3)&&!s.force;s.hunt=!day&&(st.phase==="sunrise"||st.phase==="sunset")&&!s.force;
   s.caut=Math.max(0,s.caut-dt);
   /* startle */
   const th=rsThreat(s);
   if(th&&s.mode!=="def"){if(s.mode==="crawl"||s.mode==="rest")rsCoilAt(s,"defensive_coil",.55);else{play(s.r,"defensive_coil",.4,1)}
     s.mode="def";s.defT=0;s.calm=0;s.th=th;capE(["R","on"]);shotS("dRtlOn",.8,_snP.set(b.P[0],hTop(b.P[0],b.P[1])+.2,b.P[1]),4)}
   if(s.mode==="def"){s.defT+=dt;if(th){s.th=th;s.calm=0}else s.calm+=dt;
-    if(s.calm>2.5&&s.defT>5){s.mode="uncoil";s.caut=rr(12,20);const P=b.P,dx=P[0]-s.th.x,dz=P[1]-s.th.z,l=Math.hypot(dx,dz)||1;s.next={x:P[0]+dx/l*2.2,z:P[1]+dz/l*2.2}}}
+    if(s.calm>2.5&&s.defT>5){s.mode="uncoil";s.caut=rr(12,20);const P=b.P,dx=P[0]-s.th.x,dz=P[1]-s.th.z,l=Math.hypot(dx,dz)||1;const hs=s.hunt&&rsHuntSpot(s,s.th);if(hs)hs.hunt=1;s.next=hs||{x:P[0]+dx/l*3.5,z:P[1]+dz/l*3.5}}}
   /* coiled: the clip pose, tongue now and then; leave at dusk or to reach shade */
   if(s.mode==="coil"){s.timer-=dt;
     if(s.timer<0){if(s.r.cur==="relaxed_coil"){play(s.r,"tongue_flick",.8,1);s.timer=rr(6,9)}else{play(s.r,"relaxed_coil",.9,1);s.timer=rr(9,15)}}
@@ -1962,13 +2005,16 @@ function rsUpdate(s,dt){
     s.mode="rest";s.restT=.3;s.gait="serp";s.a=0;s.rk=s.caut>0?1:0;s.wT=0;s.wF=-.4;s.dtgt=null}
   /* travel */
   if(s.mode==="rest"){s.restT-=dt;if(s.restT<0){let to=s.next;s.next=null;
-      if(!to){if(day){const sp=snakeShadeSpot();to={x:sp.x,z:sp.z,shade:1}}else{const g=navGrid("snake",.32,1.3,.82);to=randFree(g,SNK_HOME.x,SNK_HOME.z,9,(x,z)=>Math.hypot(x-b.P[0],z-b.P[1])>2.5)}}
+      s.hg=s.hunt?(rnd()<.6?"side":"serp"):null;
+      if(!to){if(day){const sp=snakeShadeSpot();to={x:sp.x,z:sp.z,shade:1}}else if(s.hunt&&(to=rsHuntSpot(s))){to.hunt=1}else{const g=navGrid("snake",.32,1.3,.82);to=randFree(g,SNK_HOME.x,SNK_HOME.z,9,(x,z)=>Math.hypot(x-b.P[0],z-b.P[1])>2.5)}}
       if(to&&rsGoTo(s,to)){s.mode="crawl";s.a=0;const want=s.lock||rsGaitAt(s,b.P[0],b.P[1]);
         if(want==="side"){s.gait="side";swInit(s,s.path[1])}else{s.gait=want;s.rk=want==="rect"?1:0}}else s.restT=1}}
   if(s.mode==="crawl"){const C=rsCentre(s),ref=s.gait==="side"?C:{x:b.P[0],z:b.P[1]};
     let wp=s.path[s.pi],last=s.pi===s.path.length-1;
     if(!last&&Math.hypot(wp.x-ref.x,wp.z-ref.z)<(s.gait==="side"?.7:.45)){s.pi++;wp=s.path[s.pi];last=s.pi===s.path.length-1}
-    const dist=Math.hypot(s.goal.x-ref.x,s.goal.z-ref.z),arrive=last&&dist<(s.gait==="side"?.6:.3);
+    /* sidewinding turns at most .22 rad/s, so a goal inside that turning circle is reached when it is circled, not hit */
+    s.legT+=dt;const dist=Math.hypot(s.goal.x-ref.x,s.goal.z-ref.z);
+    if(last&&dist<(s.gait==="side"?Math.max(.6,1.2*s.spd/.22):.3)||s.legT>90)s.arr=1;const arrive=!!s.arr;
     const want=s.lock||rsGaitAt(s,b.P[0],b.P[1]);
     if(want!==s.gait){s.gwT=(s.gwT||0)+dt}else s.gwT=0;
     const sw=(s.gait==="side")!==(want==="side")&&s.gwT>.8,stop=arrive||sw;
@@ -1976,7 +2022,7 @@ function rsUpdate(s,dt){
     if(s.gait!=="side"){s.rk=cl(s.rk+((want==="rect"?1:0)-s.rk)*ease(1,dt),0,1);
       const dy=wrapA(Math.atan2(wp.x-b.P[0],wp.z-b.P[1])-s.yaw);steer(s,dy,1.1,dt)}
     else b.sw.goal=wp;
-    if(s.a<.01&&stop){if(arrive){s.mode="rest";s.restT=rr(2.5,6);
+    if(s.a<.01&&stop){if(arrive){s.mode="rest";s.restT=s.goal.hunt?rr(4,9):rr(2.5,6);if(s.goal.hunt)rsBout(s,3);
         if(s.goal.shade&&day){s.inShade=1;s.mode="coiling";rsCoilAt(s,"relaxed_coil",1.8);s.timer=rr(9,15);s.idle=rr(30,60)}}
       else{if(want==="side"){s.gait="side";swInit(s,s.path[s.pi])}else{s.gait=want;trInit(s);s.rk=want==="rect"?1:0}s.gwT=0}}}
   if(s.mode==="rest"&&s.gait==="side"&&s.a<.01){trInit(s);s.gait="serp"}
@@ -1990,7 +2036,7 @@ function rsUpdate(s,dt){
   if(s.w>.002&&s.mode!=="coil"&&s.mode!=="def"&&s.mode!=="coiling"){for(let i=0;i<RS_N*2;i++)b.Pp[i]=b.P[i];
     if(s.gait==="side")rsBodySide(s,dt);else rsBodyTrail(s,dt)}
   else s.spd=0;
-  rsPose(s);rsTongue(s,dt);trkTick(s,dt)}
+  rsPose(s);rsHeadLift(s,dt);rsTongue(s,dt);trkTick(s,dt)}
 
 /* ---- dust devil: a slender sand whirl that wanders across the open sand now and then (day / sunset) ---- */
 const DEV=softPoints(MOB?140:260,"#e4bf88",.2,false);DEV.o.renderOrder=6;W.add(DEV.o);

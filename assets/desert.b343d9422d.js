@@ -229,7 +229,7 @@ function sandMat(){
   const m=new T.MSM({color:0xffffff,roughness:.93,metalness:0});
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,sandU);
     sh.vertexShader=sh.vertexShader.replace("#include <common>",`#include <common>
-      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;attribute float aM;${GLSL_DUNE}`)
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;varying vec2 vDn;uniform vec2 uRipDir;attribute float aM;${GLSL_DUNE}`)
       .replace("#include <beginnormal_vertex>",`vec3 objectNormal=vec3(normal);
         if(aM>0.){float e=.3;vec2 p=position.xz;
           vec2 gd=vec2(duneD(p+vec2(e,0.))-duneD(p-vec2(e,0.)),duneD(p+vec2(0.,e))-duneD(p-vec2(0.,e)))/(2.*e)*aM;
@@ -238,9 +238,11 @@ function sandMat(){
         vec3 objectTangent=vec3(tangent.xyz);
         #endif`)
       .replace("#include <begin_vertex>",`#include <begin_vertex>
-        ${SAND_DISP}vSP=transformed;vSN=objectNormal;vWP=(modelMatrix*vec4(transformed,1.)).xyz;`);
+        ${SAND_DISP}vSP=transformed;vSN=objectNormal;vWP=(modelMatrix*vec4(transformed,1.)).xyz;
+        /* where the dune is (x) and how sharply it peaks along the wind (y: high only along the crest), for the snow */
+        vDn=aM>0.?vec2(aM,aM*(duneG(position.xz,uDA,uDB)-.5*(duneG(position.xz+uRipDir*1.4,uDA,uDB)+duneG(position.xz-uRipDir*1.4,uDA,uDB)))):vec2(0.);`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uPitK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;float mkO=0.;
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;varying vec2 vDn;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uPitK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;float mkO=0.;
       uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}
       float pondN(vec2 p){vec2 q=(p-uPond.xy)/uPond.zw;float th=atan(q.y,q.x);
         return length(q)/(1.+.09*sin(2.*th+1.1)+.06*sin(3.*th-.4)+.04*sin(5.*th+2.3));}
@@ -389,13 +391,13 @@ function sandMat(){
   {const f=m.onBeforeCompile;m.onBeforeCompile=sh=>{f(sh);
     sh.fragmentShader=sh.fragmentShader.replace("uniform vec4 uPond;","uniform vec4 uPond;uniform float uSnow,uSnM,uSnP,uMW;uniform vec2 uNorth;float snM=0.;")
       .replace("diffuseColor.rgb=mix(sc,vec3(dot(sc",`if(uSnow+uMW>.003){vec3 nS=normalize(vSN);vec2 q=vSP.xz,d2=vec2(-uRipDir.y,uRipDir.x);float fwS=length(fwidth(q));
-          float wd=dot(nS.xz,uRipDir),lee=smoothstep(.0,.2,wd),ww=smoothstep(.02,.18,-wd),nf=smoothstep(-.02,.2,dot(nS.xz,uNorth));
+          float wd=dot(nS.xz,uRipDir),lee=smoothstep(.0,.2,wd),ww=max(smoothstep(.02,.18,-wd),vDn.x*smoothstep(.0,.07,-wd)),crs=vDn.x*smoothstep(.25,.7,vDn.y),nf=smoothstep(-.02,.2,dot(nS.xz,uNorth));
           float al=dot(q,uRipDir),ac=dot(q,d2),mp=al*2.3+1.6*sin(ac*.21+1.3)+.9*sin(ac*.53+al*.11);
           float trM=mix(smoothstep(.35,-.7,sin(mp+.85*sin(mp))),.45,smoothstep(.1,.4,fwS*2.3)),trF=.45;
           if(fwS<.3){vec2 RW=vec2(dfbm(q*.09)*4.,dfbm(q*.11+7.)*2.5);float h=ripH(q,RW,1.+.16*(dn2(q*.07+1.3)-.5),.5+.5*smoothstep(.28,.62,dn2(q*.21+11.)));
             trF=mix(smoothstep(.15,-.45,h),.45,smoothstep(.07,.3,fwS));}
           float tr=mix(trM,.55*trM+.45*trF,1.-smoothstep(.07,.3,fwS)),nn=dn2(q*.7+3.1)*.6+dn2(q*2.3)*.4;
-          float B=.5*lee+.3*nf-1.1*ww+(tr-.5)*1.45+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),ew=.04+fwS*.5;
+          float B=.5*lee+.3*nf-1.1*ww-1.4*crs+(tr-.5)*1.45+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),ew=.04+fwS*.5;
           float lv=B+.38*uSnow-.31-wet*1.5-.3*(1.-smoothstep(.0,.25,uSnow));
           ${TRK?"lv-=1.4*smoothstep(.08,.4,trk.r+.5*trk.g);":""}
           /* melt water soaks into the sand where the snow lay: dark, slightly cool patches that dry back to the sand's own colour */

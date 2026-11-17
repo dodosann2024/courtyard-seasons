@@ -14,17 +14,26 @@ let cur=C.cur,busy=false,pending=null,idx=0,ready=false;try{const s=history.stat
 if(cur==="desert")desPre();
 
 /* ---------- snapshots of the live WebGL canvas ----------
-   Called from a rAF callback registered after the renderer's own, so the
-   drawing buffer still holds the frame that was just rendered. */
+   The copy is taken in a rAF callback registered after the renderer's own, so the
+   drawing buffer still holds the frame that was just rendered. Reading its pixels back to
+   tell a blank frame would make the main thread wait for the GPU to finish that frame (a
+   long task on phones), so the frame counts as drawn when the scene made draw calls for it. */
 function sceneCanvas(){return document.querySelector("canvas[data-engine]")}
+function countDraws(src){
+  let gl=null;try{gl=src.getContext("webgl2")||src.getContext("webgl")}catch{}
+  if(!gl||gl.isContextLost())return null;
+  const c={n:0},ks=["drawArrays","drawElements","drawArraysInstanced","drawElementsInstanced","drawRangeElements"].filter(k=>gl[k]);
+  for(const k of ks){const f=gl[k];gl[k]=function(){c.n++;return f.apply(this,arguments)}}
+  c.off=()=>{for(const k of ks)delete gl[k]};return c}
 function snap(){return new Promise(res=>requestAnimationFrame(()=>{
-  const src=sceneCanvas();if(!src||!src.width){res(null);return}
-  const w=src.width,h=src.height,a=document.createElement("canvas");a.width=w;a.height=h;
-  const x=a.getContext("2d");x.drawImage(src,0,0);
-  let b=a,bw=w,bh=h;
-  while(bw>96){const nw=Math.max(48,bw>>1),nh=Math.max(24,Math.round(bh*nw/bw)),c=document.createElement("canvas");c.width=nw;c.height=nh;const cx=c.getContext("2d");cx.imageSmoothingQuality="high";cx.drawImage(b,0,0,nw,nh);b=c;bw=nw;bh=nh}
-  let blank=true;try{const px=b.getContext("2d").getImageData(0,0,bw,bh).data;for(let i=3;i<px.length;i+=4*37)if(px[i]>8&&(px[i-1]|px[i-2]|px[i-3])>4){blank=false;break}}catch{blank=false}
-  res(blank?null:{sharp:a,blur:b});
+  const src=sceneCanvas();const dc=src&&src.width?countDraws(src):null;if(!dc){res(null);return}
+  requestAnimationFrame(()=>{dc.off();
+    if(!dc.n||!src.width){res(null);return}
+    const w=src.width,h=src.height,a=document.createElement("canvas");a.width=w;a.height=h;
+    a.getContext("2d").drawImage(src,0,0);
+    let b=a,bw=w,bh=h;
+    while(bw>96){const nw=Math.max(48,bw>>1),nh=Math.max(24,Math.round(bh*nw/bw)),c=document.createElement("canvas");c.width=nw;c.height=nh;const cx=c.getContext("2d");cx.imageSmoothingQuality="high";cx.drawImage(b,0,0,nw,nh);b=c;bw=nw;bh=nh}
+    res({sharp:a,blur:b})})
 }))}
 
 /* ---------- page-curl renderer (raw WebGL on an overlay canvas) ---------- */
@@ -204,6 +213,8 @@ function panels(){
     const l=$("#ld");if(l){l.classList.add("gone");setTimeout(()=>l.remove(),900)}
     window.__firstFrame=performance.now();
     const idle=window.requestIdleCallback||(f=>setTimeout(f,1200));
+    /* the page-curl context is made while nothing else is happening, not inside the first scene switch */
+    setTimeout(()=>idle(()=>{if(!busy&&!G)try{initGL()}catch{}},{timeout:8000}),5000);
     idle(()=>{
       if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register(C.root+"sw.js").catch(()=>{});
       const cn=navigator.connection;if(cn&&(cn.saveData||/2g/.test(cn.effectiveType||"")))return;

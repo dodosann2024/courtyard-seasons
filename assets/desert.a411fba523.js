@@ -17,12 +17,20 @@ const G2=(x,z,cx,cz,rx,rz)=>Math.exp(-(((x-cx)/rx)**2)-(((z-cz)/rz)**2));
 
 const root=new T.Group();root.visible=false;Jt.add(root);
 const W=new T.Group();W.scale.setScalar(S);W.rotation.y=YAW;W.position.y=1.7;root.add(W);
-/* a model's shaders are compiled a few frames before it is drawn, so the GPU process builds them while frames go on instead of
-   the first draw blocking the main thread on the link; compiled against the composer's target, since tone mapping and output
-   encoding are part of the program and only the final pass draws to the screen */
+/* a model is drawn only once its programs are linked: compileAsync hands them to the GPU process, which links them on its own
+   threads where KHR_parallel_shader_compile exists, so frames go on instead of the first draw blocking the main thread on the link.
+   Compiled against the composer's target, since tone mapping and output encoding are part of the program and only the final pass
+   draws to the screen; a timeout reveals anything still pending rather than leaving it hidden */
+let PAR=false;try{PAR=Cn.extensions.has("KHR_parallel_shader_compile")}catch(_){}
+const warm=(o,rt,cam)=>{const rv=root.visible,prt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(rt===undefined?Ta.readBuffer||null:rt);let p;
+  try{p=Cn.compileAsync(o,cam||De,Jt)}catch(_){p=Promise.resolve()}Cn.setRenderTarget(prt);root.visible=rv;
+  return Promise.race([p.catch(()=>0),new Promise(r=>setTimeout(r,MOB?9000:6000))])};
 const onDes=o=>{if(o===root||!o.visible){o.traverse(c=>{c.layers.mask=1|L3});return}
-  o.traverse(c=>{c.layers.mask=0});const rv=root.visible,rt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(Ta.readBuffer||null);try{Cn.compile(o,De,Jt)}catch(_){}Cn.setRenderTarget(rt);root.visible=rv;
-  let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}o.traverse(c=>{c.layers.mask|=1|L3})};requestAnimationFrame(f)};
+  o.traverse(c=>{c.layers.mask=0});const on=()=>o.traverse(c=>{c.layers.mask|=1|L3});
+  /* without the extension a link cannot be waited on: the model is compiled now and drawn a few frames later */
+  if(PAR){warm(o).then(()=>requestAnimationFrame(on));return}
+  const rv=root.visible,rt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(Ta.readBuffer||null);try{Cn.compile(o,De,Jt)}catch(_){}Cn.setRenderTarget(rt);root.visible=rv;
+  let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}on()};requestAnimationFrame(f)};
 /* KTX2Loader.detectSupport enables each format with getExtension, a synchronous GPU round trip that waits behind every frame
    already queued; the list of supported names is answered without one */
 function ktxCfg(){let s;try{s=new Set(Cn.getContext().getSupportedExtensions()||[])}catch(_){s=new Set()}const h=e=>s.has(e);
@@ -625,13 +633,13 @@ let pondMesh=null;
 const pondRefl={rt:null,cam:null,bias:new T.M4().set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1),cc:new C3(),frame:0};
 const reflSet=[];
 function renderPondReflection(){
-  if(!pondMesh||!Cn||st.night>.5||!_stageDone){pondU.uReflOn.value=0;return}
+  if(!pondMesh||!Cn||st.night>.5||!_stageDone||st.qaNoRefl){pondU.uReflOn.value=0;return}
   if(MOB&&(pondRefl.frame++&1))return;
   if(!pondRefl.rt){const RT=bloom&&bloom.renderTargetsHorizontal&&bloom.renderTargetsHorizontal[0]&&bloom.renderTargetsHorizontal[0].constructor;if(!RT)return;
     pondRefl.rt=new RT(MOB?256:512,MOB?160:320);pondRefl.cam=De.clone();pondRefl.cam.layers.set(PALM_LAYER);pondU.uRefl.value=pondRefl.rt.texture}
   [pi,dc].forEach(l=>{if(l)l.layers.enable(PALM_LAYER)});
   /* the reflection pass needs its own build of every reflected shader: one more object joins it per frame */
-  for(const o of reflSet)if(!o.userData._rl){o.traverse(c=>c.layers.enable(PALM_LAYER));o.userData._rl=1;break}
+  for(const o of reflSet)if(!o.userData._rl){o.userData._rl=1;const on=()=>o.traverse(c=>c.layers.enable(PALM_LAYER));if(PAR)warm(o,pondRefl.rt,pondRefl.cam).then(on);else{on();break}}
   const Wy=W.position.y+POND.wy*S,c=pondRefl.cam;De.updateMatrixWorld();
   const e=De.matrixWorld.elements,cp=De.position;
   c.fov=De.fov;c.aspect=De.aspect;c.near=De.near;c.far=De.far;c.updateProjectionMatrix();
@@ -740,7 +748,7 @@ duneSettle();
 
 /* ---------------- Tripo props: date palms (trunk lengthened, crown kept ~6 m), saguaros, tent ---------------- */
 const PROPS={palms:[],sag:[],barrels:[],tent:null,sagTop:null};
-const propU={uT:{value:0},uWind:{value:.35}};
+const propU={uT:{value:0},uWind:{value:.35},uDew:{value:0}},coatU={uDew:{value:0}};
 function swayMat(m,key,amp,y0,y1){
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,propU);
     sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uT,uWind;")
@@ -764,14 +772,14 @@ const LEAF_TS=256,LEAF_TEX=(()=>{const N=LEAF_TS,a=new Uint8ClampedArray(N*N*4),
     const o=(py*N+px)*4,k=cov?1-.28*rib/cov:1,s=Math.round(255*k);a[o]=s;a[o+1]=s;a[o+2]=Math.round(240*k);a[o+3]=Math.round(255*cov/(SS*SS))}
   const t=new T.CTex(new ImageData(a,N,N));t.flipY=false;t.colorSpace="";t.wrapS=1000;t.wrapT=1001;t.generateMipmaps=true;t.minFilter=1008;t.magFilter=1006;t.anisotropy=MOB?4:8;t.needsUpdate=true;return t})();
 const palmSway=(H,isTrunk)=>`
-        {float h=clamp(position.y/${H.toFixed(2)},0.,1.);float ph=modelMatrix[3].x*.9+modelMatrix[3].z*.7;
+        {float h=clamp(position.y/uPH,0.,1.);float ph=modelMatrix[3].x*.9+modelMatrix[3].z*.7;
          float s=(sin(uT*.8+ph)*.7+sin(uT*1.6+ph*1.3)*.3)*(.25+uWind)*.16;
          transformed.x+=s*h*h;transformed.z+=s*.45*h*h;
          ${isTrunk?"":`float r=length(position.xz);float fl=smoothstep(.4,3.5,r)*(.3+uWind);
          transformed.y+=sin(uT*2.3+r*2.1+ph+position.x)*.07*fl;transformed.x+=sin(uT*3.1+r*3.+ph)*.04*fl;`}}`;
 /* shadow caster for the crown: same sway, leaflet cut-outs */
-function palmDepthMat(H){return new T.SM({uniforms:Object.assign({uLeaf:{value:LEAF_TEX}},propU),
-  vertexShader:`uniform float uT,uWind;varying vec2 vUv;void main(){vUv=uv;vec3 transformed=position;${palmSway(H,false)}
+function palmDepthMat(H){return new T.SM({uniforms:Object.assign({uLeaf:{value:LEAF_TEX},uPH:{value:H}},propU),
+  vertexShader:`uniform float uT,uWind,uPH;varying vec2 vUv;void main(){vUv=uv;vec3 transformed=position;${palmSway(H,false)}
     gl_Position=projectionMatrix*modelViewMatrix*vec4(transformed,1.);}`,
   fragmentShader:`#include <packing>
     uniform sampler2D uLeaf;varying vec2 vUv;void main(){if(texture2D(uLeaf,vUv).a<.5)discard;gl_FragColor=packDepthToRGBA(gl_FragCoord.z);}`})}
@@ -780,8 +788,9 @@ function palmMat(H,isTrunk){
   /* crown: mipmapped leaflet alpha, sharpened to a ~1px edge by its own screen derivative (alpha-to-coverage where
      the target is multisampled, blended otherwise); coverage is boosted with the mip level so leaflets don't thin out far away */
   if(!isTrunk){m.map=LEAF_TEX;m.transparent=true;m.alphaToCoverage=true}
-  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,propU);
-    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uT,uWind;attribute vec2 aUV;varying vec2 vUV;")
+  /* the palm's height is a uniform, so all three palms share one program per variant */
+  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,propU,{uPH:{value:H}});
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uT,uWind,uPH;attribute vec2 aUV;varying vec2 vUV;")
       .replace("#include <begin_vertex>",`#include <begin_vertex>
         vUV=aUV;${palmSway(H,isTrunk)}`);
     if(!isTrunk)sh.fragmentShader=sh.fragmentShader.replace("#include <alphatest_fragment>",`{
@@ -789,16 +798,20 @@ function palmMat(H,isTrunk){
         float a0=diffuseColor.a*(1.+lod*.3);
         float a=clamp((a0-.5)/max(fwidth(a0),1e-4)+.5,0.,1.);
         a=mix(a,clamp(a0*1.15,0.,1.),smoothstep(.6,2.2,lod));
-        if(a<.02)discard;diffuseColor.a=a;}`);
+        if(a<.02)discard;diffuseColor.a=a;}`)
+      .replace("#include <common>","#include <common>\nuniform float uDew;")
+      .replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
+        if(uDew>.003){vec2 bq=floor(vMapUv*vec2(140.,46.));float bd=step(.86,fract(sin(dot(bq,vec2(12.9898,78.233)))*43758.5453));
+          diffuseColor.rgb=mix(diffuseColor.rgb*(1.-.16*uDew),vec3(.8,.84,.86),bd*.5*uDew);roughnessFactor=mix(roughnessFactor,mix(.42,.12,bd),uDew*.85);}`);
     /* trunk: leaf-base stubs on a golden-ratio spiral with wavy, uneven rows. In patches (mostly low down) the stubs
        have fallen off, leaving bare trunk with faint leaf-scar rings; the tone runs grey at the base to warm brown
        under the crown. Value noise is periodic around the trunk so the uv seam doesn't show. */
     if(isTrunk)sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-        varying vec2 vUV;float pHs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        uniform float uPH;varying vec2 vUV;float pHs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         float pN(vec2 p,float per){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);float x0=mod(i.x,per),x1=mod(i.x+1.,per);
           return mix(mix(pHs(vec2(x0,i.y)),pHs(vec2(x1,i.y)),f.x),mix(pHs(vec2(x0,i.y+1.)),pHs(vec2(x1,i.y+1.)),f.x),f.y);}`)
       .replace("#include <color_fragment>",`#include <color_fragment>
-        {float t=vUV.y/${H.toFixed(2)};
+        {float t=vUV.y/uPH;
          float ry=vUV.y/.17+.45*sin(vUV.x*6.2832+vUV.y*.8)+.35*pN(vec2(vUV.x*4.,vUV.y*.6),4.);
          float row=floor(ry),fy=fract(ry);
          float qx=vUV.x*8.+fract(row*.618)*8.+.4*sin(row*2.3);float cl=floor(qx),fx=fract(qx)-.5;
@@ -813,7 +826,7 @@ function palmMat(H,isTrunk){
          float k=mix(scar*mix(1.,stub,.3),stub,boot)*(.9+.2*fib);
          vec3 tone=mix(vec3(.84,.85,.88),vec3(1.,.89,.75),smoothstep(.05,.75,t))*mix(.9,1.1,pN(vec2(vUV.x*2.,vUV.y*.15),2.));
          diffuseColor.rgb*=mix(.88,k,aa)*tone*mix(vec3(1.),vec3(1.06,.98,.9),h1*boot);}`);};
-  m.customProgramCacheKey=()=>"des47palm"+(isTrunk?"t":"c")+H.toFixed(1);return m}
+  m.customProgramCacheKey=()=>"des67palm"+(isTrunk?"t":"c");return m}
 const DATE_GEO=(()=>{const{v,f}=icoSphere(1);return geoFrom(v.map(p=>[p[0]*.035,p[1]*.045,p[2]*.035]),f)})();
 function buildPalms(){
   const dates=[];
@@ -1190,7 +1203,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   /* a seed of their own, so the falls do not shift the rest of the layout */
   let ps=5281;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^ps>>>15,1|ps);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},prr=(a,b)=>a+(b-a)*pr();
   /* [half width min, max, rate threshold min, max] for heavy falls, thinner falls, trickles */
-  const kinds=[[.55,.85,0,.04],[.28,.45,.03,.16],[.05,.12,.04,.34]],pat=[0,2,2,2,1,2,2,2],nF=MOB?32:48,sl=TAU/nF;
+  const kinds=[[1.6,2.3,0,.04],[.45,.7,.03,.16],[.05,.12,.04,.34]],pat=[0,2,2,1,2,2,2,1,2,2],nF=MOB?40:60,sl=TAU/nF;
   const rp=rockMesh.geometry.attributes.position.array,nV=rp.length/3,LIPV=3*NT;
   const frame=th=>{const[x,z]=edgeXZ(th,1),[x1,z1]=edgeXZ(th+.02,1),[x0,z0]=edgeXZ(th-.02,1),l=Math.hypot(x1-x0,z1-z0),tx=(x1-x0)/l,tz=(z1-z0)/l;return{x,z,tx,tz,nx:tz,nz:-tx}};
   /* the cliff under a fall: the furthest-out rock at each 0.5 m of depth below the lip crest, and the lip's crest height and offset */
@@ -1228,8 +1241,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   g.setAttribute("aK",new T.BA(new Float32Array(aK),4));g.setAttribute("aN",new T.BA(new Float32Array(aN),3));g.setAttribute("aT",new T.BA(new Float32Array(aT),2));g.setIndex(idx);
   const m=new T.SM({uniforms:sfU,transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-.6,polygonOffsetUnits:-6,
     vertexShader:`attribute vec2 aU,aT;attribute vec4 aK;attribute vec3 aN;uniform float uT,uFR,uWet;uniform vec2 uWV;uniform vec3 uLd;${GLSL_GUST}
-      varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam;
-      void main(){vU=aU;vK=aK;vec2 n=aN.xy;
+      varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG;
+      void main(){vU=aU;vK=aK;vec2 n=aN.xy;vG=gustF(position.xz);
         /* the downwind rim pours first; as the wind veers, falls on the rim it now blows across start and others ease off */
         float wl=length(uWV),k=aK.x+.22*(.5-.5*dot(n,uWV/max(wl,1e-4))),s=aU.y,vis=smoothstep(k,k+.3,uFR);vVis=vis;vec3 p=position;
         p.xz-=aT*(1.-(.45+.55*vis)*(1.+.25*clamp(uFR-1.,0.,1.)));
@@ -1243,7 +1256,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         vLam=.5+.5*max(dot(Nw,uLd),0.);
         vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);
         gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uT,uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG;${GLSL_NOISE}
       /* noise carried down with the falling sand at a size that stays even on screen as the sand speeds up (the drop grows as s*s):
          two copies scrolled half a cycle apart and cross-faded, so the pattern never stretches out over time */
       float fallN(vec2 q,float s,float f0,float f1){float T=uFT*${(1/SF.Tf/.5).toFixed(4)},p1=fract(T),p2=fract(T+.5),f=f0+f1*s;
@@ -1260,7 +1273,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           c=base*(1.06+.12*q);
         }else{
           /* u rides with the falling sand: anything scrolled at this rate in s moves with the grains and stretches as they speed up */
-          float u=s-uFT*${(1/SF.Tf).toFixed(4)},wet=uWet;
+          /* each fall runs at its own pace: how much sand the wind feeds it, and how freely it slides off its lip */
+          float spd=.8+.45*fract(sd*.618),u=s-uFT*${(1/SF.Tf).toFixed(4)}*spd,wet=uWet;
           float Xw=tx+.35*(dn2(vec2(tx*.23+7.,u*2.4))-.5);
           float n1=dn2(vec2(Xw*.5,u*1.6)),n2=dn2(vec2(Xw*1.3+5.,u*4.)),n3=dn2(vec2(Xw*3.1+9.,u*9.));
           float str=n1*.5+n2*.32+n3*.18,ab=clamp(fwidth(Xw*1.3)*.8-.2,0.,1.);
@@ -1270,20 +1284,23 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float ew=dn2(vec2(x*1.7+sd,u*1.1))*.6+dn2(vec2(x*4.1+sd,u*3.3))*.4,dk=uDust*mix(.6,1.,smoothstep(0.,.3,s));
           /* in a dust storm the sheet comes off the lip in clumps and surges, its sides fraying into loose strands */
           /* even in still air a heavy pour comes in surges and clots, sand being grains, not a liquid */
-          float cm=1.,sgU=1.,fr=0.,ly=vK.w,dkB=min(1.,max(dk*1.8,(.3+.25*ly)*smoothstep(.25,.6,hw)*smoothstep(.04,.3,s)));
+          float cm=1.,sgU=1.,fr=0.,ly=vK.w,dkB=min(1.,max(dk*1.8,(.36+.25*ly)*smoothstep(.25,.6,hw)*smoothstep(.04,.3,s)));
           if(dkB>.01){cm=fallN(vec2(Xw*.9+11.,sd),s,5.,24.)*.55+fallN(vec2(Xw*2.6+4.,sd*2.),s,12.,55.)*.45;sgU=fallN(vec2(Xw*.12+sd*.7,sd),s,1.5,6.);}
           if(dk>.01){fr=fallN(vec2(x*13.+sd,0.),s,10.,40.);str=mix(str,fallN(vec2(Xw*.7,9.),s,3.,14.)*.6+fallN(vec2(Xw*1.8+5.,2.),s,7.,30.)*.4,dk);}
           float edge=smoothstep(0.,.05+.12*s,ed-(.04+.2*s)*ew*(1.+1.6*max(dk,dkB*.7))-.05*(1.-n2)*s-.1*dk*fr);
           /* a dense sheet off the lip that tears into strands lower down; each strand gives out at its own height, trickles soonest */
-          float tear=mix(smoothstep(.36+.2*s,.5+.24*s,str),.45,ab);
-          float body=(.97-.45*smoothstep(.05,.6,s))*edge*mix(1.,tear,max(smoothstep(.1,.45,s)*(.55+.45*min(uFR,1.)),dkB*.85))*mix(1.,(.04+1.3*smoothstep(.42,.58,cm))*(.2+1.*smoothstep(.25,.75,sgU)),dkB)*mix(1.,smoothstep(.25,.55,str),wet*.45)*(.78+.22*speck);
+          float hv=smoothstep(.9,1.7,hw),tear=mix(mix(smoothstep(.36+.2*s,.5+.24*s,str),.45,ab),1.,hv*(1.-smoothstep(.25,.7,s))*.6);
+          float body=(.97-(.45-.2*hv)*smoothstep(.05,.6,s))*edge*mix(1.,tear,max(smoothstep(.1,.45,s)*(.55+.45*min(uFR,1.)),dkB*.85))*mix(1.,(.04+1.3*smoothstep(.42,.58,cm))*(.2+1.*smoothstep(.25,.75,sgU)),dkB)*mix(1.,smoothstep(.25,.55,str),wet*.45)*(.78+.22*speck);
           /* trickles come in spurts */
           if(hw<.3)body*=smoothstep(.42,.7,fallN(vec2(sd,3.),s,1.2,5.))*(.75-.35*smoothstep(.1,.3,s));
+          /* the feed is never steady: thicker and thinner pulses ride down with the sand, and a strong gust tears the lower stream into clots */
+          body*=mix(.5,1.,smoothstep(.28,.62,fallN(vec2(sd*.31+1.,sd),s,.7,2.2)));
+          float gb=smoothstep(.62,.92,vG)*smoothstep(.12,.45,s)*(1.-.6*wet);if(gb>.01)body*=1.-gb*(1.-smoothstep(.3,.62,fallN(vec2(Xw*.4+sd,sd+3.),s,3.,12.)));
           body*=1.-.45*ly;
-          float endS=mix(.3,.62,smoothstep(.2,.7,hw))-.1*ly+mix(.16,.3,smoothstep(.4,.75,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
+          float endS=mix(.3,.62,smoothstep(.2,.7,hw))+.12*hv-.1*ly+mix(.16,.3,smoothstep(.4,.75,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
           /* grains, streaked by their speed; more of them shed at the sides and the foot */
           vec2 dq=vec2(x*Nt*2.2+sd,u*70.),dc=floor(dq);float dh=dh2(dc);vec2 df=fract(dq)-.5-(vec2(dh2(dc+3.1),dh2(dc+7.7))-.5)*.6;df.y*=mix(1.,.35,smoothstep(.1,.7,s));
-          vec2 gw=fwidth(dq);float gd=.9-.2*(1.-edge)-.18*smoothstep(.4,.9,s)+.06*wet-.12*dk;
+          vec2 gw=fwidth(dq);float gd=.9-.2*(1.-edge)-.18*smoothstep(.4,.9,s)+.06*wet-.12*dk-.07*hv;
           float grain=step(gd,dh)*exp(-dot(df,df)*26.)*smoothstep(.02,.1,s)*(1.-smoothstep(.9,1.,s))*(1.-clamp(max(gw.x,gw.y)*1.4-.3,0.,1.));
           /* dust shed off the sheet: a soft veil that spreads down the fall, more in a dust storm and off the heavy falls, little off damp sand */
           float du=dn2(vec2(x*2.3+sd,u*2.6))*.6+dn2(vec2(x*5.+sd*2.,u*6.))*.4;
@@ -1295,7 +1312,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* thick sheet shades itself; thin strands and edges catch the light */
           c=base*(.8+.22*n3)*(1.-.14*bc*smoothstep(.1,.5,ed));
           c=mix(c,base*1.12+uSheen*vFs*.7*(1.-.75*uNt),clamp(1.-bc,0.,1.)*.55);
-          c=mix(c,base*1.04+vec3(.035,.03,.025)*(1.-uNt),dust/(a+.001)*.55);
+          /* the dust it sheds is ochre, a shade deeper than the sheet, never the white of the cloud sea's mist */
+          float dF=dust/(a+.001);c=mix(c,base*vec3(1.,.82,.6)*1.02+vec3(.03,.018,.006)*(1.-uNt),dF*.62);
           /* a sheet seen edge-on piles up alpha into a hard line: keep the stream but thin it */
           vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.5,1.,smoothstep(.05,.45,abs(dot(N,normalize(cameraPosition-vW)))));
         }
@@ -1303,7 +1321,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         /* a stream only a pixel or two wide from afar is a faint soft thread, not a hard yellow line */
         float pxW=1./max(fwidth(x),1e-4),thin=1.-smoothstep(2.,12.,pxW);a*=1.-.8*thin;c=mix(c,mix(c,uFogC,.5)*.92+base*.08,thin*.6);
         if(a<.004)discard;
-        c=mix(c,uFogC,smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW)));
+        c=mix(c,uFogC,smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW))*(1.-.4*smoothstep(.45,.9,s)));
         float ck=c.r+c.g+c.b+a;if(!(ck>-1.&&ck<1e3))discard;
         gl_FragColor=vec4(c,clamp(a,0.,1.));
         #include <tonemapping_fragment>
@@ -1559,8 +1577,8 @@ let _shMask=null;
    晴 sun (clear/scattered/towering/cirrus), 阴 overcast, 阵雨 showers (light/moderate/heavy/thunderstorm), 沙尘 dust (four levels).
    Showers come and go over tens of seconds, darken the sand where they fall, and the sand dries again with sun and wind;
    dust storms raise the wind, haze out the cloud sea and the sun, and send the animals to shelter. */
-const WX={nb:3,rain:0,pit:0,ovc:0,dark:0,dust:0,wet:0,heat:0,after:0,shel:0,flash:0,bolt:0,boltA:0,boltS:0,boltE:0,bAge:9,icF:0,icA:0,ic:4,rb:0,shaft:0,sunK:1};
-const DUSTLV=[0,.32,.56,.8,1];
+const WX={fog:0,fb:0,fa:0,dew:0,cold:0,clr:0,nb:3,rain:0,pit:0,ovc:0,dark:0,dust:0,wet:0,heat:0,after:0,shel:0,flash:0,bolt:0,boltA:0,boltS:0,boltE:0,bAge:9,icF:0,icA:0,ic:4,rb:0,shaft:0,sunK:1};
+const DUSTLV=[0,.32,.56,.8,1],FOGLV=[0,.55,.8,1];
 const WXT={sun:[0,0,0],cloud:[.86,.25,.2],lrain:[.42,.22,.55],mrain:[.62,.4,.7],hrain:[.86,.62,.9],storm:[.95,.8,1],dust:[0,.25,0]};
 function wxUpdate(dt){
   const w=Ct.weather,k=dt>0?1-Math.exp(-dt*.4):1,T=WXT[w]||WXT.sun;
@@ -1577,7 +1595,16 @@ function wxUpdate(dt){
   const sh=WX.dust>.45||(w==="storm"||w==="hrain")&&WX.rain>.6;WX.shel=sh?1:WX.dust<.35&&WX.rain<.45?0:WX.shel;
   const sunUp=(1-LK.night)*(1-ss(.62,.86,WX.ovc))*(1-WX.dust);
   WX.rb+=(cl(Math.max(WX.rain*3,WX.after>.88?(WX.after-.88)/.12:0),0,1)*sunUp*(.55+.45*(LK.sunset+LK.sunrise))-WX.rb)*(dt>0?1-Math.exp(-dt*.25):1);
-  WX.sunK=(1-.72*WX.ovc)*(1-.8*WX.dust);
+  /* radiation fog: it thickens through the night and, once the sun is up, burns off from the rim inward and lifts, the hollow last
+     (fb 0 = settled fog .. 1 = burnt off; by day a wisp stays over the pond); dusk lets it start pooling again */
+  {const fT=w==="fog"?FOGLV[Ct.fogLv||2]:0,ph=st.phase,bT=ph==="night"?0:ph==="sunset"?.4:ph==="sunrise"?.6:.8;
+   WX.fog+=(fT-WX.fog)*(dt>0?1-Math.exp(-dt*(fT>WX.fog?.1:.22)):1);
+   if(dt>0){const r=bT>WX.fb?(ph==="day"?.016:.011):.02;WX.fb+=cl(bT-WX.fb,-r*dt,r*dt)}else if(!WX.fbI){WX.fb=bT;WX.fbI=1}
+   WX.fa=WX.fog*(1-ss(.15,.85,WX.fb));
+   const sunUp=(1-LK.night)*(LK.sunrise+LK.day);WX.clr=WX.fog*sunUp*ss(.08,.3,WX.fb)*(1-ss(.62,.85,WX.fb));
+   WX.dew+=((w==="fog"?WX.fog*(1-.75*ss(.4,.9,WX.fb)):0)-WX.dew)*(dt>0?1-Math.exp(-dt*(w==="fog"?.05:.03)):1);
+   WX.cold=WX.fog>.25&&WX.fb<.62?1:WX.fog<.15||WX.fb>.72?0:WX.cold}
+  WX.sunK=(1-.72*WX.ovc)*(1-.8*WX.dust)*(1-.62*WX.fa);
   /* lightning runs on the scene's own clock (the app's strike timer is ignored here); between strikes the deck flickers with cloud flashes */
   if(w==="storm"&&WX.rain>.5){WX.nb-=dt;if(WX.nb<0){WX.nb=rr(7,18);strike(rr(.3,1))}}else WX.nb=rr(2,5);
   WX.bAge+=dt;const b=WX.bAge;
@@ -1601,15 +1628,15 @@ function applyLighting(dt){
   const a=nk>.5?moonAzL+YAW:SUN.lazL+YAW+ao;
   const d=new V3(Math.cos(el)*Math.sin(a),Math.sin(el),Math.cos(el)*Math.cos(a));
   if(pi){pi.position.copy(d).multiplyScalar(40);if(pi.target){pi.target.position.set(0,-1,0);pi.target.updateMatrixWorld()}
-    blendC("col",pi.color);pi.color.lerp(_c1.set("#dfe4ee"),.5*WX.ovc).lerp(_c1.set("#e89a58"),.75*WX.dust);
+    blendC("col",pi.color);pi.color.lerp(_c1.set("#dfe4ee"),.5*WX.ovc).lerp(_c1.set("#e89a58"),.75*WX.dust).lerp(_c1.set("#f1ece4"),.55*WX.fa).lerp(_c1.set("#ffc27a"),.4*WX.clr);
     pi.intensity=blendL("I")*WX.sunK+WX.flash*2.4;pi.castShadow=true;tentU.uSunD.value.copy(d);tentU.uSunC.value.copy(pi.color).multiplyScalar(pi.intensity);tentU.uNt.value=nk;
     const sc=pi.shadow.camera;if(sc.right!==12.5){Object.assign(sc,{left:-12.5,right:12.5,top:12.5,bottom:-12.5,near:1,far:90});sc.updateProjectionMatrix()}
     pi.shadow.bias=-.0004;pi.shadow.normalBias=.025;pi.layers.enable(3);
     /* the hidden courtyard stays on layer 0; at low sun/moon its walls would shade the whole island */
     if(pi.shadow.camera.layers.mask!==L3){if(_shMask==null)_shMask=pi.shadow.camera.layers.mask;pi.shadow.camera.layers.mask=L3}}
-  if(dc){blendC("sky",dc.color);dc.color.lerp(_c1.set("#a4acb8").multiplyScalar(1-.9*nk),.6*WX.ovc).lerp(_c1.set("#c08e5c").multiplyScalar(1-.9*nk),.8*WX.dust);
+  if(dc){blendC("sky",dc.color);dc.color.lerp(_c1.set("#a4acb8").multiplyScalar(1-.9*nk),.6*WX.ovc).lerp(_c1.set("#c08e5c").multiplyScalar(1-.9*nk),.8*WX.dust).lerp(_c1.set("#d6dade").multiplyScalar(1-.85*nk),.6*WX.fa);
     if(dc.groundColor)blendC("gnd",dc.groundColor);
-    dc.intensity=blendL("hI")*(1+.2*WX.ovc+.7*WX.dust)*(1-.35*WX.dark)+WX.flash*1.6;dc.layers.enable(3)}
+    dc.intensity=blendL("hI")*(1+.2*WX.ovc+.7*WX.dust+.55*WX.fa)*(1-.35*WX.dark)+WX.flash*1.6;dc.layers.enable(3)}
   if(Cn){Cn.toneMappingExposure=blendL("exp")*(1+.1*WX.ovc);Cn.shadowMap.enabled=true}
   /* the shared sky: follows the camera, lowered onto the cloud sea's horizon, sun and colours from the desert's own light */
   const as=appSkyMesh();
@@ -1617,7 +1644,7 @@ function applyLighting(dt){
   const sunVis=(1-nk)*(1-ss(.45,.85,WX.ovc))*(1-.85*WX.dust);
   if(jt){const sa=sunAzW()+ao,se=blendL("sel")*D2R;jt.sunDir.value.set(Math.cos(se)*Math.sin(sa),Math.sin(se),Math.cos(se)*Math.cos(sa));skyU.uVdSun.value.copy(jt.sunDir.value);
     const lo=LK.sunset+LK.sunrise;
-    if(jt.uSunVis)jt.uSunVis.value=sunVis*.95;
+    if(jt.uSunVis)jt.uSunVis.value=sunVis*.95*(1-.8*WX.fa);
     if(jt.uSunDisk)jt.uSunDisk.value.set(1,mix(mix(.62,.97,LK.day),.72,WX.dust),mix(mix(.3,.88,LK.day),.5,WX.dust));
     if(jt.uGlowA)jt.uGlowA.value=lo*.9*(1-ss(.3,.85,WX.ovc))*(1-WX.dust);
     if(jt.uGlowC)blendC("glow",_c3),jt.uGlowC.value.set(_c3.r,_c3.g,_c3.b);
@@ -1625,11 +1652,12 @@ function applyLighting(dt){
     const oc=Math.min(.95,.85*WX.ovc+.35*WX.rain);_c3.set("#6e7786").multiplyScalar(mix(1,.1,nk));_c1.lerp(_c3,oc);_c3.set("#aab2bd").multiplyScalar(mix(1,.12,nk));_c2.lerp(_c3,oc);
     _c1.multiplyScalar(1-.55*WX.dark);_c2.multiplyScalar(1-.5*WX.dark);
     _c3.set("#86643f").multiplyScalar(mix(1,.08,nk));_c1.lerp(_c3,WX.dust);_c3.set("#c49564").multiplyScalar(mix(1,.08,nk));_c2.lerp(_c3,WX.dust);
+    _c3.set("#c3c8cc").multiplyScalar(mix(1,.13,nk));_c1.lerp(_c3,.8*WX.fa);_c3.set("#dcdcd6").multiplyScalar(mix(1,.14,nk));_c2.lerp(_c3,.85*WX.fa);
     jt.top.value.copy(_c1);jt.bot.value.copy(_c2);
     if(/rain|storm/.test(Ct.weather)&&jt.uCover)jt.uCover.value=mix(jt.uCover.value,.3+.62*WX.ovc,.9);
     if(WX.dust>.01&&jt.uCover)jt.uCover.value=mix(jt.uCover.value,.9,WX.dust);
     if(jt.moonDir){const ma=moonAzL+YAW,me=24*D2R;jt.moonDir.value.set(Math.cos(me)*Math.sin(ma),Math.sin(me),Math.cos(me)*Math.cos(ma))}
-    if(jt.flash)jt.flash.value=WX.flash*.5}
+    if(jt.flash)jt.flash.value=WX.flash*.5;if(jt.uMist){jt.uMist.value=WX.fa*(1-.5*nk);jt.uMistC.value=WX.clr}}
   skyU.uK.value.set(LK.sunset,LK.day,LK.night,LK.sunrise);skyU.uSunVis.value=sunVis;skyU.uExpo.value=Cn?Cn.toneMappingExposure:1;skyU.uCon.value=mix(1.06,1.1,LK.sunset);
   skyU.uCov.value=WX.ovc;skyU.uDark.value=WX.dark;skyU.uDust.value=WX.dust;skyU.uRain.value=WX.rain;skyU.uShaft.value=WX.shaft*(1-WX.dust);skyU.uRb.value=WX.rb;
   skyU.uDustC.value.set("#b98a5c").multiplyScalar(mix(1,.07,nk)*(1-.3*WX.dark));
@@ -1641,11 +1669,15 @@ function applyLighting(dt){
   /* dust and heavy rain close the air in; the haze is lit like the sky */
   /* the island's centre stays at most ~70% fogged however far the camera is (the phone view sits ~60 out) */
   if(Jt.fog){const dz=WX.dust,fd=ss(0,.25,dz),far=Math.max(mix(mix(900,150,ss(.3,1,WX.rain)*.85),mix(240,34,ss(.3,1,dz)),fd),De.position.distanceTo(_v.setFromMatrixPosition(W.matrixWorld))/.69);
-    Jt.fog.far=far;Jt.fog.near=far*mix(.45,.04,fd);
+    const cdw=De.position.distanceTo(_v.setFromMatrixPosition(W.matrixWorld)),fk=.72*WX.fa;Jt.fog.far=mix(far,Math.min(far,cdw*2.4),fk);Jt.fog.near=mix(far*mix(.45,.04,fd),cdw*.4,fk);
     _c1.copy(jt?jt.bot.value:_c1.set("#c8b8b0")).multiplyScalar(.9);Jt.fog.color.copy(_c1).lerp(skyU.uDustC.value,ss(0,.2,dz))}
-  const g=gradeM.uniforms;g.uCon.value=blendL("con")*(1-.45*WX.ovc);g.uSat.value=blendL("sat")*(1-.25*WX.ovc)*(1-.22*WX.dust);g.uRay.value=blendL("ray")*(1-WX.ovc)*(1-WX.dust);g.uVig.value=blendL("vig")+.12*WX.dust;g.uLift.value=blendL("lift")+.02*WX.dust;
+  const g=gradeM.uniforms;g.uCon.value=blendL("con")*(1-.45*WX.ovc)*(1-.5*WX.fa);g.uSat.value=blendL("sat")*(1-.25*WX.ovc)*(1-.22*WX.dust)*(1-.25*WX.fa);g.uRay.value=blendL("ray")*(1-WX.ovc)*(1-WX.dust)*(1-.6*WX.fa)+.3*WX.clr;g.uVig.value=blendL("vig")+.12*WX.dust;g.uLift.value=blendL("lift")+.02*WX.dust;
   g.uTint.value.set(0,0,0);for(const p in LK){const t=LIT[p].tint;g.uTint.value.x+=t[0]*LK[p];g.uTint.value.y+=t[1]*LK[p];g.uTint.value.z+=t[2]*LK[p]}
-  g.uTint.value.lerp(_v.set(.97,.99,1.03),.5*WX.ovc).lerp(_v.set(1.07,.97,.84),.7*WX.dust);
+  g.uTint.value.lerp(_v.set(.97,.99,1.03),.5*WX.ovc).lerp(_v.set(1.07,.97,.84),.7*WX.dust).lerp(_v.set(1.05,.99,.9),.45*WX.clr);
+  {const F=FOGD,on=WX.fog>.004;F.g.visible=on;if(on){const u=F.U;u.uT.value=st.t;u.uK.value=WX.fog;u.uB.value=WX.fb;u.uClr.value=WX.clr;u.uWD.value.set(WIND.x,WIND.z);
+    /* lit like any scatterer: the sky's fill from every side plus the sun or moon without the cosine a surface would take */
+    u.uC.value.set(0,0,0);if(dc)u.uC.value.copy(dc.color).multiplyScalar(dc.intensity*1.1);if(pi)u.uC.value.add(_c1.copy(pi.color).multiplyScalar(pi.intensity*.62));u.uC.value.multiplyScalar(.3183*1.8*(1+1.5*nk));{const c=u.uC.value,l=.3*c.r+.59*c.g+.11*c.b;c.lerp(_c1.setRGB(l,l*1.01,l*1.04),.62)}
+    u.uCG.value.copy(pi?pi.color:_c1.set("#ffc27a")).multiplyScalar((pi?pi.intensity:2)*.3183*1.25).lerp(_c1.set("#ffb45e").multiplyScalar(.95),.35)}}
   g.uAsp.value=innerWidth/Math.max(1,innerHeight);
   sandU.uNight.value=nk;rockU.uNight.value=nk;sandU.uRip.value=1+nk*.9;
 }
@@ -1691,10 +1723,10 @@ UPD.push((dt,t)=>{
      streamers running down it; streak speed follows the wind */
   const salt=ss(.14,.55,wd);SALT=salt;
   sandU.uFlowT.value+=dt*(1.6+2.2*gD)*(.3+wd*2.2);sandU.uRipPh.value+=dt*.1*(.3+gD)*wk;sandU.uFlowK.value=salt*cl(.55+wd*.9,0,1.35)*(1-.85*WX.wet)*(1+1.3*WX.dust);
-  sandU.uWetK.value=WX.wet;sandU.uPitK.value=WX.pit;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;tentU.uT.value=t;tentU.uRn.value=Math.max(ss(.03,.4,WX.rain),ss(.9,1,WX.after));if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.08);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}
+  sandU.uWetK.value=Math.max(WX.wet,.1*WX.dew);sandU.uPitK.value=WX.pit;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;tentU.uT.value=t;tentU.uRn.value=Math.max(ss(.03,.4,WX.rain),ss(.9,1,WX.after));if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.08);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}
   mirP.enabled=root.visible&&WX.heat>.01;mirM.uniforms.uT.value=t;mirM.uniforms.uSky.value.copy(sandU.uMirC.value);
   /* the low sun warms the air layer, so the mirrored sky comes back amber at dusk */
-  mirM.uniforms.uTint.value.set(.95,.95,.95).lerp(_mirW,Math.max(LK.sunset,LK.sunrise*.7));rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;rockU.uT.value=t;rockU.uVen.value=(.8+.18*Math.min(sfU.uFR.value,1.6))*(1-.3*WX.wet);
+  mirM.uniforms.uTint.value.set(.95,.95,.95).lerp(_mirW,Math.max(LK.sunset,LK.sunrise*.7));rockU.uWetK.value=WX.wet;tentU.uWetC.value=Math.max(WX.wet,.42*WX.dew);propU.uDew.value=WX.dew;coatU.uDew.value=WX.dew;rockU.uT.value=t;rockU.uVen.value=(.8+.18*Math.min(sfU.uFR.value,1.6))*(1-.3*WX.wet);
   pondU.uRainP.value=WX.rain;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
@@ -1759,6 +1791,29 @@ const HMAP=(()=>{const N=128,x0=-27,z0=-23,w=54,d=46,c=document.createElement("c
   return{t,v:new T.V4(x0,z0,w,d)}})();
 const GLSL_HM=`uniform sampler2D uHT;uniform vec4 uHM;
   float gH(vec2 p){vec2 uv=(p-uHM.xy)/uHM.zw;if(uv.x<0.||uv.y<0.||uv.x>1.||uv.y>1.)return -80.;float v=texture2D(uHT,uv).r*255.;return v<.6?-80.:(v-1.)/254.*12.-2.5;}`;
+/* radiation fog: thin horizontal sheets in island metres; each fills only where it lies inside the fog, which pools in the hollow
+   to a level that sinks as it burns off (rim first, pond last), hugs low ground in a thin film, and lifts off the sand from below,
+   so dune crests, palm crowns and the tent ridge stand clear; the top catches the low sun gold as it clears */
+const FOGD=(()=>{const N=MOB?6:9,y0=-.36,y1=2.15,G=new T.Plane(54,46,1,1);G.rotateX(-Math.PI/2);
+  const U={uT:{value:0},uK:{value:0},uB:{value:0},uClr:{value:0},uC:{value:new C3(1,1,1)},uCG:{value:new C3(1,.7,.4)},uWD:{value:new T.V2(WIND.x,WIND.z)},uHT:{value:HMAP.t},uHM:{value:HMAP.v}},L=[];
+  const g=new T.Group();g.visible=false;W.add(g);
+  for(let k=0;k<N;k++){const y=y0+(y1-y0)*k/(N-1),m=new T.SM({uniforms:{...U,uY:{value:y}},transparent:true,depthWrite:false,
+    vertexShader:`varying vec2 vL;void main(){vL=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`${GLSL_HM}${GLSL_NOISE}uniform float uT,uK,uB,uClr,uY;uniform vec3 uC,uCG;uniform vec2 uWD;varying vec2 vL;
+    void main(){float g=gH(vL);if(g<-50.||uY<g-.02)discard;
+      float e=length(vL/vec2(${AX}.,${AZ}.)),rp=length((vL-vec2(${POND.x},${POND.z}))/vec2(13.,10.5)),q=clamp(.55*e+.45*min(rp/1.2,1.),0.,1.);
+      float bl=clamp(uB*1.9-(1.-q)*.95,0.,1.);
+      vec2 p=vL*.15-uWD*uT*.05;float n=dn2(p+uY*.6)*.62+dn2(p*2.7+vec2(5.2,uT*.02))*.38;
+      float lp=mix(1.75-.75*smoothstep(.55,1.,e),${(POND.wy-.18).toFixed(2)},bl)+(n-.5)*1.1;
+      float ht=max(lp,g+(.4+.25*n)*(1.-bl)*(1.-smoothstep(.9,2.6,g)));
+      float d=(1.-smoothstep(ht-.32,ht+.04,uY))*smoothstep(g-.02,g+.14+.55*bl*max(ht-g,0.),uY)*(1.-.45*bl)*(.3+.85*smoothstep(.22,.7,n))*(1.-.6*smoothstep(.9,1.04,e))*uK;
+      if(d<.004)discard;
+      vec3 c=mix(uC,uCG,uClr*max(smoothstep(ht-.75,ht,uY),1.-smoothstep(.05,.6,ht-g))*(.6+.4*n)*.9);
+      gl_FragColor=vec4(c,d*${MOB?".42":".32"});
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+    }`});const o=new T.Mesh(G,m);o.position.y=y;o.renderOrder=9;o.frustumCulled=false;g.add(o);L.push(o)}
+  onDes(g);return{g,L,U}})();
 const rainU={uT:{value:0},uRain:{value:0},uWS:{value:1},uWD:{value:new T.V2(WIND.x,WIND.z)},uCamL:{value:new V3()},uCol:{value:new C3()},uHT:{value:HMAP.t},uHM:{value:HMAP.v},uLen:{value:1.1},uRes:{value:new T.V2(1,1)}};
 const GLSL_CELL=`float hc(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float nc(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hc(i),hc(i+vec2(1,0)),f.x),mix(hc(i+vec2(0,1)),hc(i+vec2(1,1)),f.x),f.y);}
@@ -1971,10 +2026,10 @@ function animalMats(o,tan){matsOf(o,m=>{cleanMat(m);m.roughness=Math.max(m.rough
   /* the texture is a patchwork atlas whose islands differ in brightness, so only its fine fold detail is kept;
      the coat itself is painted in bind-pose metres (y up, 0..1.98 tall, ±1.4 long) so it runs continuously across seams */
   if(tan&&m.map){m.color.set("#ffffff");m.roughness=.92;m.roughnessMap=null;m.metalness=0;m.metalnessMap=null;m.userData.coat=1;m.onBeforeCompile=sh=>{
-    sh.uniforms.uNight=sandU.uNight;
+    sh.uniforms.uNight=sandU.uNight;sh.uniforms.uDew=coatU.uDew;
     sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nvarying vec3 vBP;varying vec3 vBN;")
       .replace("#include <begin_vertex>","#include <begin_vertex>\nvBP=position;vBN=normal;");
-    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uNight;varying vec3 vBP;varying vec3 vBN;"+GLSL_NOISE+`
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uNight,uDew;varying vec3 vBP;varying vec3 vBN;"+GLSL_NOISE+`
 float fur3(vec3 p,vec3 w,float k){return dn2(vec2(p.z*k,p.y*k*.22))*w.x+dn2(vec2(p.x*k,p.y*k*.22))*w.z+dn2(vec2(p.x*k,p.z*k*.3))*w.y;}`)
     .replace("#include <map_fragment>",`vec3 bp=vBP,bn=normalize(vBN),tw=abs(bn);tw/=tw.x+tw.y+tw.z;
       float l0=dot(texture2D(map,vMapUv).rgb,vec3(.3,.59,.11)),l4=dot(texture2D(map,vMapUv,4.).rgb,vec3(.3,.59,.11));
@@ -1992,8 +2047,10 @@ float fur3(vec3 p,vec3 w,float k){return dn2(vec2(p.z*k,p.y*k*.22))*w.x+dn2(vec2
       col=mix(col,vec3(dot(col,vec3(.3,.59,.11)))*vec3(.82,.9,1.),uNight*.6)*mix(1.,.62,uNight);
       diffuseColor.rgb=col;`)
     .replace("#include <opaque_fragment>",`{float fr=pow(1.-clamp(dot(normal,normalize(vViewPosition)),0.,1.),2.4);
-      outgoingLight+=fr*.45*vec3(1.,.8,.55)*(reflectedLight.directDiffuse+reflectedLight.indirectDiffuse);}
-      #include <opaque_fragment>`)};m.customProgramCacheKey=()=>"des48coat";m.needsUpdate=true}});o.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;c.frustumCulled=false}})}
+      outgoingLight+=fr*.45*vec3(1.,.8,.55)*(reflectedLight.directDiffuse+reflectedLight.indirectDiffuse);
+      if(uDew>.003){float up=smoothstep(-.1,.7,normalize(vBN).y),bd=step(.9,fur3(vBP,abs(normalize(vBN))/dot(abs(normalize(vBN)),vec3(1.)),320.))*fa;
+        outgoingLight=mix(outgoingLight,outgoingLight*.86+vec3(.06,.065,.07)*(reflectedLight.indirectDiffuse.g*4.+.2),uDew*up*.4)+bd*up*uDew*.55*vec3(.92,.96,1.)*(reflectedLight.indirectDiffuse+reflectedLight.directDiffuse*.5);}}
+      #include <opaque_fragment>`)};m.customProgramCacheKey=()=>"des66coat";m.needsUpdate=true}});o.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;c.frustumCulled=false}})}
 function groundFrame(x,z,yaw,L,Wd){
   const fx=Math.sin(yaw),fz=Math.cos(yaw),hf=hTop(x+fx*L,z+fz*L),hb=hTop(x-fx*L,z-fz*L),hc=hTop(x,z);
   const hl=hTop(x+fz*Wd,z-fx*Wd),hr=hTop(x-fz*Wd,z+fx*Wd);
@@ -2128,6 +2185,8 @@ function grazeSpot(a){const g=navGrid("camel",1.05,1.12,.84);
 /* by day the two keep different jobs (one grazes while the other drinks or lies down); at night both kneel at their rest spots */
 function camelPlan(a){
   if(st.phase==="night"||WX.shel){camelGo(a,camelShelter(a),"kneel");return}
+  /* in fog they stand where they are, coats beading with dew, and wait for it to lift */
+  if(WX.cold){a.mode="job";a.job="idle";a.timer=rr(12,24);play(a.r,"idle",1,1);return}
   const busy=j=>ANIM.camels.some(o=>o!==a&&o.job===j),near=(p,r)=>ANIM.camels.some(o=>o!==a&&(Math.hypot(o.x-p.x,o.z-p.z)<r||(o.goal&&Math.hypot(o.goal.x-p.x,o.goal.z-p.z)<r)));
   const opts=[["drink",.3],["graze",.32],["kneel",.2],["idle",.18]].filter(([j])=>j==="idle"||!busy(j)&&(j!=="drink"||!near(DRINK,4.5)));
   let r=rnd()*opts.reduce((s,o)=>s+o[1],0),job="idle";for(const[j,w]of opts){if((r-=w)<0){job=j;break}}
@@ -2140,6 +2199,7 @@ function camelShelter(a){const r=REST[a.i];return WX.dust>.3?{x:r.x,z:r.z,yaw:Ma
 function camelUpdate(a,dt){
   const night=st.phase==="night",stay=night||WX.shel>0;
   if(stay&&a.job!=="kneel"&&a.mode!=="up"){if(a.mode==="walk"||a.mode==="job"||a.mode==="turn")camelGo(a,camelShelter(a),"kneel")}
+  else if(WX.cold&&a.mode==="walk"){a.mode="job";a.job="idle";a.path=null;a.timer=rr(12,24);play(a.r,"idle",1,1)}
   let dy=0,vT=0,ym=.75;
   if(a.mode==="walk"){
     let wp=a.path[a.pi],last=a.pi===a.path.length-1;
@@ -2261,7 +2321,7 @@ function eagleFinal(e){const spot=e.spot;e.final=true;const p1=spot.p.clone();
   e.seg={p0,m0:e.vel.clone().multiplyScalar(T),p1,m1:new V3(0,0,0),T,t:0,land:true};
   play(e.fr,"glide",.7,1)}
 function eagleUpdate(e,dt){
-  const ph=st.phase,wantPerch=ph!=="day"||WX.shel>0||WX.rain>.4;puffTick(dt);
+  const ph=st.phase,wantPerch=ph!=="day"||WX.shel>0||WX.rain>.4||WX.cold>0;puffTick(dt);
   {const L=e.r.acts.land;if(e.r.cur==="land"&&!e.pf&&L&&L.time>=1.96){e.pf=1;if(e.spot.k==="pond"){eaglePuff(e.spot.p);eagleMarks(e,0)}}}
   if(e.mode==="perch"){
     if(e.r.acts.perch)e.r.acts.perch.timeScale=ph==="night"?.35:1;
@@ -2617,7 +2677,7 @@ function rsCoilAt(s,clip,fade){const P=s.bd.P,ya=Math.atan2(P[0]-P[6],P[1]-P[7])
 function rsUpdate(s,dt){
   if(!s.bd){s.timer-=dt;if(s.timer<0){if(s.mode==="relax"){s.mode="alert";s.timer=rr(7,11);play(s.r,"tongue_flick",.8,1)}else{s.mode="relax";s.timer=rr(9,15);play(s.r,"relaxed_coil",.9,1)}}
     rigTick(s.r,dt);rsTongue(s,dt);return}
-  const b=s.bd,day=(st.phase==="day"||WX.shel>0||WX.rain>.3)&&!s.force;s.hunt=!day&&(st.phase==="sunrise"||st.phase==="sunset")&&!s.force;
+  const b=s.bd,day=(st.phase==="day"||WX.shel>0||WX.rain>.3||WX.cold>0)&&!s.force;s.hunt=!day&&(st.phase==="sunrise"||st.phase==="sunset")&&!s.force;
   s.caut=Math.max(0,s.caut-dt);
   /* startle */
   const th=rsThreat(s);
@@ -3019,7 +3079,7 @@ function agDismount(a){const f=trunkAt(a.palm,.02,a.az),pp=a.palm;a.x=pp.x+f.n.x
 function agBask(a,sp){a.mode="bask";a.spot=sp;a.timer=rr(25,50)*(1+.8*agNearK(sp.x,sp.z,AG.spots));
   /* broadside to the sun to take in the most heat */
   a.yaw=wrapA(SUN.lazL+Math.PI/2*(rnd()<.5?1:-1)+rr(-.3,.3));play(a.r,"bask",.4,1)}
-function agDecide(a){const night=st.night>.5,rain=WX.rain>.25,sun=agSun();a.cond=night?"n":rain?"r":"d";a.then=null;
+function agDecide(a){const night=st.night>.5||WX.cold>0,rain=WX.rain>.25,sun=agSun();a.cond=night?"n":rain?"r":"d";a.then=null;
   if(night){if(a.palm){agClimb(a,0);return}const sp=a.spot||AG.spots[0],h={x:sp.x+.25*Math.sin(SUN.lazL),z:sp.z+.25*Math.cos(SUN.lazL)};
     if(Math.hypot(a.x-h.x,a.z-h.z)<.3){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}agGo(a,h,"hide");return}
   a.g.visible=true;
@@ -3039,7 +3099,7 @@ function agArrive(a){const k=a.then,g=a.goal;a.path=null;
   if(k==="hide"){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}
   a.mode="idle";a.timer=rr(2,6);play(a.r,"idle",.25,1)}
 function agUpdate(dt){
-  const night=st.night>.5,rain=WX.rain>.25,sun=agSun();
+  const night=st.night>.5||WX.cold>0,rain=WX.rain>.25,sun=agSun();
   for(const a of AG.list){
     const c=night?"n":rain?"r":"d";if(c!==a.cond&&a.mode!=="run"&&a.mode!=="climb")agDecide(a);else if(c!==a.cond&&a.mode==="run"&&(c!=="d"))agDecide(a);
     /* body temperature: fast to warm flat in the sun, slower in the open, cools in shade, rain and at night */
@@ -3138,9 +3198,12 @@ UPD.push((dt,t)=>{
 let _staged=false,_stageDone=false;
 function stageIn(){_staged=true;const L=[...root.children.filter(c=>c!==W),...W.children].filter(c=>c.visible&&!c.isLight),n=MOB?7:5,
     B=Array.from({length:n},(_,i)=>L.slice(Math.round(i*L.length/n),Math.round((i+1)*L.length/n)));
-  for(const b of B.slice(1))for(const o of b)o.traverse(x=>{x.userData._lm=x.layers.mask;x.layers.mask=0});
-  let i=1;const f=()=>{if(i>=n){_stageDone=true;return}for(const o of B[i++])o.traverse(x=>{if(x.userData._lm!=null){x.layers.mask|=x.userData._lm;delete x.userData._lm}});nextFrame().then(f)};
-  nextFrame().then(f)}
+  /* with parallel linking every batch is handed to the compiler at once and each is revealed, in order, once its programs are
+     linked; without it the first batch draws at once and one more joins per frame, so no single frame links them all */
+  for(const b of B.slice(PAR?0:1))for(const o of b)o.traverse(x=>{x.userData._lm=x.layers.mask;x.layers.mask=0});
+  const P=B.map((b,k)=>PAR?Promise.all(b.map(o=>warm(o))):Promise.resolve());if(!PAR)P.shift(),B.shift();
+  let i=0;const f=()=>{if(i>=B.length){_stageDone=true;return}const b=B[i];P[i++].then(()=>{for(const o of b)o.traverse(x=>{if(x.userData._lm!=null){x.layers.mask|=x.userData._lm;delete x.userData._lm}});nextFrame().then(f)})};
+  if(PAR)f();else nextFrame().then(f)}
 function show(on){
   if(on&&!_staged)stageIn();
   root.visible=on;De.layers.set(on?3:0);window.__desA=on;grade.enabled=on;if(!on)mirP.enabled=false;
@@ -3157,7 +3220,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},
@@ -3176,6 +3239,8 @@ const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,ag
   /* sand falls: count, rate (sfR(v) pins it, null to release), and each fall's rim point, half width and threshold */
   sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z,ra:WS.ra}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty,nx:f.E.nx,nz:f.E.nz,tx:f.E.tx,tz:f.E.tz,path:f.path}))}),sfR:v=>{SF.pin=v},
   freeze(on){st.lock=!!on},wxEase(on){st.wxEase=!!on},
+  /* regression checks (tools/e2e/desert.mjs): run the simulation for `sec` seconds without drawing the pond reflection */
+  sim(sec,dt){dt=dt||.1;st.qaNoRefl=1;for(let i=0,n=Math.round(sec/dt);i<n;i++)step(dt);st.qaNoRefl=0},sandU,pondU,SAND,SANDP,CURT,WIND,
   step(n,dt){for(let i=0;i<(n||1);i++)step(dt||1/30)},
   tod(p){st.tod=p||null;const ph=phaseNow();for(const k in LK)LK[k]=k===ph?1:0;applyLighting(0)},
   /* camera helpers in island metres */

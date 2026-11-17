@@ -990,7 +990,7 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  snowUpd(dt,t,wn);spr.m.uniforms.uC.value.setRGB(1,1,1).lerp(C1.setRGB(.62,.72,.95),night);spr.g.attributes.position.needsUpdate=spr.g.attributes.aA.needsUpdate=spr.g.attributes.aS.needsUpdate=true;
  for(let i=0;i<cbank.n;i++){const b=CB[i];b.a+=b.w*dt;cbank.p[i*3]=Math.cos(b.a)*b.r;cbank.p[i*3+1]=b.y+.3*Math.sin(t*.07+b.ph);cbank.p[i*3+2]=Math.sin(b.a)*b.r;cbank.a[i]=.3+.08*Math.sin(t*.05+b.ph*2.);cbank.s[i]=b.sz}
  cbank.g.attributes.position.needsUpdate=cbank.g.attributes.aA.needsUpdate=cbank.g.attributes.aS.needsUpdate=true;
- {const k=qt.mist||0,on=k>.004;for(const o of FGB.L)o.visible=on;if(on){const sp=.3+1.3*wn;st.fgX=(st.fgX||0)+(Math.cos(a0)*sp-ux)*dt;st.fgZ=(st.fgZ||0)+(Math.sin(a0)*sp-uz)*dt;FGB.U.uT.value=t;FGB.U.uK.value=k;FGB.U.uAdv.value.set(st.fgX,st.fgZ)}
+ {const k=qt.mist||0,on=k>.004;for(const o of FGB.L)o.visible=on;if(on){const sp=.3+1.3*wn;st.fgX=(st.fgX||0)+(Math.cos(a0)*sp-ux)*dt;st.fgZ=(st.fgZ||0)+(Math.sin(a0)*sp-uz)*dt;FGB.U.uT.value=t;FGB.U.uK.value=Math.min(1.25,k*(1+.5*night));FGB.U.uAdv.value.set(st.fgX,st.fgZ)}
   fgp.o.visible=on;if(on){const vx=Math.cos(a0)*(.3+1.3*wn)-ux,vz=Math.sin(a0)*(.3+1.3*wn)-uz,vl=Math.hypot(vx,vz)+1e-4;for(let i=0;i<fgp.n;i++){const f=FP[i];f.age+=dt;f.x+=vx*dt;f.z+=vz*dt;let r=Math.hypot(f.x,f.z);
    if(r>R+.4&&f.x*vx+f.z*vz>0){const o=rr(-.85,.85)*R;f.x=-vx/vl*(R+.2)*Math.sqrt(1-o*o/(R*R))-vz/vl*o;f.z=-vz/vl*(R+.2)*Math.sqrt(1-o*o/(R*R))+vx/vl*o;f.age=0;r=R}
    fgp.p[i*3]=f.x;fgp.p[i*3+1]=f.y+.12*Math.sin(t*.3+f.ph);fgp.p[i*3+2]=f.z;fgp.a[i]=.22*k*Math.min(1,f.age*.4)*(1-ss(R-1,R+.4,r));fgp.s[i]=f.sz*(1+.08*Math.sin(t*.21+f.ph))}
@@ -1012,11 +1012,12 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  U.uAmb.value.copy(dc.color).multiplyScalar(dc.intensity);U.uKey.value.copy(pi.color).multiplyScalar(pi.intensity);U.uKeyDir.value.copy(pi.position).normalize();
  U.uSunCol.value.copy(jt.sunCol.value);U.uMoonC.value.set(.75,.82,1).multiplyScalar(night*(.6+.4*open));
  /* the bowl hangs in clear sky: keep the air between it and a far camera clear unless the weather closes in */
- {const fk=1-.75*Math.max(storm,rain*.6);Jt.fog.near=Math.max(Jt.fog.near,70*fk);Jt.fog.far=Math.max(Jt.fog.far,240*fk);const mk=qt.mist||0;if(mk>0){Jt.fog.near+=(9-Jt.fog.near)*mk;Jt.fog.far+=(56-Jt.fog.far)*mk}}
+ {const fk=1-.75*Math.max(storm,rain*.6);Jt.fog.near=Math.max(Jt.fog.near,70*fk);Jt.fog.far=Math.max(Jt.fog.far,240*fk);const mk=qt.mist||0;if(mk>0){Jt.fog.near+=(9-Jt.fog.near)*mk;Jt.fog.far+=(56-Jt.fog.far)*mk;Jt.fog.color.lerp(C1.setRGB(.07,.082,.11),Math.min(1,mk*night*.75))}}
  U.uFogC.value.copy(Jt.fog.color);U.uFogN.value=Jt.fog.near;U.uFogF.value=Jt.fog.far;
  {const lit=C1.copy(U.uAmb.value).multiplyScalar(.95).add(C2.copy(U.uKey.value).multiplyScalar(Math.max(U.uKeyDir.value.y,0)*.8)).multiplyScalar(.3183);
   spray.m.uniforms.uC.value.copy(lit).multiplyScalar(.95);hail.m.uniforms.uC.value.copy(lit).multiplyScalar(1.1);mist.m.uniforms.uC.value.copy(lit).multiplyScalar(.9).lerp(U.uFogC.value,.35);bmist.m.uniforms.uC.value.copy(lit).multiplyScalar(1.05);cbank.m.uniforms.uC.value.copy(lit).multiplyScalar(.85).lerp(U.uFogC.value,.5);
-  blowS.m.uniforms.uC.value.copy(lit).multiplyScalar(1.05);FGB.U.uC.value.copy(lit).multiplyScalar(1.1).lerp(U.uFogC.value,.5);fgp.m.uniforms.uC.value.copy(FGB.U.uC.value);
+  blowS.m.uniforms.uC.value.copy(lit).multiplyScalar(1.05);/* at night the fog banks take the moonlight: a milky layer over the dark water instead of a darker shade of it */
+  FGB.U.uC.value.copy(lit).multiplyScalar(1.1).lerp(U.uFogC.value,.5).lerp(C2.setRGB(.2,.235,.3),.75*night);fgp.m.uniforms.uC.value.copy(FGB.U.uC.value);
   /* whale water: near-white with a hint of sky, only as bright as the light, never tinted by it */
   const lum=Math.min(1.1,Math.max(.04,(.2126*lit.r+.7152*lit.g+.0722*lit.b)*1.25)),tp=jt.top.value,tm=Math.max(tp.r,tp.g,tp.b,1e-3);
   wtrU.uWc.value.setRGB(.88+(tp.r/tm-.88)*.3,.93+(tp.g/tm-.93)*.3,.97+(tp.b/tm-.97)*.3).multiplyScalar(lum);wtrU.uAsp.value=De.aspect}

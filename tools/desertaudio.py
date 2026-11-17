@@ -54,6 +54,10 @@ SOURCES = {
 
 # one-shots: key -> (source, start s, end s, high-pass Hz, fade-in s, fade-out s[, low-pass Hz])
 SHOT = {
+    # single pops of the campfire's wood, cut from the crackle recording (each comes with a burst of sparks)
+    "dPop1": (363092, 20.71, 20.96, 300, .002, .1),
+    "dPop2": (363092, 3.66, 3.90, 300, .002, .1),
+    "dPop3": (363092, 11.33, 11.57, 300, .002, .1),
     "dEg1": (479610, 2.55, 4.50, 700, .01, .25),
     "dEg2": (479610, 7.50, 9.35, 700, .01, .25),
     "dEg3": (479610, 11.85, 13.75, 700, .01, .25),

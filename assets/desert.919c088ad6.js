@@ -224,10 +224,11 @@ function sandMat(){
       uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}
       float pondN(vec2 p){vec2 q=(p-uPond.xy)/uPond.zw;float th=atan(q.y,q.x);
         return length(q)/(1.+.09*sin(2.*th+1.1)+.06*sin(3.*th-.4)+.04*sin(5.*th+2.3));}
-      float ripH(vec2 p){vec2 q=p+vec2(dfbm(p*.09)*4.,dfbm(p*.11+7.)*2.5);
-        float ph=dot(q,uRipDir)*8.38-uRipPh;float a=sin(ph+.9*sin(ph));
-        vec2 d2=vec2(-uRipDir.y,uRipDir.x);float b=sin(dot(q*1.7+3.,uRipDir+d2*.35)*8.38-uRipPh*1.6);
-        return a*.7+b*.3;}`)
+      /* wind ripples are not a ruled pattern: the spacing drifts, crests wander and fork where it does, and they fade out and break */
+      float ripH(vec2 p){vec2 q=p+vec2(dfbm(p*.09)*4.,dfbm(p*.11+7.)*2.5),d2=vec2(-uRipDir.y,uRipDir.x);float al=dot(q,uRipDir);
+        float ph=al*8.38*(1.+.16*(dn2(p*.07+1.3)-.5))+(dn2(vec2(dot(q,d2)*.55,al*.12)+5.)-.5)*3.4-uRipPh;float a=sin(ph+.9*sin(ph));
+        float b=sin(dot(q*1.7+3.,uRipDir+d2*.35)*8.38-uRipPh*1.6);
+        return (a*.7+b*.3)*(.5+.5*smoothstep(.28,.62,dn2(p*.21+11.)));}`)
       .replace("#include <color_fragment>",`#include <color_fragment>
         float pn=pondN(vSP.xz);
         float nz=dfbm(vSP.xz*.06),nz2=dfbm(vSP.xz*.45+3.);
@@ -825,7 +826,8 @@ function buildPalms(){
         quad([a.clone().sub(w),c0,up,.5,.012],[a.clone().add(w),c0,up,.5,.012],[b.clone().sub(w),c1,up,.5,.012],[b.clone().add(w),c1,up,.5,.012])}};
     const NF=MOB?20:28,ga=2.39996;
     for(let i=0;i<NF;i++){const k=i/(NF-1),az=i*ga+pp.ry,el=(62-90*Math.pow(k,.85))*D2R,L=mix(2.6,3.7,Math.min(1,k*1.4))*cw*rr(.92,1.08);
-      const g1=[mix(.1,.18,k),mix(.2,.24,k),mix(.05,.07,k)],g2=[mix(.32,.5,k),mix(.45,.48,k),mix(.1,.14,k)];
+      /* date palm leaves are a dusty grey-green, not lime: muted, a little blue in the older fronds */
+      const g1=[mix(.09,.14,k),mix(.16,.2,k),mix(.08,.08,k)],g2=[mix(.25,.36,k),mix(.34,.39,k),mix(.2,.18,k)];
       frond(az,el,L,mix(.18,.45,k),g1,g2,false)}
     for(let i=0;i<4;i++){const az=i/4*TAU+.5+pp.ry;frond(az,-68*D2R,2.4*cw,.1,[.33,.22,.11],[.55,.4,.22],true)}
     /* dead leaf sheaths under the crown: brown petiole bases hugging the trunk, the lower rings splayed further out;
@@ -976,13 +978,26 @@ const fireG=new T.Group();fireG.position.set(FIRE.x,hTop(FIRE.x,FIRE.z),FIRE.z);
 const fireU={uT:{value:0},uNight:{value:0}};
 let fireL=null;
 (function campfire(){
-  const stM=new T.MSM({color:"#7a6c60",roughness:.95});
-  const im=new T.IM(ROCK_GEOS[1],stM,11),m=new T.M4(),q=new T.Quat();
-  for(let i=0;i<11;i++){const a=i/11*TAU+rr(-.1,.1),s=rr(.13,.19);q.setFromAxisAngle(new V3(rr(-.3,.3),1,rr(-.3,.3)).normalize(),rnd()*TAU);
-    m.compose(new V3(Math.cos(a)*.4,-.02,Math.sin(a)*.4),q,new V3(s*1.2,s,s));im.setMatrixAt(i,m)}
+  const stM=new T.MSM({color:"#4e463f",roughness:.95});
+  /* ring of unequal stones, some sunk deeper, the ones nearest the coals blackened with soot */
+  const NS=13,im=new T.IM(ROCK_GEOS[1],stM,NS),m=new T.M4(),q=new T.Quat(),sc=new C3();
+  for(let i=0;i<NS;i++){const a=i/NS*TAU+rr(-.12,.12),s=rr(.1,.21),r=rr(.37,.45);q.setFromAxisAngle(new V3(rr(-.3,.3),1,rr(-.3,.3)).normalize(),rnd()*TAU);
+    m.compose(new V3(Math.cos(a)*r,.01-rr(0,.04),Math.sin(a)*r),q,new V3(s*rr(.9,1.2),s*rr(1.05,1.4),s*rr(.9,1.15)));im.setMatrixAt(i,m);
+    const k=rr(.75,1.1),soot=rnd()<.5?rr(.3,.55):1;im.setColorAt(i,sc.setRGB(k*soot,k*.97*soot,k*.94*soot))}
   im.castShadow=im.receiveShadow=true;fireG.add(im);
-  const charM=new T.MSM({color:"#3a2618",roughness:.95,emissive:"#ff5a1a",emissiveIntensity:0});fireG.userData.charM=charM;
-  for(let i=0;i<4;i++){const l=new T.Mesh(new T.Cyl(.045,.055,.62,7),charM);const a=i/4*TAU+.4;l.position.set(Math.cos(a)*.1,.1,Math.sin(a)*.1);l.rotation.set(0,-a,Math.PI/2-.42);l.rotation.order="YZX";l.castShadow=true;fireG.add(l)}
+  /* split logs leaned into a cone over the coals: bark at the foot on the sand, charred and glowing where they meet in the flames */
+  const charM=new T.MSM({vertexColors:true,roughness:.92,emissive:"#ff5a1a",emissiveIntensity:0});fireG.userData.charM=charM;
+  charM.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nattribute float aG;varying float vG;").replace("#include <begin_vertex>","#include <begin_vertex>\nvG=aG;");
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nvarying float vG;").replace("#include <emissivemap_fragment>","#include <emissivemap_fragment>\ntotalEmissiveRadiance*=vG;")};
+  charM.customProgramCacheKey=()=>"desFireLog";
+  const logGeo=(r0,len)=>{const g=new T.Cyl(r0*.85,r0,len,9,6),p=g.attributes.position,n=p.count,col=new Float32Array(n*3),gl=new Float32Array(n),bk=rr(0,9);
+    for(let i=0;i<n;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),t=y/len+.5,an=Math.atan2(z,x),j=1+.13*(vn2(an*2.2+bk,t*3)-.5)+.06*Math.sin(an*5+bk);
+      p.setXYZ(i,x*j,y+.025*Math.sin(t*3+bk),z*j);const ch=ss(.45,.95,t),bark=.75+.3*vn2(an*7+bk,t*14);
+      col[i*3]=mix(.045*bark,.006,ch);col[i*3+1]=mix(.022*bark,.005,ch);col[i*3+2]=mix(.01*bark,.0045,ch);gl[i]=ss(.68,1,t)*(.6+.4*vn2(an*4+bk,t*9))}
+    g.setAttribute("color",new T.BA(col,3));g.setAttribute("aG",new T.BA(gl,1));g.computeVertexNormals();return g};
+  for(let i=0;i<5;i++){const a=i/5*TAU+rr(-.2,.2)+.4,len=rr(.55,.72),r0=rr(.04,.06),tl=rr(.95,1.15),l=new T.Mesh(logGeo(r0,len),charM);
+    const c=Math.cos(tl),s2=Math.sin(tl);l.position.set(Math.cos(a)*(s2*len*.5-.06),c*len*.5*.85+.04,Math.sin(a)*(s2*len*.5-.06));
+    l.rotation.order="YZX";l.rotation.set(0,-a,tl*.88);l.castShadow=true;fireG.add(l)}
   const glow=new T.Mesh(new T.Plane(.7,.7),new T.SM({transparent:true,depthWrite:false,blending:2,uniforms:fireU,
     vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`uniform float uT;varying vec2 vUv;void main(){float d=length(vUv-.5)*2.;float a=smoothstep(1.,0.,d);a*=a*(.75+.25*sin(uT*7.)*sin(uT*3.1));gl_FragColor=vec4(vec3(1.,.42,.12)*a*1.4,a);}`}));
@@ -1124,7 +1139,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   /* a seed of their own, so the falls do not shift the rest of the layout */
   let ps=5281;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^ps>>>15,1|ps);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},prr=(a,b)=>a+(b-a)*pr();
   /* [half width min, max, rate threshold min, max] for heavy falls, thinner falls, trickles */
-  const kinds=[[1.5,2.3,0,.04],[.5,.85,.03,.16],[.08,.2,.04,.34]],pat=[0,2,2,2,1,2,2,2],nF=MOB?32:48,sl=TAU/nF;
+  const kinds=[[1.5,2.3,0,.04],[.5,.85,.03,.16],[.05,.13,.04,.34]],pat=[0,2,2,2,1,2,2,2],nF=MOB?32:48,sl=TAU/nF;
   const rp=rockMesh.geometry.attributes.position.array,nV=rp.length/3,LIPV=3*NT;
   const frame=th=>{const[x,z]=edgeXZ(th,1),[x1,z1]=edgeXZ(th+.02,1),[x0,z0]=edgeXZ(th-.02,1),l=Math.hypot(x1-x0,z1-z0),tx=(x1-x0)/l,tz=(z1-z0)/l;return{x,z,tx,tz,nx:tz,nz:-tx}};
   /* the cliff under a fall: the furthest-out rock at each 0.5 m of depth below the lip crest, and the lip's crest height and offset */
@@ -1211,7 +1226,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float tear=mix(smoothstep(.36+.2*s,.5+.24*s,str),.45,ab);
           float body=(.97-.45*smoothstep(.05,.6,s))*edge*mix(1.,tear,max(smoothstep(.1,.45,s)*(.55+.45*min(uFR,1.)),dkB*.85))*mix(1.,(.04+1.3*smoothstep(.42,.58,cm))*(.2+1.*smoothstep(.25,.75,sgU)),dkB)*mix(1.,smoothstep(.25,.55,str),wet*.45)*(.78+.22*speck);
           /* trickles come in spurts */
-          if(hw<.3)body*=smoothstep(.3,.62,fallN(vec2(sd,3.),s,1.2,5.))*(1.-.4*smoothstep(.1,.3,s));
+          if(hw<.3)body*=smoothstep(.42,.7,fallN(vec2(sd,3.),s,1.2,5.))*(.75-.35*smoothstep(.1,.3,s));
           body*=1.-.45*ly;
           float endS=mix(.3,.62,smoothstep(.4,1.6,hw))-.1*ly+mix(.16,.3,smoothstep(.9,1.5,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
           /* grains, streaked by their speed; more of them shed at the sides and the foot */
@@ -1268,8 +1283,15 @@ function sandFallsUpdate(dt,t,wn,nk){
   SFD.g.attributes.position.needsUpdate=SFD.g.attributes.a.needsUpdate=SFD.g.attributes.z.needsUpdate=true;SFD.m.uniforms.uH.value=innerHeight;
   SFD.m.uniforms.uC.value.copy(curU.uCol.value).multiplyScalar(1.05)}
 /* night fireflies over the oasis */
-const FF=softPoints(MOB?18:32,"#d8ff8a",.12,true);FF.o.renderOrder=9;W.add(FF.o);
-const FFP=[];for(let i=0;i<FF.n;i++){const[a,b]=pondEdge(rnd()*TAU,rr(.8,1.9));FFP.push({x:a,z:b,y:rr(.4,2.6),ph:rnd()*TAU,sp:rr(.3,.7),bl:rr(.6,1.4)});FF.Z[i]=rr(.8,1.2)}
+const FF=softPoints(MOB?30:60,"#d8ff8a",.12,true);FF.o.renderOrder=9;W.add(FF.o);
+const FFP=[];for(let i=0;i<FF.n;i++){const[a,b]=pondEdge(rnd()*TAU,rr(.8,i%3?1.9:2.8));FFP.push({x:a,z:b,y:rr(.4,2.6),ph:rnd()*TAU,sp:rr(.3,.7),bl:rr(.6,1.4)});FF.Z[i]=rr(.8,1.2)}
+/* campfire sparks: a few embers always lifting off the logs, and a burst with each pop of the wood */
+const SPK=softPoints(MOB?28:56,"#ffad55",.075,true);SPK.o.renderOrder=9;SPK.o.visible=false;W.add(SPK.o);
+const SPKP=Array.from({length:SPK.n},()=>({life:1,dur:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,ph:0}));SPK.pop=rr(2,6);SPK.k=0;
+function sparkOut(n,hot){for(let i=0;i<SPK.n&&n>0;i++){const q=SPKP[(SPK.k+i)%SPK.n];if(q.life<1)continue;n--;
+  const a=rnd()*TAU,r=rr(0,.14);q.x=FIRE.x+Math.cos(a)*r;q.z=FIRE.z+Math.sin(a)*r;q.y=fireG.position.y+rr(.1,.3);
+  const sp=hot?rr(.25,.8):rr(.05,.3);q.vx=Math.cos(a)*sp;q.vz=Math.sin(a)*sp;q.vy=hot?rr(2,3.6):rr(1,2.2);q.life=0;q.dur=rr(.7,hot?2.2:1.6);q.ph=rnd()*TAU}
+  SPK.k=(SPK.k+7)%SPK.n}
 /*@@ANIMALS@@*/
 
 
@@ -1633,6 +1655,14 @@ UPD.push((dt,t)=>{
   /* rain drowns the flames to a sputter over glowing embers */
   if(fireG.userData.flames){const fr=1-.8*ss(.08,.55,WX.rain);fireG.userData.flames.forEach(o=>o.f.scale.set(o.s.x*(.5+.5*fr),o.s.y*fr,1))}
   if(fireG.userData.charM)fireG.userData.charM.emissiveIntensity=mix(.25,.9,nk)*(1+.2*Math.sin(t*5));
+  {const on=ss(.25,.7,nk)*(1-ss(.08,.4,WX.rain));SPK.o.visible=on>.01;
+   if(on>.01){if(rnd()<dt*5)sparkOut(1,false);
+     if(st.t>SPK.pop){SPK.pop=st.t+rr(1.5,7);sparkOut(Math.floor(rr(4,11)),true);shotS(pick(["dPop1","dPop2","dPop3"]),.55*on,_fiP.set(FIRE.x,fireG.position.y+.3,FIRE.z),5,rr(.9,1.12))}
+     const sw=.3+wn;for(let i=0;i<SPK.n;i++){const q=SPKP[i],o=i*3;if(q.life<1){q.life+=dt/q.dur;q.vy*=Math.exp(-dt*.7);q.ph+=dt*9;
+       q.x+=(q.vx+WIND.x*sw*q.life*1.4+Math.sin(q.ph)*.12)*dt;q.z+=(q.vz+WIND.z*sw*q.life*1.4+Math.cos(q.ph*1.3)*.12)*dt;q.y+=q.vy*dt}
+       SPK.P[o]=q.x;SPK.P[o+1]=q.y;SPK.P[o+2]=q.z;SPK.Z[i]=.7+.5*(1-q.life);
+       SPK.A[i]=q.life<1?on*Math.pow(1-q.life,1.6)*(.55+.45*Math.sin(q.ph*2.3))*2.2:0}
+     SPK.g.attributes.position.needsUpdate=SPK.g.attributes.a.needsUpdate=SPK.g.attributes.z.needsUpdate=true;SPK.m.uniforms.uH.value=innerHeight}}
   if(RACK.cloths){const gR=gustAt(RACK.x,RACK.z);RACK.cloths.forEach((c,i)=>{c.rotation.x=(Math.sin(t*1.6+c.userData.ph)*.06*(.6+.8*gR)+.05*(.4+1.2*gR))*(.4+wn)})}
   /* sand wisps: grains hop and drift with the local gust */
   for(let i=0;i<SAND.n;i++){const q=SANDP[i];q.life+=dt/q.dur;
@@ -2596,7 +2626,7 @@ function devilUpdate(dt,t){
    Wind and blown sand are heard everywhere; the eagle, camels, snake, dust devil and fire are placed: pan from the camera's
    right axis, distance gain, and a low-pass that closes with distance so far calls arrive dull. Played through the site's
    master (volume slider, tap-to-start unlock). AU.cap records every voice for offline mixing of the captured videos. ---- */
-const AQ={dWnd:"audio/dWnd.ff02237487.mp3",dCalm:"audio/dCalm.89da1bd867.mp3",dSnd:"audio/dSnd.b33d754ea1.mp3",dFire:"audio/dFire.33662e3a07.mp3",dSnk:"audio/dSnk.21e330a51e.mp3",dEg1:"audio/dEg1.293c9c2d4e.mp3",dEg2:"audio/dEg2.1279fb1910.mp3",dEg3:"audio/dEg3.4ac8779906.mp3",dEg4:"audio/dEg4.94735b1f97.mp3",dEg5:"audio/dEg5.cc6841e972.mp3",
+const AQ={dWnd:"audio/dWnd.ff02237487.mp3",dCalm:"audio/dCalm.89da1bd867.mp3",dSnd:"audio/dSnd.b33d754ea1.mp3",dFire:"audio/dFire.33662e3a07.mp3",dPop1:"audio/dPop1.9a9d841b4d.mp3",dPop2:"audio/dPop2.bcc84443e4.mp3",dPop3:"audio/dPop3.ef7efcd23a.mp3",dSnk:"audio/dSnk.21e330a51e.mp3",dEg1:"audio/dEg1.293c9c2d4e.mp3",dEg2:"audio/dEg2.1279fb1910.mp3",dEg3:"audio/dEg3.4ac8779906.mp3",dEg4:"audio/dEg4.94735b1f97.mp3",dEg5:"audio/dEg5.cc6841e972.mp3",
   dCm1:"audio/dCm1.f2a9b2a01d.mp3",dCm2:"audio/dCm2.e317be836e.mp3",dCm3:"audio/dCm3.51b2b6db0a.mp3",dCm4:"audio/dCm4.fc07ce6e86.mp3",dCm5:"audio/dCm5.4cca90b15e.mp3",
   dOk1:"audio/dOk1.e1cd0b8449.mp3",dOk2:"audio/dOk2.187122caa9.mp3",dOk3:"audio/dOk3.12a14d4f0e.mp3",dOk4:"audio/dOk4.2e238f8827.mp3",dOc1:"audio/dOc1.31d35bc855.mp3",dOc2:"audio/dOc2.ba99be553d.mp3",dOc3:"audio/dOc3.f21d195427.mp3",
   dFr1:"audio/dFr1.71022fc177.mp3",dFr2:"audio/dFr2.2933177163.mp3",dFr3:"audio/dFr3.ef371c70a6.mp3",dFr4:"audio/dFr4.3b0eb8afa7.mp3",dFr5:"audio/dFr5.f59005cbba.mp3",dFr6:"audio/dFr6.34303a83b9.mp3",

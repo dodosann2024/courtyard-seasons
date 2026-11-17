@@ -235,10 +235,11 @@ function sandMat(){
       float pondN(vec2 p){vec2 q=(p-uPond.xy)/uPond.zw;float th=atan(q.y,q.x);
         return length(q)/(1.+.09*sin(2.*th+1.1)+.06*sin(3.*th-.4)+.04*sin(5.*th+2.3));}
       /* wind ripples are not a ruled pattern: the spacing drifts, crests wander and fork where it does, and they fade out and break */
-      float ripH(vec2 p){vec2 q=p+vec2(dfbm(p*.09)*4.,dfbm(p*.11+7.)*2.5),d2=vec2(-uRipDir.y,uRipDir.x);float al=dot(q,uRipDir);
-        float ph=al*8.38*(1.+.16*(dn2(p*.07+1.3)-.5))+(dn2(vec2(dot(q,d2)*.55,al*.12)+5.)-.5)*3.4-uRipPh;float a=sin(ph+.9*sin(ph));
+      /* the warp W, spacing drift pm and fade am change over metres: taken once per pixel, not for each of the three height samples */
+      float ripH(vec2 p,vec2 W,float pm,float am){vec2 q=p+W,d2=vec2(-uRipDir.y,uRipDir.x);float al=dot(q,uRipDir);
+        float ph=al*8.38*pm+(dn2(vec2(dot(q,d2)*.55,al*.12)+5.)-.5)*3.4-uRipPh;float a=sin(ph+.9*sin(ph));
         float b=sin(dot(q*1.7+3.,uRipDir+d2*.35)*8.38-uRipPh*1.6);
-        return (a*.7+b*.3)*(.5+.5*smoothstep(.28,.62,dn2(p*.21+11.)));}`)
+        return (a*.7+b*.3)*am;}`)
       .replace("#include <color_fragment>",`#include <color_fragment>
         float pn=pondN(vSP.xz);
         float nz=dfbm(vSP.xz*.06),nz2=dfbm(vSP.xz*.45+3.);
@@ -277,13 +278,13 @@ function sandMat(){
           float lvl=uWetK*1.25-dryB*.7+(nz-.5)*.3+(dn2(vSP.xz*1.7+4.)-.5)*.35;
           float blob=smoothstep(-.04,.14,lvl-.25+(dn2(vSP.xz*7.)-.5)*.35+(dn2(vSP.xz*19.+2.)-.5)*.18);
           float dots=0.;
-          for(int L=0;L<2;L++){vec2 cg=vSP.xz*(L==0?19.:31.)+float(L)*17.3,ci=floor(cg),cf=fract(cg)-.5,off=vec2(dh2(ci+3.1),dh2(ci+7.3))-.5;
+          for(int L=0;L<${MOB?1:2};L++){vec2 cg=vSP.xz*(L==0?19.:31.)+float(L)*17.3,ci=floor(cg),cf=fract(cg)-.5,off=vec2(dh2(ci+3.1),dh2(ci+7.3))-.5;
             float h=dh2(ci),rd=.13+.17*dh2(ci+5.9);
             dots=max(dots,step(h,uWetK*2.6)*smoothstep(rd,rd*.6,length(cf-off*.45))*(.65+.35*dh2(ci+2.2)));}
           dots*=1.-smoothstep(.006,.03,fwc2);
           rWM=max(blob,dots*.85)*(1.-wet);sc=mix(sc,sc*vec3(.42,.37,.32),rWM);
           if(uPitK>.002&&near>.01){
-            for(int L=0;L<2;L++){vec2 cg=vSP.xz*(L==0?16.:27.)+float(L)*5.7,ci=floor(cg),cf=fract(cg)-.5,off=(vec2(dh2(ci+1.9),dh2(ci+4.4))-.5)*.4;
+            for(int L=0;L<${MOB?1:2};L++){vec2 cg=vSP.xz*(L==0?16.:27.)+float(L)*5.7,ci=floor(cg),cf=fract(cg)-.5,off=(vec2(dh2(ci+1.9),dh2(ci+4.4))-.5)*.4;
               float h=dh2(ci+8.8)/(L==0?.7:.45);if(h>uPitK)continue;float rp=.1+.2*pow(dh2(ci+6.1),1.5);vec2 d=cf-off;float r=length(d)/rp;
               /* bowl falling to the centre, rim heaped just outside it; fresh pits are sharp, older ones slumped */
               float age=clamp((uPitK-h)*6.,0.,1.),dr=(r<1.?2.*r:0.)-.7*(r-1.1)/.03*exp(-(r-1.1)*(r-1.1)/.03);
@@ -304,8 +305,9 @@ function sandMat(){
          float pn2=pondN(vSP.xz);
          vec3 nS=normalize(vSN);float lee=smoothstep(.08,.3,dot(nS.xz,uRipDir));
          float k=uRip*(1.-smoothstep(.07,.3,fw))*smoothstep(1.3,1.8,pn2)*smoothstep(.35,.7,nS.y)*(1.-.85*lee)*(1.-grv);
-         if(k>.001){float e=.04,h0=ripH(vSP.xz);
-           vec2 g=vec2(ripH(vSP.xz+vec2(e,0.))-h0,ripH(vSP.xz+vec2(0.,e))-h0)/e*.036*k*(1.+.9*uNight);
+         if(k>.001){vec2 rp=vSP.xz,RW=vec2(dfbm(rp*.09)*4.,dfbm(rp*.11+7.)*2.5);float rpm=1.+.16*(dn2(rp*.07+1.3)-.5),ram=.5+.5*smoothstep(.28,.62,dn2(rp*.21+11.));
+           float e=.04,h0=ripH(rp,RW,rpm,ram);
+           vec2 g=vec2(ripH(rp+vec2(e,0.),RW,rpm,ram)-h0,ripH(rp+vec2(0.,e),RW,rpm,ram)-h0)/e*.036*k*(1.+.9*uNight);
            ripAO=1.-(.13+.17*uNight)*k*(.5-.5*h0);
            vec3 nL=normalize(normalize(vSN)-vec3(g.x,0.,g.y));
            normal=normalize(normalMatrix*nL);}}
@@ -406,7 +408,8 @@ function rockMat(extra){
       /* fine sand creeping over the whole rim: it covers the lip and hangs down the top of the wall, further where gullies carry it
          and on ledges, little on overhangs; how far it reaches varies round the rim. Its streaks slide downward. */
       float venA(vec3 nA){vec3 w=pow(abs(nA),vec3(4.));return mix(vRP.z,vRP.x,w.z/(w.x+w.z+1e-3));}
-      float venC(vec3 nA){float d=vV,a=venA(nA),rim=.35+.65*smoothstep(.25,.75,dn2(vRP.xz*.11+1.7)*.7+dn2(vRP.xz*.37+4.1)*.3);
+      float gCV=0.;
+      float venC(vec3 nA){float d=vV;if(d>11.6)return 0.;float a=venA(nA),rim=.35+.65*smoothstep(.25,.75,dn2(vRP.xz*.11+1.7)*.7+dn2(vRP.xz*.37+4.1)*.3);
         float tg=dn2(vec2(a*1.6,d*.12))*.65+dn2(vec2(a*4.3,d*.35+3.))*.35,reach=(.8+3.6*rim)*(.55+.9*tg)+4.5*rim*pow(smoothstep(.55,.85,tg),2.);
         float c=1.-smoothstep(reach*.55,reach,d+.4*(dn2(vec2(a*9.,d*1.3))-.5));
         c*=mix(1.,.25,smoothstep(-.15,-.6,nA.y))*mix(1.,1.35,smoothstep(.25,.7,nA.y));return clamp(c*uVen,0.,1.);}`:""}
@@ -433,7 +436,7 @@ function rockMat(extra){
         c=mix(c,c*vec3(.9,.9,1.02),smoothstep(.4,.9,dn2(vec2(vRP.y*.35,0.)+vRP.xz*.02)));
         c=mix(c,uDeep*(.55+.6*L),smoothstep(-3.,-17.,vRP.y)*.55);
         c*=1.-.34*uWetK*(.4+.6*smoothstep(-.2,.6,nA.y))*(1.-smoothstep(-1.,-3.,vRP.y));
-        ${extra&&extra.ven?`{float cv=venC(nA);if(cv>.002){float a=venA(nA),d=vV,sp=.6+.8*uVen;
+        ${extra&&extra.ven?`{float cv=venC(nA);gCV=cv;if(cv>.002){float a=venA(nA),d=vV,sp=.6+.8*uVen;
           float fl=dn2(vec2(a*7.,d*2.2-uT*sp*1.1))*.6+dn2(vec2(a*19.,d*6.-uT*sp*2.4))*.4,gr=dh2(floor(vec2(a*60.,d*60.-uT*sp*14.)));
           vec3 sc=uVenC*(.86+.26*fl)*(1.+.12*(gr-.5))*mix(vec3(1.),vec3(.62,.55,.5),uWetK);
           c=mix(c,sc,smoothstep(0.,.35,cv)*(.55+.45*smoothstep(.3,.9,cv)));}}`:""}
@@ -452,7 +455,7 @@ function rockMat(extra){
          vec2 gz=vec2(lum(rk(uz+vec2(e,0.)))-lz,lum(rk(uz+vec2(0.,e)))-lz);
          vec3 b=w2.x*vec3(0.,gx.y,gx.x)+w2.y*vec3(gy.x,0.,gy.y)+w2.z*vec3(gz.x,gz.y,0.);
          vec3 nL=normalize(nA2-b*${MOB?"9.":"12."});
-         ${extra&&extra.ven?"nL=normalize(mix(nL,nA2,smoothstep(0.,.5,venC(nA2))*.85));":""}
+         ${extra&&extra.ven?"nL=normalize(mix(nL,nA2,smoothstep(0.,.5,gCV)*.85));":""}
          normal=normalize(normalMatrix*nL);}`);
   };
   m.customProgramCacheKey=()=>"des44rock"+(extra&&extra.inst?"i":"")+(extra&&extra.ven?"v":"");
@@ -1181,8 +1184,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
     for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.3),tau=s*SF.Tf,y=P.lipY+.05-.5*SF.G*tau*tau,c=req(y);
       const d=Math.max(P.lipD+.04+f.v0*tau,c+.3,dp);dp=d;path.push([d,y]);
       rows.push({d,y,s,w:hw*(1-.22*ss(0,.2,s)+[3.,2.4,1.2][f.ty]*Math.pow(ss(.05,1,s),1.25)),sl:Math.max(0,d-c-.3)})}
-    /* heavy falls hang a second, looser curtain just outside the first, so they have depth from afar */
-    for(let ly=0;ly<(f.ty?1:2);ly++){const o=pos.length/3,R0=ly?rows.filter(r=>r.s>=0):rows;
+    /* heavy falls hang a second, looser curtain just outside the first, so they have depth from afar (not on phones: it doubles the overdraw) */
+    for(let ly=0;ly<(f.ty||MOB?1:2);ly++){const o=pos.length/3,R0=ly?rows.filter(r=>r.s>=0):rows;
       for(const r of R0){const dd=r.d+ly*(.25+.9*r.s),cx=E.x+E.nx*dd,cz=E.z+E.nz*dd,w=r.w*(ly?1.18:1);
         for(let i=0;i<=nu;i++){const u=i/nu,lat=(u*2-1)*w;pos.push(cx+E.tx*lat,r.y-ly*.12,cz+E.tz*lat);aU.push(u,r.s);aK.push(f.k,f.sd+ly*23,hw,ly);aN.push(E.nx,E.nz,r.sl+ly*(.25+.9*r.s));aT.push(E.tx*lat,E.tz*lat)}}
       for(let j=0;j<R0.length-1;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}}
@@ -1234,8 +1237,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* in a dust storm the sheet comes off the lip in clumps and surges, its sides fraying into loose strands */
           /* even in still air a heavy pour comes in surges and clots, sand being grains, not a liquid */
           float cm=1.,sgU=1.,fr=0.,ly=vK.w,dkB=min(1.,max(dk*1.8,(.3+.25*ly)*smoothstep(.3,.8,hw)*smoothstep(.04,.3,s)));
-          if(dkB>.01){cm=fallN(vec2(Xw*.9+11.,sd),s,5.,24.)*.55+fallN(vec2(Xw*2.6+4.,sd*2.),s,12.,55.)*.45;sgU=fallN(vec2(Xw*.12+sd*.7,sd),s,1.5,6.);fr=fallN(vec2(x*13.+sd,0.),s,10.,40.);
-            str=mix(str,fallN(vec2(Xw*.7,9.),s,3.,14.)*.6+fallN(vec2(Xw*1.8+5.,2.),s,7.,30.)*.4,dk);}
+          if(dkB>.01){cm=fallN(vec2(Xw*.9+11.,sd),s,5.,24.)*.55+fallN(vec2(Xw*2.6+4.,sd*2.),s,12.,55.)*.45;sgU=fallN(vec2(Xw*.12+sd*.7,sd),s,1.5,6.);}
+          if(dk>.01){fr=fallN(vec2(x*13.+sd,0.),s,10.,40.);str=mix(str,fallN(vec2(Xw*.7,9.),s,3.,14.)*.6+fallN(vec2(Xw*1.8+5.,2.),s,7.,30.)*.4,dk);}
           float edge=smoothstep(0.,.05+.12*s,ed-(.04+.2*s)*ew*(1.+1.6*max(dk,dkB*.7))-.05*(1.-n2)*s-.1*dk*fr);
           /* a dense sheet off the lip that tears into strands lower down; each strand gives out at its own height, trickles soonest */
           float tear=mix(smoothstep(.36+.2*s,.5+.24*s,str),.45,ab);
@@ -1615,8 +1618,11 @@ function sunScreen(){
   const inF=_sp.z<1&&Math.abs(_sp.x)<1.4&&Math.abs(_sp.y)<1.4;
   gradeM.uniforms.uSun.value.set(_sp.x*.5+.5,_sp.y*.5+.5);gradeM.uniforms.uSunOn.value=inF?(1-ss(1,1.4,Math.max(Math.abs(_sp.x),Math.abs(_sp.y))))*(1-LK.night):0}
 
+/* phones redraw the shadow map every other frame: the dunes and the rim rock are most of its cost and move only with the sun */
+let _shF=0;
 function update(dt){
   if(!root.visible)return;
+  if(MOB&&Cn){Cn.shadowMap.autoUpdate=false;if(!(_shF++&1))Cn.shadowMap.needsUpdate=true}
   if(st.lock){applyLighting(0);sunScreen();return}
   step(Math.min(dt,.05))}
 function step(dt){
@@ -1743,9 +1749,9 @@ const RAIN=(()=>{const mk=(n,near)=>{const R=new Float32Array(n*16),C=new Float3
         #include <colorspace_fragment>
         }`});
     const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=8;o.visible=false;W.add(o);return o};
-  const far=mk(MOB?1300:2800,0),near=mk(MOB?600:1400,1);return{far,near,set visible(v){far.visible=near.visible=v}}})();
+  const far=mk(MOB?1000:2800,0),near=mk(MOB?450:1400,1);return{far,near,set visible(v){far.visible=near.visible=v}}})();
 /* splashes: each fires about once a second where the shower is falling; on the pond they are left to the water's rings */
-const SPL=(()=>{const n=MOB?600:1400,S0=new Float32Array(n*4),P=new Float32Array(n*3);let k=0;
+const SPL=(()=>{const n=MOB?450:1400,S0=new Float32Array(n*4),P=new Float32Array(n*3);let k=0;
   while(k<n){const x=rr(-25,25),z=rr(-20,20);if(sN(x,z)>.93||pN(x,z)<1.02)continue;const o=k*4;S0[o]=x;S0[o+1]=z;S0[o+2]=rnd();S0[o+3]=rnd();P[k*3]=x;P[k*3+1]=hTop0(x,z);P[k*3+2]=z;k++}
   const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("aS",new T.BA(S0,4));
   const m=new T.SM({uniforms:Object.assign({uH:{value:innerHeight}},rainU),transparent:true,depthWrite:false,
@@ -3040,7 +3046,7 @@ function show(on){
     else if(_bloomSave){bloom.threshold=_bloomSave.t;bloom.strength=_bloomSave.s;bloom.radius=_bloomSave.r;_bloomSave=null}}
   if(on){if(Ct.mode==="manual"&&!Ct.night)Ct.mode="sunset";if(Ct.mode==="night"){Ct.mode="full";Ct.night=true}
     if(Ct.weather==="hail"||Ct.weather==="snow")Ct.weather="cloud";applyLighting(0)}
-  else{const as=appSkyMesh();if(as){as.layers.disable(3);as.position.set(0,0,0)}if(pi&&_shMask!=null){pi.shadow.camera.layers.mask=_shMask;_shMask=null}
+  else{if(MOB&&Cn)Cn.shadowMap.autoUpdate=true;const as=appSkyMesh();if(as){as.layers.disable(3);as.position.set(0,0,0)}if(pi&&_shMask!=null){pi.shadow.camera.layers.mask=_shMask;_shMask=null}
     if(Ct.weather==="dust")Ct.weather="sun"}
   if(X.Ui)try{X.Ui()}catch(e){}
   HIDE.forEach(f=>f(on));

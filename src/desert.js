@@ -1402,21 +1402,26 @@ Ta.insertPass(grade,Ta.passes.length-1);
    (sky, the cloud sea past the rim, a trunk or a camel's legs), trembling with the hot air. The sand marks its pools in
    alpha (.985 sand, down to ~.5 in a pool; everything else 1); this pass, right after the scene and before bloom, looks
    straight up the screen for the first pixel that is not sand and mirrors the image about it */
-const mirM=new T.SM({uniforms:{tDiffuse:{value:null},uT:{value:0},uPx:{value:new T.V2(1,1)},uSky:{value:new C3()}},depthTest:false,depthWrite:false,
+const _mirW=new V3(1.28,.9,.48);
+const mirM=new T.SM({uniforms:{tDiffuse:{value:null},uT:{value:0},uPx:{value:new T.V2(1,1)},uSky:{value:new C3()},uTint:{value:new V3(1,1,1)}},depthTest:false,depthWrite:false,
   vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
-  fragmentShader:`uniform sampler2D tDiffuse;uniform float uT;uniform vec2 uPx;uniform vec3 uSky;varying vec2 vUv;${GLSL_NOISE}
+  fragmentShader:`uniform sampler2D tDiffuse;uniform float uT;uniform vec2 uPx;uniform vec3 uSky,uTint;varying vec2 vUv;${GLSL_NOISE}
     float isSand(float a){return step(.3,a)*step(a,.993);}
     void main(){vec4 c=texture2D(tDiffuse,vUv);float mk=isSand(c.a)*clamp((.985-c.a)/.48,0.,1.);
       if(mk<.004){gl_FragColor=vec4(c.rgb,1.);return;}
       vec2 px=vUv/uPx;
       vec2 sh=vec2(dn2(vec2(px.x*.035,px.y*.16-uT*4.))-.5,(dn2(vec2(px.x*.05+7.,px.y*.11-uT*3.))-.5)*.5)*uPx*(2.+5.*mk);
-      float y0=vUv.y,yl=-1.;
-      for(int i=1;i<=20;i++){float y=y0+float(i)*.012;if(y>.999)break;if(isSand(texture2D(tDiffuse,vec2(vUv.x,y)).a)<.5){yl=y;break;}}
-      float sl=dot(uSky,vec3(.3,.59,.11));vec3 r=mix(vec3(sl),uSky,.25)*vec3(.86,.93,1.04);
-      if(yl>0.){float lo=yl-.012,hi=yl;for(int k=0;k<4;k++){float m=.5*(lo+hi);if(isSand(texture2D(tDiffuse,vec2(vUv.x,m)).a)<.5)hi=m;else lo=m;}
-        float ym=hi+(hi-y0)*1.4+uPx.y*1.5;if(ym<.999)r=texture2D(tDiffuse,vec2(vUv.x,ym)+sh*2.).rgb;}
+      /* the mirrored image for one column: whatever stands just above the sand line, upside down and squashed; the further
+         the line, the more it gives way to the plain sky colour, and three neighbouring columns are averaged so a tall object
+         standing behind the pool does not cut it with a hard vertical edge */
+      vec3 r=vec3(0.);
+      for(int j=-1;j<=1;j++){float x=vUv.x+float(j)*uPx.x*(3.+5.*mk),y0=vUv.y,yl=-1.;vec3 rc=uSky;
+        for(int i=1;i<=20;i++){float y=y0+float(i)*.012;if(y>.999)break;if(isSand(texture2D(tDiffuse,vec2(x,y)).a)<.5){yl=y;break;}}
+        if(yl>0.){float lo=yl-.012,hi=yl;for(int k=0;k<4;k++){float m=.5*(lo+hi);if(isSand(texture2D(tDiffuse,vec2(x,m)).a)<.5)hi=m;else lo=m;}
+          float ym=hi+(hi-y0)*1.4+uPx.y*1.5;if(ym<.999)rc=mix(texture2D(tDiffuse,vec2(x,ym)+sh*2.).rgb,uSky,smoothstep(.13,.24,hi-y0));}
+        r+=rc*(j==0?.5:.25);}
       vec3 b=texture2D(tDiffuse,vUv+sh).rgb;
-      gl_FragColor=vec4(mix(b,r*vec3(.9,.95,1.02),smoothstep(0.,.6,mk)*.92),1.);}`});
+      gl_FragColor=vec4(mix(b,r*uTint,smoothstep(0.,.6,mk)*.92),1.);}`});
 const mirQ=new T.Mesh(new T.Plane(2,2),mirM);mirQ.frustumCulled=false;
 const mirP={enabled:false,needsSwap:true,clear:false,renderToScreen:false,setSize(){},dispose(){},render(r,w,rd){const u=mirM.uniforms;u.tDiffuse.value=rd.texture;u.uPx.value.set(1/rd.width,1/rd.height);
   r.setRenderTarget(this.renderToScreen?null:w);r.render(mirQ,gradeC)}};
@@ -1466,7 +1471,7 @@ function wxUpdate(dt){
   else{WX.wet=Math.max(0,WX.wet-dt*.0042*(.35+.9*(1-st.night)*(1-WX.ovc))*(.6+st.wn));WX.pit=Math.max(0,WX.pit-dt*(.001+.01*st.wn*(1-WX.wet)))}
   WX.after=WX.rain>.2?1:Math.max(0,WX.after-dt/240);
   const hot=w==="sun"?(Ct.ct==="clear"||Ct.ct==="cirrus"?1:.75):0;
-  WX.heat+=(hot*(LK.day+.3*LK.sunset+.15*LK.sunrise)*(1-WX.wet)-WX.heat)*k;
+  WX.heat+=(hot*(LK.day+.7*LK.sunset+.15*LK.sunrise)*(1-WX.wet)-WX.heat)*k;
   const sh=WX.dust>.45||(w==="storm"||w==="hrain")&&WX.rain>.6;WX.shel=sh?1:WX.dust<.35&&WX.rain<.45?0:WX.shel;
   const sunUp=(1-LK.night)*(1-ss(.62,.86,WX.ovc))*(1-WX.dust);
   WX.rb+=(cl(Math.max(WX.rain*3,WX.after>.88?(WX.after-.88)/.12:0),0,1)*sunUp*(.55+.45*(LK.sunset+LK.sunrise))-WX.rb)*(dt>0?1-Math.exp(-dt*.25):1);
@@ -1577,8 +1582,10 @@ UPD.push((dt,t)=>{
      streamers running down it; streak speed follows the wind */
   const salt=ss(.14,.55,wd);SALT=salt;
   sandU.uFlowT.value+=dt*(1.6+2.2*gD)*(.3+wd*2.2);sandU.uRipPh.value+=dt*.1*(.3+gD)*wk;sandU.uFlowK.value=salt*cl(.55+wd*.9,0,1.35)*(1-.85*WX.wet)*(1+1.3*WX.dust);
-  sandU.uWetK.value=WX.wet;sandU.uPitK.value=WX.pit;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;tentU.uT.value=t;tentU.uRn.value=Math.max(ss(.03,.4,WX.rain),ss(.9,1,WX.after));if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.25);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}
-  mirP.enabled=root.visible&&WX.heat>.01;mirM.uniforms.uT.value=t;mirM.uniforms.uSky.value.copy(sandU.uMirC.value);rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;
+  sandU.uWetK.value=WX.wet;sandU.uPitK.value=WX.pit;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;tentU.uT.value=t;tentU.uRn.value=Math.max(ss(.03,.4,WX.rain),ss(.9,1,WX.after));if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.08);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}
+  mirP.enabled=root.visible&&WX.heat>.01;mirM.uniforms.uT.value=t;mirM.uniforms.uSky.value.copy(sandU.uMirC.value);
+  /* the low sun warms the air layer, so the mirrored sky comes back amber at dusk */
+  mirM.uniforms.uTint.value.set(.95,.95,.95).lerp(_mirW,Math.max(LK.sunset,LK.sunrise*.7));rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;
   pondU.uRainP.value=WX.rain;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
@@ -2845,9 +2852,13 @@ const agSun=()=>(1-st.night)*WX.sunK*(1-WX.rain)*(1-.5*WX.dust)*(st.phase==="day
 const agGrid=()=>navGrid("agama",.05,1.12,.86);
 function agGo(a,goal,then){const p=navPath(agGrid(),a.x,a.z,goal.x,goal.z)||[{x:a.x,z:a.z},{x:goal.x,z:goal.z}];
   a.path=p;a.pi=1;a.then=then;a.goal=goal;a.mode="run";a.burst=rr(.8,2.8);play(a.r,"run",.12,AG_V/AG_RUN)}
+/* rain shelter: under the crown but below where its fronds hang, so it stays in view from the side */
+const agRainT=pp=>Math.max(.3,(pp.h-3.1)/pp.h);
 function agNearPalm(a){let b=null,bd=1e9;for(const pp of PALMS){const d=Math.hypot(pp.x-a.x,pp.z-a.z);if(d<bd){bd=d;b=pp}}return b}
-function agPalmBase(a,pp){const dx=a.x-pp.x,dz=a.z-pp.z,l=Math.hypot(dx,dz)||1,r=pp.rad(0)+.14;return{x:pp.x+dx/l*r,z:pp.z+dz/l*r,pp}}
+/* it goes up the side of the trunk that faces the viewer, so a lizard this small is not hidden behind the palm */
+function agPalmBase(a,pp){let dx=_cl.x-pp.x,dz=_cl.z-pp.z;if(Math.hypot(dx,dz)<.01){dx=a.x-pp.x;dz=a.z-pp.z}const l=Math.hypot(dx,dz)||1,r=pp.rad(0)+.14;return{x:pp.x+dx/l*r,z:pp.z+dz/l*r,pp}}
 function agMount(a,pp){const f=trunkAt(pp,.03,0),dx=a.x-pp.x,dz=a.z-pp.z;a.palm=pp;a.az=Math.atan2(dx*f.B.x+dz*f.B.z,dx*f.N.x+dz*f.N.z);
+  if(AG.list.some(o=>o!==a&&o.palm===pp))a.az+=a.male?.8:-.8;
   a.ct=.12/pp.h;a.down=false;a.turn=null;a.mode="climb";play(a.r,"climb",.1,AG_VC/AG_CLIMB)}
 function agClimb(a,goal){a.ctGoal=goal;const dn=goal<a.ct;if(dn!==a.down){a.down=dn;a.turn=0}a.mode="climb";play(a.r,"climb",.15,AG_VC/AG_CLIMB)}
 function agDismount(a){const f=trunkAt(a.palm,.02,a.az),pp=a.palm;a.x=pp.x+f.n.x*(pp.rad(0)+.2);a.z=pp.z+f.n.z*(pp.rad(0)+.2);a.yaw=Math.atan2(f.n.x,f.n.z);
@@ -2859,10 +2870,10 @@ function agDecide(a){const night=st.night>.5,rain=WX.rain>.25,sun=agSun();a.cond
   if(night){if(a.palm){agClimb(a,0);return}const sp=a.spot||AG.spots[0],h={x:sp.x+.25*Math.sin(SUN.lazL),z:sp.z+.25*Math.cos(SUN.lazL)};
     if(Math.hypot(a.x-h.x,a.z-h.z)<.3){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}agGo(a,h,"hide");return}
   a.g.visible=true;
-  if(rain){if(a.palm){const tg=(a.palm.h-1.1)/a.palm.h;if(Math.abs(a.ct-tg)>.01){agClimb(a,tg);return}a.mode="perch";a.timer=rr(8,14);play(a.r,"climb",.2,0);return}
+  if(rain){if(a.palm){const tg=agRainT(a.palm)-(a.male?0:.45/a.palm.h);if(Math.abs(a.ct-tg)>.01){agClimb(a,tg);return}a.mode="perch";a.timer=rr(8,14);play(a.r,"climb",.2,0);return}
     const pp=agNearPalm(a);agGo(a,agPalmBase(a,pp),"climb");a.goal.rain=1;return}
   if(a.palm){if(a.Tb<.55&&sun>.3){agClimb(a,0);return}
-    if(rnd()<.35){agClimb(a,cl(a.ct+rr(-.15,.2),.15/a.palm.h,(a.palm.h-1.4)/a.palm.h));return}
+    if(rnd()<.35){agClimb(a,cl(a.ct+rr(-.15,.2),.15/a.palm.h,(a.palm.h-2.2)/a.palm.h));return}
     a.mode="perch";a.timer=rr(8,20);play(a.r,"climb",.25,0);if(!a.down&&rnd()<.6){a.down=true;a.turn=0}return}
   if(a.Tb<.85&&sun>.35){const fr=AG.spots.filter(s=>s!==a.spot||a.mode==="bask");const sp=fr.length?fr[Math.floor(rnd()*fr.length)]:AG.spots[0];
     if(a.spot===sp&&a.ry>-50){agBask(a,sp);return}agGo(a,{x:sp.x,z:sp.z,y:sp.y,sp},"bask");return}
@@ -2870,7 +2881,7 @@ function agDecide(a){const night=st.night>.5,rain=WX.rain>.25,sun=agSun();a.cond
   const w=randFree(agGrid(),GROVE.x,GROVE.z,9);if(w){agGo(a,w,"idle");return}
   a.mode="idle";a.timer=rr(3,8);play(a.r,"idle",.3,1)}
 function agArrive(a){const k=a.then,g=a.goal;a.path=null;
-  if(k==="climb"){agMount(a,g.pp);a.ctGoal=g.rain?(g.pp.h-1.1)/g.pp.h:rr(1.5,4)/g.pp.h;return}
+  if(k==="climb"){agMount(a,g.pp);a.ctGoal=g.rain?agRainT(g.pp)-(a.male?0:.45/g.pp.h):Math.min(rr(1.5,3.5),g.pp.h-2.2)/g.pp.h;return}
   if(k==="bask"){agBask(a,g.sp);return}
   if(k==="hide"){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}
   a.mode="idle";a.timer=rr(2,6);play(a.r,"idle",.25,1)}
@@ -2953,7 +2964,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

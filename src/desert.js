@@ -603,9 +603,14 @@ let pondMesh=null;
         vec3 rd=reflect(-V,n);
         vec3 sky=mix(uSkyA,uSkyB,smoothstep(.0,.8,rd.y));
         vec3 refl=sky;
-        if(uReflOn>.5){vec2 ruv=vR.xy/vR.w+n.xz*.016;vec4 rc=texture2D(uRefl,clamp(ruv,0.,1.));
+        /* from the usual distance single rings are below a pixel: the drops show as a matte, broken sheen with splashes winking on it */
+        float rFar=uRainP*smoothstep(.006,.03,length(fwidth(vP.xz)));
+        vec2 rJ=(vec2(dn2(vP.xz*14.+uT*2.3),dn2(vP.xz*14.+vec2(5.2,1.7)-uT*2.1))-.5)*.05*rFar;
+        if(uReflOn>.5){vec2 ruv=vR.xy/vR.w+n.xz*.016+rJ;vec4 rc=texture2D(uRefl,clamp(ruv,0.,1.));
           rc=(any(isnan(rc))||any(isinf(rc)))?vec4(0.):clamp(rc,0.,1.);refl=mix(refl,rc.rgb*.7,rc.a*.92);}
         vec3 c=mix(body,refl,clamp(fr*1.05+.12,0.,.92));
+        if(rFar>.001){c=mix(c,mix(uSkyA,uSkyB,.5)*.7+body*.3,.24*rFar);
+          vec2 sc=floor(vP.xz*16.);float sk=step(.965-.04*uRainP,dh2(sc+floor(uT*6.+dh2(sc+4.1)*6.)*.37));c+=sk*.1*rFar*(1.-.6*uNight);}
         /* a faint darker band where the water meets the shore, and fine wind-roughened sparkle */
         c*=1.-.18*(1.-smoothstep(.0,.12,vD));
         float gl=pow(max(dot(rd,uSunL),0.),220.)*(1.-uNight),sp=pow(max(dot(rd,uSunL),0.),36.)*smoothstep(.55,.85,dn2(vP.xz*9.+uT*1.3))*(1.-uNight);

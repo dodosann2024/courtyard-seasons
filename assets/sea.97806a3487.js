@@ -1619,7 +1619,9 @@ function sound(dt,E){const x=SX();if(!aOK()){return}if(!aBus())return;const c=x.
   if(AU.cl<=0&&rnd()<.4){AU.cl=rr(2,5);toW(-2.9,1.86,0,sw);shot(rnd()<.5?"zClk1":"zClk2",cl(Math.abs(st.r)*4,.12,.35),sw,rr(.95,1.05))}}
  if(pvv*AU.pv<0&&Math.abs(st.p)>.022&&rnd()<.5){toW(rr(-1.5,1.5),.2,0,sw);shot("zCr2",cl(Math.abs(st.p)*6,.18,.55),sw,rr(.85,1.1))}
  AU.rv=rv;AU.pv=pvv;
- if(!AU.bell)AU.bell=st.t+rr(25,60);else if(st.t>AU.bell){AU.bell=st.t+rr(70,150)*(E.storm?.5:1);toW(2.2,1.12,0,sw);shot("zBel",.5,sw,1)}
+ if(!AU.bell)AU.bell=st.t+rr(25,60);else if(st.t>AU.bell){const fg=E.w==="fog";AU.bell=st.t+(fg?rr(18,30):rr(70,150)*(E.storm?.5:1));toW(2.2,1.12,0,sw);shot("zBel",.5,sw,1);
+  /* in fog she rings it as a signal, two strokes at a time */
+  if(fg){const p=sw.clone();setTimeout(()=>shot("zBel",.4,p,.985),950)}}
  /* canvas: flogging when the sails lose the wind, snaps in gusts */
  const luf=cl(.06+.55*E.wn*(.3+.7*(1-E.fill))+.25*E.storm+.15*(E.slk||0)*(.4+.6*E.wn),0,.85);AU.fl-=dt;
  if(AU.fl<=0){AU.fl=rr(2,7)/(.3+E.wn*1.6);if(E.wn>.3&&rnd()<.4+.6*(1-E.fill)){toW(rr(-.5,1.6),rr(2.2,4.5),0,sw);shot(rnd()<.5?"zFl1":"zFl2",cl(.2+.5*E.wn,.2,.7),sw,rr(.9,1.1))}}

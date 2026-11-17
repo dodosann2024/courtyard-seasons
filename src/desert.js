@@ -327,19 +327,19 @@ function sandMat(){
         /* aerial perspective: far sand takes a little of the sky's colour */
         float dC=length(cameraPosition-vWP);outgoingLight=mix(outgoingLight,uHaze*(.55+.45*(1.-uNight))*.9,.14*smoothstep(22.,75.,dC));
         /* heat: far sand shimmers, and a mirage shows the sky in the sand as broken blue-grey pools that drift, split and
-           breathe with the heat. A real mirage needs grazing angles (under ~9 degrees); the island is small and is normally seen
-           from ~20 degrees, so the far sand at that angle gets a fainter form of it */
+           breathe with the heat. A real mirage needs grazing angles (under ~9 degrees): from the usual high view only the farthest
+           flat sand, seen at its lowest angle, keeps a faint trace of it, so the island top never reads as standing water */
         if(uHeat>.01){float dM=dC/${S.toFixed(3)},fl=smoothstep(.85,.95,normalize(vSN).y);
-          float gz=smoothstep(.16,.035,V.y)*smoothstep(4.,12.,dM)*fl,gf=smoothstep(.5,.32,V.y)*smoothstep(25.,45.,dM)*fl;
+          float gz=smoothstep(.16,.035,V.y)*smoothstep(4.,12.,dM)*fl,gf=smoothstep(.3,.2,V.y)*smoothstep(38.,55.,dM)*fl*.45;
           vec2 vh=normalize(V.xz+vec2(1e-5));float ax=dot(vSP.xz,vec2(-vh.y,vh.x)),ay=dot(vSP.xz,vh);
           float sh=dn2(vec2(ax*.6,ay*2.4-uTm*1.6))*.6+dn2(vec2(ax*1.9,ay*5.-uTm*2.9))*.4;
           float pu=.62+.38*(.5+.5*sin(uTm*.37+ax*.04))*(.6+.4*sin(uTm*.21+1.3));
           float w=uHeat*pu*max(gz,gf);
           outgoingLight*=1.+uHeat*(.05+.14*max(gz,gf))*(sh-.5);
           /* pools stretched across the line of sight; the shimmer is fine ripples rising through them */
-          float pl=dn2(vec2(ax*.16+uTm*.045,ay*.5-uTm*.035))*.68+dn2(vec2(ax*.45-uTm*.08,ay*1.3+uTm*.05))*.32;
+          float pl=dn2(vec2(ax*.34+uTm*.045,ay*1.05-uTm*.035))*.68+dn2(vec2(ax*.9-uTm*.08,ay*2.6+uTm*.05))*.32;
           float sm=dn2(vec2(ax*1.6,ay*11.-uTm*4.2))*.55+dn2(vec2(ax*4.2+3.,ay*24.-uTm*7.))*.45;
-          float mk=min(1.,w*1.45)*smoothstep(.54,.7,pl+.08*w)*(.45+.55*smoothstep(.2,.7,sm));
+          float mk=min(1.,w*1.3)*smoothstep(.6,.74,pl+.08*w)*(.45+.55*smoothstep(.2,.7,sm));
           mkO=mk;}}
       #include <opaque_fragment>
         /* the mirage itself is drawn by the screen pass (mirP): sand tells it where it is and how strong, in alpha */

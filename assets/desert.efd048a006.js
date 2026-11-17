@@ -273,7 +273,7 @@ function sandMat(){
            an even wet skin. Drying runs the other way and breaks the skin up again: crests, slopes and the dune top first,
            hollows last. Each drop also leaves a pit, a little crater with a thrown-up rim, which the wind wears away later. */
         float rWM=0.;vec2 pitG=vec2(0.);
-        if(uWetK>.002||uPitK>.002){float fwc2=length(fwidth(vSP.xz)),near=1.-smoothstep(.002,.006,fwc2);
+        if(uWetK>.002||uPitK>.002){float fwc2=length(fwidth(vSP.xz));
           float dryB=.35*smoothstep(1.,4.5,vSP.y)+.15*nz2+.25*smoothstep(.12,.4,slope);
           float lvl=uWetK*1.25-dryB*.7+(nz-.5)*.3+(dn2(vSP.xz*1.7+4.)-.5)*.35;
           float blob=smoothstep(-.04,.14,lvl-.25+(dn2(vSP.xz*7.)-.5)*.35+(dn2(vSP.xz*19.+2.)-.5)*.18);
@@ -283,15 +283,21 @@ function sandMat(){
             dots=max(dots,step(h,uWetK*2.6)*smoothstep(rd,rd*.6,length(cf-off*.45))*(.65+.35*dh2(ci+2.2)));}
           dots*=1.-smoothstep(.006,.03,fwc2);
           rWM=max(blob,dots*.85)*(1.-wet);sc=mix(sc,sc*vec3(.42,.37,.32),rWM);
-          if(uPitK>.002&&near>.01){
+          /* pits keep their shape out to a few metres; further on, where one is only a few pixels, it is kept as a soft dark fleck */
+          float pnr=1.-smoothstep(.005,.02,fwc2),pfar=1.-smoothstep(.02,.07,fwc2);
+          if(uPitK>.002&&pfar>.01){
             for(int L=0;L<${MOB?1:2};L++){vec2 cg=vSP.xz*(L==0?16.:27.)+float(L)*5.7,ci=floor(cg),cf=fract(cg)-.5,off=(vec2(dh2(ci+1.9),dh2(ci+4.4))-.5)*.4;
-              float h=dh2(ci+8.8)/(L==0?.7:.45);if(h>uPitK)continue;float rp=.1+.2*pow(dh2(ci+6.1),1.5);vec2 d=cf-off;float r=length(d)/rp;
+              float h=dh2(ci+8.8)/(L==0?.7:.45);if(h>uPitK)continue;float rp=.12+.18*pow(dh2(ci+6.1),1.5);vec2 d=cf-off;float r=length(d)/rp;
               /* bowl falling to the centre, rim heaped just outside it; fresh pits are sharp, older ones slumped */
-              float age=clamp((uPitK-h)*6.,0.,1.),dr=(r<1.?2.*r:0.)-.7*(r-1.1)/.03*exp(-(r-1.1)*(r-1.1)/.03);
+              float age=clamp((uPitK-h)*6.,0.,1.),rg=exp(-(r-1.1)*(r-1.1)/.03),dr=(r<1.?2.*r:0.)-.7*(r-1.1)/.03*rg;
               pitG+=d/max(length(d),1e-4)*dr*(1.-.55*age)*(L==0?1.:.7);
-              sc*=1.-.12*smoothstep(1.,.3,r)*(1.-.5*age)*(.4+.6*uWetK);}
-            pitG*=near*.32;}
-          sc*=1.-.05*uPitK*(1.-near);}
+              /* the drop wets and darkens the bowl; the thrown-up rim is drier, lighter sand. Finer than a few pixels a pit
+                 fades to the average darkening of the cell, so it does not sparkle */
+              float px=clamp(fwc2*(L==0?16.:27.)/rp*1.6-.6,0.,1.),fresh=1.-.5*age;
+              float bowl=mix(smoothstep(1.05,.35,r),.42*rp*rp*3.14,px),rim=mix(rg,0.,px);
+              sc*=(1.-.3*bowl*fresh*(.5+.5*uWetK))*(1.+.16*rim*fresh*pnr);}
+            pitG*=pnr*.45;}
+          sc*=1.-.05*uPitK*(1.-pfar);}
         /* close up the sand shows a fine, soft mottle of lighter and darker grains (smooth noise only: no cells to alias into squares) */
         {float fwc=length(fwidth(vSP.xz)),gd=1.-smoothstep(.006,.035,fwc);
          float g1=dn2(vSP.xz*71.+1.3),g2=dn2(vSP.xz*17.+5.);
@@ -327,19 +333,19 @@ function sandMat(){
         /* aerial perspective: far sand takes a little of the sky's colour */
         float dC=length(cameraPosition-vWP);outgoingLight=mix(outgoingLight,uHaze*(.55+.45*(1.-uNight))*.9,.14*smoothstep(22.,75.,dC));
         /* heat: far sand shimmers, and a mirage shows the sky in the sand as broken blue-grey pools that drift, split and
-           breathe with the heat. A real mirage needs grazing angles (under ~9 degrees); the island is small and is normally seen
-           from ~20 degrees, so the far sand at that angle gets a fainter form of it */
+           breathe with the heat. A real mirage needs grazing angles (under ~9 degrees): from the usual high view only the farthest
+           flat sand, seen at its lowest angle, keeps a faint trace of it, so the island top never reads as standing water */
         if(uHeat>.01){float dM=dC/${S.toFixed(3)},fl=smoothstep(.85,.95,normalize(vSN).y);
-          float gz=smoothstep(.16,.035,V.y)*smoothstep(4.,12.,dM)*fl,gf=smoothstep(.5,.32,V.y)*smoothstep(25.,45.,dM)*fl;
+          float gz=smoothstep(.16,.035,V.y)*smoothstep(4.,12.,dM)*fl,gf=smoothstep(.3,.2,V.y)*smoothstep(38.,55.,dM)*fl*.45;
           vec2 vh=normalize(V.xz+vec2(1e-5));float ax=dot(vSP.xz,vec2(-vh.y,vh.x)),ay=dot(vSP.xz,vh);
           float sh=dn2(vec2(ax*.6,ay*2.4-uTm*1.6))*.6+dn2(vec2(ax*1.9,ay*5.-uTm*2.9))*.4;
           float pu=.62+.38*(.5+.5*sin(uTm*.37+ax*.04))*(.6+.4*sin(uTm*.21+1.3));
           float w=uHeat*pu*max(gz,gf);
           outgoingLight*=1.+uHeat*(.05+.14*max(gz,gf))*(sh-.5);
           /* pools stretched across the line of sight; the shimmer is fine ripples rising through them */
-          float pl=dn2(vec2(ax*.16+uTm*.045,ay*.5-uTm*.035))*.68+dn2(vec2(ax*.45-uTm*.08,ay*1.3+uTm*.05))*.32;
+          float pl=dn2(vec2(ax*.34+uTm*.045,ay*1.05-uTm*.035))*.68+dn2(vec2(ax*.9-uTm*.08,ay*2.6+uTm*.05))*.32;
           float sm=dn2(vec2(ax*1.6,ay*11.-uTm*4.2))*.55+dn2(vec2(ax*4.2+3.,ay*24.-uTm*7.))*.45;
-          float mk=min(1.,w*1.45)*smoothstep(.54,.7,pl+.08*w)*(.45+.55*smoothstep(.2,.7,sm));
+          float mk=min(1.,w*1.3)*smoothstep(.6,.74,pl+.08*w)*(.45+.55*smoothstep(.2,.7,sm));
           mkO=mk;}}
       #include <opaque_fragment>
         /* the mirage itself is drawn by the screen pass (mirP): sand tells it where it is and how strong, in alpha */
@@ -1149,7 +1155,7 @@ function curtainUpdate(t){
    drops straight down off the lip close to the cliff face (sand has no jet momentum; its path is fitted to the cliff mesh), tears into strands and grains and thins into dust
    above the cloud sea. Wind sets the rate: more on the downwind rim and in gusts and dust storms; rain damps the sand into a few
    darker, lighter trickles. Sand is not water: most of the rim only sheds short broken trickles off the creeping veneer, and a few
-   heavy falls hang a dense drape off the lip that fans out, clumps and surges, and gives itself up to dust drifting downwind. */
+   heavier falls hang a narrow column off the lip that clumps and surges and, at its foot only, gives itself up to dust drifting downwind. */
 const SF={H:28,G:9.8,F:[]};SF.Tf=Math.sqrt(2*SF.H/SF.G);
 const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value:0},uNt:{value:0},uWV:{value:new T.V2()},
   uCol:curU.uCol,uSheen:curU.uSheen,uLd:sandU.uLd,uGT:sandU.uGT,uWD:sandU.uWD,uFogC:pondU.uFogC,uFogNF:pondU.uFogNF};
@@ -1157,7 +1163,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   /* a seed of their own, so the falls do not shift the rest of the layout */
   let ps=5281;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^ps>>>15,1|ps);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},prr=(a,b)=>a+(b-a)*pr();
   /* [half width min, max, rate threshold min, max] for heavy falls, thinner falls, trickles */
-  const kinds=[[1.5,2.3,0,.04],[.5,.85,.03,.16],[.05,.13,.04,.34]],pat=[0,2,2,2,1,2,2,2],nF=MOB?32:48,sl=TAU/nF;
+  const kinds=[[.55,.85,0,.04],[.28,.45,.03,.16],[.05,.12,.04,.34]],pat=[0,2,2,2,1,2,2,2],nF=MOB?32:48,sl=TAU/nF;
   const rp=rockMesh.geometry.attributes.position.array,nV=rp.length/3,LIPV=3*NT;
   const frame=th=>{const[x,z]=edgeXZ(th,1),[x1,z1]=edgeXZ(th+.02,1),[x0,z0]=edgeXZ(th-.02,1),l=Math.hypot(x1-x0,z1-z0),tx=(x1-x0)/l,tz=(z1-z0)/l;return{x,z,tx,tz,nx:tz,nz:-tx}};
   /* the cliff under a fall: the furthest-out rock at each 0.5 m of depth below the lip crest, and the lip's crest height and offset */
@@ -1184,7 +1190,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
     let dp=P.lipD;const path=[];
     for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.3),tau=s*SF.Tf,y=P.lipY+.05-.5*SF.G*tau*tau,c=req(y);
       const d=Math.max(P.lipD+.04+f.v0*tau,c+.14,dp);dp=d;path.push([d,y]);
-      rows.push({d,y,s,w:hw*(1-.22*ss(0,.2,s)+[1.3,1.,.5][f.ty]*Math.pow(ss(.05,1,s),1.25)),sl:Math.max(0,d-c-.14)})}
+      rows.push({d,y,s,w:hw*(1-.18*ss(0,.25,s)+.12*ss(.75,1,s)),sl:Math.max(0,d-c-.14)})}
     /* heavy falls hang a second, looser curtain just outside the first, so they have depth from afar (not on phones: it doubles the overdraw) */
     for(let ly=0;ly<(f.ty||MOB?1:2);ly++){const o=pos.length/3,R0=ly?rows.filter(r=>r.s>=0):rows;
       for(const r of R0){const dd=r.d+ly*(.14+.22*r.s),cx=E.x+E.nx*dd,cz=E.z+E.nz*dd,w=r.w*(ly?1.18:1);
@@ -1200,9 +1206,9 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         /* the downwind rim pours first; as the wind veers, falls on the rim it now blows across start and others ease off */
         float wl=length(uWV),k=aK.x+.22*(.5-.5*dot(n,uWV/max(wl,1e-4))),s=aU.y,vis=smoothstep(k,k+.3,uFR);vVis=vis;vec3 p=position;
         p.xz-=aT*(1.-(.45+.55*vis)*(1.+.25*clamp(uFR-1.,0.,1.)));
-        if(s>0.){float f=pow(s,2.4);
-          /* the wind only drifts the lower, dusty part a little downwind and sways it; it may lean in toward the cliff only as far as the clearance allows */
-          vec2 tg=vec2(-n.y,n.x),dr=uWV*f*(.6+.8*gustF(p.xz))*.45+tg*sin(uT*.8+aK.y)*.1*f;
+        if(s>0.){float f=pow(smoothstep(.45,1.,s),1.5);
+          /* the column hangs plumb; only its dissolving foot is carried off downwind and sways; it may lean in toward the cliff only as far as the clearance allows */
+          vec2 tg=vec2(-n.y,n.x),dr=uWV*f*(.6+.8*gustF(p.xz))*.9+tg*sin(uT*.8+aK.y)*.12*f;
           float side=dot(dr,tg);dr-=tg*side*(1.-.8*smoothstep(.45,.9,s));
           float inw=dot(dr,n);dr-=n*(inw-max(inw,-aN.z));p.xz+=dr;}
         vec4 w=modelMatrix*vec4(p,1.);vW=w.xyz;
@@ -1223,7 +1229,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* the run: sand creeping and hopping over the surface toward the lip, a faint streaming band */
           float g=s+1.,q=dn2(vec2(tx*.6,s*5.-uFT*1.3))*.6+dn2(vec2(tx*1.7+3.,s*11.-uFT*2.6))*.4;
           vec2 gq=vec2(x*Nt*3.,s*40.-uFT*9.),gc=floor(gq),gf=fract(gq)-.5;float gr=step(.84-.12*g,dh2(gc))*exp(-dot(gf,gf)*9.);
-          a=(smoothstep(.45,.75,q)*.32+gr*.45)*smoothstep(0.,.4,g)*smoothstep(0.,.3,ed)*mix(1.,.45,uWet)*(1.+.9*smoothstep(.8,1.6,hw))*smoothstep(-.1,.4,cameraPosition.y-vW.y);
+          a=(smoothstep(.45,.75,q)*.32+gr*.45)*smoothstep(0.,.4,g)*smoothstep(0.,.3,ed)*mix(1.,.45,uWet)*(1.+.9*smoothstep(.4,.75,hw))*smoothstep(-.1,.4,cameraPosition.y-vW.y);
           c=base*(1.06+.12*q);
         }else{
           /* u rides with the falling sand: anything scrolled at this rate in s moves with the grains and stretches as they speed up */
@@ -1237,7 +1243,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float ew=dn2(vec2(x*1.7+sd,u*1.1))*.6+dn2(vec2(x*4.1+sd,u*3.3))*.4,dk=uDust*mix(.6,1.,smoothstep(0.,.3,s));
           /* in a dust storm the sheet comes off the lip in clumps and surges, its sides fraying into loose strands */
           /* even in still air a heavy pour comes in surges and clots, sand being grains, not a liquid */
-          float cm=1.,sgU=1.,fr=0.,ly=vK.w,dkB=min(1.,max(dk*1.8,(.3+.25*ly)*smoothstep(.3,.8,hw)*smoothstep(.04,.3,s)));
+          float cm=1.,sgU=1.,fr=0.,ly=vK.w,dkB=min(1.,max(dk*1.8,(.3+.25*ly)*smoothstep(.25,.6,hw)*smoothstep(.04,.3,s)));
           if(dkB>.01){cm=fallN(vec2(Xw*.9+11.,sd),s,5.,24.)*.55+fallN(vec2(Xw*2.6+4.,sd*2.),s,12.,55.)*.45;sgU=fallN(vec2(Xw*.12+sd*.7,sd),s,1.5,6.);}
           if(dk>.01){fr=fallN(vec2(x*13.+sd,0.),s,10.,40.);str=mix(str,fallN(vec2(Xw*.7,9.),s,3.,14.)*.6+fallN(vec2(Xw*1.8+5.,2.),s,7.,30.)*.4,dk);}
           float edge=smoothstep(0.,.05+.12*s,ed-(.04+.2*s)*ew*(1.+1.6*max(dk,dkB*.7))-.05*(1.-n2)*s-.1*dk*fr);
@@ -1247,7 +1253,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* trickles come in spurts */
           if(hw<.3)body*=smoothstep(.42,.7,fallN(vec2(sd,3.),s,1.2,5.))*(.75-.35*smoothstep(.1,.3,s));
           body*=1.-.45*ly;
-          float endS=mix(.3,.62,smoothstep(.4,1.6,hw))-.1*ly+mix(.16,.3,smoothstep(.9,1.5,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
+          float endS=mix(.3,.62,smoothstep(.2,.7,hw))-.1*ly+mix(.16,.3,smoothstep(.4,.75,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
           /* grains, streaked by their speed; more of them shed at the sides and the foot */
           vec2 dq=vec2(x*Nt*2.2+sd,u*70.),dc=floor(dq);float dh=dh2(dc);vec2 df=fract(dq)-.5-(vec2(dh2(dc+3.1),dh2(dc+7.7))-.5)*.6;df.y*=mix(1.,.35,smoothstep(.1,.7,s));
           vec2 gw=fwidth(dq);float gd=.9-.2*(1.-edge)-.18*smoothstep(.4,.9,s)+.06*wet-.12*dk;
@@ -1256,7 +1262,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float du=dn2(vec2(x*2.3+sd,u*2.6))*.6+dn2(vec2(x*5.+sd*2.,u*6.))*.4;
           /* in a storm the veil is torn too: drifting clots of dust with ragged sides, not an even haze */
           float vc=dk>.01?fallN(vec2(x*3.1+sd,5.),s,2.5,10.):.5;
-          float dust=smoothstep(.12,.55,s)*(1.-smoothstep(.45+.35*uDust,.8+.2*uDust,s))*smoothstep(-.1,.45,ed+.25*du-.35*dk*(fr-.4))*(.3+.5*du)*(.7+.6*uDust)*mix(1.,(.2+.8*cm)*(.05+1.6*smoothstep(.35,.72,vc)),dk)*(1.-.8*wet)*smoothstep(.25,.9,hw)*(.6+.4*smoothstep(.9,1.6,hw));
+          float dust=smoothstep(.3,.65,s)*(1.-smoothstep(.72+.15*uDust,.97,s))*smoothstep(-.1,.45,ed+.25*du-.35*dk*(fr-.4))*(.3+.5*du)*(.7+.6*uDust)*mix(1.,(.2+.8*cm)*(.05+1.6*smoothstep(.35,.72,vc)),dk)*(1.-.8*wet)*smoothstep(.12,.5,hw)*(.6+.4*smoothstep(.4,.75,hw));
           float bc=body*cut;
           a=(bc*(.62+.38*str)+grain*.85*(1.-smoothstep(.9,1.,s)))+dust*(1.-.6*bc);
           /* thick sheet shades itself; thin strands and edges catch the light */
@@ -1282,7 +1288,7 @@ const SFDP=[];{let ps=9127;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^p
 function sfDust(q){const F=SF.F,pr=SFD.pr;let f=F[q.f];
   /* heavier falls shed more dust */
   for(let k=0;k<5;k++){const c=F[Math.floor(pr()*F.length)];if(c.hw>f.hw||pr()<.15)f=c}
-  q.f=F.indexOf(f);q.s=.5+.55*Math.min(f.hw,2.2);const j=Math.floor((q.hz?.55+.4*pr():.25+.55*pr())*(f.path.length-1)),[d,y]=f.path[j],s=j/(f.path.length-1),lat=(pr()*2-1)*f.hw,dr=Math.pow(s,2.4)*.45*sfU.uWV.value.length();
+  q.f=F.indexOf(f);q.s=.5+.55*Math.min(f.hw,2.2);const j=Math.floor((q.hz?.55+.4*pr():.25+.55*pr())*(f.path.length-1)),[d,y]=f.path[j],s=j/(f.path.length-1),lat=(pr()*2-1)*f.hw,dr=Math.pow(ss(.45,1,s),1.5)*.9*sfU.uWV.value.length();
   q.x=f.E.x+f.E.nx*(d+.2)+f.E.tx*lat+WIND.x*dr;q.z=f.E.z+f.E.nz*(d+.2)+f.E.tz*lat+WIND.z*dr;q.y=y;
   q.vx=WIND.x*(.12+.2*pr())+f.E.nx*.05;q.vz=WIND.z*(.12+.2*pr())+f.E.nz*.05;q.vy=-1.2-1.2*pr();q.life=0;q.dur=q.hz?6+4*pr():2.5+3*pr();if(q.hz){q.vx*=1.4;q.vz*=1.4;q.vy*=.5}}
 function sandFallsUpdate(dt,t,wn,nk){
@@ -2674,12 +2680,12 @@ const _yAx=new V3(0,1,0);
 function capE(e){if(AU.cap){AU.cap.ev.push([+(st.t-AU.cap.t0).toFixed(3)].concat(e));if(AU.cap.ev.length>4e5)AU.cap.ev.length=0}}
 function voice(c,out,pan,lpf){const g=c.createGain(),f=c.createBiquadFilter(),pn=c.createStereoPanner?c.createStereoPanner():null;f.type="lowpass";f.Q.value=.5;f.frequency.value=lpf;
   g.connect(f);if(pn){pn.pan.value=pan;f.connect(pn);pn.connect(out)}else f.connect(out);return{g,f,pn}}
-function loopS(id,k,v,p,ref,rate){let pan=0,lpf=19000;if(p){const q=spat(p,ref);pan=q[0];v*=q[1];lpf=q[2]}rate=rate||1;
+function loopS(id,k,v,p,ref,rate,tc){let pan=0,lpf=19000;if(p){const q=spat(p,ref);pan=q[0];v*=q[1];lpf=q[2]}rate=rate||1;
   capE(["L",id,k,+v.toFixed(4),+pan.toFixed(3),Math.round(lpf),+rate.toFixed(3)]);
   if(!aOK()||!aBus())return;const c=SX().s;let L=AU.lp[id];
   if(!L){if(v<=.001)return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;s.loopStart=.5;s.loopEnd=.5+LL[k];
     L=voice(c,AU.bus,pan,lpf);L.g.gain.value=0;L.s=s;s.connect(L.g);s.start(0,.5+rnd()*LL[k]);AU.lp[id]=L}catch(e){return}}
-  const now=c.currentTime;L.g.gain.setTargetAtTime(v,now,.35);L.f.frequency.setTargetAtTime(lpf,now,.3);L.pn&&L.pn.pan.setTargetAtTime(pan,now,.2);L.s.playbackRate.setTargetAtTime(rate,now,.3)}
+  const now=c.currentTime;L.g.gain.setTargetAtTime(v,now,tc||.35);L.f.frequency.setTargetAtTime(lpf,now,.3);L.pn&&L.pn.pan.setTargetAtTime(pan,now,.2);L.s.playbackRate.setTargetAtTime(rate,now,.3)}
 /* oas: route through the oasis bus, whose level follows the camera's distance from the water and the wind */
 function shotS(k,g,p,ref,rate,oas){const q=p?spat(p,ref):[0,1,19000];rate=rate||1;g*=q[1];
   capE(["S",k,+g.toFixed(4),+q[0].toFixed(3),Math.round(q[2]),+rate.toFixed(3)].concat(oas?["oas"]:[]));
@@ -2722,7 +2728,9 @@ function oasis(dt,nk,W){const zone=oasisNear(),hush=1-ss(.22,.6,W),v=zone*hush;
 function sound(dt){if(!root.visible&&!AU.cap)return;
   /* the ambient loops at once; the calls once the models are in, so on a slow link they don't compete with them */
   if(aOK()){if(!AU.pre){AU.pre=1;Object.keys(LL).filter(k=>!WXA.has(k)).forEach(dec)}
-    if(AU.pre===1&&AU.big){AU.pre=2;Object.keys(AQ).filter(k=>!WXA.has(k)).forEach(dec)}}
+    if(AU.pre===1&&AU.big){AU.pre=2;Object.keys(AQ).filter(k=>!WXA.has(k)).forEach(dec)}
+    /* the rain beds are decoded ahead of the weather, so the first drops are heard as they are seen */
+    if(AU.pre===2||Ct.weather!=="sun"&&Ct.weather!=="dust")["dRn","dRt"].forEach(dec)}
   if(Ct.weather==="storm"&&aOK())["dTh1","dTh2","dTh3","dTh4","dTh5"].forEach(dec);
   if(ANIM.rs&&aOK())["dRtl","dRtlOn"].forEach(dec);
   if(aOK()&&aBus())AU.bus.gain.setTargetAtTime(1,SX().s.currentTime,.6);
@@ -2733,9 +2741,12 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   loopS("wind","dWnd",(.06+.42*ss(.12,1,wn)*(.45+.75*g))*calm);
   loopS("sand","dSnd",(.02+.26*ss(.2,1,wn))*ss(.3,.85,g)*calm*(1-.85*WX.wet));
   /* weather: rain on the sand everywhere, rain drumming on the tent cloth up close, the roar and hiss of a dust storm */
-  loopS("rain","dRn",.6*ss(.01,.7,WX.rain));
+  /* level follows the streaks drawn (same WX.rain, same cut-off) with a loudness curve that is already clear at the first
+     sparse drops, and a short gain lag so it starts and stops with the picture */
+  const rOn=WX.rain>.004?1:0;
+  loopS("rain","dRn",.6*rOn*Math.pow(Math.min(1,WX.rain/.62),.6),null,0,1,.08);
   /* the cloth keeps dripping for a while after the rain: the same drumming, thinned and slowed */
-  {const dr=ss(.88,1,WX.after)*(1-ss(.01,.2,WX.rain));loopS("rtent","dRt",.75*ss(.01,.5,WX.rain)+.16*dr,_tnP.set(TENT.x,hTop(TENT.x,TENT.z)+1.6,TENT.z),6,1-.22*dr)}
+  {const dr=ss(.88,1,WX.after)*(1-ss(.01,.2,WX.rain));loopS("rtent","dRt",.75*rOn*Math.pow(Math.min(1,WX.rain/.5),.6)+.16*dr,_tnP.set(TENT.x,hTop(TENT.x,TENT.z)+1.6,TENT.z),6,1-.22*dr,rOn?.08:.35)}
   loopS("storm","dStm",.62*ss(.04,.7,WX.dust));
   loopS("stsand","dStS",.5*ss(.2,.9,WX.dust)*(.55+.45*g));
   oasis(dt,nk,Math.max(ss(.12,1,wn)*(.45+.75*g),WX.dust*1.3,WX.rain*.9));
@@ -2904,7 +2915,9 @@ function trunkAt(pp,t,az){const P=pp.spine(t),tg=pp.spine(Math.min(1,t+.01)).sub
   const N=new V3().crossVectors(tg,new V3(0,0,1)).normalize(),B=new V3().crossVectors(tg,N),n=N.multiplyScalar(Math.cos(az)).addScaledVector(B,Math.sin(az));
   return{p:P.add(pp.g.position).addScaledVector(n,pp.rad(t)).add(palmSwayAt(pp,t)),tg,n,N,B}}
 function agTrunkPose(a){const f=trunkAt(a.palm,a.ct,a.az);a.g.position.copy(f.p);
-  const q=(down,o)=>{_ay.copy(f.tg).multiplyScalar(down?-1:1);_ax.crossVectors(_ay,f.n);_am.makeBasis(_ax,_ay,f.n);return o.setFromRotationMatrix(_am)};
+  /* walking round the trunk it turns its head the way it is going instead of sliding sideways */
+  const hd=a.hd||0,cd=_an.crossVectors(f.tg,f.n);
+  const q=(down,o)=>{_ay.copy(f.tg).multiplyScalar((down?-1:1)*Math.cos(hd)).addScaledVector(cd,Math.sin(hd)).normalize();_ax.crossVectors(_ay,f.n);_am.makeBasis(_ax,_ay,f.n);return o.setFromRotationMatrix(_am)};
   if(a.turn!=null){q(!a.down,_aq);q(a.down,_aq2);a.g.quaternion.slerpQuaternions(_aq,_aq2,ss(0,1,a.turn))}else q(a.down,a.g.quaternion)}
 function agGroundPose(a){const n=a.ry>-50?_an.set(0,1,0):nTop(a.x,a.z);a.g.position.set(a.x,a.ry>-50?a.ry:hTop(a.x,a.z),a.z);
   _az.set(Math.sin(a.yaw),0,Math.cos(a.yaw));_ax.crossVectors(n,_az).normalize();_az.crossVectors(_ax,n);_am.makeBasis(_ax,n,_az);a.g.quaternion.setFromRotationMatrix(_am)}
@@ -2935,36 +2948,42 @@ const agSun=()=>(1-st.night)*WX.sunK*(1-WX.rain)*(1-.5*WX.dust)*(st.phase==="day
 const agGrid=()=>navGrid("agama",.05,1.12,.86);
 function agGo(a,goal,then){const p=navPath(agGrid(),a.x,a.z,goal.x,goal.z)||[{x:a.x,z:a.z},{x:goal.x,z:goal.z}];
   a.path=p;a.pi=1;a.then=then;a.goal=goal;a.mode="run";a.burst=rr(.8,2.8);play(a.r,"run",.12,AG_V/AG_RUN)}
-/* rain shelter: under the crown but below where its fronds hang, so it stays in view from the side */
-const agRainT=pp=>Math.max(.3,(pp.h-3.1)/pp.h);
+/* rain shelter: right under the crown, just below the skirt of dead leaf sheaths (whose lowest ring starts ~12 % of the trunk down) */
+const agRainT=pp=>Math.max(.3,(pp.h*.876-.3)/pp.h);
+/* the viewer's side of things: palms and rocks nearer the camera are picked more often and kept longer, so a lizard this
+   small is mostly where it can be seen; k is 1 for the nearest, falling off over ~6 m further away */
+function agNearK(x,z,L){let m=1e9;for(const o of L)m=Math.min(m,Math.hypot(o.x-_cl.x,o.z-_cl.z));return Math.exp(-(Math.hypot(x-_cl.x,z-_cl.z)-m)/6)}
+function agPickNear(L){let s=0;const w=L.map(o=>{const k=agNearK(o.x,o.z,L);s+=k;return k});let r=rnd()*s;for(let i=0;i<L.length;i++){r-=w[i];if(r<=0)return L[i]}return L[L.length-1]}
+/* the trunk angle that faces the camera at height fraction t */
+function agViewAz(pp,t){const f=trunkAt(pp,t,0),P=pp.spine(t).add(pp.g.position),dx=_cl.x-P.x,dz=_cl.z-P.z;return Math.atan2(dx*f.B.x+dz*f.B.z,dx*f.N.x+dz*f.N.z)}
 function agNearPalm(a){let b=null,bd=1e9;for(const pp of PALMS){const d=Math.hypot(pp.x-a.x,pp.z-a.z);if(d<bd){bd=d;b=pp}}return b}
 /* it goes up the side of the trunk that faces the viewer, so a lizard this small is not hidden behind the palm */
 function agPalmBase(a,pp){let dx=_cl.x-pp.x,dz=_cl.z-pp.z;if(Math.hypot(dx,dz)<.01){dx=a.x-pp.x;dz=a.z-pp.z}const l=Math.hypot(dx,dz)||1,r=pp.rad(0)+.14;return{x:pp.x+dx/l*r,z:pp.z+dz/l*r,pp}}
 function agMount(a,pp){const f=trunkAt(pp,.03,0),dx=a.x-pp.x,dz=a.z-pp.z;a.palm=pp;a.az=Math.atan2(dx*f.B.x+dz*f.B.z,dx*f.N.x+dz*f.N.z);
-  if(AG.list.some(o=>o!==a&&o.palm===pp))a.az+=a.male?.8:-.8;
+  a.azG=a.az+(AG.list.some(o=>o!==a&&o.palm===pp)?(a.male?.6:-.6):0);a.azV=0;a.hd=0;
   a.ct=.12/pp.h;a.down=false;a.turn=null;a.mode="climb";play(a.r,"climb",.1,AG_VC/AG_CLIMB)}
 function agClimb(a,goal){a.ctGoal=goal;const dn=goal<a.ct;if(dn!==a.down){a.down=dn;a.turn=0}a.mode="climb";play(a.r,"climb",.15,AG_VC/AG_CLIMB)}
 function agDismount(a){const f=trunkAt(a.palm,.02,a.az),pp=a.palm;a.x=pp.x+f.n.x*(pp.rad(0)+.2);a.z=pp.z+f.n.z*(pp.rad(0)+.2);a.yaw=Math.atan2(f.n.x,f.n.z);
   a.palm=null;a.ry=-99;a.down=false;a.turn=null;a.mode="idle";a.timer=rr(.5,1.5);play(a.r,"idle",.15,1)}
-function agBask(a,sp){a.mode="bask";a.spot=sp;a.timer=rr(25,50);
+function agBask(a,sp){a.mode="bask";a.spot=sp;a.timer=rr(25,50)*(1+.8*agNearK(sp.x,sp.z,AG.spots));
   /* broadside to the sun to take in the most heat */
   a.yaw=wrapA(SUN.lazL+Math.PI/2*(rnd()<.5?1:-1)+rr(-.3,.3));play(a.r,"bask",.4,1)}
 function agDecide(a){const night=st.night>.5,rain=WX.rain>.25,sun=agSun();a.cond=night?"n":rain?"r":"d";a.then=null;
   if(night){if(a.palm){agClimb(a,0);return}const sp=a.spot||AG.spots[0],h={x:sp.x+.25*Math.sin(SUN.lazL),z:sp.z+.25*Math.cos(SUN.lazL)};
     if(Math.hypot(a.x-h.x,a.z-h.z)<.3){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}agGo(a,h,"hide");return}
   a.g.visible=true;
-  if(rain){if(a.palm){const tg=agRainT(a.palm)-(a.male?0:.45/a.palm.h);if(Math.abs(a.ct-tg)>.01){agClimb(a,tg);return}a.mode="perch";a.timer=rr(8,14);play(a.r,"climb",.2,0);return}
+  if(rain){if(a.palm){const tg=agRainT(a.palm)-(a.male?0:.28/a.palm.h);if(Math.abs(a.ct-tg)>.01){agClimb(a,tg);return}a.mode="perch";a.timer=rr(8,14);play(a.r,"climb",.2,0);return}
     const pp=agNearPalm(a);agGo(a,agPalmBase(a,pp),"climb");a.goal.rain=1;return}
   if(a.palm){if(a.Tb<.55&&sun>.3){agClimb(a,0);return}
     if(rnd()<.35){agClimb(a,cl(a.ct+rr(-.15,.2),.15/a.palm.h,(a.palm.h-2.2)/a.palm.h));return}
-    a.mode="perch";a.timer=rr(8,20);play(a.r,"climb",.25,0);if(!a.down&&rnd()<.6){a.down=true;a.turn=0}return}
-  if(a.Tb<.85&&sun>.35){const fr=AG.spots.filter(s=>s!==a.spot||a.mode==="bask");const sp=fr.length?fr[Math.floor(rnd()*fr.length)]:AG.spots[0];
+    a.mode="perch";a.timer=rr(8,20)*(1+.9*agNearK(a.palm.x,a.palm.z,PALMS));play(a.r,"climb",.25,0);if(!a.down&&rnd()<.6){a.down=true;a.turn=0}return}
+  if(a.Tb<.85&&sun>.35){const fr=AG.spots.filter(s=>s!==a.spot||a.mode==="bask");const sp=fr.length?agPickNear(fr):AG.spots[0];
     if(a.spot===sp&&a.ry>-50){agBask(a,sp);return}agGo(a,{x:sp.x,z:sp.z,y:sp.y,sp},"bask");return}
-  if(sun>.35&&rnd()<.65){const pp=PALMS[Math.floor(rnd()*PALMS.length)];agGo(a,agPalmBase(a,pp),"climb");return}
+  if(sun>.35&&rnd()<.65){const pp=agPickNear(PALMS);agGo(a,agPalmBase(a,pp),"climb");return}
   const w=randFree(agGrid(),GROVE.x,GROVE.z,9);if(w){agGo(a,w,"idle");return}
   a.mode="idle";a.timer=rr(3,8);play(a.r,"idle",.3,1)}
 function agArrive(a){const k=a.then,g=a.goal;a.path=null;
-  if(k==="climb"){agMount(a,g.pp);a.ctGoal=g.rain?agRainT(g.pp)-(a.male?0:.45/g.pp.h):Math.min(rr(1.5,3.5),g.pp.h-2.2)/g.pp.h;return}
+  if(k==="climb"){agMount(a,g.pp);a.ctGoal=g.rain?agRainT(g.pp)-(a.male?0:.28/g.pp.h):Math.min(rr(1.5,3.5),g.pp.h-2.2)/g.pp.h;return}
   if(k==="bask"){agBask(a,g.sp);return}
   if(k==="hide"){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}
   a.mode="idle";a.timer=rr(2,6);play(a.r,"idle",.25,1)}
@@ -2992,6 +3011,16 @@ function agUpdate(dt){
       else if(a.timer<=0||a.Tb>.97)agDecide(a)}
     else if(a.mode==="bob"){a.timer2-=dt;if(a.timer2<=.25){a.mode="bask";play(a.r,"bask",.3,1)}}
     else{a.timer-=dt;if(a.timer<=0)agDecide(a)}
+    /* on a trunk it keeps to the camera's side: once it is round the side or behind, it walks round at a lizard's pace,
+       easing in and out, so neither its place nor its heading ever jumps */
+    if(a.palm&&(a.mode==="climb"||a.mode==="perch")){
+      const mate=AG.list.find(o=>o!==a&&o.palm===a.palm),va=agViewAz(a.palm,a.ct)+(mate?(a.male?.6:-.6):0);
+      if(a.azG==null)a.azG=a.az;if(Math.abs(wrapA(va-a.az))>1.1)a.azG=a.az+wrapA(va-a.az);
+      const r=a.palm.rad(a.ct),d=a.azG-a.az,want=Math.abs(d)<.015?0:Math.sign(d)*Math.min(AG_VC*.9/r,Math.abs(d)*1.4);
+      a.azV=(a.azV||0)+(want-(a.azV||0))*ease(3,dt);a.az+=a.azV*dt;
+      const lat=a.azV*r,vert=a.mode==="climb"&&a.turn==null?AG_VC:0;a.hd=(a.hd||0)+(cl(lat/(vert+.08),-1.2,1.2)-(a.hd||0))*ease(4,dt);
+      const ca=a.r.acts.climb;if(ca&&a.mode==="perch")ca.timeScale=Math.abs(lat)>.004?Math.abs(lat)/AG_CLIMB:0}
+    else if(a.hd)a.hd=0;
     agPose(a);if(AG.vis>0&&a.g.visible)rigTick(a.r,dt)}}
 function agPose(a){if(a.palm)agTrunkPose(a);else agGroundPose(a)}
 /* lizards under ~1.5 px are hidden and their rigs not updated */
@@ -3056,7 +3085,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

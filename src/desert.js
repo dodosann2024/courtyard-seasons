@@ -65,7 +65,7 @@ const DUNE={x:15.6,z:-9.6,H:4.8,w:6.2,Lw:5.2,Ll:4.6,yaw:.45};
 const WIND={x:Math.cos(DUNE.yaw),z:-Math.sin(DUNE.yaw)};
 /* the wind veers about the dune's prevailing direction (a, radians like DUNE.yaw); d is what the sand feels: it answers a rise
    within seconds and settles over half a minute when the wind drops */
-const WS={a:DUNE.yaw,ph:0,d:.35};
+const WS={a:DUNE.yaw,ph:0,d:.35,ra:DUNE.yaw};
 /* cv: horn sweep, sk: horn asymmetry */
 const DUNE0=Object.assign({cv:2.8,sk:0},DUNE),DP=Object.assign({},DUNE0);
 function duneP(x,z,P){
@@ -1660,7 +1660,10 @@ UPD.push((dt,t)=>{
   /* wind: shared gust clock, dune creep, drifting-sand phase */
   WS.d+=(wn-WS.d)*Math.min(1,dt*(wn>WS.d?.5:.15));WS.ph+=dt*(.012+.05*WS.d);
   WS.a=WS.pin!=null?WS.pin:DUNE.yaw+(.1+.4*ss(.4,1.1,WS.d))*(.62*Math.sin(WS.ph*1.3)+.38*Math.sin(WS.ph*2.9+1.1));
-  WIND.x=Math.cos(WS.a);WIND.z=-Math.sin(WS.a);sandU.uWD.value.set(WIND.x,WIND.z);smokeU.uWind.value.set(WIND.x,0,WIND.z);rainU.uWD.value.set(WIND.x,WIND.z);
+  WIND.x=Math.cos(WS.a);WIND.z=-Math.sin(WS.a);sandU.uWD.value.set(WIND.x,WIND.z);
+  /* the ripples lie across the prevailing wind, not the gust of the moment: they swing round to a lasting change over a minute
+     or so in a strong wind and several in a light one, and hardly at all on wet sand */
+  WS.ra+=wrapA(WS.a-WS.ra)*(1-Math.exp(-dt*(.0016+.009*ss(.3,1,WS.d))*(1-.9*WX.wet)));sandU.uRipDir.value.set(Math.cos(WS.ra),-Math.sin(WS.ra));smokeU.uWind.value.set(WIND.x,0,WIND.z);rainU.uWD.value.set(WIND.x,WIND.z);
   GUST.t+=dt;sandU.uGT.value=GUST.t;
   const wd=WS.d,gD=gustAt(DUNE0.x,DUNE0.z),wk=ss(.04,.35,wd)*(.5+wd*1.4);
   duneEvolve(dt*(.35+.9*gD)*wk*(1-.9*WX.wet)*(1+2.5*WX.dust));CURK=ss(.2,.6,wd)*(1-.9*WX.wet)*(1+1.4*WX.dust);
@@ -3149,7 +3152,7 @@ const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,ag
   /* footprints: PR itself, prAdd for stamping, prAge(sec) wears every print by `sec` seconds of the current weather */
   PR,PRK,prAdd,camelLie,prAge:sec=>{const P=PR;P.E+=sec*(1/240+st.wn*.3/35+WX.dust/6+WX.rain/9);P.im.material.uniforms.uE.value=P.E},camelGo,eagleLand:s=>eagleLand(ANIM.eagle,s||eagleSpots()[1]),eagleSpots,
   /* sand falls: count, rate (sfR(v) pins it, null to release), and each fall's rim point, half width and threshold */
-  sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty,nx:f.E.nx,nz:f.E.nz,tx:f.E.tx,tz:f.E.tz,path:f.path}))}),sfR:v=>{SF.pin=v},
+  sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z,ra:WS.ra}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty,nx:f.E.nx,nz:f.E.nz,tx:f.E.tx,tz:f.E.tz,path:f.path}))}),sfR:v=>{SF.pin=v},
   freeze(on){st.lock=!!on},wxEase(on){st.wxEase=!!on},
   step(n,dt){for(let i=0;i<(n||1);i++)step(dt||1/30)},
   tod(p){st.tod=p||null;const ph=phaseNow();for(const k in LK)LK[k]=k===ph?1:0;applyLighting(0)},

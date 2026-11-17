@@ -61,7 +61,16 @@ async function session(label, mobile) {
     await page.evaluate(() => document.body.classList.remove("col"));
     const b = await page.$(`#gy [data-y="${to}"]`);
     await page.evaluate(el => el.scrollIntoView({block: "center", inline: "center"}), b);
-    await sleep(300);
+    /* the panel's slide-in transition can take seconds while a heavy scene renders on a software GPU: wait until it rests on screen */
+    let last = "", t0 = Date.now();
+    while (Date.now() - t0 < 60000) {
+      await sleep(300);
+      const r = await page.evaluate(el => { el.scrollIntoView({block: "center", inline: "center"}); const q = el.getBoundingClientRect();
+        const op = +getComputedStyle(el.closest(".p") || el).opacity;
+        return op > .99 && q.bottom > 0 && q.top < innerHeight && q.width > 0 ? [q.x, q.y, q.width, q.height].map(Math.round).join() : ""; }, b);
+      if (r && r === last) break;
+      last = r;
+    }
     if (mobile) await b.tap(); else await b.click();
     if (to === "desert" && before.yard !== "desert") {
       const ui = await page.evaluate(() => ({col: document.body.classList.contains("col"), pill: document.getElementById("tp").classList.contains("on")}));

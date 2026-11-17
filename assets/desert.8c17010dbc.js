@@ -17,7 +17,16 @@ const G2=(x,z,cx,cz,rx,rz)=>Math.exp(-(((x-cx)/rx)**2)-(((z-cz)/rz)**2));
 
 const root=new T.Group();root.visible=false;Jt.add(root);
 const W=new T.Group();W.scale.setScalar(S);W.rotation.y=YAW;W.position.y=1.7;root.add(W);
-const onDes=o=>{o.traverse(c=>{c.layers.mask=1|L3})};
+/* a model's shaders are compiled a few frames before it is drawn, so the GPU process builds them while frames go on instead of
+   the first draw blocking the main thread on the link */
+const onDes=o=>{if(o===root||!o.visible){o.traverse(c=>{c.layers.mask=1|L3});return}
+  o.traverse(c=>{c.layers.mask=0});const rv=root.visible;root.visible=true;try{Cn.compile(o,De,Jt)}catch(_){}root.visible=rv;
+  let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}o.traverse(c=>{c.layers.mask|=1|L3})};requestAnimationFrame(f)};
+/* KTX2Loader.detectSupport enables each format with getExtension, a synchronous GPU round trip that waits behind every frame
+   already queued; the list of supported names is answered without one */
+function ktxCfg(){let s;try{s=new Set(Cn.getContext().getSupportedExtensions()||[])}catch(_){s=new Set()}const h=e=>s.has(e);
+  return{astcSupported:h("WEBGL_compressed_texture_astc"),etc1Supported:h("WEBGL_compressed_texture_etc1"),etc2Supported:h("WEBGL_compressed_texture_etc"),
+    dxtSupported:h("WEBGL_compressed_texture_s3tc"),bptcSupported:h("EXT_texture_compression_bptc"),pvrtcSupported:h("WEBGL_compressed_texture_pvrtc")||h("WEBKIT_WEBGL_compressed_texture_pvrtc")}}
 
 /* ---------------- value noise (JS twins of the GLSL below) ---------------- */
 const hs2=(x,y)=>{const h=Math.sin(x*127.1+y*311.7)*43758.5453;return h-Math.floor(h)};
@@ -164,7 +173,8 @@ let _gld=null;const GLP={};
 const desPre=()=>window.__desPre||{};
 function glb(key){if(!GLB[key]){const P=GLP[key]={l:0,t:((window.CY||{}).ms||{})[key]||3e6,d:0},E=desPre()[key];
   GLB[key]=Promise.all([gltfMod(),meshopt(),E&&E.p]).then(([m,md,buf])=>new Promise((res,rej)=>{
-    const ld=_gld||(_gld=new m.GLTFLoader().setMeshoptDecoder(md).setKTX2Loader(new m.KTX2Loader().setTranscoderPath(ROOT()+"assets/vendor/").setWorkerLimit(MOB?1:2).detectSupport(Cn))),ok=g=>res({scene:g.scene||g.scenes&&g.scenes[0],animations:g.animations||[],gltf:g});
+    const k2=()=>{const k=new m.KTX2Loader().setTranscoderPath(ROOT()+"assets/vendor/").setWorkerLimit(MOB?1:2);k.workerConfig=ktxCfg();return k};
+    const ld=_gld||(_gld=new m.GLTFLoader().setMeshoptDecoder(md).setKTX2Loader(k2())),ok=g=>res({scene:g.scene||g.scenes&&g.scenes[0],animations:g.animations||[],gltf:g});
     if(buf){delete desPre()[key];P.l=P.t;ld.parse(buf,ROOT()+"assets/models/",ok,rej);return}
     ld.load(ROOT()+"assets/models/"+key+".glb",ok,e=>{if(e&&e.loaded)P.l=Math.min(P.t,e.loaded)},rej)}));
   GLB[key].then(()=>{P.l=P.t;P.d=1},()=>{P.l=P.t;P.d=1})}
@@ -597,12 +607,13 @@ let pondMesh=null;
 const pondRefl={rt:null,cam:null,bias:new T.M4().set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1),cc:new C3(),frame:0};
 const reflSet=[];
 function renderPondReflection(){
-  if(!pondMesh||!Cn||st.night>.5){pondU.uReflOn.value=0;return}
+  if(!pondMesh||!Cn||st.night>.5||!_stageDone){pondU.uReflOn.value=0;return}
   if(MOB&&(pondRefl.frame++&1))return;
   if(!pondRefl.rt){const RT=bloom&&bloom.renderTargetsHorizontal&&bloom.renderTargetsHorizontal[0]&&bloom.renderTargetsHorizontal[0].constructor;if(!RT)return;
     pondRefl.rt=new RT(MOB?256:512,MOB?160:320);pondRefl.cam=De.clone();pondRefl.cam.layers.set(PALM_LAYER);pondU.uRefl.value=pondRefl.rt.texture}
   [pi,dc].forEach(l=>{if(l)l.layers.enable(PALM_LAYER)});
-  reflSet.forEach(o=>{if(!o.userData._rl){o.traverse(c=>c.layers.enable(PALM_LAYER));o.userData._rl=1}});
+  /* the reflection pass needs its own build of every reflected shader: one more object joins it per frame */
+  for(const o of reflSet)if(!o.userData._rl){o.traverse(c=>c.layers.enable(PALM_LAYER));o.userData._rl=1;break}
   const Wy=W.position.y+POND.wy*S,c=pondRefl.cam;De.updateMatrixWorld();
   const e=De.matrixWorld.elements,cp=De.position;
   c.fov=De.fov;c.aspect=De.aspect;c.near=De.near;c.far=De.far;c.updateProjectionMatrix();
@@ -858,7 +869,9 @@ buildPalms();
    every level (a plain box-filtered chain thins the spines below it after a few levels, so distant plants would go bald).
    covMips/cactusAlpha follow the handover's three_cactus_alpha.js (same downsample, bisection and material state). ---- */
 const CLOD=[];
-function covMips(img,cut){
+/* resolves in a task of its own after the next frame, not inside the frame's rAF task */
+const nextFrame=()=>new Promise(r=>{let d=0;const f=()=>{if(!d){d=1;r()}};requestAnimationFrame(()=>setTimeout(f,0));setTimeout(f,60)});
+async function covMips(img,cut){
   const w0=img.width,h0=img.height,c=document.createElement("canvas");c.width=w0;c.height=h0;const g=c.getContext("2d",{willReadFrequently:true});g.drawImage(img,0,0);
   const d0=g.getImageData(0,0,w0,h0).data,t=Math.ceil(cut*255-1e-6);let n0=0;for(let i=3;i<d0.length;i+=4)if(d0[i]>=t)n0++;
   const tgt=n0/(w0*h0),lv=[{data:new Uint8Array(d0.buffer.slice(0)),width:w0,height:h0}];
@@ -870,16 +883,18 @@ function covMips(img,cut){
     src=o;w=W2;h=H2;const px=w*h,cov=s=>{let n=0;for(let i=0;i<px;i++)if(Math.round(Math.min(src[i*4+3]*s,1)*255)>=t)n++;return n/px};
     let lo=.25,hi=8;for(let it=0;it<24;it++){const m=.5*(lo+hi);if(cov(m)<tgt)lo=m;else hi=m}
     const d=new Uint8Array(px*4);for(let i=0;i<px;i++){d[i*4]=src[i*4]*255+.5;d[i*4+1]=src[i*4+1]*255+.5;d[i*4+2]=src[i*4+2]*255+.5;d[i*4+3]=Math.min(src[i*4+3]*hi,1)*255+.5}
-    lv.push({data:d,width:w,height:h})}
+    lv.push({data:d,width:w,height:h});if(px>=65536)await nextFrame()}
   return lv}
-function cactusAlpha(root){const M=VT.THREE,done=new Set();
+/* one texture level per frame: the full-size levels of a 2k card take a few hundred ms each on a phone */
+async function cactusAlpha(root){const M=VT.THREE,done=new Set(),todo=[];
   root.traverse(o=>{if(!o.isMesh)return;const m=o.material;if(m.alphaTest>0)o.castShadow=false;else o.castShadow=true;o.receiveShadow=true;
     if(done.has(m))return;done.add(m);cleanMat(m);if(!ANIM_MATS.includes(m))ANIM_MATS.push(m);
-    if(!(m.alphaTest>0)||!m.map||!m.map.image)return;
-    const lv=covMips(m.map.image,m.alphaTest),t=new M.DataTexture(lv[0].data,lv[0].width,lv[0].height,M.RGBAFormat,M.UnsignedByteType);
+    if(m.alphaTest>0&&m.map&&m.map.image)todo.push(m)});
+  for(const m of todo){await nextFrame();
+    const lv=await covMips(m.map.image,m.alphaTest),t=new M.DataTexture(lv[0].data,lv[0].width,lv[0].height,M.RGBAFormat,M.UnsignedByteType);
     t.mipmaps=lv;t.generateMipmaps=false;t.flipY=false;t.colorSpace="srgb";t.wrapS=m.map.wrapS;t.wrapT=m.map.wrapT;
     t.magFilter=M.LinearFilter;t.minFilter=M.LinearMipmapLinearFilter;t.anisotropy=MOB?4:8;t.needsUpdate=true;
-    m.map=t;m.alphaToCoverage=true;m.transparent=false;m.depthWrite=true;m.depthTest=true;m.side=2;m.needsUpdate=true})}
+    m.map=t;m.alphaToCoverage=true;m.transparent=false;m.depthWrite=true;m.depthTest=true;m.side=2;m.needsUpdate=true}}
 /* sunk to the lowest sand under the base so the downhill side never floats */
 function cactusPlace(w,c,sc){let y=1e9;for(let k=0;k<8;k++){const a=k*TAU/8;y=Math.min(y,hTop(c.x+Math.cos(a)*c.r*.5,c.z+Math.sin(a)*c.r*.5))}
   y=Math.min(y,hTop(c.x,c.z));w.scale.setScalar(sc);w.position.set(c.x,y-.04,c.z);w.rotation.y=c.ry;
@@ -891,16 +906,16 @@ function cactusLod(){if(!CLOD.length)return;const inv=new T.M4().copy(W.matrixWo
   for(const L of CLOD){const d=Math.max(.5,Math.hypot(cp.x-L.x,cp.y-hTop(L.x,L.z)-L.h*.5,cp.z-L.z)),ppm=k/d,near=L.hi.visible?ppm>lim*.85:ppm>lim;
     L.hi.visible=near;L.lo.visible=!near}}
 const propsReady=Promise.all([
-  glb("saguaro_v3").then(({scene})=>{cactusAlpha(scene);
+  glb("saguaro_v3").then(async({scene})=>{await cactusAlpha(scene);
     for(const s of SAG){const hi=scene.getObjectByName(s.k),lo=scene.getObjectByName(s.lo);if(!hi||!lo)continue;
       const w=cactusPlace(new T.Group().add(hi.clone(),lo.clone()),s,1);PROPS.sag.push(w);CLOD.push({w,hi:w.children[0],lo:w.children[1],x:s.x,z:s.z,h:s.k==="s12"?12:s.k==="s3"?3:7})}
     /* highest point of the giant = eagle roost */
     const w=PROPS.sag[0];if(!w)return;w.updateMatrixWorld(true);const inv=new T.M4().copy(W.matrixWorld).invert(),p=new V3();let best=null;
     w.children[0].traverse(c=>{if(!c.isMesh)return;const a=c.geometry.attributes.position;for(let i=0;i<a.count;i+=3){p.fromBufferAttribute(a,i).applyMatrix4(c.matrixWorld).applyMatrix4(inv);if(!best||p.y>best.y)best=p.clone()}});
     PROPS.sagTop=best}).catch(()=>{}),
-  glb("cholla_v2").then(({scene})=>{cactusAlpha(scene);CACTI.forEach(c=>cactusPlace(new T.Group().add(scene.clone()),c,c.s))}).catch(()=>{}),
+  glb("cholla_v2").then(async({scene})=>{await cactusAlpha(scene);CACTI.forEach(c=>cactusPlace(new T.Group().add(scene.clone()),c,c.s))}).catch(()=>{}),
   /* barrels: one instanced draw per material for all of them; each tips about its base toward the sun's azimuth */
-  glb("barrel_cactus_v3").then(({scene})=>{cactusAlpha(scene);scene.updateMatrixWorld(true);
+  glb("barrel_cactus_v3").then(async({scene})=>{await cactusAlpha(scene);scene.updateMatrixWorld(true);
     const up=new V3(0,1,0),ax=new V3(Math.cos(SUN.lazL),0,-Math.sin(SUN.lazL)),qy=new T.Quat(),m=new T.M4();
     const xf=BARRELS.map(b=>{let y=hTop(b.x,b.z);for(let k=0;k<8;k++){const a=k*TAU/8;y=Math.min(y,hTop(b.x+Math.cos(a)*.3*b.s,b.z+Math.sin(a)*.3*b.s))}
       const q=new T.Quat().setFromAxisAngle(ax,b.tilt).multiply(qy.setFromAxisAngle(up,b.ry));return new T.M4().compose(new V3(b.x,y-.03,b.z),q,new V3(b.s,b.s,b.s))});
@@ -3010,7 +3025,16 @@ UPD.push((dt,t)=>{
   sound(d);
 });
 
+/* the first time the desert is shown its shaders are linked in a handful of frames, not all in one: the island, rocks and sky
+   come first and the rest joins over the next few frames, so a phone never holds the main thread for the whole link */
+let _staged=false,_stageDone=false;
+function stageIn(){_staged=true;const L=[...root.children.filter(c=>c!==W),...W.children].filter(c=>c.visible&&!c.isLight),n=MOB?7:5,
+    B=Array.from({length:n},(_,i)=>L.slice(Math.round(i*L.length/n),Math.round((i+1)*L.length/n)));
+  for(const b of B.slice(1))for(const o of b)o.traverse(x=>{x.userData._lm=x.layers.mask;x.layers.mask=0});
+  let i=1;const f=()=>{if(i>=n){_stageDone=true;return}for(const o of B[i++])o.traverse(x=>{if(x.userData._lm!=null){x.layers.mask|=x.userData._lm;delete x.userData._lm}});nextFrame().then(f)};
+  nextFrame().then(f)}
 function show(on){
+  if(on&&!_staged)stageIn();
   root.visible=on;De.layers.set(on?3:0);window.__desA=on;grade.enabled=on;if(!on)mirP.enabled=false;
   if(bloom){if(on){if(!_bloomSave)_bloomSave={t:bloom.threshold,s:bloom.strength,r:bloom.radius};bloom.threshold=.9;bloom.strength=.2;bloom.radius=.45}
     else if(_bloomSave){bloom.threshold=_bloomSave.t;bloom.strength=_bloomSave.s;bloom.radius=_bloomSave.r;_bloomSave=null}}

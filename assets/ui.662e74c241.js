@@ -108,7 +108,7 @@ window.__turnFrame=async(t,dir=1)=>{if(!G||!G.last)return;setTex(G.last[0],G.las
 
 /* ---------- yard switching ---------- */
 const tp=()=>$("#tp");
-function pill(on,y){const p=tp();if(!p)return;clearTimeout(desT);p.classList.remove("pr");if(on)p.querySelector("span").textContent="前往 · "+C.names[y];p.classList.toggle("on",!!on)}
+function pill(on,y){const p=tp();if(!p)return;clearTimeout(desT);cancelAnimationFrame(desRaf);p.classList.remove("pr");if(on)p.querySelector("span").textContent="前往 · "+C.names[y];p.classList.toggle("on",!!on)}
 /* the desert's models stream in after the page turn (tens of MB on a cold visit), so keep the pill up with their real download progress */
 let desT=0,desWant=false;
 const desBusy=()=>!window.__desProg||!window.__desProg().done;
@@ -125,14 +125,19 @@ function desPre(warm){if(window.__desPre)return;const ms=C.ms||{},mob=/Mobi|iPho
       const pump=()=>rd.read().then(({done,value})=>{if(!done){ch.push(value);e.l+=value.length;return pump()}
         const b=new Uint8Array(e.l);let o=0;for(const c of ch){b.set(c,o);o+=c.length}return b.buffer});
       return pump()}).catch(()=>null)}}
-const desPreProg=()=>{const P=window.__desPre;if(!P)return null;let l=0,t=0;for(const k in P){l+=Math.min(P[k].l,P[k].t);t+=P[k].t}return t?{p:l/t,done:false}:null};
-function desLoad(){const p=tp();clearTimeout(desT);if(!p)return;
-  const tick=()=>{const f=window.__desProg,s=f?f():desPreProg();
-    if(!desWant&&cur!=="desert"||s&&s.done||window.__desErr){p.classList.remove("on");desT=setTimeout(()=>p.classList.remove("pr"),250);return}
-    if(s){p.querySelector("span").textContent="载入沙漠 · "+Math.round(s.p*100)+"%";p.style.setProperty("--p",(3+97*s.p).toFixed(1)+"%");p.classList.add("pr")}
-    else{p.querySelector("span").textContent="前往 · "+C.names.desert;p.classList.remove("pr")}
-    p.classList.add("on");desT=setTimeout(tick,250)};
-  tick()}
+const desPreProg=()=>{const P=window.__desPre;if(!P)return null;let l=0,t=0;for(const k in P){l+=Math.min(P[k].l,P[k].t);t+=P[k].t}return t?{p:.88*l/t,done:false}:null};
+/* the number and the bar are drawn from one eased value each frame, so they never disagree and a burst of bytes that
+   arrived while the main thread was busy glides in rather than jumping */
+let desShow=0,desRaf=0;
+function desLoad(){const p=tp();clearTimeout(desT);cancelAnimationFrame(desRaf);if(!p)return;
+  const sp=p.querySelector("span");let last=performance.now(),txt="";
+  const tick=now=>{const f=window.__desProg,s=f?f():desPreProg(),dt=Math.min(.25,Math.max(0,(now-last)/1000));last=now;
+    if(!desWant&&cur!=="desert"||s&&s.done||window.__desErr){p.classList.remove("on");desShow=0;desT=setTimeout(()=>p.classList.remove("pr"),250);return}
+    if(s){desShow=Math.max(desShow,desShow+(s.p-desShow)*(1-Math.exp(-dt*7)));const n=Math.min(99,Math.floor(desShow*100)),t="载入沙漠 · "+n+"%";
+      if(t!==txt){sp.textContent=txt=t;p.style.setProperty("--p",(3+97*n/100).toFixed(1)+"%")}p.classList.add("pr")}
+    else{if(txt!=="go"){sp.textContent="前往 · "+C.names.desert;txt="go"}p.classList.remove("pr")}
+    p.classList.add("on");desRaf=requestAnimationFrame(tick)};
+  tick(last)}
 async function go(y,dir,push){
   if(!Y.includes(y))return;
   if(!ready||!window.__style)return;
@@ -166,7 +171,7 @@ async function go(y,dir,push){
 window.__go=(y,dir=1)=>go(y,dir,true);
 /* the desert is a long cold load: the panel gets out of the way at once so the progress pill and the island show */
 document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("[data-y]");if(!b)return;e.stopImmediatePropagation();e.preventDefault();
-  if(b.dataset.y==="desert"&&cur!=="desert"){document.body.classList.add("col");desPre(1)}go(b.dataset.y,1,true)},true);
+  if(b.dataset.y==="desert"&&cur!=="desert"){document.body.classList.add("col");desPre(1);if(desBusy()){desWant=true;desLoad()}}go(b.dataset.y,1,true)},true);
 addEventListener("popstate",e=>{const s=e.state;let y=s&&s.cy;if(!y){const m=location.pathname.match(/\/([a-z]+)\/?(?:index\.html)?$/);y=m&&Y.includes(m[1])?m[1]:"def"}const i=s&&typeof s.i=="number"?s.i:0;const dir=i<idx?-1:1;idx=i;go(y,dir,false)});
 addEventListener("keydown",e=>{if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))return;if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight"||e.metaKey||e.ctrlKey||e.altKey)return;const k=Y.indexOf(cur);go(Y[(k+(e.key==="ArrowRight"?1:Y.length-1))%Y.length],e.key==="ArrowRight"?1:-1,true)});
 

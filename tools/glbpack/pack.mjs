@@ -14,6 +14,9 @@ const key=path.basename(inp,'.glb');
 const TEX={
   rattlesnake_v1i_mobile:[],
   rattlesnake_v1i:[textureCompress({encoder:sharp,targetFormat:'webp',quality:85,effort:5,resize:[1260,2456],pattern:/tex_body/})],
+  /* a 25 cm lizard: 1024 px colour and 512 px normal/ORM still give ~4 px per mm of animal */
+  sinai_agama_v1b:[textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/baseColor/}),
+    textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,resize:[512,512],slots:/^(?!baseColor)/})],
 };
 await MeshoptEncoder.ready;await MeshoptDecoder.ready;
 const io=new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.encoder':MeshoptEncoder,'meshopt.decoder':MeshoptDecoder});

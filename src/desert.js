@@ -273,7 +273,7 @@ function sandMat(){
            an even wet skin. Drying runs the other way and breaks the skin up again: crests, slopes and the dune top first,
            hollows last. Each drop also leaves a pit, a little crater with a thrown-up rim, which the wind wears away later. */
         float rWM=0.;vec2 pitG=vec2(0.);
-        if(uWetK>.002||uPitK>.002){float fwc2=length(fwidth(vSP.xz)),near=1.-smoothstep(.002,.006,fwc2);
+        if(uWetK>.002||uPitK>.002){float fwc2=length(fwidth(vSP.xz));
           float dryB=.35*smoothstep(1.,4.5,vSP.y)+.15*nz2+.25*smoothstep(.12,.4,slope);
           float lvl=uWetK*1.25-dryB*.7+(nz-.5)*.3+(dn2(vSP.xz*1.7+4.)-.5)*.35;
           float blob=smoothstep(-.04,.14,lvl-.25+(dn2(vSP.xz*7.)-.5)*.35+(dn2(vSP.xz*19.+2.)-.5)*.18);
@@ -283,15 +283,21 @@ function sandMat(){
             dots=max(dots,step(h,uWetK*2.6)*smoothstep(rd,rd*.6,length(cf-off*.45))*(.65+.35*dh2(ci+2.2)));}
           dots*=1.-smoothstep(.006,.03,fwc2);
           rWM=max(blob,dots*.85)*(1.-wet);sc=mix(sc,sc*vec3(.42,.37,.32),rWM);
-          if(uPitK>.002&&near>.01){
+          /* pits keep their shape out to a few metres; further on, where one is only a few pixels, it is kept as a soft dark fleck */
+          float pnr=1.-smoothstep(.005,.02,fwc2),pfar=1.-smoothstep(.02,.07,fwc2);
+          if(uPitK>.002&&pfar>.01){
             for(int L=0;L<${MOB?1:2};L++){vec2 cg=vSP.xz*(L==0?16.:27.)+float(L)*5.7,ci=floor(cg),cf=fract(cg)-.5,off=(vec2(dh2(ci+1.9),dh2(ci+4.4))-.5)*.4;
-              float h=dh2(ci+8.8)/(L==0?.7:.45);if(h>uPitK)continue;float rp=.1+.2*pow(dh2(ci+6.1),1.5);vec2 d=cf-off;float r=length(d)/rp;
+              float h=dh2(ci+8.8)/(L==0?.7:.45);if(h>uPitK)continue;float rp=.12+.18*pow(dh2(ci+6.1),1.5);vec2 d=cf-off;float r=length(d)/rp;
               /* bowl falling to the centre, rim heaped just outside it; fresh pits are sharp, older ones slumped */
-              float age=clamp((uPitK-h)*6.,0.,1.),dr=(r<1.?2.*r:0.)-.7*(r-1.1)/.03*exp(-(r-1.1)*(r-1.1)/.03);
+              float age=clamp((uPitK-h)*6.,0.,1.),rg=exp(-(r-1.1)*(r-1.1)/.03),dr=(r<1.?2.*r:0.)-.7*(r-1.1)/.03*rg;
               pitG+=d/max(length(d),1e-4)*dr*(1.-.55*age)*(L==0?1.:.7);
-              sc*=1.-.12*smoothstep(1.,.3,r)*(1.-.5*age)*(.4+.6*uWetK);}
-            pitG*=near*.32;}
-          sc*=1.-.05*uPitK*(1.-near);}
+              /* the drop wets and darkens the bowl; the thrown-up rim is drier, lighter sand. Finer than a few pixels a pit
+                 fades to the average darkening of the cell, so it does not sparkle */
+              float px=clamp(fwc2*(L==0?16.:27.)/rp*1.6-.6,0.,1.),fresh=1.-.5*age;
+              float bowl=mix(smoothstep(1.05,.35,r),.42*rp*rp*3.14,px),rim=mix(rg,0.,px);
+              sc*=(1.-.3*bowl*fresh*(.5+.5*uWetK))*(1.+.16*rim*fresh*pnr);}
+            pitG*=pnr*.45;}
+          sc*=1.-.05*uPitK*(1.-pfar);}
         /* close up the sand shows a fine, soft mottle of lighter and darker grains (smooth noise only: no cells to alias into squares) */
         {float fwc=length(fwidth(vSP.xz)),gd=1.-smoothstep(.006,.035,fwc);
          float g1=dn2(vSP.xz*71.+1.3),g2=dn2(vSP.xz*17.+5.);

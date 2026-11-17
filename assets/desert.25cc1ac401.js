@@ -158,12 +158,13 @@ function meshopt(){if(_mo)return _mo;const r=ROOT(),url=r?r+"assets/vendor/mesho
   return _mo=import(url).then(x=>x.MeshoptDecoder.ready.then(()=>{const d=x.MeshoptDecoder;
     /* decode on worker threads: the 9 MB snake otherwise holds the main thread (and the loading pill) for seconds */
     try{if(typeof Worker!=="undefined")d.useWorkers(MOB?2:4)}catch(_){}return d})).catch(()=>{_mo=null;return Promise.reject(0)})}
-const GLP={};
+/* one loader for every model: textures are KTX2 (Basis), transcoded on worker threads by the self-hosted transcoder */
+let _gld=null;const GLP={};
 /* ui.js starts every model's download when the desert is chosen (window.__desPre); one that arrived is parsed from its buffer */
 const desPre=()=>window.__desPre||{};
 function glb(key){if(!GLB[key]){const P=GLP[key]={l:0,t:((window.CY||{}).ms||{})[key]||3e6,d:0},E=desPre()[key];
   GLB[key]=Promise.all([gltfMod(),meshopt(),E&&E.p]).then(([m,md,buf])=>new Promise((res,rej)=>{
-    const ld=m.__ld||(m.__ld=new m.GLTFLoader().setMeshoptDecoder(md)),ok=g=>res({scene:g.scene||g.scenes&&g.scenes[0],animations:g.animations||[],gltf:g});
+    const ld=_gld||(_gld=new m.GLTFLoader().setMeshoptDecoder(md).setKTX2Loader(new m.KTX2Loader().setTranscoderPath(ROOT()+"assets/vendor/").setWorkerLimit(MOB?1:2).detectSupport(Cn))),ok=g=>res({scene:g.scene||g.scenes&&g.scenes[0],animations:g.animations||[],gltf:g});
     if(buf){delete desPre()[key];P.l=P.t;ld.parse(buf,ROOT()+"assets/models/",ok,rej);return}
     ld.load(ROOT()+"assets/models/"+key+".glb",ok,e=>{if(e&&e.loaded)P.l=Math.min(P.t,e.loaded)},rej)}));
   GLB[key].then(()=>{P.l=P.t;P.d=1},()=>{P.l=P.t;P.d=1})}

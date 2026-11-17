@@ -2,6 +2,7 @@
 import * as THREE from './three.module.min.js';
 import { GLTFLoader } from './GLTFLoader.js';
 import { clone as cloneSkinned } from './SkeletonUtils.js';
+import { KTX2Loader } from './KTX2Loader.js';
 
 const loader = new GLTFLoader();
 
@@ -21,6 +22,6 @@ export function makeMixer(root) {
   return new THREE.AnimationMixer(root);
 }
 
-export { THREE, GLTFLoader, cloneSkinned };
+export { THREE, GLTFLoader, KTX2Loader, cloneSkinned };
 export const LoopRepeat = THREE.LoopRepeat;
 export const LoopOnce = THREE.LoopOnce;

@@ -119,7 +119,7 @@ function dDelta(x,z){if(!DLIVE)return 0;const m=dMaskG(x,z);return m>0?m*(duneP(
 const TENT={x:5.4,z:-3.9,yaw:-.24,L:6,D:4,H:2.2};
 const tentFwd={x:Math.sin(TENT.yaw),z:Math.cos(TENT.yaw)},tentRt={x:Math.cos(TENT.yaw),z:-Math.sin(TENT.yaw)};
 const FIRE={x:TENT.x+tentFwd.x*(TENT.D*.5+2.3)-tentRt.x*1.5,z:TENT.z+tentFwd.z*(TENT.D*.5+2.3)-tentRt.z*1.5};
-const tentU={uT:{value:0},uShk:{value:0},uTGy:{value:0},uRn:{value:0},uFrost:{value:0},uSunD:{value:new V3(0,1,0)},uSunC:{value:new C3(1,1,1)},uNt:{value:0},uWetC:{value:0},uWInv:{value:new T.M4()},uTC:{value:new T.V2(TENT.x,TENT.z)},uTF:{value:new T.V2(tentFwd.x,tentFwd.z)}};
+const tentU={uT:{value:0},uShk:{value:0},uSnL:{value:0},uTGy:{value:0},uRn:{value:0},uFrost:{value:0},uSunD:{value:new V3(0,1,0)},uSunC:{value:new C3(1,1,1)},uNt:{value:0},uWetC:{value:0},uWInv:{value:new T.M4()},uTC:{value:new T.V2(TENT.x,TENT.z)},uTF:{value:new T.V2(tentFwd.x,tentFwd.z)}};
 const RACK={x:TENT.x+tentRt.x*5.1+tentFwd.x*.9,z:TENT.z+tentRt.z*5.1+tentFwd.z*.9,yaw:TENT.yaw};
 const PALMS=[{x:-3.6,z:-1.8,h:11.8,lean:[.05,-.06],ry:.4},{x:-1.0,z:-4.2,h:10.8,lean:[.07,.05],ry:2.1},{x:-7.2,z:-.5,h:7.6,lean:[-.06,.04],ry:4.0}];
 const SAG=[{k:"s12",lo:"s12_lod1",x:-12.5,z:-10.8,ry:.5,r:1.3},{k:"s7f",lo:"s7_lod1",x:-19.6,z:-3.4,ry:.6,r:.9},{k:"s3",lo:"s3_lod1",x:12.6,z:6.2,ry:2.4,r:.5}];
@@ -395,9 +395,10 @@ function sandMat(){
           float al=dot(q,uRipDir),ac=dot(q,d2),mp=al*2.3+1.6*sin(ac*.21+1.3)+.9*sin(ac*.53+al*.11);
           float trM=mix(smoothstep(.35,-.7,sin(mp+.85*sin(mp))),.45,smoothstep(.1,.4,fwS*2.3)),trF=.45;
           if(fwS<.3){vec2 RW=vec2(dfbm(q*.09)*4.,dfbm(q*.11+7.)*2.5);float h=ripH(q,RW,1.+.16*(dn2(q*.07+1.3)-.5),.5+.5*smoothstep(.28,.62,dn2(q*.21+11.)));
-            trF=mix(smoothstep(.15,-.45,h),.45,smoothstep(.07,.3,fwS));}
-          float tr=mix(trM,.55*trM+.45*trF,1.-smoothstep(.07,.3,fwS)),nn=dn2(q*.7+3.1)*.6+dn2(q*2.3)*.4;
-          float B=.5*lee+.3*nf-1.1*ww-1.4*crs+(tr-.5)*1.45+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),ew=.04+fwS*.5;
+            trF=mix(smoothstep(.3,-.6,h),.45,smoothstep(.07,.3,fwS));}
+          /* the stripes follow the fine ripples (a hand apart), the coarse ridges only bias them */
+          float tr=mix(.3*trM+.7*.45,.18*trM+.82*trF,1.-smoothstep(.07,.3,fwS)),nn=dn2(q*.7+3.1)*.6+dn2(q*2.3)*.4;
+          float B=.5*lee+.3*nf-1.1*ww-1.4*crs+(tr-.5)*1.6+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),ew=.13+fwS*.5;
           float lv=B+.38*uSnow-.31-wet*1.5-.3*(1.-smoothstep(.0,.25,uSnow));
           ${TRK?"lv-=1.4*smoothstep(.08,.4,trk.r+.5*trk.g);":""}
           /* melt water soaks into the sand where the snow lay: dark, slightly cool patches that dry back to the sand's own colour */
@@ -818,14 +819,17 @@ duneSettle();
 
 /* ---------------- Tripo props: date palms (trunk lengthened, crown kept ~6 m), saguaros, tent ---------------- */
 const PROPS={palms:[],sag:[],barrels:[],tent:null,sagTop:null};
-const propU={uT:{value:0},uWind:{value:.35},uDew:{value:0},uFrost:{value:0}},coatU={uDew:{value:0},uFrost:propU.uFrost};
+const propU={uT:{value:0},uWind:{value:.35},uDew:{value:0},uFrost:{value:0},uSnL:{value:0}},coatU={uDew:{value:0},uFrost:propU.uFrost};
 /* hoar frost: a thin white rime on the faces open to the sky, speckled where a uv is given; behind a uniform, so no extra program */
-const FROST=uv=>`if(uFrost>.003){vec3 upV=normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz);
-    float fs=${uv?`fract(sin(dot(floor(${uv}),vec2(12.9898,78.233)))*43758.5453)`:".5"},fk=uFrost*smoothstep(-.1,.7,dot(normal,upV))*(.25+.75*fs*fs);
-    diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.8,.84,.9),fk*.36);roughnessFactor=mix(roughnessFactor,.62,fk*.5);}`;
-function frostMat(m,uv){const f=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{if(f)f.call(m,sh,r);sh.uniforms.uFrost=propU.uFrost;
-    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uFrost;").replace("#include <normal_fragment_maps>","#include <normal_fragment_maps>\n"+FROST(uv))};
-  if(!f)m.customProgramCacheKey=()=>"des68frost";m.needsUpdate=true}
+/* rime grows on every face the cold air reaches, most on the tops; a light snowfall also leaves a thin white layer on the tops that
+   melts or slides off within minutes */
+const FROST=uv=>`if(uFrost+uSnL>.003){vec3 upV=normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz);float up=dot(normal,upV);
+    float fs=${uv?`fract(sin(dot(floor(${uv}),vec2(12.9898,78.233)))*43758.5453)`:".5"},fk=uFrost*(.35+.65*smoothstep(-.35,.6,up))*(.35+.65*fs*fs);
+    diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.84,.88,.94),fk*.58);roughnessFactor=mix(roughnessFactor,.55,fk*.6);
+    float sl=uSnL*smoothstep(.35,.8,up)*(.55+.45*fs);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.92,.94,.97),sl*.9);roughnessFactor=mix(roughnessFactor,.85,sl);}`;
+function frostMat(m,uv){const f=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{if(f)f.call(m,sh,r);sh.uniforms.uFrost=propU.uFrost;sh.uniforms.uSnL=propU.uSnL;
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uFrost,uSnL;").replace("#include <normal_fragment_maps>","#include <normal_fragment_maps>\n"+FROST(uv))};
+  if(!f)m.customProgramCacheKey=()=>"des70frost";m.needsUpdate=true}
 function swayMat(m,key,amp,y0,y1){
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,propU);
     sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uT,uWind;")
@@ -884,7 +888,7 @@ function palmMat(H,isTrunk,tw){
     /* trunk: leaf-base stubs on a golden-ratio spiral with wavy, uneven rows. In patches (mostly low down) the stubs
        have fallen off, leaving bare trunk with faint leaf-scar rings; the tone runs grey at the base to warm brown
        under the crown. Value noise is periodic around the trunk so the uv seam doesn't show. */
-    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uFrost;").replace("#include <normal_fragment_maps>","#include <normal_fragment_maps>\n"+FROST(isTrunk?null:"vMapUv*vec2(140.,46.)"));
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uFrost,uSnL;").replace("#include <normal_fragment_maps>","#include <normal_fragment_maps>\n"+FROST(isTrunk?null:"vMapUv*vec2(140.,46.)"));
     if(isTrunk)sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
         uniform float uPH;varying vec2 vUV;float pHs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         float pN(vec2 p,float per){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);float x0=mod(i.x,per),x1=mod(i.x+1.,per);
@@ -1057,7 +1061,7 @@ const propsReady=Promise.all([
           /* hail drums the cloth: the roof panels shiver under the strikes */
           .replace("#include <begin_vertex>","#include <begin_vertex>\nif(uShk>.001){vec3 ti=(uWInv*modelMatrix*vec4(position,1.)).xyz;float hk=smoothstep(.8,1.9,ti.y-uTGy);transformed+=objectNormal*uShk*hk*.014*sin(uT*47.+ti.x*5.3+ti.z*4.1)*sin(uT*31.+ti.z*6.7-ti.x*2.);}")
           .replace("#include <project_vertex>","#include <project_vertex>\nvTI=(uWInv*modelMatrix*vec4(transformed,1.)).xyz;vTN=normalize(mat3(uWInv*modelMatrix)*objectNormal);");
-        sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform vec3 uSunD,uSunC;uniform float uNt,uWetC,uT,uRn,uFrost;uniform vec2 uTC,uTF;varying vec3 vTI,vTN;float tWet=0.,tRiv=0.,tBead=0.;"+GLSL_NOISE)
+        sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform vec3 uSunD,uSunC;uniform float uNt,uWetC,uT,uRn,uFrost,uSnL;uniform vec2 uTC,uTF;varying vec3 vTI,vTN;float tWet=0.,tRiv=0.,tBead=0.;"+GLSL_NOISE)
           .replace("#include <map_fragment>",`#ifdef USE_MAP
         vec4 tx=texture2D(map,vMapUv);float l=dot(tx.rgb,vec3(.3,.59,.11));
         vec2 rel=vTI.xz-uTC;float ac=dot(rel,uTF),al=dot(rel,vec2(uTF.y,-uTF.x));
@@ -1080,7 +1084,8 @@ const propsReady=Promise.all([
           tBead=tRiv*step(.5,dh2(vec2(li,6.)))*pow(fract(along*1.3-uT*rate*.8+dh2(vec2(li,5.))),10.);
           diffuseColor.rgb*=(1.-.42*tWet)*(1.-.4*tRiv);}
         /* frost: a light rime on the roof and the upper slopes, the goat-hair weave showing through */
-        if(uFrost>.003){float fk=uFrost*smoothstep(.05,.7,normalize(vTN).y)*(.45+.55*dn2(vTI.xz*6.+vTI.y*2.));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.78,.82,.88),fk*.42);}
+        if(uFrost+uSnL>.003){float ty=normalize(vTN).y,fn=dn2(vTI.xz*6.+vTI.y*2.),fk=uFrost*(.3+.7*smoothstep(-.25,.6,ty))*(.45+.55*fn);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.8,.84,.9),fk*.62);
+          float sl=uSnL*smoothstep(.3,.75,ty)*smoothstep(.25,.6,fn+.3*uSnL);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.9,.92,.95),sl*.9);}
         #endif`).replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
         roughnessFactor=mix(roughnessFactor,.5,tWet*.55+tRiv*.4);`).replace("#include <lights_fragment_end>",`#include <lights_fragment_end>
         reflectedLight.indirectDiffuse*=vec3(1.02,.99,.95);
@@ -1286,7 +1291,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   /* a seed of their own, so the falls do not shift the rest of the layout */
   let ps=5281;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^ps>>>15,1|ps);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},prr=(a,b)=>a+(b-a)*pr();
   /* [half width min, max, rate threshold min, max] for heavy falls, thinner falls, trickles */
-  const kinds=[[1.6,2.3,0,.04],[.45,.7,.03,.16],[.05,.12,.04,.34]],pat=[0,2,2,1,2,2,2,1,2,2],nF=MOB?40:60,sl=TAU/nF;
+  const kinds=[[1.6,2.3,0,.04],[.45,.7,.03,.16],[.05,.12,.04,.34]],pat=[0,2,2,2,2,2,2,2,2,2],nF=MOB?40:60,sl=TAU/nF;
   const rp=rockMesh.geometry.attributes.position.array,nV=rp.length/3,LIPV=3*NT;
   const frame=th=>{const[x,z]=edgeXZ(th,1),[x1,z1]=edgeXZ(th+.02,1),[x0,z0]=edgeXZ(th-.02,1),l=Math.hypot(x1-x0,z1-z0),tx=(x1-x0)/l,tz=(z1-z0)/l;return{x,z,tx,tz,nx:tz,nz:-tx}};
   /* the cliff under a fall: the furthest-out rock at each 0.5 m of depth below the lip crest, and the lip's crest height and offset */
@@ -1404,10 +1409,11 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         /* a stream only a pixel or two wide from afar is a faint soft thread, not a hard yellow line */
         /* the haze a fall sinks into is its own dust: fade it to an ochre as bright as the sky haze, never the haze's pale cream
            (which reads as water), and let the lower fall dissipate rather than turn pale */
-        float hL=dot(uFogC,vec3(.3,.59,.11));vec3 fO=mix(uFogC,base*(hL/max(dot(base,vec3(.3,.59,.11)),.02))*vec3(1.03,.9,.72),.6+.35*smoothstep(.35,.9,s));
+        float hL=dot(uFogC,vec3(.3,.59,.11)),bL=max(dot(base,vec3(.3,.59,.11)),.02);vec3 fO=mix(uFogC,base*(min(hL,bL*1.05)/bL)*vec3(1.03,.9,.72),.6+.35*smoothstep(.35,.9,s));
         float pxW=1./max(fwidth(x),1e-4),thin=1.-smoothstep(2.,12.,pxW);a*=1.-.8*thin;c=mix(c,mix(c,fO,.5)*.92+base*.08,thin*.6);
         if(a<.004)discard;
-        float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*(1.-.4*smoothstep(.45,.9,s)));a*=1.-.45*fd*smoothstep(.4,.95,s);
+        /* far off the lower fall sinks into the haze by thinning out, not by turning pale */
+        float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*(.55-.35*smoothstep(.35,.9,s)));a*=1.-.75*fd*smoothstep(.3,.95,s);
         float ck=c.r+c.g+c.b+a;if(!(ck>-1.&&ck<1e3))discard;
         gl_FragColor=vec4(c,clamp(a,0.,1.));
         #include <tonemapping_fragment>
@@ -1664,7 +1670,7 @@ let _shMask=null;
    Showers come and go over tens of seconds, darken the sand where they fall, and the sand dries again with sun and wind;
    dust storms raise the wind, haze out the cloud sea and the sun, and send the animals to shelter. */
 const WX={fog:0,fb:0,fa:0,dew:0,cold:0,fcold:0,scold:0,clr:0,nb:3,rain:0,pit:0,ovc:0,dark:0,dust:0,wet:0,heat:0,after:0,shel:0,flash:0,bolt:0,boltA:0,boltS:0,boltE:0,bAge:9,icF:0,icA:0,ic:4,rb:0,shaft:0,sunK:1,
-  sf:0,sc:0,sm:0,sp:0,mw:0,frost:0,ice:0,hf:0,hc:0,hp:0,hm:0,hr:0,gf:0,hcold:0,H:{ph:0,t:0,dur:90,lull:45}};
+  sf:0,sc:0,sm:0,sp:0,mw:0,frost:0,ice:0,scp:0,stm:0,hf:0,hc:0,hp:0,hm:0,hr:0,gf:0,hcold:0,H:{ph:0,t:0,dur:90,lull:45}};
 /* snow levels in the desert menu: frost (hardly a flake), a dusting, light snow; the courtyards' heavy levels read as light snow here */
 const DUSTLV=[0,.32,.56,.8,1],FOGLV=[0,.55,.8,1],SNOWLV=[0,.3,.62,1,1];
 const WXT={sun:[0,0,0],cloud:[.86,.25,.2],lrain:[.42,.22,.55],mrain:[.62,.4,.7],hrain:[.86,.62,.9],storm:[.95,.8,1],dust:[0,.25,0],snow:[.7,.14,0],hail:[.95,.72,0]};
@@ -1706,7 +1712,12 @@ function wxUpdate(dt){
      if(WX.sc>=WX.sp)WX.sp=WX.sc;else if(WX.mw<.02&&WX.sc<.005)WX.sp*=Math.exp(-dt*.05);
      WX.mw=cl(WX.mw+dt*(Math.max(0,mel-acc)*2.4*ss(0,.25,WX.sp)-WX.mw*(.002+.011*sun)*(WX.sc<.05?1:.25)),0,1);
      WX.frost=cl(WX.frost+dt*(WX.sf*.045*(1-.7*sun)*(1.1-WX.frost)-(.0006+.012*sun)*(1-WX.sf)),0,1);
-     WX.ice+=cl(iT-WX.ice,-dt*(.006+.03*sun),dt*.012)}
+     WX.ice+=cl(iT-WX.ice,-dt*(.006+.03*sun),dt*.012);
+     /* the thin layer on the tops: it settles with the flakes and goes long before the ground's cover, in sun or wind */
+     WX.scp=cl(WX.scp+dt*(WX.sf*.06*(1.02-WX.scp)-(.0012+.022*sun+.004*st.wn)*(1-.85*WX.sf)),0,1)}
+   if(dt<=0&&sT>0)WX.scp=Math.max(WX.scp,.5+.5*sT);
+   /* steam fog: on a cold morning or in snow the pond (warmer than the air) smokes in thin wisps */
+   {const sT2=Math.max(ss(.03,.4,WX.sf+WX.sc),.7*ss(.15,.6,WX.frost))*(1-.65*sun*(1-WX.sf));WX.stm+=(sT2-WX.stm)*(dt>0?1-Math.exp(-dt*.08):1)}
    WX.scold=WX.sf>.05||WX.sc>.25?1:WX.sf<.02&&WX.sc<.12?0:WX.scold}
   /* hail: a convective cell passes. First the gust front (a sudden cold blast that lifts sand), then a short burst of white
      stones out of a dark green-grey base, a taper, and a lull before the next cell. Stones lie in the ripple troughs and hollows,
@@ -1857,7 +1868,7 @@ UPD.push((dt,t)=>{
   sandU.uWetK.value=Math.max(WX.wet,.1*WX.dew);sandU.uSnow.value=WX.sc;sandU.uSnM.value=WX.sm;sandU.uSnP.value=WX.sp;sandU.uMW.value=WX.mw;sandU.uHC.value=WX.hc;sandU.uHP.value=WX.hp;sandU.uHM.value=WX.hm;sandU.uPitK.value=WX.pit;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;tentU.uT.value=t;tentU.uRn.value=Math.max(ss(.03,.4,WX.rain),ss(.9,1,WX.after));if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.08);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}
   mirP.enabled=root.visible&&WX.heat>.01;mirM.uniforms.uT.value=t;mirM.uniforms.uSky.value.copy(sandU.uMirC.value);
   /* the low sun warms the air layer, so the mirrored sky comes back amber at dusk */
-  mirM.uniforms.uTint.value.set(.95,.95,.95).lerp(_mirW,Math.max(LK.sunset,LK.sunrise*.7));rockU.uWetK.value=WX.wet;tentU.uWetC.value=Math.max(WX.wet,.42*WX.dew);propU.uDew.value=WX.dew;coatU.uDew.value=WX.dew;propU.uFrost.value=WX.frost;tentU.uFrost.value=.8*WX.frost;rockU.uT.value=t;rockU.uVen.value=(.8+.18*Math.min(sfU.uFR.value,1.6))*(1-.3*WX.wet);
+  mirM.uniforms.uTint.value.set(.95,.95,.95).lerp(_mirW,Math.max(LK.sunset,LK.sunrise*.7));rockU.uWetK.value=WX.wet;tentU.uWetC.value=Math.max(WX.wet,.42*WX.dew);propU.uDew.value=WX.dew;coatU.uDew.value=WX.dew;propU.uFrost.value=WX.frost;tentU.uFrost.value=.8*WX.frost;propU.uSnL.value=WX.scp;tentU.uSnL.value=WX.scp;rockU.uT.value=t;rockU.uVen.value=(.8+.18*Math.min(sfU.uFR.value,1.6))*(1-.3*WX.wet);
   pondU.uRainP.value=WX.rain;pondU.uIce.value=WX.ice;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
@@ -2124,6 +2135,26 @@ UPD.push((dt,t)=>{const on=WX.sf>.004;if(!SNF){if(!on)return;snowFlakes()}
   SNU.uT.value=t;SNU.uCamL.value.copy(_cl);SNU.uSnow.value=ss(0,.9,WX.sf);SNU.uWS.value=.6+st.wn*4.2;SNU.uH.value=innerHeight;
   _c1.copy(dc?dc.color:_c1.set("#aab")).multiplyScalar(dc?dc.intensity*.55:.5).add(_c2.copy(pi?pi.color:_c1).multiplyScalar(.16*(pi?pi.intensity:1)));
   SNU.uCol.value.copy(_c1).multiplyScalar(1.15).lerp(_c2.set("#eef3fa"),.35*(1-st.night))});
+/* steam fog over the pond on cold days: thin wisps rise off the water, drift downwind and fade within a metre or so.
+   As the snow on the tops melts or the wind takes it, clumps drop from the palm crowns and slide off the tent roof. */
+const STM=softPoints(MOB?22:40,"#e6e9ec",3.2,false);STM.o.renderOrder=9;STM.o.visible=false;W.add(STM.o);onDes(STM.o);
+const STMP=[...Array(STM.n)].map(()=>({life:rnd(),dur:rr(6,12),x:0,z:0,y:0,s:1}));
+function stmSeed(q){for(let k=0;k<20;k++){const a=rnd()*TAU,r=Math.sqrt(rnd())*.85;q.x=POND.x+Math.cos(a)*r*POND.rx;q.z=POND.z+Math.sin(a)*r*POND.rz;if(pN(q.x,q.z)<.9)break}
+  q.y=POND.wy+rr(0,.15);q.life=0;q.dur=rr(6,12);q.s=rr(.7,1.3)}
+STMP.forEach(q=>{const l=q.life;stmSeed(q);q.life=l});
+let _scp0=0;
+UPD.push((dt,t)=>{const k=WX.stm;STM.o.visible=k>.02;
+  if(STM.o.visible){for(let i=0;i<STM.n;i++){const q=STMP[i],o=i*3;q.life+=dt/q.dur;if(q.life>=1)stmSeed(q);
+      q.x+=WIND.x*(.12+.5*st.wn)*dt;q.z+=WIND.z*(.12+.5*st.wn)*dt;q.y+=dt*(.05+.03*q.s);
+      STM.P[o]=q.x+Math.sin(t*.3+i)*.15;STM.P[o+1]=q.y;STM.P[o+2]=q.z;STM.Z[i]=q.s*(.6+.8*q.life);
+      STM.A[i]=k*.16*Math.sin(q.life*Math.PI)*(1-ss(.6,1.3,st.wn))*(pN(q.x,q.z)<1.1?1:.4)}
+    STM.g.attributes.position.needsUpdate=STM.g.attributes.a.needsUpdate=STM.g.attributes.z.needsUpdate=true;STM.m.uniforms.uH.value=innerHeight;
+    STM.m.uniforms.uC.value.copy(_c1.copy(dc?dc.color:_c1.set("#ccc")).multiplyScalar(dc?dc.intensity*.8:.8)).lerp(_c2.set("#eef0f2"),.3*(1-st.night))}
+  /* the snow on the tops lets go in clumps as it goes */
+  const ds=_scp0-WX.scp;_scp0=WX.scp;
+  if(ds>0&&WX.scp>.03&&dt>0&&rnd()<ds/dt*60*dt){const r=rnd();
+    if(r<.7){const pp=PALMS[Math.floor(rnd()*PALMS.length)],T0=pp.g&&pp.g.userData.top;if(T0){const a=rnd()*TAU,d=rr(.6,2.8);hBit("clump",T0.x+Math.cos(a)*d,T0.y-.3-d*.25,T0.z+Math.sin(a)*d,rr(-.2,.2),rr(-.3,0),rr(-.2,.2),3)}}
+    else if(TR.ok){const a=rnd()*TAU,ex=TENT.x+Math.cos(a)*TENT.L*.48,ez=TENT.z+Math.sin(a)*TENT.D*.48,h=roofAt(ex*.9+TENT.x*.1,ez*.9+TENT.z*.1);if(h>-50)hBit("clump",ex,h,ez,(ex-TENT.x)*.15,-.2,(ez-TENT.z)*.15,3)}}});
 /* ---------------- hail ----------------
    Small hail (0.8-2.4 cm) falls at 9-12 m/s, slanted by the gust. Far off it is drawn as short white streaks on the GPU (built the
    first time it hails). Round the spot the camera looks at, single stones are simulated: they strike, bounce, roll down the
@@ -2180,7 +2211,7 @@ const HS=(()=>{const n=MOB?180:420,{v,f}=icoSphere(1),geo=geoFrom(v,f);
   const mat=new T.MSM({color:"#f2f6f8",roughness:.24,metalness:0});
   const im=new T.IM(geo,mat,n);im.count=0;im.frustumCulled=false;im.visible=false;W.add(im);onDes(im);
   const P=[];for(let i=0;i<n;i++)P.push({m:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,r:0,t:0,b:0,gy:0});
-  return{n,im,P,acc:0,F:new V3(),R:4,fT:0,act:0,ev:{},M:new T.M4()}})();
+  return{n,im,P,acc:0,F:new V3(),R:4,fT:0,act:0,ev:{},M:new T.M4(),pin:null,cnt:{}}})();
 /* impact marks: pits with a thrown-up rim and a faint ring of grains (0), rings on the water (1), wet spots where a stone melted (2) */
 const HD=(()=>{const n=MOB?360:900,g=new T.Plane(1,1);g.rotateX(-Math.PI/2);
   const m=new T.SM({uniforms:{uT:{value:0},uCol:{value:new C3()},uSand:{value:new C3()}},transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,
@@ -2214,7 +2245,7 @@ const HB=(()=>{const n=MOB?260:640,P=new Float32Array(n*3),C=new Float32Array(n*
       }`});
   for(let i=0;i<n;i++)Q.push({l:0});
   const o=new T.Points(g,m);o.frustumCulled=false;o.renderOrder=9;o.visible=false;W.add(o);onDes(o);return{n,P,C,Z,Q,g,m,o,k:0}})();
-const HBK={drop:[.9,.94,.98,.05],grain:[.78,.6,.4,.009],leaf:[.3,.36,.2,.06],chip:[.95,.97,1,.012]};
+const HBK={clump:[.93,.95,.98,.09],drop:[.9,.94,.98,.05],grain:[.78,.6,.4,.009],leaf:[.3,.36,.2,.06],chip:[.95,.97,1,.012]};
 function hBit(ty,x,y,z,vx,vy,vz,life){const B=HB,q=B.Q[B.k];B.k=(B.k+1)%B.n;Object.assign(q,{ty,x,y,z,vx,vy,vz,l:life,L:life,ph:rnd()*TAU})}
 /* a stone at rest on a ripple: the ripple's slow terms are frozen where it lands, so its height and slope are cheap to follow */
 function ripFreeze(s,x,z,nY){const RD=sandU.uRipDir.value,dx=RD.x,dz=RD.y;s.wx=fbm2(x*.09,z*.09)*4;s.wz=fbm2(x*.11+7,z*.11+7)*2.5;
@@ -2230,7 +2261,7 @@ function cactusHits(){if(CHIT.length)return CHIT;
   for(const c of CACTI)if(c.g)CHIT.push({o:c,x:c.x,z:c.z,r:.75*c.s,h:1.5*c.s,tw:0,tv:0,k:.03});
   for(const c of CHIT)c.y=hTop(c.x,c.z)+c.h;return CHIT}
 const _hq=new V3(),_hn=new V3(),_hf=new V3();
-function hailFocus(){const m=De.matrixWorld.elements;_hf.set(-m[8],-m[9],-m[10]).applyAxisAngle(_yAx,-YAW).normalize();
+function hailFocus(){if(HS.pin){HS.F.set(HS.pin.x,0,HS.pin.z);HS.R=HS.pin.R;return}const m=De.matrixWorld.elements;_hf.set(-m[8],-m[9],-m[10]).applyAxisAngle(_yAx,-YAW).normalize();
   let d=1,x=_cl.x,z=_cl.z,hit=false;for(;d<80;d+=.8){x=_cl.x+_hf.x*d;z=_cl.z+_hf.z*d;const y=_cl.y+_hf.y*d;if(sN(x,z)<.97&&y<hTop(x,z)+.2){hit=true;break}}
   if(!hit){d=10;x=_cl.x+_hf.x*d;z=_cl.z+_hf.z*d}
   HS.F.set(x,0,z);HS.R=cl(d*.3,2.2,8)}
@@ -2240,35 +2271,35 @@ function hailSim(dt,t){const S0=HS,P=S0.P,hf=WX.hf,wn=st.wn;
   /* new stones: as many as the burst gives over the patch in view, capped so the pool turns over every several seconds */
   const wsp=(1.5+6*wn)*(.7+.5*WX.gf);
   S0.acc+=dt*hf*Math.min(MOB?28:64,Math.PI*S0.R*S0.R*1.4);
-  let free=0;
+  let free=0;const C=S0.cnt,cn=k=>{C[k]=(C[k]||0)+1};
   while(S0.acc>=1){S0.acc-=1;let s=null;for(let j=0;j<S0.n;j++){const q=P[(free+j)%S0.n];if(!q.m){s=q;free=(free+j+1)%S0.n;break}}
     if(!s){let o=1e9;for(const q of P)if(q.m===3&&q.t<o){o=q.t;s=q}if(!s)break}
     const a=rnd()*TAU,u=Math.sqrt(rnd())*S0.R,lx=S0.F.x+Math.cos(a)*u,lz=S0.F.z+Math.sin(a)*u,gy=hTop(lx,lz),hh=rr(5,8),tf=hh/10;
     Object.assign(s,{m:1,x:lx-WIND.x*wsp*tf,z:lz-WIND.z*wsp*tf,y:Math.max(gy,POND.wy)+hh,vx:WIND.x*wsp*rr(.8,1.1),vz:WIND.z*wsp*rr(.8,1.1),vy:-rr(8.5,11.5),
-      r:.004+.008*Math.pow(rnd(),1.6),t:0,b:0,gy:Math.max(gy,POND.wy),pd:0,cd:0,td:0,sk:1})}
+      r:.004+.008*Math.pow(rnd(),1.6),t:0,b:0,gy:Math.max(gy,POND.wy),pd:0,cd:0,td:0,sk:1});cn("spawn")}
   const CH=cactusHits(),warm=(1-LK.night)*(LK.day+.5*LK.sunset+.5*LK.sunrise);let n=0;const M=S0.M,E=S0.ev;for(const k in E)E[k]=null;
   for(const s of P){if(!s.m)continue;s.t+=dt;
     if(s.m===1){s.vy=Math.max(s.vy-9.8*dt,-13);s.x+=s.vx*dt;s.y+=s.vy*dt;s.z+=s.vz*dt;
       if(!s.td&&TR.ok&&Math.abs(s.x-TENT.x)<4&&Math.abs(s.z-TENT.z)<4){const h=roofAt(s.x,s.z,_hn);if(h>-50&&s.y<h+s.r){s.y=h+s.r;
         const vn=s.vx*_hn.x+s.vy*_hn.y+s.vz*_hn.z;if(vn<0){const e=1+rr(.45,.6);s.vx-=e*vn*_hn.x;s.vy-=e*vn*_hn.y;s.vz-=e*vn*_hn.z;s.vx+=rr(-.4,.4);s.vz+=rr(-.4,.4)}
-        if(s.b++>2)s.td=1;TENTH.k=Math.min(1.2,TENTH.k+.1);hEv("tent",s.x,s.y,s.z,-vn);s.gy=hTop(s.x,s.z)}}
+        if(!s.b)cn("tent");if(s.b++>2)s.td=1;TENTH.k=Math.min(1.2,TENTH.k+.1);hEv("tent",s.x,s.y,s.z,-vn);s.gy=hTop(s.x,s.z)}}
       if(!s.pd&&s.y<s.gy+13){for(const pp of PALMS){const T0=pp.g&&pp.g.userData.top;if(!T0)continue;const dx=s.x-T0.x,dz=s.z-T0.z,dh=Math.hypot(dx,dz);
           if(dh<3.3&&s.y<T0.y+.3-dh*.12&&s.y>T0.y-1.6){s.pd=1;if(rnd()<.65*(1-dh/3.6)){s.vy=Math.abs(s.vy)*rr(.1,.25);s.vx+=rr(-1.2,1.2)+dx/dh*.6;s.vz+=rr(-1.2,1.2)+dz/dh*.6;
-            pp.twA=Math.min(1,pp.twA+.22);hEv("palm",s.x,s.y,s.z,1);if(rnd()<.45)hBit("leaf",s.x,s.y,s.z,rr(-.5,.5),rr(.2,.8),rr(-.5,.5),rr(3,6))}break}}}
+            pp.twA=Math.min(1,pp.twA+.22);cn("palm");hEv("palm",s.x,s.y,s.z,1);if(rnd()<.45)hBit("leaf",s.x,s.y,s.z,rr(-.5,.5),rr(.2,.8),rr(-.5,.5),rr(3,6))}break}}}
       if(!s.cd&&s.y<s.gy+12.5)for(const c of CH){const dx=s.x-c.x,dz=s.z-c.z;if(dx*dx+dz*dz<c.r*c.r&&s.y<c.y&&s.y>c.y-.6){s.cd=1;s.vy=Math.abs(s.vy)*rr(.2,.35);s.vx+=dx/c.r*rr(.8,1.6);s.vz+=dz/c.r*rr(.8,1.6);
-          c.tv+=c.k*rr(.6,1.4)*(rnd()<.5?-1:1);hEv("cactus",s.x,s.y,s.z,1);break}}
+          c.tv+=c.k*rr(.6,1.4)*(rnd()<.5?-1:1);cn("cactus");hEv("cactus",s.x,s.y,s.z,1);break}}
       if(s.y<s.gy+.7){const inP=pN(s.x,s.z)<1;
-        if(inP&&s.y<POND.wy+s.r){s.m=4;s.y=POND.wy;s.t=0;s.life=rr(1.2,3.5);hEv("pond",s.x,s.y,s.z,1);hDecal(1,s.x,POND.wy+.004,s.z,rr(.5,.8));
+        if(inP&&s.y<POND.wy+s.r){s.m=4;s.y=POND.wy;s.t=0;s.life=rr(1.2,3.5);cn("pond");hEv("pond",s.x,s.y,s.z,1);hDecal(1,s.x,POND.wy+.004,s.z,rr(.5,.8));
           const k=MOB?6:10,sp=rr(.45,.8);for(let j=0;j<k;j++){const a=j/k*TAU+rnd()*.3;hBit("drop",s.x,POND.wy+.01,s.z,Math.cos(a)*sp,rr(1.1,1.8),Math.sin(a)*sp,.6)}
           hBit("drop",s.x,POND.wy+.01,s.z,0,rr(1.9,2.5),0,.7)}
         else if(!inP){const h=hTop(s.x,s.z);if(s.y<h+s.r){s.y=h+s.r*.7;const nn=nTop(s.x,s.z),vn=s.vx*nn.x+s.vy*nn.y+s.vz*nn.z;
-          if(!s.b){hEv("sand",s.x,s.y,s.z,-vn);if(rnd()<.45)hDecal(0,s.x,h+.004,s.z,rr(.05,.09)+s.r*3,nn);for(let j=0;j<(MOB?2:3);j++)hBit("grain",s.x,h+.01,s.z,rr(-.5,.5),rr(.5,1.1),rr(-.5,.5),.5)}
-          s.b++;if(vn<0){const e=1+rr(.25,.4);s.vx-=e*vn*nn.x;s.vy-=e*vn*nn.y;s.vz-=e*vn*nn.z;s.vx=s.vx*.7+rr(-.3,.3);s.vz=s.vz*.7+rr(-.3,.3)}
-          if(s.vy<.7||s.b>2){s.m=2;s.t=0;s.ngx=-nn.x/nn.y;s.ngz=-nn.z/nn.y;s.bx=s.x;s.bz=s.z;s.by=h;s.vy=0;ripFreeze(s,s.x,s.z,nn.y)}}}}}
+          if(!s.b){cn("sand");hEv("sand",s.x,s.y,s.z,-vn);if(rnd()<.45&&cn("pit")!==0)hDecal(0,s.x,h+.004,s.z,rr(.05,.09)+s.r*3,nn);for(let j=0;j<(MOB?2:3);j++)hBit("grain",s.x,h+.01,s.z,rr(-.5,.5),rr(.5,1.1),rr(-.5,.5),.5)}
+          s.b++;if(vn<0){if(s.b===2)cn("rebound");const e=1+rr(.25,.4);s.vx-=e*vn*nn.x;s.vy-=e*vn*nn.y;s.vz-=e*vn*nn.z;s.vx=s.vx*.7+rr(-.3,.3);s.vz=s.vz*.7+rr(-.3,.3)}
+          if(s.vy<.7||s.b>2){s.m=2;s.t=0;s.ngx=-nn.x/nn.y;s.ngz=-nn.z/nn.y;s.bx=s.x;s.bz=s.z;s.by=h;s.vy=0;ripFreeze(s,s.x,s.z,nn.y);s.l0=ripAt(s,s.x,s.z)*s.wr;cn(s.l0<-.3?"landTr":s.l0>.3?"landCr":"landMid")}}}}}
     else if(s.m===2){const e=.04,g0=ripAt(s,s.x,s.z),gx=(ripAt(s,s.x+e,s.z)-ripAt(s,s.x-e,s.z))/(2*e)*.036*s.am*s.wr,gz=(ripAt(s,s.x,s.z+e)-ripAt(s,s.x,s.z-e))/(2*e)*.036*s.am*s.wr;
       const ax=-7*(s.ngx+gx),az=-7*(s.ngz+gz),f=Math.exp(-dt*2.6);s.vx=(s.vx+ax*dt)*f;s.vz=(s.vz+az*dt)*f;s.x+=s.vx*dt;s.z+=s.vz*dt;
       s.y=s.by+s.ngx*(s.x-s.bx)+s.ngz*(s.z-s.bz)+s.r*.7;const sp=Math.hypot(s.vx,s.vz);
-      if(s.t>3||sp<.035&&Math.hypot(s.ngx+gx,s.ngz+gz)<.2||sN(s.x,s.z)>.95){s.m=3;s.t=0;const tr=g0*s.wr<-.3;s.life=(tr?rr(9,17):rr(2.5,6))*(1-.4*warm)*(1+WX.hc);s.wet=!tr}}
+      if(s.t>3||sp<.035&&Math.hypot(s.ngx+gx,s.ngz+gz)<.2||sN(s.x,s.z)>.95){s.m=3;s.t=0;const tr=g0*s.wr<-.3;cn(tr?"restTr":g0*s.wr>.3?"restCr":"restMid");s.life=(tr?rr(9,17):rr(2.5,6))*(1-.4*warm)*(1+WX.hc);s.wet=!tr}}
     else if(s.m===3){s.r*=Math.exp(-dt*(.01+.03*warm));if(s.t>s.life){s.m=5;s.t=0}}
     else if(s.m===4){s.x+=WIND.x*.05*dt;s.z+=WIND.z*.05*dt;s.y=POND.wy-s.r*.25+.003*Math.sin(s.t*9+s.x*7);if(s.t>s.life){s.m=5;s.t=0;s.wet=0;s.sk=0}}
     else if(s.m===5){s.sk=Math.max(0,1-s.t/1.2);if(s.sk<=0){s.m=0;if(s.wet&&pN(s.x,s.z)>1.05)hDecal(2,s.x,hTop(s.x,s.z)+.004,s.z,rr(.05,.09))}}
@@ -2529,7 +2560,7 @@ function camelPlan(a){
   /* in fog they stand where they are, coats beading with dew, and wait for it to lift */
   /* in hail they turn their backs to the wind and stand it out */
   if(WX.hcold){camelBrace(a);return}
-  if(WX.cold){a.mode="job";a.job="idle";a.timer=rr(12,24);play(a.r,"idle",1,1);return}
+  if(camHold()){a.mode="job";a.job="idle";a.timer=rr(12,24);play(a.r,"idle",1,1);return}
   const busy=j=>ANIM.camels.some(o=>o!==a&&o.job===j),near=(p,r)=>ANIM.camels.some(o=>o!==a&&(Math.hypot(o.x-p.x,o.z-p.z)<r||(o.goal&&Math.hypot(o.goal.x-p.x,o.goal.z-p.z)<r)));
   const opts=[["drink",.3],["graze",.32],["kneel",.2],["idle",.18]].filter(([j])=>j==="idle"||!busy(j)&&(j!=="drink"||!near(DRINK,4.5)));
   let r=rnd()*opts.reduce((s,o)=>s+o[1],0),job="idle";for(const[j,w]of opts){if((r-=w)<0){job=j;break}}
@@ -2538,13 +2569,15 @@ function camelPlan(a){
   else if(job==="kneel")camelGo(a,REST[a.i],"kneel");
   else{const g=navGrid("camel",1.05,1.12,.84),p=randFree(g,0,2,20,(x,z)=>sN(x,z)<.72&&roomy(a,x,z));camelGo(a,p||REST[a.i],"idle")}}
 /* in a dust storm camels kneel with their backs to the wind; in a downpour they kneel where they rest at night */
+/* camels wait out the fog and the falling snow; once it stops they walk on the lying snow again */
+const camHold=()=>WX.fcold||WX.hcold||WX.sf>.05;
 function camelBrace(a){a.job="idle";a.path=null;a.timer=rr(6,12);a.face=Math.atan2(WIND.x,WIND.z)+(a.i?.18:-.18);a.mode="turn"}
 function camelShelter(a){const r=REST[a.i];return WX.dust>.3?{x:r.x,z:r.z,yaw:Math.atan2(WIND.x,WIND.z)+(a.i?.25:-.25)}:r}
 function camelUpdate(a,dt){
   const night=st.phase==="night",stay=night||WX.shel>0;
   if(stay&&a.job!=="kneel"&&a.mode!=="up"){if(a.mode==="walk"||a.mode==="job"||a.mode==="turn")camelGo(a,camelShelter(a),"kneel")}
   else if(WX.hcold&&(a.mode==="walk"||a.mode==="job"&&Math.abs(wrapA(Math.atan2(WIND.x,WIND.z)-a.yaw))>.7))camelBrace(a);
-  else if(WX.cold&&a.mode==="walk"){a.mode="job";a.job="idle";a.path=null;a.timer=rr(12,24);play(a.r,"idle",1,1)}
+  else if(camHold()&&a.mode==="walk"){a.mode="job";a.job="idle";a.path=null;a.timer=rr(12,24);play(a.r,"idle",1,1)}
   let dy=0,vT=0,ym=.75;
   if(a.mode==="walk"){
     let wp=a.path[a.pi],last=a.pi===a.path.length-1;
@@ -2576,7 +2609,9 @@ function camelUpdate(a,dt){
   if(a.gy==null||Math.abs(f.y-a.gy)>.6){a.gy=f.y;a.gp=f.pitch;a.gr=f.roll}
   const gk=ease(9,dt);a.gy+=(f.y-a.gy)*gk;a.gp+=(f.pitch-a.gp)*gk;a.gr+=(f.roll-a.gr)*gk;
   a.g.position.set(a.x,a.gy,a.z);a.g.rotation.set(a.gp*(1-.5*kk),a.yaw,a.gr*(1-.5*kk));
-  rigTick(a.r,dt);camelPrints(a,dt)}
+  rigTick(a.r,dt);camelPrints(a,dt);
+  /* footsteps crunch in the snow, about one a stride per foot */
+  if(WX.sc>.05&&a.spd>.08){a.stD=(a.stD||0)+a.spd*dt;if(a.stD>.75){a.stD=0;if(amb())shotS("dCrn",.42*ss(.05,.4,WX.sc)*cl(a.spd/.9,.5,1),_crP.set(a.x+Math.sin(a.yaw)*rr(-1,1),hTop(a.x,a.z),a.z+Math.cos(a.yaw)*rr(-1,1)),5,rr(.85,1.15))}}}
 
 /* ---- eagle: soars in a thermal, lands on the saguaro top or at the west beach ---- */
 const _e0=new V3(),_e1=new V3(),_t0=new V3(),_t1=new V3(),_ev=new V3();
@@ -3105,7 +3140,7 @@ const AQ={dWnd:"@a:dWnd",dCalm:"@a:dCalm",dSnd:"@a:dSnd",dFire:"@a:dFire",dPop1:
   dRtl:"@a:dRtl",dRtlOn:"@a:dRtlOn",dRn:"@a:dRn",dRt:"@a:dRt",dStm:"@a:dStm",dStS:"@a:dStS",dTh1:"@a:dTh1",dTh2:"@a:dTh2",dTh3:"@a:dTh3",dTh4:"@a:dTh4",dTh5:"@a:dTh5"};
 const LL={dHsd:6,dHtn:6,dHlf:6,dHwt:6,dSiz:6,dWnd:22,dCalm:36,dSnd:20,dFire:19,dSnk:8,dRtl:12,dRn:22,dRt:22,dStm:30,dStS:30,dSnw:8};
 /* weather sounds load only when that weather comes */
-const WXA=new Set(["dHsd","dHtn","dHlf","dHwt","dHs1","dHt1","dHp1","dHc1","dSiz","dSnw","dDp1","dDp2","dDp3","dRn","dRt","dStm","dStS","dTh1","dTh2","dTh3","dTh4","dTh5","dRtl","dRtlOn"]);
+const WXA=new Set(["dCrn","dHsd","dHtn","dHlf","dHwt","dHs1","dHt1","dHp1","dHc1","dSiz","dSnw","dDp1","dDp2","dDp3","dRn","dRt","dStm","dStS","dTh1","dTh2","dTh3","dTh4","dTh5","dRtl","dRtlOn"]);
 const AU={b:{},pd:{},lp:{},bus:null,ob:null,pre:0,egT:rr(5,10),cmT:[rr(14,30),rr(30,60)],cmL:-99,q:[],cap:null};
 function SX(){return window.__sndX||null}
 /* rain hissing on the embers, made here rather than recorded: bright noise that swells and ebbs, with a sputter each time a drop
@@ -3150,6 +3185,12 @@ Object.assign(SYN,{
     for(let i=0;i<o.length;i++){const w=rn()*2-1;l1+=(w-l1)*.5;l2+=(l1-l2)*.08;o[i]+=(l1-l2)*.05*(.6+.4*Math.sin(i/R*2.1))}return o},
   dHwt(R){const o=hLoop(R,53,48,(o,i,rn)=>hPlink(o,i,R,.05+.2*Math.pow(rn(),1.6),1500+1700*rn(),rn)),rn=lcg(55);let pw=0;
     for(let i=0;i<o.length;i++){const w=rn()*2-1;o[i]+=(w-pw)*.012;pw=w}return o},
+  /* a camel's foot in snow: the squeak and crackle of crystals packing down over a soft thud */
+  dCrn(R){const n=Math.round(.2*R),o=new Float32Array(n),rn=lcg(71);let lp=0;
+    for(let i=0;i<n;i++){const t=i/R,w=rn()*2-1;lp+=(w-lp)*.3;o[i]=lp*.35*Math.min(1,t/.01)*Math.exp(-t/.05)}
+    for(let e=0;e<90;e++){const t0=Math.floor(Math.pow(rn(),1.5)*n*.85),g=(.1+.3*rn())*Math.exp(-t0/R/.08),d=R*(.0002+.0005*rn());let pw=0;
+      for(let k=0;k<d*5;k++){const w=rn()*2-1;o[(t0+k)%n]+=(w-pw)*g*Math.exp(-k/d);pw=w}}
+    return o},
   dHs1(R){const o=new Float32Array(Math.round(.12*R));hThud(o,0,R,.7,230,lcg(61));return o},
   dHt1(R){const o=new Float32Array(Math.round(.3*R));hDrum(o,0,R,.55,128,lcg(63));return o},
   dHp1(R){const o=new Float32Array(Math.round(.16*R));hPlink(o,0,R,.6,2300,lcg(65));return o},
@@ -3195,7 +3236,7 @@ function camelCall(a,kind){if(!amb())return;const r=a.voice*rr(.96,1.04),nt=st.n
   if(kind==="down")later(.5,()=>shotS(pick(["dCm3","dCm4"]),.55*nt,camelHead(a),9,r));
   else if(kind==="up")later(.3,()=>shotS(pick(["dCm1","dCm5"]),.5*nt,camelHead(a),9,r));
   else shotS(rnd()<.6?"dCm2":pick(["dCm1","dCm5"]),.36*nt,camelHead(a),9,r)}
-const _hwP=new V3(),_hsP=new V3(),_rtP=new V3(),_snP=new V3(),_fiP=new V3(),_dvP=new V3(),_oP=new V3(),_tnP=new V3(),_thP=new V3();
+const _crP=new V3(),_hwP=new V3(),_hsP=new V3(),_rtP=new V3(),_snP=new V3(),_fiP=new V3(),_dvP=new V3(),_oP=new V3(),_tnP=new V3(),_thP=new V3();
 /* thunder follows the flash by the sound's travel time; near strikes crack, far ones roll; heard from the bolt's side */
 function thunder(far){const k=far<.55?pick(["dTh1","dTh2","dTh3"]):pick(["dTh4","dTh5"]),ya=WX.boltA-YAW;
   capE(["T",+far.toFixed(3)]);later(.4+far*5,()=>shotS(k,mix(1,.5,far),_thP.set(_cl.x+Math.sin(ya)*60,_cl.y+20,_cl.z+Math.cos(ya)*60),60,rr(.92,1.04)))}
@@ -3257,6 +3298,7 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
     loopS("rtent2","dRt",.5*rOn*ss(.45,.85,WX.rain),_tnP,6,1.17,rOn?.08:.35)}
   /* hail: the bed of strikes on the sand all round, drumming on the tent, crackle in the palm crowns and plinks on the pond,
      each where it is; the strikes simulated near the camera are heard singly on top */
+  if(aOK()&&WX.sc>.03)synB("dCrn");
   if(aOK()&&WX.hf>.004)["dHsd","dHtn","dHlf","dHwt","dHs1","dHt1","dHp1","dHc1"].forEach(synB);
   {const hv=Math.pow(ss(0,.8,WX.hf),.7),T0=PALMS[0].g?PALMS[0].g.userData.top:null;
    loopS("hsand","dHsd",.5*hv,null,0,1,.12);
@@ -3633,7 +3675,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

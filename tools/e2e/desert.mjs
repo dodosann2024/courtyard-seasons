@@ -205,14 +205,77 @@ try {
     const hid = q.AG.list.every(a => !a.g.visible || a.then === "hide" || a.mode === "hide" || a.mode === "run" || (a.palm && a.mode === "climb"));
     const camWalk = q.ANIM.camels.filter(c => c.mode === "walk").length, rs = q.ANIM.rs;
     r.camelsWalking = camWalk; r.snake = rs ? rs.mode + (rs.g.visible ? "" : ":hidden") : null;
+    /* a thin layer lies on the tent roof, the palm crowns and the cactus tops, flakes vanish at the water, and a thin steam fog lies on the lake */
+    r.tops = q.WX.scp; r.steam = q.WX.stm; r.steamOn = q.STM.o.visible;
     q.tod("sunrise"); q.sim(40, .5); r.dawnIce = q.WX.ice;
-    window.__set({weather: "sun", ct: "clear"}); q.tod("day"); q.sim(60, .5); r.slush = q.WX.sm; r.coverAt60 = q.WX.sc;
+    window.__set({weather: "sun", ct: "clear"}); q.tod("day"); q.sim(60, .5); r.slush = q.WX.sm; r.coverAt60 = q.WX.sc; r.topsAt60 = q.WX.scp;
+    /* once the snowfall stops the camels walk again, and their steps crunch in the lying snow */
+    window.__set({weather: "sun", ct: "clear"}); q.tod("day"); q.sim(1, .5); q.audCap(true);
+    for (let i = 0; i < 12 && !q.ANIM.camels.some(c => c.mode === "walk"); i++) { for (const c of q.ANIM.camels) if (c.mode === "job") c.timer = 0; q.sim(5, .1); }
+    q.sim(10, .1); r.crunch = q.audCap(false).filter(e => e[1] === "S" && e[2] === "dCrn").length;
     r.wetPeak = q.WX.mw; for (let i = 0; i < 24; i++) { q.sim(10, .5); r.wetPeak = Math.max(r.wetPeak, q.WX.mw); } r.coverAt300 = q.WX.sc; r.iceDay = q.WX.ice; r.frostDay = q.WX.frost;
     q.sim(900, 1); r.wetAfter = q.WX.mw; r.coldAfter = q.WX.cold;
     for (const k in r) if (typeof r[k] === "number") r[k] = +r[k].toFixed(3);
     return [r.cover > .8 && r.frost > .6 && r.flakes && r.cold === 1 && hid && camWalk === 0 && r.dawnIce > .3 && r.slush > .5 && r.coverAt60 < r.cover &&
+      r.tops > .6 && r.topsAt60 < r.tops * .5 && r.steam > .5 && r.steamOn && r.crunch > 3 &&
       r.coverAt300 < .02 && r.wetPeak > .3 && r.iceDay < .05 && r.frostDay < .05 && r.wetAfter < .05 && r.coldAfter === 0, r];
   }));
+
+  /* 12. hail: a gust front, then a short burst of white stones out of a green-grey base. They bounce on the sand and pit it, roll
+     into the ripple troughs and lie there; they drum on the tent and shake it, crack into the palm crowns, knock the cacti, splash
+     and float briefly on the lake. Each surface has its own sound. The cold-blooded animals hide and the camels stand with their
+     backs to the wind. Then the sun melts the stones within minutes into dark wet spots that dry. */
+  check("hail: bounce, pits, troughs, tent, palms, cacti, lake, sounds, animals, melt", ...await page.evaluate(() => {
+    const q = window.__desQA(), C = q.HS.cnt, r = {}, H = q.WX.H, CS = q.ANIM.camels;
+    window.__set({weather: "sun", ct: "clear", wind: .5, hailLv: 1}); q.tod("day"); q.sim(30, .5);
+    for (const k in C) delete C[k];
+    const tp = q.PALMS[0], sg = (q.SAG || [])[0], [cx, cz] = q.dune.crestXZ(0);
+    const pins = [{x: cx, z: cz, R: 6}, {x: q.TENT.x, z: q.TENT.z, R: 4}, {x: tp.x, z: tp.z, R: 3.5}, {x: q.POND.x, z: q.POND.z, R: 3}, sg && {x: sg.x, z: sg.z, R: 2}].filter(Boolean);
+    let shk = 0, tw = 0, gust = 0, wnG = 0, hf = 0;
+    const watch = () => { shk = Math.max(shk, q.tentU.uShk.value); tw = Math.max(tw, ...q.PALMS.map(p => Math.abs(p.tw ? p.tw.value : 0))); gust = Math.max(gust, q.WX.gf); wnG = Math.max(wnG, q.st.wn); hf = Math.max(hf, q.WX.hf); };
+    window.__set({weather: "hail", hailLv: 1}); q.audCap(true);
+    q.HS.pin = pins[0]; q.lookAt(cx + 6, q.hTop(cx, cz) + 4, cz + 6, cx, q.hTop(cx, cz), cz);
+    for (let i = 0; i < 18; i++) { q.sim(1, 1 / 30); watch(); }
+    r.burstAfterGust = H.ph === 2;
+    for (const p of pins) { q.HS.pin = p; q.lookAt(p.x + 7, q.hTop(p.x, p.z) + 4, p.z + 7, p.x, q.hTop(p.x, p.z) + 1, p.z); for (let i = 0; i < 12; i++) { q.sim(1, 1 / 30); watch(); } }
+    q.HS.pin = pins[0]; q.lookAt(cx + 6, q.hTop(cx, cz) + 4, cz + 6, cx, q.hTop(cx, cz), cz); q.sim(10, 1 / 30); watch();
+    const ev = q.audCap(false), shots = new Set(ev.filter(e => e[1] === "S" && /^dH/.test(e[2])).map(e => e[2])), loops = new Set(ev.filter(e => e[1] === "L" && /^h/.test(e[2]) && e[4] > .05).map(e => e[2]));
+    Object.assign(r, {gust, windInGust: wnG, hail: hf, tentShake: shk, palmTwitch: tw, cover: q.WX.hc, pits: q.WX.hp, rain: q.WX.rain, streaks: q.HLU.uRain.value, cold: q.WX.cold, sky: q.skyU.uHg ? q.skyU.uHg.value : null});
+    r.counts = {...C}; r.shots = [...shots].sort(); r.loops = [...loops].sort();
+    const lt = (C.landTr || 0) / Math.max(1, (C.landTr || 0) + (C.landCr || 0)), rt = (C.restTr || 0) / Math.max(1, (C.restTr || 0) + (C.restCr || 0));
+    r.troughShareLanding = +lt.toFixed(3); r.troughShareResting = +rt.toFixed(3);
+    r.agamas = q.AG.list.map(a => a.mode + (a.g.visible ? "" : ":hidden"));
+    const hid = q.AG.list.every(a => !a.g.visible || a.then === "hide" || a.mode === "hide" || a.mode === "run" || (a.palm && a.mode === "climb"));
+    const wy = Math.atan2(q.WIND.x, q.WIND.z), off = CS.filter(c => c.mode !== "kneel" && c.job !== "kneel").map(c => Math.abs(Math.atan2(Math.sin(c.yaw - wy), Math.cos(c.yaw - wy))));
+    r.camelsWalking = CS.filter(c => c.mode === "walk").length; r.camelOffWind = off.map(a => +a.toFixed(2));
+    window.__set({weather: "sun", ct: "clear"}); q.HS.pin = null;
+    q.sim(60, .25); r.coverAt60 = q.WX.hc; r.wetPeak = q.WX.hm; for (let i = 0; i < 20; i++) { q.sim(15, .5); r.wetPeak = Math.max(r.wetPeak, q.WX.hm); }
+    r.coverAt360 = q.WX.hc; q.sim(900, 1); r.wetAfter = q.WX.hm; r.coldAfter = q.WX.cold;
+    for (const k in r) if (typeof r[k] === "number") r[k] = +r[k].toFixed(3);
+    const n = k => C[k] || 0;
+    return [r.burstAfterGust && r.gust > .6 && r.windInGust > .7 && r.hail > .8 && r.rain < .05 && r.streaks > .5 && r.cover > .4 && r.pits > .4 &&
+      n("sand") > 60 && n("rebound") > 10 && n("pit") > 15 && n("tent") > 5 && n("palm") > 3 && n("pond") > 5 && (!sg || n("cactus") > 1) &&
+      rt > lt + .1 && n("restTr") > n("restCr") && r.tentShake > .5 && r.palmTwitch > .1 &&
+      ["dHs1", "dHt1", "dHp1", "dHc1"].every(k => shots.has(k)) && ["hsand", "htent", "hleaf", "hwat"].every(k => loops.has(k)) &&
+      r.cold === 1 && hid && r.camelsWalking === 0 && off.every(a => a < .45) &&
+      r.coverAt60 < r.cover && r.coverAt360 < .03 && r.wetPeak > .2 && r.wetAfter < .05 && r.coldAfter === 0, r];
+  }));
+
+  /* 13. hail with rain: the stones fall through rain that wets the sand, tent and lake as rain does */
+  check("hail with rain", ...await page.evaluate(() => {
+    const q = window.__desQA();
+    window.__set({weather: "hail", hailLv: 2}); q.sim(60, 1 / 10);
+    const r = {hail: q.WX.hf, rain: q.WX.rain, wet: q.WX.wet, lake: q.pondU.uRainP.value, tent: q.tentU.uWetC.value};
+    for (const k in r) r[k] = +r[k].toFixed(3);
+    window.__set({weather: "sun", ct: "clear", hailLv: 1}); q.sim(600, 1);
+    return [r.hail > .5 && r.rain > .3 && r.wet > .2 && r.lake > .2 && r.tent > .2, r];
+  }));
+
+  /* 14. after the hail the dune still creeps, the wind still carries sand, and rain still wets everything */
+  await page.evaluate(() => { window.__set({weather: "sun", ct: "clear", wind: .8}); window.__desQA().sim(10); });
+  check("hail: dune deforms in wind", ...await duneCheck());
+  check("hail: wind blows sand", ...await sandCheck());
+  check("hail: rain on sand, tent and lake", ...await rainCheck());
 } finally { await browser.close(); server.close(); }
 if (failures.length) { console.log(`\n${failures.length} failure(s)`); process.exit(1); }
 console.log("\nall desert checks ok");

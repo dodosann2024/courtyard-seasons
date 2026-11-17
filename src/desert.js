@@ -332,9 +332,9 @@ function sandMat(){
         if(uHeat>.01)gl_FragColor.a=.985-.48*mkO;`);
   };
   if(TRK){const f=m.onBeforeCompile;m.onBeforeCompile=sh=>{f(sh);Object.assign(sh.uniforms,TRK.U);
-    sh.fragmentShader=sh.fragmentShader.replace("uniform vec4 uPond;","uniform vec4 uPond;uniform sampler2D uTrk;uniform vec4 uTrkW;\n float trkH(vec2 q){vec2 t=texture2D(uTrk,q).rg;return t.g*.005-t.r*.011;}")
+    sh.fragmentShader=sh.fragmentShader.replace("uniform vec4 uPond;","uniform vec4 uPond;uniform sampler2D uTrk;uniform vec4 uTrkW;\n float trkH(vec2 q){vec2 t=texture2D(uTrk,q).rg;return t.g*.0085-t.r*.011;}")
       /* the track's edges crumble: its lookup is shifted by up to a texel of fine noise, faded out where it would alias */
-      .replace("diffuseColor.rgb=mix(sc,vec3(dot(sc",`vec2 tUV=(vSP.xz-uTrkW.xy)*uTrkW.z+.5;float tIn=step(abs(tUV.x-.5),.497)*step(abs(tUV.y-.5),.497);
+      .replace("diffuseColor.rgb=mix(sc,vec3(dot(sc",`vec2 tUV=(vSP.xz-uTrkW.xy)*uTrkW.z+.5;float tIn=smoothstep(.497,.3,max(abs(tUV.x-.5),abs(tUV.y-.5)));
         vec2 tU0=tUV;
         tUV+=(vec2(dn2(vSP.xz*60.),dn2(vSP.xz*60.+7.3))-.5)*uTrkW.w*1.8*(1.-smoothstep(.0025,.007,length(fwidth(vSP.xz))));
         vec4 trq=texture2D(uTrk,tUV);vec2 trk=trq.rg*tIn;sc*=(1.-.14*trk.r)*(1.+.05*trk.g);
@@ -342,7 +342,7 @@ function sandMat(){
       .replace("float k=uRip*(1.-smoothstep(.07,.3,fw))","float k=uRip*(1.-smoothstep(.12,.5,trk.r+trk.g))*(1.-smoothstep(.07,.3,fw))")
       .replace("normal=normalize(normalMatrix*nL);}}",`normal=normalize(normalMatrix*nL);}}
         if(tIn>0.&&trk.r+trk.g>.004){float e=uTrkW.w;vec2 g=vec2(trkH(tUV+vec2(e,0.))-trkH(tUV-vec2(e,0.)),trkH(tUV+vec2(0.,e))-trkH(tUV-vec2(0.,e)))/(2.*e/uTrkW.z);
-          normal=normalize(normal+normalMatrix*vec3(-g.x,0.,-g.y));ripAO*=1.-.3*trk.r;
+          normal=normalize(normal+normalMatrix*vec3(-g.x,0.,-g.y)*tIn);ripAO*=1.-.3*trk.r;
           /* where the body was set down rather than slid, its belly scales press fine ridges across the groove floor (~6 mm
              apart), continuous from texel to texel along the body; seen only close up */
           float sF=smoothstep(.3,.75,trk.r)*(1.-smoothstep(.0012,.004,length(fwidth(vSP.xz))));
@@ -2420,14 +2420,14 @@ const rsGirth=i=>mix(.62,1,ss(0,9,i))*mix(1,.42,ss(26,43,i));
    shoves sideways against the sand (serpentine) or the body rolls off it (sidewinding). */
 /* sc: scale imprint (1 set down sidewinding, 2 rectilinear, 0 slid); ma, mb: the two points' places along the body (m) */
 function trkSeg(K,x0,z0,x1,z1,dep,px,pz,wr,mk,sc,ma,mb){const N=K.N,te=K.M/N,h=N/2,ax=(x0-K.ox)/te+h,az=(z0-K.oz)/te+h,bx=(x1-K.ox)/te+h,bz=(z1-K.oz)/te+h;
-  const r=RS_R*(wr||1),s2=2*(.68*r)**2,ro=1.25*r+.004,rw=2*(.4*r+.003)**2,mo=ro+.5*r+.007,mw=2*(.55*r+.005)**2,R=Math.ceil((mo+2.4*Math.sqrt(mw/2))/te);
+  const r=RS_R*(wr||1),s2=2*(.68*r)**2,ro=1.25*r+.004,rw=2*(.4*r+.003)**2,mo=ro+.75*r+.01,mw=2*(.85*r+.007)**2,R=Math.ceil((mo+2.4*Math.sqrt(mw/2))/te);
   const ex=bx-ax,ez=bz-az,L2=ex*ex+ez*ez||1e-9;mk=mk||0;
   let th=Math.atan2(ez,ex),sg=mb>=ma?1:-1;if(th<0){th+=Math.PI;sg=-sg}if(th>=Math.PI){th=0;sg=-sg}
   const cb=sc?(sc===1?1:129)+Math.round(th/Math.PI*126)%127:0;
   for(let j=Math.max(0,Math.floor(Math.min(az,bz))-R);j<=Math.min(N-1,Math.floor(Math.max(az,bz))+R);j++)
     for(let i=Math.max(0,Math.floor(Math.min(ax,bx))-R);i<=Math.min(N-1,Math.floor(Math.max(ax,bx))+R);i++){
       const cx=i+.5,cz=j+.5,uu=((cx-ax)*ex+(cz-az)*ez)/L2,u=cl(uu,0,1),dx=(cx-ax-ex*u)*te,dz=(cz-az-ez*u)*te,d=Math.hypot(dx,dz),sd=d>1e-4?(dx*px+dz*pz)/d:0;
-      const gr=dep*Math.exp(-d*d/s2),rim=dep*(.4+.6*sd)*Math.exp(-(d-ro)*(d-ro)/rw),mnd=dep*mk*Math.max(sd,0)**1.5*1.6*Math.exp(-(d-mo)*(d-mo)/mw);
+      const gr=dep*Math.exp(-d*d/s2),rim=dep*(.24+.36*sd)*Math.exp(-(d-ro)*(d-ro)/rw),mnd=dep*mk*Math.max(sd,0)**1.2*1.25*Math.exp(-(d-mo)*(d-mo)/mw);
       const o=(j*N+i)*4,va=gr*255|0,vb=Math.max(rim,mnd)*230|0;
       if(va>K.d[o]){K.d[o]=va;K.d[o+2]=cb;if(cb){const ph=sg*(ma+uu*(mb-ma))/RS_SCL;K.d[o+3]=(ph-Math.floor(ph))*256|0}}if(vb>K.d[o+1])K.d[o+1]=vb}
   K.dirty=K.any=1}
@@ -2446,6 +2446,11 @@ function trkTick(s,dt){const K=TRK;if(!K||!s.bd)return;const b=s.bd;
     for(let i=0;i<RS_N;i++){const was=Tc[i];Tc[i]=on(i)?1:0;if(!Tc[i])continue;const x=b.P[2*i],z=b.P[2*i+1];
       /* the J: the bent neck comes down first and hardest, digging the hook of each new track and flinging sand */
       if(side&&!was&&i<7&&s.a>.5)trkSpray(K,x,z,px,pz,MOB?8:14);
+      /* the hook of the J: the head comes down beyond the bar and curls round toward the way it is going */
+      if(side&&!was&&i<2&&s.a>.5&&i<RS_N-1){let tx=x-b.P[2*i+2],tz=z-b.P[2*i+3];const tl=Math.hypot(tx,tz),ml=Math.hypot(px,pz);
+        if(tl>1e-5&&ml>1e-5){tx/=tl;tz/=tl;const mx=-px/ml,mz=-pz/ml,sgn=Math.sign(tx*mz-tz*mx)||1;let hx=x,hz=z,a=Math.atan2(tz,tx);
+          for(let k=0;k<6;k++){a+=sgn*.36;const nx=hx+Math.cos(a)*.022*RS_SC/.9,nz=hz+Math.sin(a)*.022*RS_SC/.9;
+            trkSeg(K,hx,hz,nx,nz,1.45-.08*k,px,pz,mix(.72,.5,k/5),.9,1,i*RS_DS,i*RS_DS);hx=nx;hz=nz}}}
       if(Math.hypot(x-b.Ls[2*i],z-b.Ls[2*i+1])<.004)continue;b.Ls[2*i]=x;b.Ls[2*i+1]=z;
       let qx=px,qz=pz,mk=side?.7:0;
       /* serpentine: the outside of each bend is where the body shoves against the sand; the tighter the bend, the bigger the mound */

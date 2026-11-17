@@ -517,6 +517,23 @@ const MI=[];for(let i=0;i<mist.n;i++)MI.push({a:FALLS[i%FALLS.length].a,w:FALLS[
 /* a slow bank of cloud below the disc that the falls dissolve into */
 const cbank=ptSys(MOB?26:40,tPuff);cbank.o.renderOrder=0;root.add(cbank.o);
 const CB=[];for(let i=0;i<cbank.n;i++)CB.push({a:i/cbank.n*TAU+rr(-.1,.1),r:rr(R*.5,R*1.25),y:rr(-10.6,-8.6),sz:rr(6,10),ph:rnd()*TAU,w:rr(.004,.012)});
+/* advection fog: a low bank carried in on the wind across the water, lying below the upper yards so the topmasts stand clear of it */
+const FGB=(()=>{const N=MOB?5:7,G=new T.Plane(2*R+3.4,2*R+3.4),U={uT:{value:0},uK:{value:0},uC:{value:new C3(1,1,1)},uAdv:{value:new T.V2()},uWd:{value:new T.V2(Math.cos(a0),Math.sin(a0))}},L=[];
+ for(let k=0;k<N;k++){const h=k/(N-1),m=new T.SM({uniforms:{...U,uH:{value:h}},transparent:true,depthWrite:false,side:2,
+  vertexShader:`varying vec3 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
+  fragmentShader:`uniform vec3 uC;uniform float uK,uH,uT;uniform vec2 uAdv,uWd;varying vec3 vW;
+  float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hs(i),hs(i+vec2(1.,0.)),f.x),mix(hs(i+vec2(0.,1.)),hs(i+1.),f.x),f.y);}
+  void main(){vec2 q=vW.xz-uAdv,a=vec2(dot(q,uWd),dot(q,vec2(-uWd.y,uWd.x)))*vec2(.1,.24);
+   float n=vn(a+uH*.7)*.55+vn(a*2.3+vec2(3.1,uT*.03))*.3+vn(a*5.1-uH)*.15;
+   float r=length(vW.xz),dn=uK*pow(1.-uH,1.2)*smoothstep(.12-.24*uK,.88,n)*(1.-smoothstep(${(R+.2).toFixed(1)},${(R+1.6).toFixed(1)},r));
+   if(dn<.003)discard;gl_FragColor=vec4(uC,dn*.4);
+  #include <colorspace_fragment>
+  }`}),o=new T.Mesh(G,m);o.rotation.x=-Math.PI/2;o.position.y=.12+Math.pow(h,1.3)*3.1;o.renderOrder=5;o.frustumCulled=false;o.visible=false;root.add(o);L.push(o)}
+ return{L,U}})();
+const fgGr=(c,k)=>{const l=.3*c.r+.59*c.g+.11*c.b;return c.setRGB(c.r+(l*.96-c.r)*k,c.g+(l*1.01-c.g)*k,c.b+(l*1.06-c.b)*k)};
+const fgp=ptSys(MOB?18:30,tPuff);fgp.o.renderOrder=5;fgp.o.visible=false;root.add(fgp.o);
+const FP=[];for(let i=0;i<fgp.n;i++){const a=rnd()*TAU,r=Math.sqrt(rnd())*R;FP.push({x:Math.cos(a)*r,z:Math.sin(a)*r,y:rr(.25,1.3),sz:rr(2.4,4.6),age:rr(2,9),ph:rnd()*TAU})}
 
 /* ---------------- spray / droplets ---------------- */
 const spray=ptSys(MOB?560:1000,tDot);spray.o.renderOrder=6;root.add(spray.o);
@@ -798,7 +815,7 @@ const SEAS=[{deep:"#0a3a7a",shal:"#1cb4bc",scat:"#3fd6c4",haze:.012,S:.82,sat:1.
  {deep:"#06327e",shal:"#0fc0cc",scat:"#35e2d6",haze:.005,S:.66,sat:1.08,sep:0,tint:[1,1.005,1],lift:0,ray:.5,vig:.18,con:.06},
  {deep:"#0a2f72",shal:"#1898b4",scat:"#3cbcc4",haze:.009,S:1.02,sat:1,sep:.1,tint:[1.04,1,.94],lift:.008,ray:.9,vig:.32,con:.2},
  {deep:"#123a66",shal:"#3896b0",scat:"#70bcd0",haze:.012,S:1.14,sat:.78,sep:.02,tint:[.97,.99,1.04],lift:.02,ray:.4,vig:.24,con:.05}];
-const WM={sun:1,cloud:1.12,lrain:1.1,mrain:1.26,hrain:1.46,rain:1.26,storm:2.2,hail:1.36,snow:1};
+const WM={sun:1,cloud:1.12,lrain:1.1,mrain:1.26,hrain:1.46,rain:1.26,storm:2.2,hail:1.36,snow:1,fog:.55};
 const st={S:.8,vs:.2,ice:0,psi:.78,ox:0,oz:0,flowX:0,flowZ:0,ft:0,t:0,gr:{con:0,sat:1,sep:0,lift:0,ray:0,vig:.2,tint:new V3(1,1,1)},
  h:0,hv:0,p:0,pv:0,r:0,rv:0,heel:0,yaw:0,bowPrev:0,rainAcc:0,bioT:0,reefC:0,reefT:0,ts:1};
 const ShipC=new V3(-.25,0,.35);
@@ -973,6 +990,11 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  snowUpd(dt,t,wn);spr.m.uniforms.uC.value.setRGB(1,1,1).lerp(C1.setRGB(.62,.72,.95),night);spr.g.attributes.position.needsUpdate=spr.g.attributes.aA.needsUpdate=spr.g.attributes.aS.needsUpdate=true;
  for(let i=0;i<cbank.n;i++){const b=CB[i];b.a+=b.w*dt;cbank.p[i*3]=Math.cos(b.a)*b.r;cbank.p[i*3+1]=b.y+.3*Math.sin(t*.07+b.ph);cbank.p[i*3+2]=Math.sin(b.a)*b.r;cbank.a[i]=.3+.08*Math.sin(t*.05+b.ph*2.);cbank.s[i]=b.sz}
  cbank.g.attributes.position.needsUpdate=cbank.g.attributes.aA.needsUpdate=cbank.g.attributes.aS.needsUpdate=true;
+ {const k=qt.mist||0,on=k>.004;for(const o of FGB.L)o.visible=on;if(on){const sp=.3+1.3*wn;st.fgX=(st.fgX||0)+(Math.cos(a0)*sp-ux)*dt;st.fgZ=(st.fgZ||0)+(Math.sin(a0)*sp-uz)*dt;FGB.U.uT.value=t;FGB.U.uK.value=k;FGB.U.uAdv.value.set(st.fgX,st.fgZ)}
+  fgp.o.visible=on;if(on){const vx=Math.cos(a0)*(.3+1.3*wn)-ux,vz=Math.sin(a0)*(.3+1.3*wn)-uz,vl=Math.hypot(vx,vz)+1e-4;for(let i=0;i<fgp.n;i++){const f=FP[i];f.age+=dt;f.x+=vx*dt;f.z+=vz*dt;let r=Math.hypot(f.x,f.z);
+   if(r>R+.4&&f.x*vx+f.z*vz>0){const o=rr(-.85,.85)*R;f.x=-vx/vl*(R+.2)*Math.sqrt(1-o*o/(R*R))-vz/vl*o;f.z=-vz/vl*(R+.2)*Math.sqrt(1-o*o/(R*R))+vx/vl*o;f.age=0;r=R}
+   fgp.p[i*3]=f.x;fgp.p[i*3+1]=f.y+.12*Math.sin(t*.3+f.ph);fgp.p[i*3+2]=f.z;fgp.a[i]=.22*k*Math.min(1,f.age*.4)*(1-ss(R-1,R+.4,r));fgp.s[i]=f.sz*(1+.08*Math.sin(t*.21+f.ph))}
+   fgp.g.attributes.position.needsUpdate=fgp.g.attributes.aA.needsUpdate=fgp.g.attributes.aS.needsUpdate=true}}
  /* ice floes drift with the water and part around the hull */
  st.ice+=((Ct.season===3?1:0)-st.ice)*ease(.25,dt);U.uIce.value=st.ice*.6;
  for(let i=0;i<NF;i++){const f=FS[i];f.x-=ux*dt*.95;f.z-=uz*dt*.95;f.x+=wn*.05*dt;f.ry+=f.vr*dt;
@@ -990,16 +1012,16 @@ function update(dt){if(!root.visible)return;dt=Math.min(dt,.05)*st.ts;st.t+=dt;c
  U.uAmb.value.copy(dc.color).multiplyScalar(dc.intensity);U.uKey.value.copy(pi.color).multiplyScalar(pi.intensity);U.uKeyDir.value.copy(pi.position).normalize();
  U.uSunCol.value.copy(jt.sunCol.value);U.uMoonC.value.set(.75,.82,1).multiplyScalar(night*(.6+.4*open));
  /* the bowl hangs in clear sky: keep the air between it and a far camera clear unless the weather closes in */
- {const fk=1-.75*Math.max(storm,rain*.6);Jt.fog.near=Math.max(Jt.fog.near,70*fk);Jt.fog.far=Math.max(Jt.fog.far,240*fk)}
+ {const fk=1-.75*Math.max(storm,rain*.6);Jt.fog.near=Math.max(Jt.fog.near,70*fk);Jt.fog.far=Math.max(Jt.fog.far,240*fk);const mk=qt.mist||0;if(mk>0){Jt.fog.near+=(9-Jt.fog.near)*mk;Jt.fog.far+=(56-Jt.fog.far)*mk}}
  U.uFogC.value.copy(Jt.fog.color);U.uFogN.value=Jt.fog.near;U.uFogF.value=Jt.fog.far;
  {const lit=C1.copy(U.uAmb.value).multiplyScalar(.95).add(C2.copy(U.uKey.value).multiplyScalar(Math.max(U.uKeyDir.value.y,0)*.8)).multiplyScalar(.3183);
   spray.m.uniforms.uC.value.copy(lit).multiplyScalar(.95);hail.m.uniforms.uC.value.copy(lit).multiplyScalar(1.1);mist.m.uniforms.uC.value.copy(lit).multiplyScalar(.9).lerp(U.uFogC.value,.35);bmist.m.uniforms.uC.value.copy(lit).multiplyScalar(1.05);cbank.m.uniforms.uC.value.copy(lit).multiplyScalar(.85).lerp(U.uFogC.value,.5);
-  blowS.m.uniforms.uC.value.copy(lit).multiplyScalar(1.05);
+  blowS.m.uniforms.uC.value.copy(lit).multiplyScalar(1.05);FGB.U.uC.value.copy(lit).multiplyScalar(1.1).lerp(U.uFogC.value,.5);fgp.m.uniforms.uC.value.copy(FGB.U.uC.value);
   /* whale water: near-white with a hint of sky, only as bright as the light, never tinted by it */
   const lum=Math.min(1.1,Math.max(.04,(.2126*lit.r+.7152*lit.g+.0722*lit.b)*1.25)),tp=jt.top.value,tm=Math.max(tp.r,tp.g,tp.b,1e-3);
   wtrU.uWc.value.setRGB(.88+(tp.r/tm-.88)*.3,.93+(tp.g/tm-.93)*.3,.97+(tp.b/tm-.97)*.3).multiplyScalar(lum);wtrU.uAsp.value=De.aspect}
  /* season colours ease in */
- const ke=ease(.9,dt),dk=(1-.25*rain)*(1-.3*storm);U.uDeep.value.lerp(C1.set(sz.deep).multiplyScalar(dk),ke);U.uScat.value.lerp(C2.set(sz.scat).multiplyScalar(1-.3*storm),ke);U.uShal.value.lerp(C1.set(sz.shal).multiplyScalar(.6+.4*dk),ke);U.uHaze.value+=(sz.haze*(1+rain*.8)+(w==="snow"?.008:0)-U.uHaze.value)*ke;
+ const ke=ease(.9,dt),dk=(1-.25*rain)*(1-.3*storm);const mg=(qt.mist||0)*.55;U.uDeep.value.lerp(fgGr(C1.set(sz.deep).multiplyScalar(dk),mg),ke);U.uScat.value.lerp(fgGr(C2.set(sz.scat).multiplyScalar(1-.3*storm),mg),ke);U.uShal.value.lerp(fgGr(C1.set(sz.shal).multiplyScalar(.6+.4*dk),mg),ke);U.uHaze.value+=(sz.haze*(1+rain*.8)+(w==="snow"?.008:0)-U.uHaze.value)*ke;
  U.uBio.value=night*(Ct.season===1?1:Ct.season===0?.25:0)*.9;
  /* lanterns and stern windows */
  const lg=.12+night*3.4;mGlass.emissiveIntensity=lg;mStern.emissiveIntensity=night*1.6;lanL.intensity=night*2.2*(.92+.08*Math.sin(t*9)*Math.sin(t*5.3));
@@ -1634,7 +1656,7 @@ onSea(root);lanL.layers.mask=L2;
 function show(on){root.visible=on;grade.enabled=on;De.layers.set(on?2:0);window.__seaA=on;const x=SX();x&&x.C&&x.C();
  if(!on&&AU.bus&&x&&x.s){AU.bus.gain.setTargetAtTime(0,x.s.currentTime,.25);const L=AU.lp;AU.lp={};setTimeout(()=>{for(const k in L)try{L[k].s.stop()}catch(e){}},1500)}}
 window.__seaShow=show;window.__seaU=update;
-window.__sea={FALLS,sailSyn,SSG,sailBoom,boomSyn,SBG,diveSyn,DSG,LAT,spawnTurtle,st,ship,root,W,hAt,U,streak,SAILS,FL,De,Ce:X.Ce,Cn,grade:gradeM,jt,trailW,wl,bowL,LOG,WH,POD,GU,AU,WP,whale,WSH,SP,
+window.__sea={FGB,fgp,FALLS,sailSyn,SSG,sailBoom,boomSyn,SBG,diveSyn,DSG,LAT,spawnTurtle,st,ship,root,W,hAt,U,streak,SAILS,FL,De,Ce:X.Ce,Cn,grade:gradeM,jt,trailW,wl,bowL,LOG,WH,POD,GU,AU,WP,whale,WSH,SP,
  TUR,FISH,FFS,AQU,spawn:(k,a)=>k==="whale"?(WH.on=0,WH.force=a,spawnWhale(ENV)):k==="dolphin"?(POD.on=0,spawnPod(ENV)):k==="turtle"?(TUR.on=0,spawnTurtle(a||0)):k==="ff"?spawnFF(ENV):0};
 window.__seaReady=true;
 };

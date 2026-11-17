@@ -2935,9 +2935,11 @@ function agTrunkPose(a){const f=trunkAt(a.palm,a.ct,a.az);a.g.position.copy(f.p)
   /* walking round the trunk it turns its head the way it is going instead of sliding sideways */
   const hd=a.hd||0,cd=_an.crossVectors(f.tg,f.n);
   const q=(down,o)=>{_ay.copy(f.tg).multiplyScalar((down?-1:1)*Math.cos(hd)).addScaledVector(cd,Math.sin(hd)).normalize();_ax.crossVectors(_ay,f.n);_am.makeBasis(_ax,_ay,f.n);return o.setFromRotationMatrix(_am)};
-  if(a.turn!=null){q(!a.down,_aq);q(a.down,_aq2);a.g.quaternion.slerpQuaternions(_aq,_aq2,ss(0,1,a.turn))}else q(a.down,a.g.quaternion)}
+  if(a.turn!=null){q(!a.down,_aq);q(a.down,_aq2);a.g.quaternion.slerpQuaternions(_aq,_aq2,ss(0,1,a.turn))}else q(a.down,a.g.quaternion);
+  if(a.lift){a.g.position.addScaledVector(f.n,a.lift*.6);a.g.quaternion.multiply(_aq.setFromAxisAngle(_ax.set(1,0,0),a.lift*7))}}
 function agGroundPose(a){const n=a.ry>-50?_an.set(0,1,0):nTop(a.x,a.z);a.g.position.set(a.x,a.ry>-50?a.ry:hTop(a.x,a.z),a.z);
-  _az.set(Math.sin(a.yaw),0,Math.cos(a.yaw));_ax.crossVectors(n,_az).normalize();_az.crossVectors(_ax,n);_am.makeBasis(_ax,n,_az);a.g.quaternion.setFromRotationMatrix(_am)}
+  _az.set(Math.sin(a.yaw),0,Math.cos(a.yaw));_ax.crossVectors(n,_az).normalize();_az.crossVectors(_ax,n);_am.makeBasis(_ax,n,_az);a.g.quaternion.setFromRotationMatrix(_am);
+  if(a.lift){a.g.position.y+=a.lift*.6;a.g.quaternion.multiply(_aq.setFromAxisAngle(_ax.set(1,0,0),-a.lift*7))}}
 /* the top of a rock under (x,z), or -99 */
 const _rtc={r:null,o:new V3(),d:new V3(0,-1,0)};
 function rockTop(x,z){if(!_rtc.r)_rtc.r=new VT.THREE.Raycaster();W.updateMatrixWorld();_rtc.o.set(x,6,z);W.localToWorld(_rtc.o);_rtc.d.set(0,-1,0);_rtc.r.set(_rtc.o,_rtc.d);
@@ -2958,7 +2960,7 @@ function agSpawn(scene,anims,male){const g=new T.Group();g.add(scene);W.add(g);o
         vec4 sampledDiffuseColor=texture2D(map,vMapUv);sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,texture2D(uBlue,vMapUv).rgb,uWarm);diffuseColor*=sampledDiffuseColor;
         #endif`)};c.customProgramCacheKey=()=>"agBlue"});
   const a={g,r:rigUp(scene,anims),male,U,x:0,z:0,ry:-99,yaw:rr(-3,3),mode:"idle",timer:rr(1,3),Tb:male?.8:.6,warm:male?.6:0,
-    palm:null,ct:0,az:0,down:false,turn:null,ctGoal:0,path:null,pi:0,then:null,goal:null,burst:0,bob:rr(4,10),cond:"",spot:null};
+    palm:null,ct:0,az:0,down:false,turn:null,ctGoal:0,path:null,pi:0,then:null,goal:null,burst:0,bob:rr(4,10),cond:"",spot:null,oP:new V3(),oQ:new T.Quat(),sp:null};
   for(const k of["climb","run","idle","bask","head_bob"]){const c=a.r.acts[k];if(c&&k==="head_bob")c.setLoop(VT.THREE.LoopOnce,1),c.clampWhenFinished=true}
   play(a.r,"idle",.01,1);return a}
 const agSun=()=>(1-st.night)*WX.sunK*(1-WX.rain)*(1-.5*WX.dust)*(st.phase==="day"?1:.65);
@@ -3016,14 +3018,22 @@ function agUpdate(dt){
       a.x+=Math.sin(a.yaw)*st_;a.z+=Math.cos(a.yaw)*st_;a.burst-=st_;
       /* onto and off rocks: the body follows the rock top while over it */
       const g=a.goal;if(g&&g.y>-50&&Math.hypot(a.x-g.x,a.z-g.z)<(g.sp?g.sp.r:.4)+.05){const ty=rockTop(a.x,a.z);a.ry=ty>-50?(a.ry>-50?a.ry+(ty-a.ry)*ease(14,dt):ty):-99}else if(a.ry>-50){const ty=rockTop(a.x,a.z);a.ry=ty>-50?ty:-99}
-      if(d<.06){a.pi++;if(a.pi>=a.path.length){agArrive(a);agPose(a);rigTick(a.r,dt);continue}}
+      if(d<.06){a.pi++;if(a.pi>=a.path.length){agArrive(a);agPose(a);agSmooth(a,dt);rigTick(a.r,dt);continue}}
       if(a.burst<=0&&a.mode==="run"&&d>.4){a.mode="pause";a.timer=rr(.35,1.4);play(a.r,"idle",.12,1)}}
     else if(a.mode==="pause"){a.timer-=dt;if(a.timer<=0){a.mode="run";a.burst=rr(.8,2.8);play(a.r,"run",.12,AG_V/AG_RUN)}}
     else if(a.mode==="climb"){if(a.turn!=null){a.turn+=dt/.7;if(a.turn>=1)a.turn=null}else{
-      const s=Math.sign(a.ctGoal-a.ct),dv=AG_VC*dt/a.palm.h;a.ct+=s*Math.min(dv,Math.abs(a.ctGoal-a.ct));
-      if(Math.abs(a.ctGoal-a.ct)<1e-4){if(a.ctGoal<=.15/a.palm.h+1e-3&&a.down){agDismount(a);agDecide(a)}else{a.mode="perch";a.timer=rr(8,20);play(a.r,"climb",.25,0)}}}}
-    else if(a.mode==="perch"){if(a.turn!=null){a.turn+=dt/.7;if(a.turn>=1)a.turn=null}a.timer-=dt;if(a.timer<=0)agDecide(a)}
+      const s=Math.sign(a.ctGoal-a.ct),dv=AG_VC*(a.fast?4.5:1)*dt/a.palm.h;a.ct+=s*Math.min(dv,Math.abs(a.ctGoal-a.ct));
+      if(Math.abs(a.ctGoal-a.ct)<1e-4){a.fast=0;if(a.ctGoal<=.15/a.palm.h+1e-3&&a.down){agDismount(a);agDecide(a)}else{a.mode="perch";a.timer=rr(8,20);play(a.r,"climb",.25,0)}}}}
+    else if(a.mode==="perch"){if(a.turn!=null){a.turn+=dt/.7;if(a.turn>=1)a.turn=null}a.timer-=dt;
+      /* every so often a quick dash a hand or two along the trunk, the way it is facing, then stock-still again */
+      a.dsT=(a.dsT==null?rr(5,12):a.dsT)-dt;
+      if(!rain&&a.turn==null&&a.pu==null&&a.dsT<=0){a.dsT=rr(7,16);const h=a.palm.h,g=cl(a.ct+(a.down?-1:1)*rr(.2,.55)/h,.2/h,(h-2.2)/h);
+        if(Math.abs(g-a.ct)*h>.12){a.ctGoal=g;a.fast=1;a.mode="climb";play(a.r,"climb",.06,AG_VC*4.5/AG_CLIMB)}}
+      else if(a.timer<=0)agDecide(a)}
     else if(a.mode==="bask"){a.timer-=dt;a.bob-=dt;
+      /* shifts its stance on the rock now and then, turning a little to the sun or away */
+      a.shT=(a.shT==null?rr(4,9):a.shT)-dt;if(a.shT<=0){a.shT=rr(4,10);a.yawG=wrapA(a.yaw+rr(-.5,.5))}
+      if(a.yawG!=null){const d=wrapA(a.yawG-a.yaw);a.yaw=wrapA(a.yaw+cl(d,-1.1*dt,1.1*dt));if(Math.abs(d)<.01)a.yawG=null}
       if(a.bob<=0&&a.Tb>.45){a.bob=a.male?rr(7,15):rr(15,30);play(a.r,"head_bob",.2,1);a.mode="bob";a.timer2=3}
       else if(a.timer<=0||a.Tb>.97)agDecide(a)}
     else if(a.mode==="bob"){a.timer2-=dt;if(a.timer2<=.25){a.mode="bask";play(a.r,"bask",.3,1)}}
@@ -3038,8 +3048,21 @@ function agUpdate(dt){
       const lat=a.azV*r,vert=a.mode==="climb"&&a.turn==null?AG_VC:0;a.hd=(a.hd||0)+(cl(lat/(vert+.08),-1.2,1.2)-(a.hd||0))*ease(4,dt);
       const ca=a.r.acts.climb;if(ca&&a.mode==="perch")ca.timeScale=Math.abs(lat)>.004?Math.abs(lat)/AG_CLIMB:0}
     else if(a.hd)a.hd=0;
-    agPose(a);if(AG.vis>0&&a.g.visible)rigTick(a.r,dt)}}
+    /* display: a burst of push-ups, the agama's bob, from a rock or a trunk; the male more often than the female */
+    a.puT=(a.puT==null?rr(3,8):a.puT)-dt;
+    if(a.pu==null&&a.puT<=0&&(a.mode==="perch"&&!rain&&a.turn==null||a.mode==="bask")){a.pu=0;a.puN=2+Math.floor(rnd()*3);a.puD=a.puN*.42;
+      if(a.mode==="perch"&&rnd()<.5)a.azG=a.az+rr(-.3,.3)}
+    if(a.pu!=null){a.pu+=dt/a.puD;if(a.pu>=1||a.mode!=="perch"&&a.mode!=="bask"){a.pu=null;a.puT=a.male?rr(5,11):rr(9,18)}}
+    a.lift=a.pu!=null?Math.pow(Math.max(0,Math.sin(Math.PI*a.puN*a.pu)),.7)*.013*(a.male?1:.7):0;
+    agPose(a);agSmooth(a,dt);if(AG.vis>0&&a.g.visible)rigTick(a.r,dt)}}
 function agPose(a){if(a.palm)agTrunkPose(a);else agGroundPose(a)}
+/* any step faster than it can run or turn (turning broadside to bask, stepping onto or off a trunk) is eased out over a
+   fraction of a second instead of shown as a jump */
+const _agI=new T.Quat();
+function agSmooth(a,dt){const p=a.g.position,q=a.g.quaternion;
+  if(a.sp&&a.wasVis&&a.g.visible&&(a.sp.distanceTo(p)>AG_V*1.5*dt+.01||a.sq.angleTo(q)>12*dt+.05)){a.oP.copy(a.sp).sub(p);a.oQ.copy(a.sq).multiply(_aq.copy(q).invert())}
+  const k=Math.exp(-dt/.2);a.oP.multiplyScalar(k);a.oQ.slerp(_agI,1-k);p.add(a.oP);q.premultiply(a.oQ);
+  if(!a.sp){a.sp=new V3();a.sq=new T.Quat()}a.sp.copy(p);a.sq.copy(q);a.wasVis=a.g.visible}
 /* lizards under ~1.5 px are hidden and their rigs not updated */
 const _agc=new V3();
 function agVis(){const c=_agc.copy(De.position);W.worldToLocal(c);const ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));

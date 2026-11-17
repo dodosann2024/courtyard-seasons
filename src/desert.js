@@ -1155,7 +1155,7 @@ function curtainUpdate(t){
    drops straight down off the lip close to the cliff face (sand has no jet momentum; its path is fitted to the cliff mesh), tears into strands and grains and thins into dust
    above the cloud sea. Wind sets the rate: more on the downwind rim and in gusts and dust storms; rain damps the sand into a few
    darker, lighter trickles. Sand is not water: most of the rim only sheds short broken trickles off the creeping veneer, and a few
-   heavy falls hang a dense drape off the lip that fans out, clumps and surges, and gives itself up to dust drifting downwind. */
+   heavier falls hang a narrow column off the lip that clumps and surges and, at its foot only, gives itself up to dust drifting downwind. */
 const SF={H:28,G:9.8,F:[]};SF.Tf=Math.sqrt(2*SF.H/SF.G);
 const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value:0},uNt:{value:0},uWV:{value:new T.V2()},
   uCol:curU.uCol,uSheen:curU.uSheen,uLd:sandU.uLd,uGT:sandU.uGT,uWD:sandU.uWD,uFogC:pondU.uFogC,uFogNF:pondU.uFogNF};
@@ -1163,7 +1163,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   /* a seed of their own, so the falls do not shift the rest of the layout */
   let ps=5281;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^ps>>>15,1|ps);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},prr=(a,b)=>a+(b-a)*pr();
   /* [half width min, max, rate threshold min, max] for heavy falls, thinner falls, trickles */
-  const kinds=[[1.5,2.3,0,.04],[.5,.85,.03,.16],[.05,.13,.04,.34]],pat=[0,2,2,2,1,2,2,2],nF=MOB?32:48,sl=TAU/nF;
+  const kinds=[[.55,.85,0,.04],[.28,.45,.03,.16],[.05,.12,.04,.34]],pat=[0,2,2,2,1,2,2,2],nF=MOB?32:48,sl=TAU/nF;
   const rp=rockMesh.geometry.attributes.position.array,nV=rp.length/3,LIPV=3*NT;
   const frame=th=>{const[x,z]=edgeXZ(th,1),[x1,z1]=edgeXZ(th+.02,1),[x0,z0]=edgeXZ(th-.02,1),l=Math.hypot(x1-x0,z1-z0),tx=(x1-x0)/l,tz=(z1-z0)/l;return{x,z,tx,tz,nx:tz,nz:-tx}};
   /* the cliff under a fall: the furthest-out rock at each 0.5 m of depth below the lip crest, and the lip's crest height and offset */
@@ -1190,7 +1190,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
     let dp=P.lipD;const path=[];
     for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.3),tau=s*SF.Tf,y=P.lipY+.05-.5*SF.G*tau*tau,c=req(y);
       const d=Math.max(P.lipD+.04+f.v0*tau,c+.14,dp);dp=d;path.push([d,y]);
-      rows.push({d,y,s,w:hw*(1-.22*ss(0,.2,s)+[1.3,1.,.5][f.ty]*Math.pow(ss(.05,1,s),1.25)),sl:Math.max(0,d-c-.14)})}
+      rows.push({d,y,s,w:hw*(1-.18*ss(0,.25,s)+.12*ss(.75,1,s)),sl:Math.max(0,d-c-.14)})}
     /* heavy falls hang a second, looser curtain just outside the first, so they have depth from afar (not on phones: it doubles the overdraw) */
     for(let ly=0;ly<(f.ty||MOB?1:2);ly++){const o=pos.length/3,R0=ly?rows.filter(r=>r.s>=0):rows;
       for(const r of R0){const dd=r.d+ly*(.14+.22*r.s),cx=E.x+E.nx*dd,cz=E.z+E.nz*dd,w=r.w*(ly?1.18:1);
@@ -1206,9 +1206,9 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         /* the downwind rim pours first; as the wind veers, falls on the rim it now blows across start and others ease off */
         float wl=length(uWV),k=aK.x+.22*(.5-.5*dot(n,uWV/max(wl,1e-4))),s=aU.y,vis=smoothstep(k,k+.3,uFR);vVis=vis;vec3 p=position;
         p.xz-=aT*(1.-(.45+.55*vis)*(1.+.25*clamp(uFR-1.,0.,1.)));
-        if(s>0.){float f=pow(s,2.4);
-          /* the wind only drifts the lower, dusty part a little downwind and sways it; it may lean in toward the cliff only as far as the clearance allows */
-          vec2 tg=vec2(-n.y,n.x),dr=uWV*f*(.6+.8*gustF(p.xz))*.45+tg*sin(uT*.8+aK.y)*.1*f;
+        if(s>0.){float f=pow(smoothstep(.45,1.,s),1.5);
+          /* the column hangs plumb; only its dissolving foot is carried off downwind and sways; it may lean in toward the cliff only as far as the clearance allows */
+          vec2 tg=vec2(-n.y,n.x),dr=uWV*f*(.6+.8*gustF(p.xz))*.9+tg*sin(uT*.8+aK.y)*.12*f;
           float side=dot(dr,tg);dr-=tg*side*(1.-.8*smoothstep(.45,.9,s));
           float inw=dot(dr,n);dr-=n*(inw-max(inw,-aN.z));p.xz+=dr;}
         vec4 w=modelMatrix*vec4(p,1.);vW=w.xyz;
@@ -1229,7 +1229,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* the run: sand creeping and hopping over the surface toward the lip, a faint streaming band */
           float g=s+1.,q=dn2(vec2(tx*.6,s*5.-uFT*1.3))*.6+dn2(vec2(tx*1.7+3.,s*11.-uFT*2.6))*.4;
           vec2 gq=vec2(x*Nt*3.,s*40.-uFT*9.),gc=floor(gq),gf=fract(gq)-.5;float gr=step(.84-.12*g,dh2(gc))*exp(-dot(gf,gf)*9.);
-          a=(smoothstep(.45,.75,q)*.32+gr*.45)*smoothstep(0.,.4,g)*smoothstep(0.,.3,ed)*mix(1.,.45,uWet)*(1.+.9*smoothstep(.8,1.6,hw))*smoothstep(-.1,.4,cameraPosition.y-vW.y);
+          a=(smoothstep(.45,.75,q)*.32+gr*.45)*smoothstep(0.,.4,g)*smoothstep(0.,.3,ed)*mix(1.,.45,uWet)*(1.+.9*smoothstep(.4,.75,hw))*smoothstep(-.1,.4,cameraPosition.y-vW.y);
           c=base*(1.06+.12*q);
         }else{
           /* u rides with the falling sand: anything scrolled at this rate in s moves with the grains and stretches as they speed up */
@@ -1243,7 +1243,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float ew=dn2(vec2(x*1.7+sd,u*1.1))*.6+dn2(vec2(x*4.1+sd,u*3.3))*.4,dk=uDust*mix(.6,1.,smoothstep(0.,.3,s));
           /* in a dust storm the sheet comes off the lip in clumps and surges, its sides fraying into loose strands */
           /* even in still air a heavy pour comes in surges and clots, sand being grains, not a liquid */
-          float cm=1.,sgU=1.,fr=0.,ly=vK.w,dkB=min(1.,max(dk*1.8,(.3+.25*ly)*smoothstep(.3,.8,hw)*smoothstep(.04,.3,s)));
+          float cm=1.,sgU=1.,fr=0.,ly=vK.w,dkB=min(1.,max(dk*1.8,(.3+.25*ly)*smoothstep(.25,.6,hw)*smoothstep(.04,.3,s)));
           if(dkB>.01){cm=fallN(vec2(Xw*.9+11.,sd),s,5.,24.)*.55+fallN(vec2(Xw*2.6+4.,sd*2.),s,12.,55.)*.45;sgU=fallN(vec2(Xw*.12+sd*.7,sd),s,1.5,6.);}
           if(dk>.01){fr=fallN(vec2(x*13.+sd,0.),s,10.,40.);str=mix(str,fallN(vec2(Xw*.7,9.),s,3.,14.)*.6+fallN(vec2(Xw*1.8+5.,2.),s,7.,30.)*.4,dk);}
           float edge=smoothstep(0.,.05+.12*s,ed-(.04+.2*s)*ew*(1.+1.6*max(dk,dkB*.7))-.05*(1.-n2)*s-.1*dk*fr);
@@ -1253,7 +1253,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* trickles come in spurts */
           if(hw<.3)body*=smoothstep(.42,.7,fallN(vec2(sd,3.),s,1.2,5.))*(.75-.35*smoothstep(.1,.3,s));
           body*=1.-.45*ly;
-          float endS=mix(.3,.62,smoothstep(.4,1.6,hw))-.1*ly+mix(.16,.3,smoothstep(.9,1.5,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
+          float endS=mix(.3,.62,smoothstep(.2,.7,hw))-.1*ly+mix(.16,.3,smoothstep(.4,.75,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
           /* grains, streaked by their speed; more of them shed at the sides and the foot */
           vec2 dq=vec2(x*Nt*2.2+sd,u*70.),dc=floor(dq);float dh=dh2(dc);vec2 df=fract(dq)-.5-(vec2(dh2(dc+3.1),dh2(dc+7.7))-.5)*.6;df.y*=mix(1.,.35,smoothstep(.1,.7,s));
           vec2 gw=fwidth(dq);float gd=.9-.2*(1.-edge)-.18*smoothstep(.4,.9,s)+.06*wet-.12*dk;
@@ -1262,7 +1262,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float du=dn2(vec2(x*2.3+sd,u*2.6))*.6+dn2(vec2(x*5.+sd*2.,u*6.))*.4;
           /* in a storm the veil is torn too: drifting clots of dust with ragged sides, not an even haze */
           float vc=dk>.01?fallN(vec2(x*3.1+sd,5.),s,2.5,10.):.5;
-          float dust=smoothstep(.12,.55,s)*(1.-smoothstep(.45+.35*uDust,.8+.2*uDust,s))*smoothstep(-.1,.45,ed+.25*du-.35*dk*(fr-.4))*(.3+.5*du)*(.7+.6*uDust)*mix(1.,(.2+.8*cm)*(.05+1.6*smoothstep(.35,.72,vc)),dk)*(1.-.8*wet)*smoothstep(.25,.9,hw)*(.6+.4*smoothstep(.9,1.6,hw));
+          float dust=smoothstep(.3,.65,s)*(1.-smoothstep(.72+.15*uDust,.97,s))*smoothstep(-.1,.45,ed+.25*du-.35*dk*(fr-.4))*(.3+.5*du)*(.7+.6*uDust)*mix(1.,(.2+.8*cm)*(.05+1.6*smoothstep(.35,.72,vc)),dk)*(1.-.8*wet)*smoothstep(.12,.5,hw)*(.6+.4*smoothstep(.4,.75,hw));
           float bc=body*cut;
           a=(bc*(.62+.38*str)+grain*.85*(1.-smoothstep(.9,1.,s)))+dust*(1.-.6*bc);
           /* thick sheet shades itself; thin strands and edges catch the light */
@@ -1288,7 +1288,7 @@ const SFDP=[];{let ps=9127;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^p
 function sfDust(q){const F=SF.F,pr=SFD.pr;let f=F[q.f];
   /* heavier falls shed more dust */
   for(let k=0;k<5;k++){const c=F[Math.floor(pr()*F.length)];if(c.hw>f.hw||pr()<.15)f=c}
-  q.f=F.indexOf(f);q.s=.5+.55*Math.min(f.hw,2.2);const j=Math.floor((q.hz?.55+.4*pr():.25+.55*pr())*(f.path.length-1)),[d,y]=f.path[j],s=j/(f.path.length-1),lat=(pr()*2-1)*f.hw,dr=Math.pow(s,2.4)*.45*sfU.uWV.value.length();
+  q.f=F.indexOf(f);q.s=.5+.55*Math.min(f.hw,2.2);const j=Math.floor((q.hz?.55+.4*pr():.25+.55*pr())*(f.path.length-1)),[d,y]=f.path[j],s=j/(f.path.length-1),lat=(pr()*2-1)*f.hw,dr=Math.pow(ss(.45,1,s),1.5)*.9*sfU.uWV.value.length();
   q.x=f.E.x+f.E.nx*(d+.2)+f.E.tx*lat+WIND.x*dr;q.z=f.E.z+f.E.nz*(d+.2)+f.E.tz*lat+WIND.z*dr;q.y=y;
   q.vx=WIND.x*(.12+.2*pr())+f.E.nx*.05;q.vz=WIND.z*(.12+.2*pr())+f.E.nz*.05;q.vy=-1.2-1.2*pr();q.life=0;q.dur=q.hz?6+4*pr():2.5+3*pr();if(q.hz){q.vx*=1.4;q.vz*=1.4;q.vy*=.5}}
 function sandFallsUpdate(dt,t,wn,nk){

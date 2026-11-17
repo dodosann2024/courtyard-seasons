@@ -213,6 +213,40 @@ try {
     return [r.cover > .8 && r.frost > .6 && r.flakes && r.cold === 1 && hid && camWalk === 0 && r.dawnIce > .3 && r.slush > .5 && r.coverAt60 < r.cover &&
       r.coverAt300 < .02 && r.wetPeak > .3 && r.iceDay < .05 && r.frostDay < .05 && r.wetAfter < .05 && r.coldAfter === 0, r];
   }));
+
+  /* 12. the rain sound is one continuous bed. After the first key press unlocks the audio, the rain loops are already running silent
+     before any rain falls; rain, a change of intensity and taps on the screen then only move their gain, smoothly: no source
+     is started again, the level never dips and recovers, and the master level does not duck on a tap. Real time, frames running. */
+  await page.keyboard.press("F9");
+  await page.evaluate(() => { const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .5}); q.sim(120, .5); q.freeze(false); });
+  await page.waitForFunction(() => { const A = window.__desQA().AU; return A.lp.rain && A.lp.rtent && window.__sound.ctx === "running"; }, {timeout: 120000, polling: 250});
+  check("rain sound: one continuous bed, no dropouts, restarts or dips", ...await page.evaluate(async () => {
+    const q = window.__desQA(), A = q.AU, S = window.__sound, sleep = ms => new Promise(r => setTimeout(r, ms));
+    const ids = ["rain", "rtent"], V = ids.map(k => A.lp[k]), src = V.map(L => L.s), n0 = ids.map(k => A.n[k]);
+    const r = {ctx: S.ctx, silentBefore: V.map(L => +L.g.gain.value.toFixed(3))}, G = ids.map(() => []), M = [];
+    /* the weather is stepped ahead in one go (as a long stalled frame would); the audio then runs on in real time */
+    window.__set({weather: "hrain", ct: "overcast"}); q.sim(30, .5);
+    for (let i = 0; i < 120; i++) {
+      await sleep(100);
+      V.forEach((L, j) => G[j].push(L.g.gain.value)); M.push(S.gain);
+      if (i % 10 === 5) for (const t of ["pointerdown", "touchend", "click"]) window.dispatchEvent(new Event(t));
+      if (i === 70) { window.__set({weather: "lrain"}); q.sim(30, .5); }
+    }
+    const dips = G.map(g => g.filter((v, i) => i > 0 && i < g.length - 1 && v < .9 * Math.min(g[i - 1], g[i + 1]) && g[i - 1] > .02).length);
+    Object.assign(r, {sameSource: ids.every((k, j) => A.lp[k] === V[j] && V[j].s === src[j]), starts: ids.map((k, j) => A.n[k] - n0[j]), dips,
+      rainPeak: +Math.max(...G[0]).toFixed(3), rainEnd: +G[0][G[0].length - 1].toFixed(3), rainEndTarget: +(.6 * Math.min(1, Math.pow(q.WX.rain / .62, .6))).toFixed(3), masterMin: +Math.min(...M).toFixed(3), vol: S.vol});
+    /* the beds themselves: no 5 ms block 9 dB under the running level (a dropout in the recording), and the loop wraps
+       without a step (the jump from the last sample to the first is no bigger than an ordinary sample-to-sample change) */
+    r.bed = ["dRn", "dRt"].map(k => { const B = A.b[k], n = B.length, d = new Float32Array(n), h = Math.round(B.sampleRate * .005), nb = Math.floor(n / h), e = [];
+      for (let c = 0; c < B.numberOfChannels; c++) { const x = B.getChannelData(c); for (let i = 0; i < n; i++) d[i] += x[i] / B.numberOfChannels; }
+      for (let b = 0; b < nb; b++) { let s = 0; for (let i = b * h; i < b * h + h; i++) s += d[i] * d[i]; e.push(10 * Math.log10(s / h + 1e-12)); }
+      let gaps = 0; for (let b = 0; b < nb; b++) { const w = e.slice(Math.max(0, b - 40), b + 41).sort((u, v) => u - v); if (e[b] < w[w.length >> 1] - 9) gaps++; }
+      let md = 0; for (let i = 1; i < n; i++) md += Math.abs(d[i] - d[i - 1]); md /= n - 1;
+      return {k, seamless: !!B.seam, gaps, wrapStep: +(Math.abs(d[0] - d[n - 1]) / md).toFixed(2)}; });
+    window.__set({weather: "sun", ct: "clear"}); q.freeze(true);
+    return [r.bed.every(b => b.seamless && b.gaps === 0 && b.wrapStep < 4) && r.ctx === "running" && r.silentBefore.every(v => v < .01) && r.sameSource && r.starts.every(n => n === 0) && dips.every(n => n === 0) &&
+      r.rainPeak > .3 && r.rainEnd < r.rainPeak && Math.abs(r.rainEnd - r.rainEndTarget) < .05 && r.masterMin >= .95 * r.vol, r];
+  }));
 } finally { await browser.close(); server.close(); }
 if (failures.length) { console.log(`\n${failures.length} failure(s)`); process.exit(1); }
 console.log("\nall desert checks ok");

@@ -52,6 +52,12 @@ Weather (`wxUpdate()` and `sound()` in `src/desert.js`). The weather sounds load
 - **Showers:** the rain bed follows the rain's strength, and the tent loop sits at the tent, so it is heard only
   close by. Wet sand stops the blowing-sand hiss until it dries. Insects fall silent in the rain, and after it
   the frogs call for a few minutes, by day too.
+- **Rain beds are continuous:** the monsoon recording drops out for a few milliseconds here and there and swells
+  under gusts, and looped every 22 s that was heard as the rain stuttering. `tools/desertaudio.py` (`steady()`)
+  fills each dropout from a quarter second earlier and rides the swells down. Once decoded, the loop is made exactly
+  periodic (its last 0.45 s is crossfaded into the copy before its start). The rain and tent loops then start silent
+  and run without a break while the desert is shown. Rain, a change of intensity and taps only glide their gain;
+  no source is started again.
 - **Thunderstorm:** each strike is seen first and heard after the sound's travel time (up to about 5 s). Near
   strikes crack and far ones roll, and the sound comes from the side the bolt fell on.
 - **Sand/dust storm:** the roar and the sand hiss rise with the storm level (浮尘 to 强沙尘暴). The insects stop,

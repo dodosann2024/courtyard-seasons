@@ -2863,11 +2863,11 @@ const AQ={dWnd:"audio/dWnd.ff02237487.mp3",dCalm:"audio/dCalm.89da1bd867.mp3",dS
   dOk1:"audio/dOk1.e1cd0b8449.mp3",dOk2:"audio/dOk2.187122caa9.mp3",dOk3:"audio/dOk3.12a14d4f0e.mp3",dOk4:"audio/dOk4.2e238f8827.mp3",dOc1:"audio/dOc1.31d35bc855.mp3",dOc2:"audio/dOc2.ba99be553d.mp3",dOc3:"audio/dOc3.f21d195427.mp3",
   dFr1:"audio/dFr1.71022fc177.mp3",dFr2:"audio/dFr2.2933177163.mp3",dFr3:"audio/dFr3.ef371c70a6.mp3",dFr4:"audio/dFr4.3b0eb8afa7.mp3",dFr5:"audio/dFr5.f59005cbba.mp3",dFr6:"audio/dFr6.34303a83b9.mp3",
   dDf1:"audio/dDf1.c2bca8b159.mp3",dDf2:"audio/dDf2.f9c6cbb2b2.mp3",dDf3:"audio/dDf3.89d3852f46.mp3",dGh1:"audio/dGh1.fab43c03e1.mp3",dGh2:"audio/dGh2.db74adeb9b.mp3",
-  dRtl:"audio/dRtl.583fb265c7.mp3",dRtlOn:"audio/dRtlOn.8c54efd922.mp3",dRn:"audio/dRn.27de5e44ef.mp3",dRt:"audio/dRt.7c8ce45c2d.mp3",dStm:"audio/dStm.5a9de5ce8c.mp3",dStS:"audio/dStS.3eb716e7e9.mp3",dTh1:"audio/dTh1.b13785294f.mp3",dTh2:"audio/dTh2.2231810e14.mp3",dTh3:"audio/dTh3.7d73564cb4.mp3",dTh4:"audio/dTh4.ddd885035b.mp3",dTh5:"audio/dTh5.b55b99d3da.mp3"};
+  dRtl:"audio/dRtl.583fb265c7.mp3",dRtlOn:"audio/dRtlOn.8c54efd922.mp3",dRn:"audio/dRn.e65ce5597f.mp3",dRt:"audio/dRt.42d94b489e.mp3",dStm:"audio/dStm.5a9de5ce8c.mp3",dStS:"audio/dStS.3eb716e7e9.mp3",dTh1:"audio/dTh1.b13785294f.mp3",dTh2:"audio/dTh2.2231810e14.mp3",dTh3:"audio/dTh3.7d73564cb4.mp3",dTh4:"audio/dTh4.ddd885035b.mp3",dTh5:"audio/dTh5.b55b99d3da.mp3"};
 const LL={dSiz:6,dWnd:22,dCalm:36,dSnd:20,dFire:19,dSnk:8,dRtl:12,dRn:22,dRt:22,dStm:30,dStS:30,dSnw:8};
 /* weather sounds load only when that weather comes */
 const WXA=new Set(["dSiz","dSnw","dDp1","dDp2","dDp3","dRn","dRt","dStm","dStS","dTh1","dTh2","dTh3","dTh4","dTh5","dRtl","dRtlOn"]);
-const AU={b:{},pd:{},lp:{},bus:null,ob:null,pre:0,egT:rr(5,10),cmT:[rr(14,30),rr(30,60)],cmL:-99,q:[],cap:null};
+const AU={b:{},pd:{},lp:{},n:{},bus:null,ob:null,pre:0,egT:rr(5,10),cmT:[rr(14,30),rr(30,60)],cmL:-99,q:[],cap:null};
 function SX(){return window.__sndX||null}
 /* rain hissing on the embers, made here rather than recorded: bright noise that swells and ebbs, with a sputter each time a drop
    lands on the coals; laid out round a 6 s loop with the same 0.5 s padding as the recorded loops */
@@ -2898,9 +2898,18 @@ function synB(k){if(AU.b[k])return true;const x=SX();if(!x||!x.s)return false;AU
 function aOK(){const x=SX();return!!(x&&x.on&&x.s&&x.s.state==="running"&&root.visible)}
 function amb(){const x=SX();return AU.cap?true:!!(x&&x.amb)}
 function dec(k){if(AU.b[k]||AU.pd[k])return;const x=SX();if(!x||!x.s||!x.ld)return;AU.pd[k]=1;
-  x.ld(AQ[k]).then(B=>{const P=x.s.decodeAudioData(B,b=>{AU.b[k]=b},()=>{});P&&P.catch&&P.catch(()=>{})}).catch(()=>{setTimeout(()=>{AU.pd[k]=0},8e3)})}
+  x.ld(AQ[k]).then(B=>{const P=x.s.decodeAudioData(B,b=>{AU.b[k]=SEAM.has(k)?seam(x.s,b,LL[k]):b},()=>{});P&&P.catch&&P.catch(()=>{})}).catch(()=>{setTimeout(()=>{AU.pd[k]=0},8e3)})}
 function aBus(){if(AU.bus)return true;const x=SX();try{const b=x.s.createGain();b.gain.value=0;b.connect(x.r);AU.bus=b;
   const o=x.s.createGain(),f=x.s.createBiquadFilter();f.type="lowpass";f.Q.value=.5;f.frequency.value=19000;o.gain.value=0;o.connect(f);f.connect(b);AU.ob=o;AU.of=f;return true}catch(e){return false}}
+/* The rain beds are made exactly periodic once decoded. The file's loop [0.5 s, 0.5 s + T] joins only as well as the MP3
+   frames on either side happen to match (and the decoder's padding differs between browsers), so the last 0.45 s of the
+   loop is crossfaded into the copy of itself that sits just before the loop start; the wrap then continues sample for sample. */
+const SEAM=new Set(["dRn","dRt"]),BED=new Set(["rain","rtent","rtent2"]);
+function seam(c,b,T){const sr=b.sampleRate,a=Math.round(.5*sr),n=Math.round(T*sr),x=Math.round(.45*sr);if(b.length<a+n||!c)return b;
+  try{const o=c.createBuffer(b.numberOfChannels,n,sr);
+    for(let ch=0;ch<b.numberOfChannels;ch++){const y=b.getChannelData(ch),d=o.getChannelData(ch);d.set(y.subarray(a,a+n));
+      for(let j=0;j<x;j++){const f=(j+.5)/x;d[n-x+j]=y[a+n-x+j]*(1-f)+y[a-x+j]*f}}
+    o.seam=1;return o}catch(e){return b}}
 /* p in island metres; ref = distance (m) at which the source plays at its nominal level */
 const _cr=new V3();
 function spat(p,ref){const dx=p.x-_cl.x,dy=p.y-_cl.y,dz=p.z-_cl.z,d=Math.hypot(dx,dy,dz)||1;
@@ -2914,9 +2923,19 @@ function voice(c,out,pan,lpf){const g=c.createGain(),f=c.createBiquadFilter(),pn
 function loopS(id,k,v,p,ref,rate,tc,mf){let pan=0,lpf=19000;if(p){const q=spat(p,ref);pan=q[0];v*=q[1];lpf=q[2]}if(mf)lpf=Math.min(lpf,mf);rate=rate||1;
   capE(["L",id,k,+v.toFixed(4),+pan.toFixed(3),Math.round(lpf),+rate.toFixed(3)].concat(tc?[tc]:[]));
   if(!aOK()||!aBus())return;const c=SX().s;let L=AU.lp[id];
-  if(!L){if(v<=.001)return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;s.loopStart=.5;s.loopEnd=.5+LL[k];
-    L=voice(c,AU.bus,pan,lpf);L.g.gain.value=0;L.s=s;s.connect(L.g);s.start(0,.5+rnd()*LL[k]);AU.lp[id]=L}catch(e){return}}
-  const now=c.currentTime;L.g.gain.setTargetAtTime(v,now,tc||.35);L.f.frequency.setTargetAtTime(lpf,now,.3);L.pn&&L.pn.pan.setTargetAtTime(pan,now,.2);L.s.playbackRate.setTargetAtTime(rate,now,.3)}
+  /* the rain beds start silent as soon as they are decoded and then run without a break for as long as the desert is
+     shown: rain only ever raises and lowers their gain, it never starts or stops a source */
+  if(!L){if(v<=.001&&!(BED.has(id)&&AU.b[k]))return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;
+    if(b.seam){s.loopStart=0;s.loopEnd=b.duration}else{s.loopStart=.5;s.loopEnd=.5+LL[k]}
+    L=voice(c,AU.bus,pan,lpf);L.g.gain.value=0;Object.assign(L,{s,v:0,lf:lpf,pa:pan,ra:1,w:-1});s.connect(L.g);s.start(0,b.seam?rnd()*b.duration:.5+rnd()*LL[k]);AU.lp[id]=L;AU.n[id]=(AU.n[id]||0)+1}catch(e){return}}
+  /* parameters only glide toward smoothed targets, written when they have moved and at most twenty times a second, so a
+     slow or stalled frame never steps the level and the audio thread's automation lists stay short */
+  const now=c.currentTime;if(now-L.w<.05)return;let w=0;
+  if(Math.abs(v-L.v)>Math.max(.002,.015*L.v)||(v===0&&L.v!==0)){L.g.gain.setTargetAtTime(v,now,tc||.35);L.v=v;w=1}
+  if(Math.abs(lpf-L.lf)>L.lf*.03){L.f.frequency.setTargetAtTime(lpf,now,.3);L.lf=lpf;w=1}
+  if(L.pn&&Math.abs(pan-L.pa)>.02){L.pn.pan.setTargetAtTime(pan,now,.2);L.pa=pan;w=1}
+  if(Math.abs(rate-L.ra)>.002){L.s.playbackRate.setTargetAtTime(rate,now,.3);L.ra=rate;w=1}
+  if(w)L.w=now}
 /* oas: route through the oasis bus, whose level follows the camera's distance from the water and the wind */
 function shotS(k,g,p,ref,rate,oas){const q=p?spat(p,ref):[0,1,19000];rate=rate||1;g*=q[1];
   capE(["S",k,+g.toFixed(4),+q[0].toFixed(3),Math.round(q[2]),+rate.toFixed(3)].concat(oas?["oas"]:[]));
@@ -2959,6 +2978,8 @@ function oasis(dt,nk,W){const zone=oasisNear(),hush=1-ss(.22,.6,W),fa=WX.fa,v=zo
     const S=OSET[e.ty],k=pick(S[0]);let x=e.x,z=e.z;if(e.ty==="df"){const[px,pz]=pondEdge(rr(-3.1,3.1),rr(.3,.95));x=px;z=pz}
     e.t+=OLEN[k];shotS(k,S[1]*rr(.8,1.05),_oP.set(x,hTop(x,z)+(e.ty==="df"?.8:.15),z),S[2],e.r*rr(.98,1.02),1)}}
 function sound(dt){if(!root.visible&&!AU.cap)return;
+  /* iOS interrupts the audio context (a call, a notification, the lock screen) and does not resume it by itself */
+  {const x=SX();if(aOK())AU.ran=1;else if(AU.ran&&x&&x.s&&x.on&&root.visible&&x.s.state!=="closed"&&x.s.state!=="running"&&st.t>(AU.rsT||0)){AU.rsT=st.t+1.5;try{const p=x.s.resume();p&&p.catch&&p.catch(()=>{})}catch(e){}}}
   /* the ambient loops at once; the calls once the models are in, so on a slow link they don't compete with them */
   if(aOK()){if(!AU.pre){AU.pre=1;Object.keys(LL).filter(k=>!WXA.has(k)).forEach(dec)}
     if(AU.pre===1&&AU.big){AU.pre=2;Object.keys(AQ).filter(k=>!WXA.has(k)).forEach(dec)}

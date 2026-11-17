@@ -16,6 +16,7 @@ Requires numpy, scipy and ffmpeg (libmp3lame). Run once after changing a recipe,
 import hashlib, json, os, subprocess, sys, tempfile, urllib.request, wave
 import numpy as np
 from scipy import signal
+from scipy.ndimage import binary_dilation, median_filter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADIR = os.path.join(ROOT, "assets", "audio")
@@ -97,14 +98,16 @@ SHOT = {
     # rattle: a few warning buzzes rising into the full rattle
     "dRtlOn": (437958, 7.5, 12.5, 300, .01, .6),
 }
-# loops: key -> (source, start s, length s, high-pass Hz, target rms dB, stereo)
+# loops: key -> (source, start s, length s, high-pass Hz, target rms dB, stereo[, steady])
+# steady: a rain bed. The recordings drop out for a few milliseconds here and there (dense rain never does) and swell
+# under gusts; repeated every loop both are heard as the rain stuttering, so they are filled and levelled (see steady()).
 LOOPS = {
     "dWnd": (645305, 1.0, 22.0, 40, -20, True),
     "dCalm": (697217, 0.5, 36.0, 30, -22, True),
     "dSnd": (825860, 0.5, 20.0, 250, -22, True),
     "dFire": (363092, 0.5, 19.0, 90, -20, True),
-    "dRn": (866246, 19.0, 22.0, 120, -20, True),
-    "dRt": (484723, 30.0, 22.0, 150, -20, True),
+    "dRn": (866246, 19.0, 22.0, 120, -20, True, True),
+    "dRt": (484723, 30.0, 22.0, 150, -20, True, True),
     "dStm": (632771, 20.0, 30.0, 30, -18, True),
     "dStS": (438877, 3.0, 30.0, 200, -20, True),
     "dRtl": (437958, 14.0, 12.0, 300, -20, False),
@@ -163,6 +166,44 @@ def norm_rms(y, db, ceil=-1.0):
 
 def norm_peak(y, db):
     return y / (np.max(np.abs(y)) + 1e-12) * 10 ** (db / 20)
+
+
+def env_db(m, h):
+    n = len(m) // h
+    return 20 * np.log10(np.sqrt(np.mean(m[:n * h].reshape(n, h) ** 2, 1)) + 1e-9)
+
+
+def steady(y, gap_db=9.0, back=0.25, swell_db=2.5):
+    """fill micro-dropouts and level swells in a rain bed.
+    A 5 ms block more than gap_db under the running (400 ms median) level, widened by 10 ms each side, is replaced by the
+    same span from `back` s earlier (later near the start) with 4 ms equal-power crossfades. Then the 250 ms level is ridden
+    down wherever it stands more than swell_db over the bed's median, with a gain smoothed over 0.6 s so single drops keep
+    their attack."""
+    y = y.copy()
+    h, xf, off = N(.005), N(.004), N(back)
+    e = env_db(y.mean(0), h)
+    bad = binary_dilation(e < median_filter(e, size=81, mode="nearest") - gap_db, iterations=2)
+    d = np.diff(np.concatenate([[0], bad.astype(np.int8), [0]]))
+    filled = 0
+    for a, b in zip(np.where(d == 1)[0] * h, np.where(d == -1)[0] * h):
+        a0, b0 = max(0, a - xf), min(y.shape[1], b + xf)
+        o = -off if a0 - off >= 0 else off
+        if b0 + o > y.shape[1]:
+            continue
+        t = np.ones(b0 - a0)
+        r = np.arange(xf) / xf
+        t[:xf], t[-xf:] = np.sin(r * np.pi / 2), np.cos(r * np.pi / 2)
+        y[:, a0:b0] = y[:, a0:b0] * np.sqrt(1 - t ** 2) + y[:, a0 + o:b0 + o] * t
+        filled += b - a
+    e = env_db(y.mean(0), N(.05))
+    lv = np.convolve(10 ** (e / 10), np.ones(5) / 5, mode="same")
+    lv = 10 * np.log10(lv + 1e-12)
+    g = np.minimum(0.0, np.median(lv) + swell_db - lv)
+    k = np.hanning(13)
+    g = np.convolve(np.pad(g, 6, mode="edge"), k / k.sum(), mode="valid")
+    gs = np.interp(np.arange(y.shape[1]), (np.arange(len(g)) + .5) * N(.05), g)
+    print(f"  steady: filled {filled / SR * 1000:.0f} ms of dropouts, rode swells down by up to {-g.min():.1f} dB", file=sys.stderr)
+    return y * 10 ** (gs / 20)
 
 
 def periodic(y, T, X=1.5):
@@ -228,12 +269,12 @@ def encode(key, y, br):
 def main():
     only = set(sys.argv[1:])
     rep, loop_len = [], {}
-    for k, (fid, a, T, hpf, db, st) in LOOPS.items():
+    for k, (fid, a, T, hpf, db, st, *sd) in LOOPS.items():
         loop_len[k] = T
         if only and k not in only:
             continue
-        y = load(fid, a, T + 2.0, 2 if st else 1)
-        y = periodic(hp(y, hpf), T)
+        y = hp(load(fid, a, T + 2.0, 2 if st else 1), hpf)
+        y = periodic(steady(y) if sd and sd[0] else y, T)
         rep.append((k,) + encode(k, norm_rms(y, db), "128k"))
     for k, (fid, T, db) in GRAIN.items():
         loop_len[k] = T

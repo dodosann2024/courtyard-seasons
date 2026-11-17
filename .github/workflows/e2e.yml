@@ -19,3 +19,7 @@ jobs:
         run: node tools/e2e/scenes.mjs
         env:
           CHROME: /usr/bin/google-chrome
+      - name: Desert regression checks (dunes, blowing sand, footprints, agamas, rain)
+        run: node tools/e2e/desert.mjs
+        env:
+          CHROME: /usr/bin/google-chrome

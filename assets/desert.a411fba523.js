@@ -633,7 +633,7 @@ let pondMesh=null;
 const pondRefl={rt:null,cam:null,bias:new T.M4().set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1),cc:new C3(),frame:0};
 const reflSet=[];
 function renderPondReflection(){
-  if(!pondMesh||!Cn||st.night>.5||!_stageDone){pondU.uReflOn.value=0;return}
+  if(!pondMesh||!Cn||st.night>.5||!_stageDone||st.qaNoRefl){pondU.uReflOn.value=0;return}
   if(MOB&&(pondRefl.frame++&1))return;
   if(!pondRefl.rt){const RT=bloom&&bloom.renderTargetsHorizontal&&bloom.renderTargetsHorizontal[0]&&bloom.renderTargetsHorizontal[0].constructor;if(!RT)return;
     pondRefl.rt=new RT(MOB?256:512,MOB?160:320);pondRefl.cam=De.clone();pondRefl.cam.layers.set(PALM_LAYER);pondU.uRefl.value=pondRefl.rt.texture}
@@ -3239,7 +3239,8 @@ const QA={FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBa
   /* sand falls: count, rate (sfR(v) pins it, null to release), and each fall's rim point, half width and threshold */
   sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z,ra:WS.ra}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty,nx:f.E.nx,nz:f.E.nz,tx:f.E.tx,tz:f.E.tz,path:f.path}))}),sfR:v=>{SF.pin=v},
   freeze(on){st.lock=!!on},wxEase(on){st.wxEase=!!on},
-
+  /* regression checks (tools/e2e/desert.mjs): run the simulation for `sec` seconds without drawing the pond reflection */
+  sim(sec,dt){dt=dt||.1;st.qaNoRefl=1;for(let i=0,n=Math.round(sec/dt);i<n;i++)step(dt);st.qaNoRefl=0},sandU,pondU,SAND,SANDP,CURT,WIND,
   step(n,dt){for(let i=0;i<(n||1);i++)step(dt||1/30)},
   tod(p){st.tod=p||null;const ph=phaseNow();for(const k in LK)LK[k]=k===ph?1:0;applyLighting(0)},
   /* camera helpers in island metres */

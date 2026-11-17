@@ -2915,7 +2915,9 @@ function trunkAt(pp,t,az){const P=pp.spine(t),tg=pp.spine(Math.min(1,t+.01)).sub
   const N=new V3().crossVectors(tg,new V3(0,0,1)).normalize(),B=new V3().crossVectors(tg,N),n=N.multiplyScalar(Math.cos(az)).addScaledVector(B,Math.sin(az));
   return{p:P.add(pp.g.position).addScaledVector(n,pp.rad(t)).add(palmSwayAt(pp,t)),tg,n,N,B}}
 function agTrunkPose(a){const f=trunkAt(a.palm,a.ct,a.az);a.g.position.copy(f.p);
-  const q=(down,o)=>{_ay.copy(f.tg).multiplyScalar(down?-1:1);_ax.crossVectors(_ay,f.n);_am.makeBasis(_ax,_ay,f.n);return o.setFromRotationMatrix(_am)};
+  /* walking round the trunk it turns its head the way it is going instead of sliding sideways */
+  const hd=a.hd||0,cd=_an.crossVectors(f.tg,f.n);
+  const q=(down,o)=>{_ay.copy(f.tg).multiplyScalar((down?-1:1)*Math.cos(hd)).addScaledVector(cd,Math.sin(hd)).normalize();_ax.crossVectors(_ay,f.n);_am.makeBasis(_ax,_ay,f.n);return o.setFromRotationMatrix(_am)};
   if(a.turn!=null){q(!a.down,_aq);q(a.down,_aq2);a.g.quaternion.slerpQuaternions(_aq,_aq2,ss(0,1,a.turn))}else q(a.down,a.g.quaternion)}
 function agGroundPose(a){const n=a.ry>-50?_an.set(0,1,0):nTop(a.x,a.z);a.g.position.set(a.x,a.ry>-50?a.ry:hTop(a.x,a.z),a.z);
   _az.set(Math.sin(a.yaw),0,Math.cos(a.yaw));_ax.crossVectors(n,_az).normalize();_az.crossVectors(_ax,n);_am.makeBasis(_ax,n,_az);a.g.quaternion.setFromRotationMatrix(_am)}
@@ -2946,36 +2948,42 @@ const agSun=()=>(1-st.night)*WX.sunK*(1-WX.rain)*(1-.5*WX.dust)*(st.phase==="day
 const agGrid=()=>navGrid("agama",.05,1.12,.86);
 function agGo(a,goal,then){const p=navPath(agGrid(),a.x,a.z,goal.x,goal.z)||[{x:a.x,z:a.z},{x:goal.x,z:goal.z}];
   a.path=p;a.pi=1;a.then=then;a.goal=goal;a.mode="run";a.burst=rr(.8,2.8);play(a.r,"run",.12,AG_V/AG_RUN)}
-/* rain shelter: under the crown but below where its fronds hang, so it stays in view from the side */
-const agRainT=pp=>Math.max(.3,(pp.h-3.1)/pp.h);
+/* rain shelter: right under the crown, just below the skirt of dead leaf sheaths (whose lowest ring starts ~12 % of the trunk down) */
+const agRainT=pp=>Math.max(.3,(pp.h*.876-.3)/pp.h);
+/* the viewer's side of things: palms and rocks nearer the camera are picked more often and kept longer, so a lizard this
+   small is mostly where it can be seen; k is 1 for the nearest, falling off over ~6 m further away */
+function agNearK(x,z,L){let m=1e9;for(const o of L)m=Math.min(m,Math.hypot(o.x-_cl.x,o.z-_cl.z));return Math.exp(-(Math.hypot(x-_cl.x,z-_cl.z)-m)/6)}
+function agPickNear(L){let s=0;const w=L.map(o=>{const k=agNearK(o.x,o.z,L);s+=k;return k});let r=rnd()*s;for(let i=0;i<L.length;i++){r-=w[i];if(r<=0)return L[i]}return L[L.length-1]}
+/* the trunk angle that faces the camera at height fraction t */
+function agViewAz(pp,t){const f=trunkAt(pp,t,0),P=pp.spine(t).add(pp.g.position),dx=_cl.x-P.x,dz=_cl.z-P.z;return Math.atan2(dx*f.B.x+dz*f.B.z,dx*f.N.x+dz*f.N.z)}
 function agNearPalm(a){let b=null,bd=1e9;for(const pp of PALMS){const d=Math.hypot(pp.x-a.x,pp.z-a.z);if(d<bd){bd=d;b=pp}}return b}
 /* it goes up the side of the trunk that faces the viewer, so a lizard this small is not hidden behind the palm */
 function agPalmBase(a,pp){let dx=_cl.x-pp.x,dz=_cl.z-pp.z;if(Math.hypot(dx,dz)<.01){dx=a.x-pp.x;dz=a.z-pp.z}const l=Math.hypot(dx,dz)||1,r=pp.rad(0)+.14;return{x:pp.x+dx/l*r,z:pp.z+dz/l*r,pp}}
 function agMount(a,pp){const f=trunkAt(pp,.03,0),dx=a.x-pp.x,dz=a.z-pp.z;a.palm=pp;a.az=Math.atan2(dx*f.B.x+dz*f.B.z,dx*f.N.x+dz*f.N.z);
-  if(AG.list.some(o=>o!==a&&o.palm===pp))a.az+=a.male?.8:-.8;
+  a.azG=a.az+(AG.list.some(o=>o!==a&&o.palm===pp)?(a.male?.6:-.6):0);a.azV=0;a.hd=0;
   a.ct=.12/pp.h;a.down=false;a.turn=null;a.mode="climb";play(a.r,"climb",.1,AG_VC/AG_CLIMB)}
 function agClimb(a,goal){a.ctGoal=goal;const dn=goal<a.ct;if(dn!==a.down){a.down=dn;a.turn=0}a.mode="climb";play(a.r,"climb",.15,AG_VC/AG_CLIMB)}
 function agDismount(a){const f=trunkAt(a.palm,.02,a.az),pp=a.palm;a.x=pp.x+f.n.x*(pp.rad(0)+.2);a.z=pp.z+f.n.z*(pp.rad(0)+.2);a.yaw=Math.atan2(f.n.x,f.n.z);
   a.palm=null;a.ry=-99;a.down=false;a.turn=null;a.mode="idle";a.timer=rr(.5,1.5);play(a.r,"idle",.15,1)}
-function agBask(a,sp){a.mode="bask";a.spot=sp;a.timer=rr(25,50);
+function agBask(a,sp){a.mode="bask";a.spot=sp;a.timer=rr(25,50)*(1+.8*agNearK(sp.x,sp.z,AG.spots));
   /* broadside to the sun to take in the most heat */
   a.yaw=wrapA(SUN.lazL+Math.PI/2*(rnd()<.5?1:-1)+rr(-.3,.3));play(a.r,"bask",.4,1)}
 function agDecide(a){const night=st.night>.5,rain=WX.rain>.25,sun=agSun();a.cond=night?"n":rain?"r":"d";a.then=null;
   if(night){if(a.palm){agClimb(a,0);return}const sp=a.spot||AG.spots[0],h={x:sp.x+.25*Math.sin(SUN.lazL),z:sp.z+.25*Math.cos(SUN.lazL)};
     if(Math.hypot(a.x-h.x,a.z-h.z)<.3){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}agGo(a,h,"hide");return}
   a.g.visible=true;
-  if(rain){if(a.palm){const tg=agRainT(a.palm)-(a.male?0:.45/a.palm.h);if(Math.abs(a.ct-tg)>.01){agClimb(a,tg);return}a.mode="perch";a.timer=rr(8,14);play(a.r,"climb",.2,0);return}
+  if(rain){if(a.palm){const tg=agRainT(a.palm)-(a.male?0:.28/a.palm.h);if(Math.abs(a.ct-tg)>.01){agClimb(a,tg);return}a.mode="perch";a.timer=rr(8,14);play(a.r,"climb",.2,0);return}
     const pp=agNearPalm(a);agGo(a,agPalmBase(a,pp),"climb");a.goal.rain=1;return}
   if(a.palm){if(a.Tb<.55&&sun>.3){agClimb(a,0);return}
     if(rnd()<.35){agClimb(a,cl(a.ct+rr(-.15,.2),.15/a.palm.h,(a.palm.h-2.2)/a.palm.h));return}
-    a.mode="perch";a.timer=rr(8,20);play(a.r,"climb",.25,0);if(!a.down&&rnd()<.6){a.down=true;a.turn=0}return}
-  if(a.Tb<.85&&sun>.35){const fr=AG.spots.filter(s=>s!==a.spot||a.mode==="bask");const sp=fr.length?fr[Math.floor(rnd()*fr.length)]:AG.spots[0];
+    a.mode="perch";a.timer=rr(8,20)*(1+.9*agNearK(a.palm.x,a.palm.z,PALMS));play(a.r,"climb",.25,0);if(!a.down&&rnd()<.6){a.down=true;a.turn=0}return}
+  if(a.Tb<.85&&sun>.35){const fr=AG.spots.filter(s=>s!==a.spot||a.mode==="bask");const sp=fr.length?agPickNear(fr):AG.spots[0];
     if(a.spot===sp&&a.ry>-50){agBask(a,sp);return}agGo(a,{x:sp.x,z:sp.z,y:sp.y,sp},"bask");return}
-  if(sun>.35&&rnd()<.65){const pp=PALMS[Math.floor(rnd()*PALMS.length)];agGo(a,agPalmBase(a,pp),"climb");return}
+  if(sun>.35&&rnd()<.65){const pp=agPickNear(PALMS);agGo(a,agPalmBase(a,pp),"climb");return}
   const w=randFree(agGrid(),GROVE.x,GROVE.z,9);if(w){agGo(a,w,"idle");return}
   a.mode="idle";a.timer=rr(3,8);play(a.r,"idle",.3,1)}
 function agArrive(a){const k=a.then,g=a.goal;a.path=null;
-  if(k==="climb"){agMount(a,g.pp);a.ctGoal=g.rain?agRainT(g.pp)-(a.male?0:.45/g.pp.h):Math.min(rr(1.5,3.5),g.pp.h-2.2)/g.pp.h;return}
+  if(k==="climb"){agMount(a,g.pp);a.ctGoal=g.rain?agRainT(g.pp)-(a.male?0:.28/g.pp.h):Math.min(rr(1.5,3.5),g.pp.h-2.2)/g.pp.h;return}
   if(k==="bask"){agBask(a,g.sp);return}
   if(k==="hide"){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}
   a.mode="idle";a.timer=rr(2,6);play(a.r,"idle",.25,1)}
@@ -3003,6 +3011,16 @@ function agUpdate(dt){
       else if(a.timer<=0||a.Tb>.97)agDecide(a)}
     else if(a.mode==="bob"){a.timer2-=dt;if(a.timer2<=.25){a.mode="bask";play(a.r,"bask",.3,1)}}
     else{a.timer-=dt;if(a.timer<=0)agDecide(a)}
+    /* on a trunk it keeps to the camera's side: once it is round the side or behind, it walks round at a lizard's pace,
+       easing in and out, so neither its place nor its heading ever jumps */
+    if(a.palm&&(a.mode==="climb"||a.mode==="perch")){
+      const mate=AG.list.find(o=>o!==a&&o.palm===a.palm),va=agViewAz(a.palm,a.ct)+(mate?(a.male?.6:-.6):0);
+      if(a.azG==null)a.azG=a.az;if(Math.abs(wrapA(va-a.az))>1.1)a.azG=a.az+wrapA(va-a.az);
+      const r=a.palm.rad(a.ct),d=a.azG-a.az,want=Math.abs(d)<.015?0:Math.sign(d)*Math.min(AG_VC*.9/r,Math.abs(d)*1.4);
+      a.azV=(a.azV||0)+(want-(a.azV||0))*ease(3,dt);a.az+=a.azV*dt;
+      const lat=a.azV*r,vert=a.mode==="climb"&&a.turn==null?AG_VC:0;a.hd=(a.hd||0)+(cl(lat/(vert+.08),-1.2,1.2)-(a.hd||0))*ease(4,dt);
+      const ca=a.r.acts.climb;if(ca&&a.mode==="perch")ca.timeScale=Math.abs(lat)>.004?Math.abs(lat)/AG_CLIMB:0}
+    else if(a.hd)a.hd=0;
     agPose(a);if(AG.vis>0&&a.g.visible)rigTick(a.r,dt)}}
 function agPose(a){if(a.palm)agTrunkPose(a);else agGroundPose(a)}
 /* lizards under ~1.5 px are hidden and their rigs not updated */
@@ -3067,7 +3085,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

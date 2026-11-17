@@ -219,7 +219,7 @@ try {
      is started again, the level never dips and recovers, and the master level does not duck on a tap. Real time, frames running. */
   await page.keyboard.press("F9");
   await page.evaluate(() => { const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .5}); q.sim(120, .5); q.freeze(false); });
-  await page.waitForFunction(() => { const A = window.__desQA().AU; return A.lp.rain && A.lp.rtent && window.__sound.ctx === "running"; }, {timeout: 120000, polling: 250});
+  await page.waitForFunction(() => { const A = window.__desQA().AU; const S = window.__sound; return A.lp.rain && A.lp.rtent && S.ctx === "running" && S.gain >= .95 * S.vol; }, {timeout: 120000, polling: 250});
   check("rain sound: one continuous bed, no dropouts, restarts or dips", ...await page.evaluate(async () => {
     const q = window.__desQA(), A = q.AU, S = window.__sound, sleep = ms => new Promise(r => setTimeout(r, ms));
     const ids = ["rain", "rtent"], V = ids.map(k => A.lp[k]), src = V.map(L => L.s), n0 = ids.map(k => A.n[k]);
@@ -234,7 +234,7 @@ try {
     }
     const dips = G.map(g => g.filter((v, i) => i > 0 && i < g.length - 1 && v < .9 * Math.min(g[i - 1], g[i + 1]) && g[i - 1] > .02).length);
     Object.assign(r, {sameSource: ids.every((k, j) => A.lp[k] === V[j] && V[j].s === src[j]), starts: ids.map((k, j) => A.n[k] - n0[j]), dips,
-      rainPeak: +Math.max(...G[0]).toFixed(3), rainEnd: +G[0][G[0].length - 1].toFixed(3), rainEndTarget: +(.6 * Math.min(1, Math.pow(q.WX.rain / .62, .6))).toFixed(3), masterMin: +Math.min(...M).toFixed(3), vol: S.vol});
+      rainPeak: +Math.max(...G[0]).toFixed(3), rainEnd: +G[0][G[0].length - 1].toFixed(3), rainEndTarget: +(.6 * Math.min(1, Math.pow(q.WX.rain / .62, .6))).toFixed(3), masterMin: +Math.min(...M).toFixed(3), masterAt: M.indexOf(Math.min(...M)), master0: +M[0].toFixed(3), vol: S.vol});
     /* the beds themselves: no 5 ms block 9 dB under the running level (a dropout in the recording), and the loop wraps
        without a step (the jump from the last sample to the first is no bigger than an ordinary sample-to-sample change) */
     r.bed = ["dRn", "dRt"].map(k => { const B = A.b[k], n = B.length, d = new Float32Array(n), h = Math.round(B.sampleRate * .005), nb = Math.floor(n / h), e = [];

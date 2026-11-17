@@ -1565,7 +1565,7 @@ function applyLighting(dt){
   const k=dt>0?ease(1.6,dt):1;for(const p in LK)LK[p]+=((p===ph?1:0)-LK[p])*k;
   st.night=LK.night;st.day=LK.day;
   if(Ct.mode==="night"){Ct.mode="full";Ct.night=true}
-  wxUpdate(dt);
+  if(!(st.lock&&st.wxEase&&dt===0))wxUpdate(dt);
   const el=blendL("el")*D2R,nk=LK.night,ao=blendL("az")*D2R;
   const a=nk>.5?moonAzL+YAW:SUN.lazL+YAW+ao;
   const d=new V3(Math.cos(el)*Math.sin(a),Math.sin(el),Math.cos(el)*Math.cos(a));
@@ -2045,7 +2045,7 @@ function prTick(dt){const P=PR;P.E+=dt*(1/240+st.wn*.3/35+WX.dust/6+WX.rain/9);P
   P.up+=dt;if(P.dirty&&P.up>.15){P.up=0;P.dirty=0;P.im.instanceMatrix.needsUpdate=true;P.im.instanceColor.needsUpdate=true}}
 /* a foot comes to rest: after a swing (moving faster than the body) it slows almost to a stop at the ground */
 const _pf=new V3();
-function footPlant(f,b,spd,dt,lift){b.getWorldPosition(_pf);W.worldToLocal(_pf);let hit=null;
+function footPlant(f,b,spd,dt,lift){if(dt<.004)return null;b.getWorldPosition(_pf);W.worldToLocal(_pf);let hit=null;
   if(f.p){const v=Math.hypot(_pf.x-f.p.x,_pf.z-f.p.z)/Math.max(dt,1e-3);
     if(v>spd*.6)f.sw=1;else if(f.sw&&v<spd*.25&&_pf.y-hTop(_pf.x,_pf.z)<lift){f.sw=0;hit=_pf}
     f.p.copy(_pf)}else f.p=_pf.clone();return hit}
@@ -2681,7 +2681,7 @@ function capE(e){if(AU.cap){AU.cap.ev.push([+(st.t-AU.cap.t0).toFixed(3)].concat
 function voice(c,out,pan,lpf){const g=c.createGain(),f=c.createBiquadFilter(),pn=c.createStereoPanner?c.createStereoPanner():null;f.type="lowpass";f.Q.value=.5;f.frequency.value=lpf;
   g.connect(f);if(pn){pn.pan.value=pan;f.connect(pn);pn.connect(out)}else f.connect(out);return{g,f,pn}}
 function loopS(id,k,v,p,ref,rate,tc){let pan=0,lpf=19000;if(p){const q=spat(p,ref);pan=q[0];v*=q[1];lpf=q[2]}rate=rate||1;
-  capE(["L",id,k,+v.toFixed(4),+pan.toFixed(3),Math.round(lpf),+rate.toFixed(3)]);
+  capE(["L",id,k,+v.toFixed(4),+pan.toFixed(3),Math.round(lpf),+rate.toFixed(3)].concat(tc?[tc]:[]));
   if(!aOK()||!aBus())return;const c=SX().s;let L=AU.lp[id];
   if(!L){if(v<=.001)return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;s.loopStart=.5;s.loopEnd=.5+LL[k];
     L=voice(c,AU.bus,pan,lpf);L.g.gain.value=0;L.s=s;s.connect(L.g);s.start(0,.5+rnd()*LL[k]);AU.lp[id]=L}catch(e){return}}
@@ -3103,7 +3103,7 @@ const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,ag
   PR,PRK,prAdd,camelLie,prAge:sec=>{const P=PR;P.E+=sec*(1/240+st.wn*.3/35+WX.dust/6+WX.rain/9);P.im.material.uniforms.uE.value=P.E},camelGo,eagleLand:s=>eagleLand(ANIM.eagle,s||eagleSpots()[1]),eagleSpots,
   /* sand falls: count, rate (sfR(v) pins it, null to release), and each fall's rim point, half width and threshold */
   sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty,nx:f.E.nx,nz:f.E.nz,tx:f.E.tx,tz:f.E.tz,path:f.path}))}),sfR:v=>{SF.pin=v},
-  freeze(on){st.lock=!!on},
+  freeze(on){st.lock=!!on},wxEase(on){st.wxEase=!!on},
   step(n,dt){for(let i=0;i<(n||1);i++)step(dt||1/30)},
   tod(p){st.tod=p||null;const ph=phaseNow();for(const k in LK)LK[k]=k===ph?1:0;applyLighting(0)},
   /* camera helpers in island metres */

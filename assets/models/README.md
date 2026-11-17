@@ -37,4 +37,10 @@ as WebP (`EXT_texture_webp`) except the phone snake's JPEGs; the desktop snake's
 they went from 43.2 MB to 21.1 MB on desktop and from 35.5 MB to 16.7 MB on phones. `glb()` hands the loader the
 self-hosted decoder `assets/vendor/meshopt_decoder.module.js` (meshoptimizer 1.3, MIT).
 
+`tools/glbpack/ktx.mjs` then stores the textures as KTX2 (`KHR_texture_basisu`, needs `toktx` from KTX-Software 4.x):
+ETC1S throughout, normal maps at the top quality level (`NU=1` for UASTC normals). The phone uploads them GPU-compressed
+after the self-hosted Basis transcoder (`assets/vendor/basis_transcoder.*`, three r169 `KTX2Loader`) has run on worker
+threads, instead of decoding every WebP and building its mips on the main thread. The cacti's alpha-cut cards keep their
+WebP, since `cactusAlpha()` rebuilds their mip chains from the decoded image.
+
 Format: binary glTF with embedded textures, Y-up, metres, origin at ground contact.

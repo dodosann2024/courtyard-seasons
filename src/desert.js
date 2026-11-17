@@ -17,7 +17,16 @@ const G2=(x,z,cx,cz,rx,rz)=>Math.exp(-(((x-cx)/rx)**2)-(((z-cz)/rz)**2));
 
 const root=new T.Group();root.visible=false;Jt.add(root);
 const W=new T.Group();W.scale.setScalar(S);W.rotation.y=YAW;W.position.y=1.7;root.add(W);
-const onDes=o=>{o.traverse(c=>{c.layers.mask=1|L3})};
+/* a model's shaders are compiled a few frames before it is drawn, so the GPU process builds them while frames go on instead of
+   the first draw blocking the main thread on the link */
+const onDes=o=>{if(o===root||!o.visible){o.traverse(c=>{c.layers.mask=1|L3});return}
+  o.traverse(c=>{c.layers.mask=0});const rv=root.visible;root.visible=true;try{Cn.compile(o,De,Jt)}catch(_){}root.visible=rv;
+  let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}o.traverse(c=>{c.layers.mask|=1|L3})};requestAnimationFrame(f)};
+/* KTX2Loader.detectSupport enables each format with getExtension, a synchronous GPU round trip that waits behind every frame
+   already queued; the list of supported names is answered without one */
+function ktxCfg(){let s;try{s=new Set(Cn.getContext().getSupportedExtensions()||[])}catch(_){s=new Set()}const h=e=>s.has(e);
+  return{astcSupported:h("WEBGL_compressed_texture_astc"),etc1Supported:h("WEBGL_compressed_texture_etc1"),etc2Supported:h("WEBGL_compressed_texture_etc"),
+    dxtSupported:h("WEBGL_compressed_texture_s3tc"),bptcSupported:h("EXT_texture_compression_bptc"),pvrtcSupported:h("WEBGL_compressed_texture_pvrtc")||h("WEBKIT_WEBGL_compressed_texture_pvrtc")}}
 
 /* ---------------- value noise (JS twins of the GLSL below) ---------------- */
 const hs2=(x,y)=>{const h=Math.sin(x*127.1+y*311.7)*43758.5453;return h-Math.floor(h)};
@@ -101,7 +110,7 @@ function dDelta(x,z){if(!DLIVE)return 0;const m=dMaskG(x,z);return m>0?m*(duneP(
 const TENT={x:5.4,z:-3.9,yaw:-.24,L:6,D:4,H:2.2};
 const tentFwd={x:Math.sin(TENT.yaw),z:Math.cos(TENT.yaw)},tentRt={x:Math.cos(TENT.yaw),z:-Math.sin(TENT.yaw)};
 const FIRE={x:TENT.x+tentFwd.x*(TENT.D*.5+2.3)-tentRt.x*1.5,z:TENT.z+tentFwd.z*(TENT.D*.5+2.3)-tentRt.z*1.5};
-const tentU={uSunD:{value:new V3(0,1,0)},uSunC:{value:new C3(1,1,1)},uNt:{value:0},uWetC:{value:0},uWInv:{value:new T.M4()},uTC:{value:new T.V2(TENT.x,TENT.z)},uTF:{value:new T.V2(tentFwd.x,tentFwd.z)}};
+const tentU={uT:{value:0},uRn:{value:0},uSunD:{value:new V3(0,1,0)},uSunC:{value:new C3(1,1,1)},uNt:{value:0},uWetC:{value:0},uWInv:{value:new T.M4()},uTC:{value:new T.V2(TENT.x,TENT.z)},uTF:{value:new T.V2(tentFwd.x,tentFwd.z)}};
 const RACK={x:TENT.x+tentRt.x*5.1+tentFwd.x*.9,z:TENT.z+tentRt.z*5.1+tentFwd.z*.9,yaw:TENT.yaw};
 const PALMS=[{x:-3.6,z:-1.8,h:11.8,lean:[.05,-.06],ry:.4},{x:-1.0,z:-4.2,h:10.8,lean:[.07,.05],ry:2.1},{x:-7.2,z:-.5,h:7.6,lean:[-.06,.04],ry:4.0}];
 const SAG=[{k:"s12",lo:"s12_lod1",x:-12.5,z:-10.8,ry:.5,r:1.3},{k:"s7f",lo:"s7_lod1",x:-19.6,z:-3.4,ry:.6,r:.9},{k:"s3",lo:"s3_lod1",x:12.6,z:6.2,ry:2.4,r:.5}];
@@ -158,12 +167,14 @@ function meshopt(){if(_mo)return _mo;const r=ROOT(),url=r?r+"assets/vendor/mesho
   return _mo=import(url).then(x=>x.MeshoptDecoder.ready.then(()=>{const d=x.MeshoptDecoder;
     /* decode on worker threads: the 9 MB snake otherwise holds the main thread (and the loading pill) for seconds */
     try{if(typeof Worker!=="undefined")d.useWorkers(MOB?2:4)}catch(_){}return d})).catch(()=>{_mo=null;return Promise.reject(0)})}
-const GLP={};
+/* one loader for every model: textures are KTX2 (Basis), transcoded on worker threads by the self-hosted transcoder */
+let _gld=null;const GLP={};
 /* ui.js starts every model's download when the desert is chosen (window.__desPre); one that arrived is parsed from its buffer */
 const desPre=()=>window.__desPre||{};
 function glb(key){if(!GLB[key]){const P=GLP[key]={l:0,t:((window.CY||{}).ms||{})[key]||3e6,d:0},E=desPre()[key];
   GLB[key]=Promise.all([gltfMod(),meshopt(),E&&E.p]).then(([m,md,buf])=>new Promise((res,rej)=>{
-    const ld=m.__ld||(m.__ld=new m.GLTFLoader().setMeshoptDecoder(md)),ok=g=>res({scene:g.scene||g.scenes&&g.scenes[0],animations:g.animations||[],gltf:g});
+    const k2=()=>{const k=new m.KTX2Loader().setTranscoderPath(ROOT()+"assets/vendor/").setWorkerLimit(MOB?1:2);k.workerConfig=ktxCfg();return k};
+    const ld=_gld||(_gld=new m.GLTFLoader().setMeshoptDecoder(md).setKTX2Loader(k2())),ok=g=>res({scene:g.scene||g.scenes&&g.scenes[0],animations:g.animations||[],gltf:g});
     if(buf){delete desPre()[key];P.l=P.t;ld.parse(buf,ROOT()+"assets/models/",ok,rej);return}
     ld.load(ROOT()+"assets/models/"+key+".glb",ok,e=>{if(e&&e.loaded)P.l=Math.min(P.t,e.loaded)},rej)}));
   GLB[key].then(()=>{P.l=P.t;P.d=1},()=>{P.l=P.t;P.d=1})}
@@ -197,7 +208,7 @@ const sandU={uWy:{value:POND.wy},uRipDir:{value:new T.V2(WIND.x,WIND.z)},uRip:{v
   uSandA:{value:new C3("#e8a95c")},uSandB:{value:new C3("#c98444")},uWet:{value:new C3("#8a6c4c")},uSoil:{value:new C3("#a39457")},
   uPond:{value:new T.V4(POND.x,POND.z,POND.rx,POND.rz)},uGrv:{value:GRV.map(g=>new T.V4(g.x,g.z,g.r,0))},
   uDA:{value:new T.V4()},uDB:{value:new T.V4()},uDA0:{value:new T.V4(DUNE0.x,DUNE0.z,DUNE0.H,DUNE0.w)},uDB0:{value:new T.V4(DUNE0.Lw,DUNE0.Ll,DUNE0.cv,DUNE0.sk)},uDYaw:{value:DUNE0.yaw},
-  uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)},uHaze:{value:new C3("#d4aab8")},uWetK:{value:0},uHeat:{value:0},uTm:{value:0},uMirC:{value:new C3("#cfe1f2")},uMirB:{value:new C3("#8fb3dc")}};
+  uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)},uHaze:{value:new C3("#d4aab8")},uWetK:{value:0},uPitK:{value:0},uHeat:{value:0},uTm:{value:0},uMirC:{value:new C3("#cfe1f2")},uMirB:{value:new C3("#8fb3dc")}};
 const GLSL_DUNE=`uniform vec4 uDA,uDB,uDA0,uDB0;uniform float uDYaw;
   float duneG(vec2 p,vec4 A,vec4 B){float c=cos(uDYaw),s=sin(uDYaw);vec2 d=p-A.xy;float u=d.x*c-d.y*s,v=d.x*s+d.y*c,vn=v/A.w,dd=u-B.z*vn*vn+B.w*vn;
     float hv=exp(-vn*vn*1.15),pp=dd<0.?exp(-(dd/B.x)*(dd/B.x)):pow(max(0.,1.-dd/B.y),1.3);return A.z*hv*pp;}
@@ -219,14 +230,15 @@ function sandMat(){
       .replace("#include <begin_vertex>",`#include <begin_vertex>
         ${SAND_DISP}vSP=transformed;vSN=objectNormal;vWP=(modelMatrix*vec4(transformed,1.)).xyz;`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;float mkO=0.;
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uPitK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;float mkO=0.;
       uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}
       float pondN(vec2 p){vec2 q=(p-uPond.xy)/uPond.zw;float th=atan(q.y,q.x);
         return length(q)/(1.+.09*sin(2.*th+1.1)+.06*sin(3.*th-.4)+.04*sin(5.*th+2.3));}
-      float ripH(vec2 p){vec2 q=p+vec2(dfbm(p*.09)*4.,dfbm(p*.11+7.)*2.5);
-        float ph=dot(q,uRipDir)*8.38-uRipPh;float a=sin(ph+.9*sin(ph));
-        vec2 d2=vec2(-uRipDir.y,uRipDir.x);float b=sin(dot(q*1.7+3.,uRipDir+d2*.35)*8.38-uRipPh*1.6);
-        return a*.7+b*.3;}`)
+      /* wind ripples are not a ruled pattern: the spacing drifts, crests wander and fork where it does, and they fade out and break */
+      float ripH(vec2 p){vec2 q=p+vec2(dfbm(p*.09)*4.,dfbm(p*.11+7.)*2.5),d2=vec2(-uRipDir.y,uRipDir.x);float al=dot(q,uRipDir);
+        float ph=al*8.38*(1.+.16*(dn2(p*.07+1.3)-.5))+(dn2(vec2(dot(q,d2)*.55,al*.12)+5.)-.5)*3.4-uRipPh;float a=sin(ph+.9*sin(ph));
+        float b=sin(dot(q*1.7+3.,uRipDir+d2*.35)*8.38-uRipPh*1.6);
+        return (a*.7+b*.3)*(.5+.5*smoothstep(.28,.62,dn2(p*.21+11.)));}`)
       .replace("#include <color_fragment>",`#include <color_fragment>
         float pn=pondN(vSP.xz);
         float nz=dfbm(vSP.xz*.06),nz2=dfbm(vSP.xz*.45+3.);
@@ -256,21 +268,36 @@ function sandMat(){
           float sh=on*(1.-peb)*smoothstep(1.55,1.05,d1)*clamp(-lit*1.4+.25,0.,1.);
           vec3 gr=mix(grit*(1.-.35*sh),pc*(.8+.22*lit*smoothstep(1.,.3,d1)+.12*(1.-d1*d1)),peb);
           sc=mix(sc,mix(mix(grit,vec3(.3,.24,.19),.35),gr,gv),grv*.9);}
-        /* rain: the first drops pock the sand with dark spots that merge into an even wet skin; crests and the dune top dry first */
-        float rWM=0.;
-        if(uWetK>.002){float fwc2=length(fwidth(vSP.xz));
-          vec2 cg=vSP.xz*14.,ci=floor(cg),cf=fract(cg)-.5,off=vec2(dh2(ci+3.1),dh2(ci+7.3))-.5;
-          float dotM=step(dh2(ci),uWetK*2.2)*smoothstep(.34,.2,length(cf-off*.5))*(1.-smoothstep(.02,.08,fwc2));
-          float dryB=.35*smoothstep(1.,4.5,vSP.y)+.15*nz2;
-          float even=smoothstep(.22,.55,uWetK-dryB*.6+(nz-.5)*.25);
-          rWM=max(even,dotM*.85)*(1.-wet);sc=mix(sc,sc*vec3(.42,.37,.32),rWM);}
+        /* rain: the first drops print small dark spots; as it keeps raining wet blobs spread out of the noise and merge into
+           an even wet skin. Drying runs the other way and breaks the skin up again: crests, slopes and the dune top first,
+           hollows last. Each drop also leaves a pit, a little crater with a thrown-up rim, which the wind wears away later. */
+        float rWM=0.;vec2 pitG=vec2(0.);
+        if(uWetK>.002||uPitK>.002){float fwc2=length(fwidth(vSP.xz)),near=1.-smoothstep(.002,.006,fwc2);
+          float dryB=.35*smoothstep(1.,4.5,vSP.y)+.15*nz2+.25*smoothstep(.12,.4,slope);
+          float lvl=uWetK*1.25-dryB*.7+(nz-.5)*.3+(dn2(vSP.xz*1.7+4.)-.5)*.35;
+          float blob=smoothstep(-.04,.14,lvl-.25+(dn2(vSP.xz*7.)-.5)*.35+(dn2(vSP.xz*19.+2.)-.5)*.18);
+          float dots=0.;
+          for(int L=0;L<2;L++){vec2 cg=vSP.xz*(L==0?19.:31.)+float(L)*17.3,ci=floor(cg),cf=fract(cg)-.5,off=vec2(dh2(ci+3.1),dh2(ci+7.3))-.5;
+            float h=dh2(ci),rd=.13+.17*dh2(ci+5.9);
+            dots=max(dots,step(h,uWetK*2.6)*smoothstep(rd,rd*.6,length(cf-off*.45))*(.65+.35*dh2(ci+2.2)));}
+          dots*=1.-smoothstep(.006,.03,fwc2);
+          rWM=max(blob,dots*.85)*(1.-wet);sc=mix(sc,sc*vec3(.42,.37,.32),rWM);
+          if(uPitK>.002&&near>.01){
+            for(int L=0;L<2;L++){vec2 cg=vSP.xz*(L==0?16.:27.)+float(L)*5.7,ci=floor(cg),cf=fract(cg)-.5,off=(vec2(dh2(ci+1.9),dh2(ci+4.4))-.5)*.4;
+              float h=dh2(ci+8.8)/(L==0?.7:.45);if(h>uPitK)continue;float rp=.1+.2*pow(dh2(ci+6.1),1.5);vec2 d=cf-off;float r=length(d)/rp;
+              /* bowl falling to the centre, rim heaped just outside it; fresh pits are sharp, older ones slumped */
+              float age=clamp((uPitK-h)*6.,0.,1.),dr=(r<1.?2.*r:0.)-.7*(r-1.1)/.03*exp(-(r-1.1)*(r-1.1)/.03);
+              pitG+=d/max(length(d),1e-4)*dr*(1.-.55*age)*(L==0?1.:.7);
+              sc*=1.-.12*smoothstep(1.,.3,r)*(1.-.5*age)*(.4+.6*uWetK);}
+            pitG*=near*.32;}
+          sc*=1.-.05*uPitK*(1.-near);}
         /* close up the sand shows a fine, soft mottle of lighter and darker grains (smooth noise only: no cells to alias into squares) */
         {float fwc=length(fwidth(vSP.xz)),gd=1.-smoothstep(.006,.035,fwc);
          float g1=dn2(vSP.xz*71.+1.3),g2=dn2(vSP.xz*17.+5.);
          sc*=1.+gd*((g1-.5)*.09+(g2-.5)*.1);}
         diffuseColor.rgb=mix(sc,vec3(dot(sc,vec3(.3,.59,.11)))*vec3(.74,.88,1.04),uNight*.7)*mix(1.,.54,uNight);`)
       .replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
-        roughnessFactor=mix(roughnessFactor,.5,rWM);`)
+        roughnessFactor=mix(roughnessFactor,.64,rWM);`)
       .replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
         float ripAO=1.;
         {float fw=length(fwidth(vSP.xz));
@@ -281,7 +308,8 @@ function sandMat(){
            vec2 g=vec2(ripH(vSP.xz+vec2(e,0.))-h0,ripH(vSP.xz+vec2(0.,e))-h0)/e*.036*k*(1.+.9*uNight);
            ripAO=1.-(.13+.17*uNight)*k*(.5-.5*h0);
            vec3 nL=normalize(normalize(vSN)-vec3(g.x,0.,g.y));
-           normal=normalize(normalMatrix*nL);}}`)
+           normal=normalize(normalMatrix*nL);}}
+        if(dot(pitG,pitG)>1e-6)normal=normalize(normal+normalMatrix*vec3(-pitG.x,0.,-pitG.y));`)
       /* drifting sand: ground-hugging streamers of fine grains running downwind, denser in gusts and over the dune;
          lit by the scene's own direct light (so shadowed, warm, or moonlit as the sand is) plus forward scatter against the light */
       .replace("#include <opaque_fragment>",`{
@@ -316,9 +344,9 @@ function sandMat(){
         if(uHeat>.01)gl_FragColor.a=.985-.48*mkO;`);
   };
   if(TRK){const f=m.onBeforeCompile;m.onBeforeCompile=sh=>{f(sh);Object.assign(sh.uniforms,TRK.U);
-    sh.fragmentShader=sh.fragmentShader.replace("uniform vec4 uPond;","uniform vec4 uPond;uniform sampler2D uTrk;uniform vec4 uTrkW;\n float trkH(vec2 q){vec2 t=texture2D(uTrk,q).rg;return t.g*.005-t.r*.011;}")
+    sh.fragmentShader=sh.fragmentShader.replace("uniform vec4 uPond;","uniform vec4 uPond;uniform sampler2D uTrk;uniform vec4 uTrkW;\n float trkH(vec2 q){vec2 t=texture2D(uTrk,q).rg;return t.g*.0085-t.r*.011;}")
       /* the track's edges crumble: its lookup is shifted by up to a texel of fine noise, faded out where it would alias */
-      .replace("diffuseColor.rgb=mix(sc,vec3(dot(sc",`vec2 tUV=(vSP.xz-uTrkW.xy)*uTrkW.z+.5;float tIn=step(abs(tUV.x-.5),.497)*step(abs(tUV.y-.5),.497);
+      .replace("diffuseColor.rgb=mix(sc,vec3(dot(sc",`vec2 tUV=(vSP.xz-uTrkW.xy)*uTrkW.z+.5;float tIn=smoothstep(.497,.3,max(abs(tUV.x-.5),abs(tUV.y-.5)));
         vec2 tU0=tUV;
         tUV+=(vec2(dn2(vSP.xz*60.),dn2(vSP.xz*60.+7.3))-.5)*uTrkW.w*1.8*(1.-smoothstep(.0025,.007,length(fwidth(vSP.xz))));
         vec4 trq=texture2D(uTrk,tUV);vec2 trk=trq.rg*tIn;sc*=(1.-.14*trk.r)*(1.+.05*trk.g);
@@ -326,7 +354,7 @@ function sandMat(){
       .replace("float k=uRip*(1.-smoothstep(.07,.3,fw))","float k=uRip*(1.-smoothstep(.12,.5,trk.r+trk.g))*(1.-smoothstep(.07,.3,fw))")
       .replace("normal=normalize(normalMatrix*nL);}}",`normal=normalize(normalMatrix*nL);}}
         if(tIn>0.&&trk.r+trk.g>.004){float e=uTrkW.w;vec2 g=vec2(trkH(tUV+vec2(e,0.))-trkH(tUV-vec2(e,0.)),trkH(tUV+vec2(0.,e))-trkH(tUV-vec2(0.,e)))/(2.*e/uTrkW.z);
-          normal=normalize(normal+normalMatrix*vec3(-g.x,0.,-g.y));ripAO*=1.-.3*trk.r;
+          normal=normalize(normal+normalMatrix*vec3(-g.x,0.,-g.y)*tIn);ripAO*=1.-.3*trk.r;
           /* where the body was set down rather than slid, its belly scales press fine ridges across the groove floor (~6 mm
              apart), continuous from texel to texel along the body; seen only close up */
           float sF=smoothstep(.3,.75,trk.r)*(1.-smoothstep(.0012,.004,length(fwidth(vSP.xz))));
@@ -364,15 +392,24 @@ function duneSettle(){
   sandMesh.geometry.computeBoundingSphere();sandMesh.geometry.boundingSphere.radius+=3;DLIVE=true;duneEvolve(0)}
 
 /* sandstone: triplanar painted texture + luminance bump, paled toward the reference's tan/lilac rock */
-const rockU={uMap:{value:null},uHas:{value:0},uTint:{value:new C3("#f8e2c4")},uDeep:{value:new C3("#a3836f")},uSc:{value:1/6.5},uNight:{value:0},uWetK:{value:0}};
+const rockU={uMap:{value:null},uHas:{value:0},uTint:{value:new C3("#f8e2c4")},uDeep:{value:new C3("#a3836f")},uSc:{value:1/6.5},uNight:{value:0},uWetK:{value:0},
+  uT:{value:0},uVen:{value:1},uVenC:{value:new C3("#e3a75e")}};
 function rockMat(extra){
   const m=new T.MSM({color:0xffffff,roughness:.95,metalness:0});
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,rockU);
-    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nvarying vec3 vRP;varying vec3 vRN;")
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nvarying vec3 vRP;varying vec3 vRN;"+(extra&&extra.ven?"attribute float aV;varying float vV;":""))
       .replace("#include <begin_vertex>",`#include <begin_vertex>
-        ${extra&&extra.inst?"vec4 _rp=instanceMatrix*vec4(position,1.);vRP=_rp.xyz;vRN=normalize(mat3(instanceMatrix)*normal);":"vRP=position;vRN=normal;"}`);
+        ${extra&&extra.inst?"vec4 _rp=instanceMatrix*vec4(position,1.);vRP=_rp.xyz;vRN=normalize(mat3(instanceMatrix)*normal);":"vRP=position;vRN=normal;"}${extra&&extra.ven?"vV=aV;":""}`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-      varying vec3 vRP;varying vec3 vRN;uniform mat3 normalMatrix;uniform sampler2D uMap;uniform float uHas,uSc,uNight,uWetK;uniform vec3 uTint,uDeep;${GLSL_NOISE}
+      varying vec3 vRP;varying vec3 vRN;uniform mat3 normalMatrix;uniform sampler2D uMap;uniform float uHas,uSc,uNight,uWetK,uT,uVen;uniform vec3 uTint,uDeep,uVenC;${GLSL_NOISE}
+      ${extra&&extra.ven?`varying float vV;
+      /* fine sand creeping over the whole rim: it covers the lip and hangs down the top of the wall, further where gullies carry it
+         and on ledges, little on overhangs; how far it reaches varies round the rim. Its streaks slide downward. */
+      float venA(vec3 nA){vec3 w=pow(abs(nA),vec3(4.));return mix(vRP.z,vRP.x,w.z/(w.x+w.z+1e-3));}
+      float venC(vec3 nA){float d=vV,a=venA(nA),rim=.35+.65*smoothstep(.25,.75,dn2(vRP.xz*.11+1.7)*.7+dn2(vRP.xz*.37+4.1)*.3);
+        float tg=dn2(vec2(a*1.6,d*.12))*.65+dn2(vec2(a*4.3,d*.35+3.))*.35,reach=(.8+3.6*rim)*(.55+.9*tg)+4.5*rim*pow(smoothstep(.55,.85,tg),2.);
+        float c=1.-smoothstep(reach*.55,reach,d+.4*(dn2(vec2(a*9.,d*1.3))-.5));
+        c*=mix(1.,.25,smoothstep(-.15,-.6,nA.y))*mix(1.,1.35,smoothstep(.25,.7,nA.y));return clamp(c*uVen,0.,1.);}`:""}
       float lum(vec3 c){return dot(c,vec3(.3,.55,.15));}
       vec3 rk(vec2 uv){return uHas>.5?texture2D(uMap,uv).rgb:vec3(.75,.55,.35)*(.8+.4*dn2(uv*24.));}`)
       .replace("#include <color_fragment>",`#include <color_fragment>
@@ -396,6 +433,10 @@ function rockMat(extra){
         c=mix(c,c*vec3(.9,.9,1.02),smoothstep(.4,.9,dn2(vec2(vRP.y*.35,0.)+vRP.xz*.02)));
         c=mix(c,uDeep*(.55+.6*L),smoothstep(-3.,-17.,vRP.y)*.55);
         c*=1.-.34*uWetK*(.4+.6*smoothstep(-.2,.6,nA.y))*(1.-smoothstep(-1.,-3.,vRP.y));
+        ${extra&&extra.ven?`{float cv=venC(nA);if(cv>.002){float a=venA(nA),d=vV,sp=.6+.8*uVen;
+          float fl=dn2(vec2(a*7.,d*2.2-uT*sp*1.1))*.6+dn2(vec2(a*19.,d*6.-uT*sp*2.4))*.4,gr=dh2(floor(vec2(a*60.,d*60.-uT*sp*14.)));
+          vec3 sc=uVenC*(.86+.26*fl)*(1.+.12*(gr-.5))*mix(vec3(1.),vec3(.62,.55,.5),uWetK);
+          c=mix(c,sc,smoothstep(0.,.35,cv)*(.55+.45*smoothstep(.3,.9,cv)));}}`:""}
         c=mix(c,vec3(dot(c,vec3(.3,.59,.11)))*vec3(.74,.86,1.04),uNight*.68)*mix(1.,.55,uNight);
         diffuseColor.rgb=c;
         #ifdef USE_INSTANCING_COLOR
@@ -411,11 +452,12 @@ function rockMat(extra){
          vec2 gz=vec2(lum(rk(uz+vec2(e,0.)))-lz,lum(rk(uz+vec2(0.,e)))-lz);
          vec3 b=w2.x*vec3(0.,gx.y,gx.x)+w2.y*vec3(gy.x,0.,gy.y)+w2.z*vec3(gz.x,gz.y,0.);
          vec3 nL=normalize(nA2-b*${MOB?"9.":"12."});
+         ${extra&&extra.ven?"nL=normalize(mix(nL,nA2,smoothstep(0.,.5,venC(nA2))*.85));":""}
          normal=normalize(normalMatrix*nL);}`);
   };
-  m.customProgramCacheKey=()=>"des44rock"+(extra&&extra.inst?"i":"");
+  m.customProgramCacheKey=()=>"des44rock"+(extra&&extra.inst?"i":"")+(extra&&extra.ven?"v":"");
   return m}
-const ROCK_M=rockMat(),ROCK_MI=rockMat({inst:1});
+const ROCK_M=rockMat({ven:1}),ROCK_MI=rockMat({inst:1});
 let rockMesh=null;
 /* underside: a rounded, eroded bowl in the sky-series proportion (the sea island's bowl is 6 deep under an 18 wide top,
    1/3): rim to lowest point ~14 m under a ~43 m top. Short crust wall, a few soft ledges, short hanging lobes. */
@@ -429,7 +471,7 @@ const KEEL_TIP={x:-.6,z:.7},KEEL_STEPS=4;
   rows.push({s:1.002,dy:.12,lip:.6});
   const TW=4;for(let k=1;k<=TW;k++)rows.push({s:1.004,wall:k/TW});
   const NU=MOB?40:64;for(let k=1;k<=NU;k++)rows.push({u:k/NU});
-  const nR=rows.length,pos=new Float32Array(nR*NT*3),idx=[];
+  const nR=rows.length,pos=new Float32Array(nR*NT*3),aV=new Float32Array(nR*NT+1),idx=[];
   const Dc=12.4;
   for(let j=0;j<NT;j++){
     const th=j/NT*TAU,[ex,ez]=edgeXZ(th,1),eY=hTop(ex,ez),tw=1.5+1.1*fbm2(Math.cos(th)*3+1,Math.sin(th)*3),D=islandDepth(th);
@@ -463,13 +505,14 @@ const KEEL_TIP={x:-.6,z:.7},KEEL_STEPS=4;
         if(R.wall!=null)disp=Math.max(disp,-(.25+.9*R.wall));
         if(R.u!=null)y+=(fbm3(x*.09+1,y*.05,z*.09)-.5)*2.2*ss(.1,.6,R.u)*(1-ss(.85,1,R.u))}
       x+=ox*disp;z+=oz*disp;
-      const o=(r*NT+j)*3;pos[o]=x;pos[o+1]=y;pos[o+2]=z}}
+      const o=(r*NT+j)*3;pos[o]=x;pos[o+1]=y;pos[o+2]=z;aV[r*NT+j]=eY-y}}
   for(let r=0;r<nR-1;r++)for(let j=0;j<NT;j++){const a=r*NT+j,b=r*NT+(j+1)%NT,c=a+NT,d=b+NT;idx.push(a,b,c,b,d,c)}
   /* close the tip */
   const tip=nR*NT,last=(nR-1)*NT;let sx=0,sy=0,sz=0;for(let j=0;j<NT;j++){sx+=pos[(last+j)*3];sy+=pos[(last+j)*3+1];sz+=pos[(last+j)*3+2]}
   const P=new Float32Array(pos.length+3);P.set(pos);P[tip*3]=sx/NT;P[tip*3+1]=sy/NT-.6;P[tip*3+2]=sz/NT;
   for(let j=0;j<NT;j++)idx.push(last+j,last+(j+1)%NT,tip);
-  const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setIndex(idx);g.computeVertexNormals();
+  aV[tip]=40;
+  const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("aV",new T.BA(aV,1));g.setIndex(idx);g.computeVertexNormals();
   rockMesh=new T.Mesh(g,ROCK_M);rockMesh.castShadow=true;rockMesh.receiveShadow=true;W.add(rockMesh)})();
 loadTex("assets/tex/sandstone.jpg").then(t=>{rockU.uMap.value=t;rockU.uHas.value=1}).catch(()=>{});
 
@@ -533,7 +576,10 @@ let pondMesh=null;
       void main(){
         float e=.06,h0=wv(vP.xz);vec2 g=vec2(wv(vP.xz+vec2(e,0.))-h0,wv(vP.xz+vec2(0.,e))-h0)/e;
         float amp=.022+.07*uWind;vec3 n=normalize(vec3(-g.x*amp,1.,-g.y*amp));
-        if(uRainP>.003)n=normalize(n+vec3(ringG(vP.xz).x,0.,ringG(vP.xz).y)*smoothstep(.0,.1,vD));
+        if(uRainP>.003){vec2 rg=ringG(vP.xz);n=normalize(n+vec3(rg.x,0.,rg.y)*smoothstep(.0,.1,vD));
+          /* between the rings the surface is roughened by the drops all over it */
+          float fr2=1.-smoothstep(.006,.025,length(fwidth(vP.xz))),r0=dn2(vP.xz*75.+uT*3.1),rx=dn2(vP.xz*75.+vec2(1.6,0.)+uT*3.1),rz=dn2(vP.xz*75.+vec2(0.,1.6)+uT*3.1);
+          n=normalize(n+vec3(r0-rx,0.,r0-rz)*.22*uRainP*fr2);}
         vec3 V=normalize(uCamL-vP);
         float fr=.02+.98*pow(1.-max(dot(n,V),0.),5.);
         /* oasis water: clear over the sand bed at the margin, absorbing to a deep green-teal in the middle */
@@ -561,12 +607,13 @@ let pondMesh=null;
 const pondRefl={rt:null,cam:null,bias:new T.M4().set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1),cc:new C3(),frame:0};
 const reflSet=[];
 function renderPondReflection(){
-  if(!pondMesh||!Cn||st.night>.5){pondU.uReflOn.value=0;return}
+  if(!pondMesh||!Cn||st.night>.5||!_stageDone){pondU.uReflOn.value=0;return}
   if(MOB&&(pondRefl.frame++&1))return;
   if(!pondRefl.rt){const RT=bloom&&bloom.renderTargetsHorizontal&&bloom.renderTargetsHorizontal[0]&&bloom.renderTargetsHorizontal[0].constructor;if(!RT)return;
     pondRefl.rt=new RT(MOB?256:512,MOB?160:320);pondRefl.cam=De.clone();pondRefl.cam.layers.set(PALM_LAYER);pondU.uRefl.value=pondRefl.rt.texture}
   [pi,dc].forEach(l=>{if(l)l.layers.enable(PALM_LAYER)});
-  reflSet.forEach(o=>{if(!o.userData._rl){o.traverse(c=>c.layers.enable(PALM_LAYER));o.userData._rl=1}});
+  /* the reflection pass needs its own build of every reflected shader: one more object joins it per frame */
+  for(const o of reflSet)if(!o.userData._rl){o.traverse(c=>c.layers.enable(PALM_LAYER));o.userData._rl=1;break}
   const Wy=W.position.y+POND.wy*S,c=pondRefl.cam;De.updateMatrixWorld();
   const e=De.matrixWorld.elements,cp=De.position;
   c.fov=De.fov;c.aspect=De.aspect;c.near=De.near;c.far=De.far;c.updateProjectionMatrix();
@@ -790,7 +837,8 @@ function buildPalms(){
         quad([a.clone().sub(w),c0,up,.5,.012],[a.clone().add(w),c0,up,.5,.012],[b.clone().sub(w),c1,up,.5,.012],[b.clone().add(w),c1,up,.5,.012])}};
     const NF=MOB?20:28,ga=2.39996;
     for(let i=0;i<NF;i++){const k=i/(NF-1),az=i*ga+pp.ry,el=(62-90*Math.pow(k,.85))*D2R,L=mix(2.6,3.7,Math.min(1,k*1.4))*cw*rr(.92,1.08);
-      const g1=[mix(.1,.18,k),mix(.2,.24,k),mix(.05,.07,k)],g2=[mix(.32,.5,k),mix(.45,.48,k),mix(.1,.14,k)];
+      /* date palm leaves are a dusty grey-green, not lime: muted, a little blue in the older fronds */
+      const g1=[mix(.09,.14,k),mix(.16,.2,k),mix(.08,.08,k)],g2=[mix(.25,.36,k),mix(.34,.39,k),mix(.2,.18,k)];
       frond(az,el,L,mix(.18,.45,k),g1,g2,false)}
     for(let i=0;i<4;i++){const az=i/4*TAU+.5+pp.ry;frond(az,-68*D2R,2.4*cw,.1,[.33,.22,.11],[.55,.4,.22],true)}
     /* dead leaf sheaths under the crown: brown petiole bases hugging the trunk, the lower rings splayed further out;
@@ -821,7 +869,9 @@ buildPalms();
    every level (a plain box-filtered chain thins the spines below it after a few levels, so distant plants would go bald).
    covMips/cactusAlpha follow the handover's three_cactus_alpha.js (same downsample, bisection and material state). ---- */
 const CLOD=[];
-function covMips(img,cut){
+/* resolves in a task of its own after the next frame, not inside the frame's rAF task */
+const nextFrame=()=>new Promise(r=>{let d=0;const f=()=>{if(!d){d=1;r()}};requestAnimationFrame(()=>setTimeout(f,0));setTimeout(f,60)});
+async function covMips(img,cut){
   const w0=img.width,h0=img.height,c=document.createElement("canvas");c.width=w0;c.height=h0;const g=c.getContext("2d",{willReadFrequently:true});g.drawImage(img,0,0);
   const d0=g.getImageData(0,0,w0,h0).data,t=Math.ceil(cut*255-1e-6);let n0=0;for(let i=3;i<d0.length;i+=4)if(d0[i]>=t)n0++;
   const tgt=n0/(w0*h0),lv=[{data:new Uint8Array(d0.buffer.slice(0)),width:w0,height:h0}];
@@ -833,16 +883,18 @@ function covMips(img,cut){
     src=o;w=W2;h=H2;const px=w*h,cov=s=>{let n=0;for(let i=0;i<px;i++)if(Math.round(Math.min(src[i*4+3]*s,1)*255)>=t)n++;return n/px};
     let lo=.25,hi=8;for(let it=0;it<24;it++){const m=.5*(lo+hi);if(cov(m)<tgt)lo=m;else hi=m}
     const d=new Uint8Array(px*4);for(let i=0;i<px;i++){d[i*4]=src[i*4]*255+.5;d[i*4+1]=src[i*4+1]*255+.5;d[i*4+2]=src[i*4+2]*255+.5;d[i*4+3]=Math.min(src[i*4+3]*hi,1)*255+.5}
-    lv.push({data:d,width:w,height:h})}
+    lv.push({data:d,width:w,height:h});if(px>=65536)await nextFrame()}
   return lv}
-function cactusAlpha(root){const M=VT.THREE,done=new Set();
+/* one texture level per frame: the full-size levels of a 2k card take a few hundred ms each on a phone */
+async function cactusAlpha(root){const M=VT.THREE,done=new Set(),todo=[];
   root.traverse(o=>{if(!o.isMesh)return;const m=o.material;if(m.alphaTest>0)o.castShadow=false;else o.castShadow=true;o.receiveShadow=true;
     if(done.has(m))return;done.add(m);cleanMat(m);if(!ANIM_MATS.includes(m))ANIM_MATS.push(m);
-    if(!(m.alphaTest>0)||!m.map||!m.map.image)return;
-    const lv=covMips(m.map.image,m.alphaTest),t=new M.DataTexture(lv[0].data,lv[0].width,lv[0].height,M.RGBAFormat,M.UnsignedByteType);
+    if(m.alphaTest>0&&m.map&&m.map.image)todo.push(m)});
+  for(const m of todo){await nextFrame();
+    const lv=await covMips(m.map.image,m.alphaTest),t=new M.DataTexture(lv[0].data,lv[0].width,lv[0].height,M.RGBAFormat,M.UnsignedByteType);
     t.mipmaps=lv;t.generateMipmaps=false;t.flipY=false;t.colorSpace="srgb";t.wrapS=m.map.wrapS;t.wrapT=m.map.wrapT;
     t.magFilter=M.LinearFilter;t.minFilter=M.LinearMipmapLinearFilter;t.anisotropy=MOB?4:8;t.needsUpdate=true;
-    m.map=t;m.alphaToCoverage=true;m.transparent=false;m.depthWrite=true;m.depthTest=true;m.side=2;m.needsUpdate=true})}
+    m.map=t;m.alphaToCoverage=true;m.transparent=false;m.depthWrite=true;m.depthTest=true;m.side=2;m.needsUpdate=true}}
 /* sunk to the lowest sand under the base so the downhill side never floats */
 function cactusPlace(w,c,sc){let y=1e9;for(let k=0;k<8;k++){const a=k*TAU/8;y=Math.min(y,hTop(c.x+Math.cos(a)*c.r*.5,c.z+Math.sin(a)*c.r*.5))}
   y=Math.min(y,hTop(c.x,c.z));w.scale.setScalar(sc);w.position.set(c.x,y-.04,c.z);w.rotation.y=c.ry;
@@ -854,16 +906,16 @@ function cactusLod(){if(!CLOD.length)return;const inv=new T.M4().copy(W.matrixWo
   for(const L of CLOD){const d=Math.max(.5,Math.hypot(cp.x-L.x,cp.y-hTop(L.x,L.z)-L.h*.5,cp.z-L.z)),ppm=k/d,near=L.hi.visible?ppm>lim*.85:ppm>lim;
     L.hi.visible=near;L.lo.visible=!near}}
 const propsReady=Promise.all([
-  glb("saguaro_v3").then(({scene})=>{cactusAlpha(scene);
+  glb("saguaro_v3").then(async({scene})=>{await cactusAlpha(scene);
     for(const s of SAG){const hi=scene.getObjectByName(s.k),lo=scene.getObjectByName(s.lo);if(!hi||!lo)continue;
       const w=cactusPlace(new T.Group().add(hi.clone(),lo.clone()),s,1);PROPS.sag.push(w);CLOD.push({w,hi:w.children[0],lo:w.children[1],x:s.x,z:s.z,h:s.k==="s12"?12:s.k==="s3"?3:7})}
     /* highest point of the giant = eagle roost */
     const w=PROPS.sag[0];if(!w)return;w.updateMatrixWorld(true);const inv=new T.M4().copy(W.matrixWorld).invert(),p=new V3();let best=null;
     w.children[0].traverse(c=>{if(!c.isMesh)return;const a=c.geometry.attributes.position;for(let i=0;i<a.count;i+=3){p.fromBufferAttribute(a,i).applyMatrix4(c.matrixWorld).applyMatrix4(inv);if(!best||p.y>best.y)best=p.clone()}});
     PROPS.sagTop=best}).catch(()=>{}),
-  glb("cholla_v2").then(({scene})=>{cactusAlpha(scene);CACTI.forEach(c=>cactusPlace(new T.Group().add(scene.clone()),c,c.s))}).catch(()=>{}),
+  glb("cholla_v2").then(async({scene})=>{await cactusAlpha(scene);CACTI.forEach(c=>cactusPlace(new T.Group().add(scene.clone()),c,c.s))}).catch(()=>{}),
   /* barrels: one instanced draw per material for all of them; each tips about its base toward the sun's azimuth */
-  glb("barrel_cactus_v3").then(({scene})=>{cactusAlpha(scene);scene.updateMatrixWorld(true);
+  glb("barrel_cactus_v3").then(async({scene})=>{await cactusAlpha(scene);scene.updateMatrixWorld(true);
     const up=new V3(0,1,0),ax=new V3(Math.cos(SUN.lazL),0,-Math.sin(SUN.lazL)),qy=new T.Quat(),m=new T.M4();
     const xf=BARRELS.map(b=>{let y=hTop(b.x,b.z);for(let k=0;k<8;k++){const a=k*TAU/8;y=Math.min(y,hTop(b.x+Math.cos(a)*.3*b.s,b.z+Math.sin(a)*.3*b.s))}
       const q=new T.Quat().setFromAxisAngle(ax,b.tilt).multiply(qy.setFromAxisAngle(up,b.ry));return new T.M4().compose(new V3(b.x,y-.03,b.z),q,new V3(b.s,b.s,b.s))});
@@ -878,9 +930,9 @@ const propsReady=Promise.all([
          0.55 m strips with a coarse 3 cm weave (laid out in island metres); dark members stay wood. Sun on the far side
          of the cloth glows through it, and backlit edges get a warm rim. */
       m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,tentU);
-        sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform mat4 uWInv;varying vec3 vTI;")
-          .replace("#include <project_vertex>","#include <project_vertex>\nvTI=(uWInv*modelMatrix*vec4(transformed,1.)).xyz;");
-        sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform vec3 uSunD,uSunC;uniform float uNt,uWetC;uniform vec2 uTC,uTF;varying vec3 vTI;")
+        sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform mat4 uWInv;varying vec3 vTI,vTN;")
+          .replace("#include <project_vertex>","#include <project_vertex>\nvTI=(uWInv*modelMatrix*vec4(transformed,1.)).xyz;vTN=normalize(mat3(uWInv*modelMatrix)*objectNormal);");
+        sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform vec3 uSunD,uSunC;uniform float uNt,uWetC,uT,uRn;uniform vec2 uTC,uTF;varying vec3 vTI,vTN;float tWet=0.,tRiv=0.,tBead=0.;"+GLSL_NOISE)
           .replace("#include <map_fragment>",`#ifdef USE_MAP
         vec4 tx=texture2D(map,vMapUv);float l=dot(tx.rgb,vec3(.3,.59,.11));
         vec2 rel=vTI.xz-uTC;float ac=dot(rel,uTF),al=dot(rel,vec2(uTF.y,-uTF.x));
@@ -891,17 +943,29 @@ const propsReady=Promise.all([
         /* Bedouin goat-hair cloth: dark brown strips, every fifth a pale undyed-wool stripe */
         float hair=.9+.2*fract(sin(dot(floor(vec2(al,vTI.y)/.012),vec2(12.9,78.2)))*43758.5);
         vec3 cloth=mix(vec3(.15,.105,.074),vec3(.46,.39,.3),wool)*(.8+1.2*l)*band*weave*mix(hair,1.,aw*.5);
-        diffuseColor.rgb=mix(vec3(.2,.13,.08),min(cloth,vec3(.5,.43,.33)),smoothstep(.006,.025,l))*(1.-.3*uWetC);
-        #endif`).replace("#include <lights_fragment_end>",`#include <lights_fragment_end>
+        diffuseColor.rgb=mix(vec3(.2,.13,.08),min(cloth,vec3(.5,.43,.33)),smoothstep(.006,.025,l));
+        /* rain: the roof soaks first and the wet spreads down the walls in uneven patches, undersides staying dry longest;
+           water gathers into rivulets running down each panel's fall line, beads of it sliding down them */
+        if(uWetC>.003){vec3 tn=normalize(vTN);float up=tn.y;
+          tWet=smoothstep(.05,.35,uWetC*1.3-(1.-smoothstep(-.3,.5,up))*.45-(dn2(vTI.xz*2.3+vTI.y*1.7)-.5)*.45);
+          vec2 fd=normalize(tn.xz+vec2(1e-4));float acr=dot(vTI.xz-uTC,vec2(-fd.y,fd.x))*5.5+.5*dn2(vTI.xz*1.1+vTI.y*.8),li=floor(acr);
+          float along=dot(vTI.xz,fd)-vTI.y*1.5,rate=.9+.8*dh2(vec2(li,9.));
+          tRiv=step(.72,dh2(vec2(li,3.)))*smoothstep(.12,.03,abs(fract(acr)-.5))*uRn*smoothstep(.3,.7,uWetC)*smoothstep(-.4,.3,up)
+            *smoothstep(.3,.6,dn2(vec2(li*1.7,along*.9-uT*.15)))*(1.-smoothstep(.02,.06,length(fwidth(vTI.xz))));
+          tBead=tRiv*step(.5,dh2(vec2(li,6.)))*pow(fract(along*1.3-uT*rate*.8+dh2(vec2(li,5.))),10.);
+          diffuseColor.rgb*=(1.-.42*tWet)*(1.-.4*tRiv);}
+        #endif`).replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
+        roughnessFactor=mix(roughnessFactor,.5,tWet*.55+tRiv*.4);`).replace("#include <lights_fragment_end>",`#include <lights_fragment_end>
         reflectedLight.indirectDiffuse*=vec3(1.02,.99,.95);
         {vec3 Ld=normalize((viewMatrix*vec4(uSunD,0.)).xyz);float back=pow(max(dot(-geometryViewDir,Ld),0.),2.);
          float trans=max(-dot(normal,Ld),0.);vec3 warm=mix(vec3(1.,.72,.45),vec3(1.),uNt);
          float cm=smoothstep(.12,.22,diffuseColor.r);
          reflectedLight.indirectDiffuse+=diffuseColor.rgb*uSunC*warm*trans*(.03+.16*back)*cm;
          float rim=pow(1.-clamp(abs(dot(normal,geometryViewDir)),0.,1.),3.);
-         reflectedLight.indirectDiffuse+=diffuseColor.rgb*uSunC*warm*rim*back*.55*(1.-.7*uNt)*cm;}`)};m.needsUpdate=true});
+         reflectedLight.indirectDiffuse+=diffuseColor.rgb*uSunC*warm*rim*back*.55*(1.-.7*uNt)*cm;
+         reflectedLight.indirectSpecular+=vec3(.55,.6,.66)*(tRiv*.03+tBead*.22)*(1.-.75*uNt);}`)};m.needsUpdate=true});
     const g=new T.Group();g.add(w);g.position.set(TENT.x,hTop(TENT.x,TENT.z)-.05,TENT.z);g.rotation.y=TENT.yaw;
-    g.traverse(c=>{if(c.isMesh){c.castShadow=c.receiveShadow=true;c.frustumCulled=false}});W.add(g);onDes(g);PROPS.tent=g}).catch(()=>{})]);
+    g.traverse(c=>{if(c.isMesh){c.castShadow=c.receiveShadow=true;c.frustumCulled=false}});W.add(g);onDes(g);PROPS.tent=g;tentWater(g)}).catch(()=>{})]);
 
 /* ---------------- drying rack beside the tent: forked poles, cross-bar, striped rugs, waterskin ---------------- */
 const woodM=new T.MSM({color:"#6e4a2c",roughness:.9});
@@ -929,13 +993,26 @@ const fireG=new T.Group();fireG.position.set(FIRE.x,hTop(FIRE.x,FIRE.z),FIRE.z);
 const fireU={uT:{value:0},uNight:{value:0}};
 let fireL=null;
 (function campfire(){
-  const stM=new T.MSM({color:"#7a6c60",roughness:.95});
-  const im=new T.IM(ROCK_GEOS[1],stM,11),m=new T.M4(),q=new T.Quat();
-  for(let i=0;i<11;i++){const a=i/11*TAU+rr(-.1,.1),s=rr(.13,.19);q.setFromAxisAngle(new V3(rr(-.3,.3),1,rr(-.3,.3)).normalize(),rnd()*TAU);
-    m.compose(new V3(Math.cos(a)*.4,-.02,Math.sin(a)*.4),q,new V3(s*1.2,s,s));im.setMatrixAt(i,m)}
+  const stM=new T.MSM({color:"#4e463f",roughness:.95});
+  /* ring of unequal stones, some sunk deeper, the ones nearest the coals blackened with soot */
+  const NS=13,im=new T.IM(ROCK_GEOS[1],stM,NS),m=new T.M4(),q=new T.Quat(),sc=new C3();
+  for(let i=0;i<NS;i++){const a=i/NS*TAU+rr(-.12,.12),s=rr(.1,.21),r=rr(.37,.45);q.setFromAxisAngle(new V3(rr(-.3,.3),1,rr(-.3,.3)).normalize(),rnd()*TAU);
+    m.compose(new V3(Math.cos(a)*r,.01-rr(0,.04),Math.sin(a)*r),q,new V3(s*rr(.9,1.2),s*rr(1.05,1.4),s*rr(.9,1.15)));im.setMatrixAt(i,m);
+    const k=rr(.75,1.1),soot=rnd()<.5?rr(.3,.55):1;im.setColorAt(i,sc.setRGB(k*soot,k*.97*soot,k*.94*soot))}
   im.castShadow=im.receiveShadow=true;fireG.add(im);
-  const charM=new T.MSM({color:"#3a2618",roughness:.95,emissive:"#ff5a1a",emissiveIntensity:0});fireG.userData.charM=charM;
-  for(let i=0;i<4;i++){const l=new T.Mesh(new T.Cyl(.045,.055,.62,7),charM);const a=i/4*TAU+.4;l.position.set(Math.cos(a)*.1,.1,Math.sin(a)*.1);l.rotation.set(0,-a,Math.PI/2-.42);l.rotation.order="YZX";l.castShadow=true;fireG.add(l)}
+  /* split logs leaned into a cone over the coals: bark at the foot on the sand, charred and glowing where they meet in the flames */
+  const charM=new T.MSM({vertexColors:true,roughness:.92,emissive:"#ff5a1a",emissiveIntensity:0});fireG.userData.charM=charM;
+  charM.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nattribute float aG;varying float vG;").replace("#include <begin_vertex>","#include <begin_vertex>\nvG=aG;");
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nvarying float vG;").replace("#include <emissivemap_fragment>","#include <emissivemap_fragment>\ntotalEmissiveRadiance*=vG;")};
+  charM.customProgramCacheKey=()=>"desFireLog";
+  const logGeo=(r0,len)=>{const g=new T.Cyl(r0*.85,r0,len,9,6),p=g.attributes.position,n=p.count,col=new Float32Array(n*3),gl=new Float32Array(n),bk=rr(0,9);
+    for(let i=0;i<n;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),t=y/len+.5,an=Math.atan2(z,x),j=1+.13*(vn2(an*2.2+bk,t*3)-.5)+.06*Math.sin(an*5+bk);
+      p.setXYZ(i,x*j,y+.025*Math.sin(t*3+bk),z*j);const ch=ss(.45,.95,t),bark=.75+.3*vn2(an*7+bk,t*14);
+      col[i*3]=mix(.045*bark,.006,ch);col[i*3+1]=mix(.022*bark,.005,ch);col[i*3+2]=mix(.01*bark,.0045,ch);gl[i]=ss(.68,1,t)*(.6+.4*vn2(an*4+bk,t*9))}
+    g.setAttribute("color",new T.BA(col,3));g.setAttribute("aG",new T.BA(gl,1));g.computeVertexNormals();return g};
+  for(let i=0;i<5;i++){const a=i/5*TAU+rr(-.2,.2)+.4,len=rr(.55,.72),r0=rr(.04,.06),tl=rr(.95,1.15),l=new T.Mesh(logGeo(r0,len),charM);
+    const c=Math.cos(tl),s2=Math.sin(tl);l.position.set(Math.cos(a)*(s2*len*.5-.06),c*len*.5*.85+.04,Math.sin(a)*(s2*len*.5-.06));
+    l.rotation.order="YZX";l.rotation.set(0,-a,tl*.88);l.castShadow=true;fireG.add(l)}
   const glow=new T.Mesh(new T.Plane(.7,.7),new T.SM({transparent:true,depthWrite:false,blending:2,uniforms:fireU,
     vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`uniform float uT;varying vec2 vUv;void main(){float d=length(vUv-.5)*2.;float a=smoothstep(1.,0.,d);a*=a*(.75+.25*sin(uT*7.)*sin(uT*3.1));gl_FragColor=vec4(vec3(1.,.42,.12)*a*1.4,a);}`}));
@@ -1068,7 +1145,8 @@ function curtainUpdate(t){
    Each fall is one ribbon: a short run of moving sand over the surface to a low point of the lip, then a granular sheet that
    leaves the lip, falls clear of the cliff (its path is fitted to the cliff mesh), tears into strands and grains and thins into dust
    above the cloud sea. Wind sets the rate: more on the downwind rim and in gusts and dust storms; rain damps the sand into a few
-   darker, lighter trickles. Heavy falls, thinner falls and trickles with dry rim between, as at the sea's rim. */
+   darker, lighter trickles. Sand is not water: most of the rim only sheds short broken trickles off the creeping veneer, and a few
+   heavy falls hang a dense drape off the lip that fans out, clumps and surges, and gives itself up to dust drifting downwind. */
 const SF={H:28,G:9.8,F:[]};SF.Tf=Math.sqrt(2*SF.H/SF.G);
 const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value:0},uNt:{value:0},uWV:{value:new T.V2()},
   uCol:curU.uCol,uSheen:curU.uSheen,uLd:sandU.uLd,uGT:sandU.uGT,uWD:sandU.uWD,uFogC:pondU.uFogC,uFogNF:pondU.uFogNF};
@@ -1076,7 +1154,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   /* a seed of their own, so the falls do not shift the rest of the layout */
   let ps=5281;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^ps>>>15,1|ps);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},prr=(a,b)=>a+(b-a)*pr();
   /* [half width min, max, rate threshold min, max] for heavy falls, thinner falls, trickles */
-  const kinds=[[1.1,1.8,0,.05],[.45,.8,.06,.24],[.12,.24,.2,.42]],pat=[0,2,1,2,0,1,2,1,2,1],nF=MOB?16:24,sl=TAU/nF;
+  const kinds=[[1.5,2.3,0,.04],[.5,.85,.03,.16],[.05,.13,.04,.34]],pat=[0,2,2,2,1,2,2,2],nF=MOB?32:48,sl=TAU/nF;
   const rp=rockMesh.geometry.attributes.position.array,nV=rp.length/3,LIPV=3*NT;
   const frame=th=>{const[x,z]=edgeXZ(th,1),[x1,z1]=edgeXZ(th+.02,1),[x0,z0]=edgeXZ(th-.02,1),l=Math.hypot(x1-x0,z1-z0),tx=(x1-x0)/l,tz=(z1-z0)/l;return{x,z,tx,tz,nx:tz,nz:-tx}};
   /* the cliff under a fall: the furthest-out rock at each 0.5 m of depth below the lip crest, and the lip's crest height and offset */
@@ -1088,7 +1166,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   const pick=[];
   for(let k=0;k<nF;k++){const ty=pat[k%pat.length],K=kinds[ty];let hw=prr(K[0],K[1]),best=null;
     /* a gap in the rim rocks and props, away from the pond, where the cliff does not bulge out under the lip; a fall with no room is tried narrower */
-    for(let tries=0;tries<3&&!best;tries++,hw*=.65)for(let c=0;c<13;c++){const th=k*sl+.4+prr(-.36,.36)*sl,[ix,iz]=edgeXZ(th,.93);if(pN(ix,iz)<1.4||!clearOf(ix,iz,hw+.35))continue;
+    for(let tries=0;tries<3&&!best;tries++,hw*=.65)for(let c=0;c<9;c++){const th=k*sl+.4+prr(-.36,.36)*sl,[ix,iz]=edgeXZ(th,.93);if(pN(ix,iz)<1.4||!clearOf(ix,iz,hw+.35))continue;
       const E=frame(th),P=probe(E,hw);if(P.lipY<-50||P.bulge>1)continue;const sc=P.bulge+.08*c;if(!best||sc<best.sc)best={th,E,P,sc}}
     if(!best)continue;hw/=.65;
     pick.push({ty,hw,E:best.E,P:best.P,k:prr(K[2],K[3]),sd:pr()*50,v0:prr(2.1,2.9)})}
@@ -1102,16 +1180,18 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
     let dp=P.lipD;const path=[];
     for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.3),tau=s*SF.Tf,y=P.lipY+.05-.5*SF.G*tau*tau,c=req(y);
       const d=Math.max(P.lipD+.04+f.v0*tau,c+.3,dp);dp=d;path.push([d,y]);
-      rows.push({d,y,s,w:hw*(1-.22*ss(0,.2,s)+1.9*Math.pow(ss(.25,1,s),1.4)),sl:Math.max(0,d-c-.3)})}
-    for(const r of rows){const cx=E.x+E.nx*r.d,cz=E.z+E.nz*r.d;
-      for(let i=0;i<=nu;i++){const u=i/nu,lat=(u*2-1)*r.w;pos.push(cx+E.tx*lat,r.y,cz+E.tz*lat);aU.push(u,r.s);aK.push(f.k,f.sd,hw);aN.push(E.nx,E.nz,r.sl);aT.push(E.tx*lat,E.tz*lat)}}
-    for(let j=0;j<rows.length-1;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}
+      rows.push({d,y,s,w:hw*(1-.22*ss(0,.2,s)+[3.,2.4,1.2][f.ty]*Math.pow(ss(.05,1,s),1.25)),sl:Math.max(0,d-c-.3)})}
+    /* heavy falls hang a second, looser curtain just outside the first, so they have depth from afar */
+    for(let ly=0;ly<(f.ty?1:2);ly++){const o=pos.length/3,R0=ly?rows.filter(r=>r.s>=0):rows;
+      for(const r of R0){const dd=r.d+ly*(.25+.9*r.s),cx=E.x+E.nx*dd,cz=E.z+E.nz*dd,w=r.w*(ly?1.18:1);
+        for(let i=0;i<=nu;i++){const u=i/nu,lat=(u*2-1)*w;pos.push(cx+E.tx*lat,r.y-ly*.12,cz+E.tz*lat);aU.push(u,r.s);aK.push(f.k,f.sd+ly*23,hw,ly);aN.push(E.nx,E.nz,r.sl+ly*(.25+.9*r.s));aT.push(E.tx*lat,E.tz*lat)}}
+      for(let j=0;j<R0.length-1;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}}
     SF.F.push({E,k:f.k,hw,path,ty:f.ty})}
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("aU",new T.BA(new Float32Array(aU),2));
-  g.setAttribute("aK",new T.BA(new Float32Array(aK),3));g.setAttribute("aN",new T.BA(new Float32Array(aN),3));g.setAttribute("aT",new T.BA(new Float32Array(aT),2));g.setIndex(idx);
-  const m=new T.SM({uniforms:sfU,transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-6,
-    vertexShader:`attribute vec2 aU,aT;attribute vec3 aK,aN;uniform float uT,uFR,uWet;uniform vec2 uWV;uniform vec3 uLd;${GLSL_GUST}
-      varying vec2 vU;varying vec3 vK,vW;varying float vVis,vFs,vLam;
+  g.setAttribute("aK",new T.BA(new Float32Array(aK),4));g.setAttribute("aN",new T.BA(new Float32Array(aN),3));g.setAttribute("aT",new T.BA(new Float32Array(aT),2));g.setIndex(idx);
+  const m=new T.SM({uniforms:sfU,transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-.6,polygonOffsetUnits:-6,
+    vertexShader:`attribute vec2 aU,aT;attribute vec4 aK;attribute vec3 aN;uniform float uT,uFR,uWet;uniform vec2 uWV;uniform vec3 uLd;${GLSL_GUST}
+      varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam;
       void main(){vU=aU;vK=aK;vec2 n=aN.xy;
         /* the downwind rim pours first; as the wind veers, falls on the rim it now blows across start and others ease off */
         float wl=length(uWV),k=aK.x+.22*(.5-.5*dot(n,uWV/max(wl,1e-4))),s=aU.y,vis=smoothstep(k,k+.3,uFR);vVis=vis;vec3 p=position;
@@ -1126,7 +1206,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         vLam=.5+.5*max(dot(Nw,uLd),0.);
         vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);
         gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uT,uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vU;varying vec3 vK,vW;varying float vVis,vFs,vLam;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam;${GLSL_NOISE}
       /* noise carried down with the falling sand at a size that stays even on screen as the sand speeds up (the drop grows as s*s):
          two copies scrolled half a cycle apart and cross-faded, so the pattern never stretches out over time */
       float fallN(vec2 q,float s,float f0,float f1){float T=uFT*${(1/SF.Tf/.5).toFixed(4)},p1=fract(T),p2=fract(T+.5),f=f0+f1*s;
@@ -1139,7 +1219,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* the run: sand creeping and hopping over the surface toward the lip, a faint streaming band */
           float g=s+1.,q=dn2(vec2(tx*.6,s*5.-uFT*1.3))*.6+dn2(vec2(tx*1.7+3.,s*11.-uFT*2.6))*.4;
           vec2 gq=vec2(x*Nt*3.,s*40.-uFT*9.),gc=floor(gq),gf=fract(gq)-.5;float gr=step(.84-.12*g,dh2(gc))*exp(-dot(gf,gf)*9.);
-          a=(smoothstep(.45,.75,q)*.32+gr*.45)*smoothstep(0.,.4,g)*smoothstep(0.,.3,ed)*mix(1.,.45,uWet);
+          a=(smoothstep(.45,.75,q)*.32+gr*.45)*smoothstep(0.,.4,g)*smoothstep(0.,.3,ed)*mix(1.,.45,uWet)*(1.+.9*smoothstep(.8,1.6,hw))*smoothstep(-.1,.4,cameraPosition.y-vW.y);
           c=base*(1.06+.12*q);
         }else{
           /* u rides with the falling sand: anything scrolled at this rate in s moves with the grains and stretches as they speed up */
@@ -1150,16 +1230,20 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* fine grain texture across the sheet, evened out where it would be finer than a pixel */
           vec2 fq=vec2(x*Nt*9.+sd,u*150.);float fAA=clamp(max(fwidth(fq.x),fwidth(fq.y))-.6,0.,1.),speck=mix(dh2(floor(fq)),.5,fAA);
           /* ragged sides: strands peel off as it falls */
-          float ew=dn2(vec2(x*1.7+sd,u*1.1))*.6+dn2(vec2(x*4.1+sd,u*3.3))*.4,dk=uDust*smoothstep(.04,.3,s);
+          float ew=dn2(vec2(x*1.7+sd,u*1.1))*.6+dn2(vec2(x*4.1+sd,u*3.3))*.4,dk=uDust*mix(.6,1.,smoothstep(0.,.3,s));
           /* in a dust storm the sheet comes off the lip in clumps and surges, its sides fraying into loose strands */
-          float cm=1.,sgU=1.,fr=0.;
-          if(dk>.01){cm=fallN(vec2(Xw*.9+11.,sd),s,5.,24.)*.55+fallN(vec2(Xw*2.6+4.,sd*2.),s,12.,55.)*.45;sgU=fallN(vec2(Xw*.12+sd*.7,sd),s,1.5,6.);fr=fallN(vec2(x*13.+sd,0.),s,10.,40.);
+          /* even in still air a heavy pour comes in surges and clots, sand being grains, not a liquid */
+          float cm=1.,sgU=1.,fr=0.,ly=vK.w,dkB=min(1.,max(dk*1.8,(.3+.25*ly)*smoothstep(.3,.8,hw)*smoothstep(.04,.3,s)));
+          if(dkB>.01){cm=fallN(vec2(Xw*.9+11.,sd),s,5.,24.)*.55+fallN(vec2(Xw*2.6+4.,sd*2.),s,12.,55.)*.45;sgU=fallN(vec2(Xw*.12+sd*.7,sd),s,1.5,6.);fr=fallN(vec2(x*13.+sd,0.),s,10.,40.);
             str=mix(str,fallN(vec2(Xw*.7,9.),s,3.,14.)*.6+fallN(vec2(Xw*1.8+5.,2.),s,7.,30.)*.4,dk);}
-          float edge=smoothstep(0.,.05+.12*s,ed-(.04+.2*s)*ew*(1.+1.6*dk)-.05*(1.-n2)*s-.1*dk*fr);
+          float edge=smoothstep(0.,.05+.12*s,ed-(.04+.2*s)*ew*(1.+1.6*max(dk,dkB*.7))-.05*(1.-n2)*s-.1*dk*fr);
           /* a dense sheet off the lip that tears into strands lower down; each strand gives out at its own height, trickles soonest */
           float tear=mix(smoothstep(.36+.2*s,.5+.24*s,str),.45,ab);
-          float body=(.97-.45*smoothstep(.05,.6,s))*edge*mix(1.,tear,smoothstep(.1,.45,s)*(.55+.45*min(uFR,1.)))*mix(1.,(.08+1.25*smoothstep(.4,.58,cm))*(.25+.95*smoothstep(.25,.75,sgU)),dk)*mix(1.,smoothstep(.25,.55,str),wet*.45)*(.78+.22*speck);
-          float endS=mix(.38,.68,smoothstep(.15,1.,hw))+.3*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
+          float body=(.97-.45*smoothstep(.05,.6,s))*edge*mix(1.,tear,max(smoothstep(.1,.45,s)*(.55+.45*min(uFR,1.)),dkB*.85))*mix(1.,(.04+1.3*smoothstep(.42,.58,cm))*(.2+1.*smoothstep(.25,.75,sgU)),dkB)*mix(1.,smoothstep(.25,.55,str),wet*.45)*(.78+.22*speck);
+          /* trickles come in spurts */
+          if(hw<.3)body*=smoothstep(.42,.7,fallN(vec2(sd,3.),s,1.2,5.))*(.75-.35*smoothstep(.1,.3,s));
+          body*=1.-.45*ly;
+          float endS=mix(.3,.62,smoothstep(.4,1.6,hw))-.1*ly+mix(.16,.3,smoothstep(.9,1.5,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
           /* grains, streaked by their speed; more of them shed at the sides and the foot */
           vec2 dq=vec2(x*Nt*2.2+sd,u*70.),dc=floor(dq);float dh=dh2(dc);vec2 df=fract(dq)-.5-(vec2(dh2(dc+3.1),dh2(dc+7.7))-.5)*.6;df.y*=mix(1.,.35,smoothstep(.1,.7,s));
           vec2 gw=fwidth(dq);float gd=.9-.2*(1.-edge)-.18*smoothstep(.4,.9,s)+.06*wet-.12*dk;
@@ -1168,7 +1252,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float du=dn2(vec2(x*2.3+sd,u*2.6))*.6+dn2(vec2(x*5.+sd*2.,u*6.))*.4;
           /* in a storm the veil is torn too: drifting clots of dust with ragged sides, not an even haze */
           float vc=dk>.01?fallN(vec2(x*3.1+sd,5.),s,2.5,10.):.5;
-          float dust=smoothstep(.12,.7,s)*(1.-smoothstep(.78,1.,s))*smoothstep(-.1,.45,ed+.25*du-.35*dk*(fr-.4))*(.3+.5*du)*(.7+.6*uDust)*mix(1.,(.2+.8*cm)*(.05+1.6*smoothstep(.35,.72,vc)),dk)*(1.-.8*wet)*(.45+.55*smoothstep(.1,.6,hw));
+          float dust=smoothstep(.12,.55,s)*(1.-smoothstep(.45+.35*uDust,.8+.2*uDust,s))*smoothstep(-.1,.45,ed+.25*du-.35*dk*(fr-.4))*(.3+.5*du)*(.7+.6*uDust)*mix(1.,(.2+.8*cm)*(.05+1.6*smoothstep(.35,.72,vc)),dk)*(1.-.8*wet)*smoothstep(.25,.9,hw)*(.6+.4*smoothstep(.9,1.6,hw));
           float bc=body*cut;
           a=(bc*(.62+.38*str)+grain*.85*(1.-smoothstep(.9,1.,s)))+dust*(1.-.6*bc);
           /* thick sheet shades itself; thin strands and edges catch the light */
@@ -1187,16 +1271,16 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
       }`});
   SF.mesh=new T.Mesh(g,m);SF.mesh.frustumCulled=false;SF.mesh.renderOrder=6;W.add(SF.mesh)})();
 /* dust trails: soft puffs shed by the falls that drift downwind, spread and thin out into the air below the island */
-const SFD=softPoints(MOB?70:140,"#e4c69c",.9,false);SFD.o.renderOrder=6;W.add(SFD.o);
+const SFD=softPoints(MOB?96:190,"#e4c69c",.9,false);SFD.o.renderOrder=6;W.add(SFD.o);
 const SFDP=[];{let ps=9127;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^ps>>>15,1|ps);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
-  for(let i=0;i<SFD.n;i++)SFDP.push({f:SF.F.length?Math.floor(pr()*SF.F.length):0,life:pr(),dur:2.5+3*pr(),x:0,y:0,z:0,vx:0,vy:0,vz:0,z0:.7+.8*pr(),r:pr});
+  for(let i=0;i<SFD.n;i++)SFDP.push({f:SF.F.length?Math.floor(pr()*SF.F.length):0,life:pr(),dur:2.5+3*pr(),x:0,y:0,z:0,vx:0,vy:0,vz:0,z0:.7+.8*pr(),hz:i%6==0,r:pr});
   SFD.pr=pr;if(SF.F.length)for(const q of SFDP){const l=q.life;sfDust(q);q.life=l}}
 function sfDust(q){const F=SF.F,pr=SFD.pr;let f=F[q.f];
   /* heavier falls shed more dust */
-  for(let k=0;k<4;k++){const c=F[Math.floor(pr()*F.length)];if(c.hw>f.hw||pr()<.2)f=c}
-  q.f=F.indexOf(f);const j=Math.floor((.35+.6*pr())*(f.path.length-1)),[d,y]=f.path[j],s=j/(f.path.length-1),lat=(pr()*2-1)*f.hw,dr=Math.pow(s,1.7)*3*sfU.uWV.value.length();
+  for(let k=0;k<5;k++){const c=F[Math.floor(pr()*F.length)];if(c.hw>f.hw||pr()<.15)f=c}
+  q.f=F.indexOf(f);q.s=.5+.55*Math.min(f.hw,2.2);const j=Math.floor((q.hz?.55+.4*pr():.25+.55*pr())*(f.path.length-1)),[d,y]=f.path[j],s=j/(f.path.length-1),lat=(pr()*2-1)*f.hw,dr=Math.pow(s,1.7)*3*sfU.uWV.value.length();
   q.x=f.E.x+f.E.nx*(d+.2)+f.E.tx*lat+WIND.x*dr;q.z=f.E.z+f.E.nz*(d+.2)+f.E.tz*lat+WIND.z*dr;q.y=y;
-  q.vx=WIND.x*(.4+.6*pr())+f.E.nx*.35;q.vz=WIND.z*(.4+.6*pr())+f.E.nz*.35;q.vy=-1.2-1.2*pr();q.life=0;q.dur=2.5+3*pr()}
+  q.vx=WIND.x*(.4+.6*pr())+f.E.nx*.35;q.vz=WIND.z*(.4+.6*pr())+f.E.nz*.35;q.vy=-1.2-1.2*pr();q.life=0;q.dur=q.hz?6+4*pr():2.5+3*pr();if(q.hz){q.vx*=1.6;q.vz*=1.6;q.vy*=.5}}
 function sandFallsUpdate(dt,t,wn,nk){
   wn=Math.max(wn,.35+WX.dust*.7);
   /* the rate follows the wind and its gusts; dust storms feed it, wet sand barely moves */
@@ -1209,13 +1293,20 @@ function sandFallsUpdate(dt,t,wn,nk){
     if(q.life>=1)sfDust(q);
     const f=SF.F[q.f],k=f.k+.22*(.5-.5*(f.E.nx*WIND.x+f.E.nz*WIND.z)),vis=ss(k,k+.3,R),sp=.5+wv;
     q.x+=q.vx*dt*sp;q.z+=q.vz*dt*sp;q.y+=q.vy*dt;q.vy*=Math.exp(-dt*.5);
-    const o=i*3;SFD.P[o]=q.x;SFD.P[o+1]=q.y;SFD.P[o+2]=q.z;SFD.Z[i]=q.z0*(1+2.4*q.life);
-    SFD.A[i]=Math.sin(q.life*Math.PI)*.045*vis*Math.min(1,f.hw/.35+.25)*(1+1.4*WX.dust)*(1-.85*WX.wet)}
+    const o=i*3;SFD.P[o]=q.x;SFD.P[o+1]=q.y;SFD.P[o+2]=q.z;SFD.Z[i]=q.z0*q.s*(q.hz?2.2*(1+1.6*q.life):1+3*q.life);
+    SFD.A[i]=Math.sin(q.life*Math.PI)*(q.hz?.028:.05)*vis*Math.min(1,f.hw/.35+.25)*(1+1.4*WX.dust)*(1-.85*WX.wet)}
   SFD.g.attributes.position.needsUpdate=SFD.g.attributes.a.needsUpdate=SFD.g.attributes.z.needsUpdate=true;SFD.m.uniforms.uH.value=innerHeight;
   SFD.m.uniforms.uC.value.copy(curU.uCol.value).multiplyScalar(1.05)}
 /* night fireflies over the oasis */
-const FF=softPoints(MOB?18:32,"#d8ff8a",.12,true);FF.o.renderOrder=9;W.add(FF.o);
-const FFP=[];for(let i=0;i<FF.n;i++){const[a,b]=pondEdge(rnd()*TAU,rr(.8,1.9));FFP.push({x:a,z:b,y:rr(.4,2.6),ph:rnd()*TAU,sp:rr(.3,.7),bl:rr(.6,1.4)});FF.Z[i]=rr(.8,1.2)}
+const FF=softPoints(MOB?30:60,"#d8ff8a",.12,true);FF.o.renderOrder=9;W.add(FF.o);
+const FFP=[];for(let i=0;i<FF.n;i++){const[a,b]=pondEdge(rnd()*TAU,rr(.8,i%3?1.9:2.8));FFP.push({x:a,z:b,y:rr(.4,2.6),ph:rnd()*TAU,sp:rr(.3,.7),bl:rr(.6,1.4)});FF.Z[i]=rr(.8,1.2)}
+/* campfire sparks: a few embers always lifting off the logs, and a burst with each pop of the wood */
+const SPK=softPoints(MOB?28:56,"#ffad55",.075,true);SPK.o.renderOrder=9;SPK.o.visible=false;W.add(SPK.o);
+const SPKP=Array.from({length:SPK.n},()=>({life:1,dur:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,ph:0}));SPK.pop=rr(2,6);SPK.k=0;
+function sparkOut(n,hot){for(let i=0;i<SPK.n&&n>0;i++){const q=SPKP[(SPK.k+i)%SPK.n];if(q.life<1)continue;n--;
+  const a=rnd()*TAU,r=rr(0,.14);q.x=FIRE.x+Math.cos(a)*r;q.z=FIRE.z+Math.sin(a)*r;q.y=fireG.position.y+rr(.1,.3);
+  const sp=hot?rr(.25,.8):rr(.05,.3);q.vx=Math.cos(a)*sp;q.vz=Math.sin(a)*sp;q.vy=hot?rr(2,3.6):rr(1,2.2);q.life=0;q.dur=rr(.7,hot?2.2:1.6);q.ph=rnd()*TAU}
+  SPK.k=(SPK.k+7)%SPK.n}
 /*@@ANIMALS@@*/
 
 
@@ -1398,6 +1489,7 @@ Ta.insertPass(mirP,1);
 const bloom=Ta.passes.find(p=>p&&p.strength!=null&&p.threshold!=null&&p.radius!=null)||null;
 
 /* ---------------- time of day ---------------- */
+const WNS={v:.35};
 const st={t:0,ts:1,wn:.35,night:0,day:0,phase:"sunset",tod:null,lock:false};
 const UPD=[];
 function nightRaw(){const n=qt.night||0;return(Ct.night||Ct.mode==="full"||Ct.mode==="crescent"||Ct.mode==="half")?Math.max(n,.92):n}
@@ -1426,7 +1518,7 @@ let _shMask=null;
    晴 sun (clear/scattered/towering/cirrus), 阴 overcast, 阵雨 showers (light/moderate/heavy/thunderstorm), 沙尘 dust (four levels).
    Showers come and go over tens of seconds, darken the sand where they fall, and the sand dries again with sun and wind;
    dust storms raise the wind, haze out the cloud sea and the sun, and send the animals to shelter. */
-const WX={nb:3,rain:0,ovc:0,dark:0,dust:0,wet:0,heat:0,after:0,shel:0,flash:0,bolt:0,boltA:0,boltS:0,boltE:0,bAge:9,icF:0,icA:0,ic:4,rb:0,shaft:0,sunK:1};
+const WX={nb:3,rain:0,pit:0,ovc:0,dark:0,dust:0,wet:0,heat:0,after:0,shel:0,flash:0,bolt:0,boltA:0,boltS:0,boltE:0,bAge:9,icF:0,icA:0,ic:4,rb:0,shaft:0,sunK:1};
 const DUSTLV=[0,.32,.56,.8,1];
 const WXT={sun:[0,0,0],cloud:[.86,.25,.2],lrain:[.42,.22,.55],mrain:[.62,.4,.7],hrain:[.86,.62,.9],storm:[.95,.8,1],dust:[0,.25,0]};
 function wxUpdate(dt){
@@ -1434,9 +1526,10 @@ function wxUpdate(dt){
   const rT={lrain:.32,mrain:.62,hrain:1,storm:1}[w]||0,dT=w==="dust"?DUSTLV[Ct.dustLv||2]:0;
   WX.rain+=(rT-WX.rain)*k;WX.dust+=(dT-WX.dust)*k*.7;WX.ovc+=(T[0]-WX.ovc)*k;WX.dark+=(T[1]-WX.dark)*k;
   WX.shaft+=(Math.max(T[2]*(rT>0?1:0),w==="cloud"?.25:0)-WX.shaft)*k;
-  if(dt<=0)WX.wet=WX.rain>.05?1:WX.wet;
-  else if(WX.rain>.02)WX.wet=Math.min(1,WX.wet+dt*WX.rain*.13);
-  else WX.wet=Math.max(0,WX.wet-dt*.011*(.35+.9*(1-st.night)*(1-WX.ovc))*(.6+st.wn));
+  /* sand soaks up over tens of seconds of rain and takes minutes to dry; pits pile up while it rains and blow away after */
+  if(dt<=0){WX.wet=WX.rain>.05?1:WX.wet;WX.pit=WX.rain>.05?1:WX.pit}
+  else if(WX.rain>.02){WX.wet=Math.min(1,WX.wet+dt*WX.rain*.045);WX.pit=Math.min(1,WX.pit+dt*WX.rain*.022)}
+  else{WX.wet=Math.max(0,WX.wet-dt*.0042*(.35+.9*(1-st.night)*(1-WX.ovc))*(.6+st.wn));WX.pit=Math.max(0,WX.pit-dt*(.001+.01*st.wn*(1-WX.wet)))}
   WX.after=WX.rain>.2?1:Math.max(0,WX.after-dt/240);
   const hot=w==="sun"?(Ct.ct==="clear"||Ct.ct==="cirrus"?1:.75):0;
   WX.heat+=(hot*(LK.day+.7*LK.sunset+.15*LK.sunrise)*(1-WX.wet)-WX.heat)*k;
@@ -1528,7 +1621,8 @@ function update(dt){
   step(Math.min(dt,.05))}
 function step(dt){
   dt*=st.ts;st.t+=dt;
-  st.wn=Ue.uWind?Ue.uWind.value:(Ct.wind||.35);
+  /* follow the wind slider in scene time: the app's own smoothed uniform only advances on real frames */
+  const wT=Number.isFinite(+Ct.wind)?+Ct.wind:.35;WNS.v=dt>0?WNS.v+(wT-WNS.v)*(1-Math.exp(-dt*1.1)):wT;st.wn=WNS.v;
   applyLighting(dt);
   skyDome.position.copy(De.position);skyU.uT.value=st.t;skyU.uYaw0.value=168*D2R+st.t*.0012*(.5+st.wn);
   sunScreen();
@@ -1539,21 +1633,21 @@ UPD.push((dt,t)=>{
   const wn=st.wn,nk=st.night;
   _cl.copy(De.position);W.worldToLocal(_cl);
   /* wind: shared gust clock, dune creep, drifting-sand phase */
-  WS.d+=(wn-WS.d)*Math.min(1,dt*(wn>WS.d?.5:.035));WS.ph+=dt*(.012+.05*WS.d);
+  WS.d+=(wn-WS.d)*Math.min(1,dt*(wn>WS.d?.5:.15));WS.ph+=dt*(.012+.05*WS.d);
   WS.a=WS.pin!=null?WS.pin:DUNE.yaw+(.1+.4*ss(.4,1.1,WS.d))*(.62*Math.sin(WS.ph*1.3)+.38*Math.sin(WS.ph*2.9+1.1));
   WIND.x=Math.cos(WS.a);WIND.z=-Math.sin(WS.a);sandU.uWD.value.set(WIND.x,WIND.z);smokeU.uWind.value.set(WIND.x,0,WIND.z);rainU.uWD.value.set(WIND.x,WIND.z);
   GUST.t+=dt;sandU.uGT.value=GUST.t;
-  const wd=WS.d,gD=gustAt(DUNE0.x,DUNE0.z),wk=.5+wd*1.4;
+  const wd=WS.d,gD=gustAt(DUNE0.x,DUNE0.z),wk=ss(.04,.35,wd)*(.5+wd*1.4);
   duneEvolve(dt*(.35+.9*gD)*wk*(1-.9*WX.wet)*(1+2.5*WX.dust));CURK=ss(.2,.6,wd)*(1-.9*WX.wet)*(1+1.4*WX.dust);
   sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk);
   /* sand only moves above a threshold wind (saltation): a light breeze leaves the surface still, a strong wind sets fast, dense
      streamers running down it; streak speed follows the wind */
   const salt=ss(.14,.55,wd);SALT=salt;
   sandU.uFlowT.value+=dt*(1.6+2.2*gD)*(.3+wd*2.2);sandU.uRipPh.value+=dt*.1*(.3+gD)*wk;sandU.uFlowK.value=salt*cl(.55+wd*.9,0,1.35)*(1-.85*WX.wet)*(1+1.3*WX.dust);
-  sandU.uWetK.value=WX.wet;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.08);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}
+  sandU.uWetK.value=WX.wet;sandU.uPitK.value=WX.pit;sandU.uHeat.value=WX.heat;sandU.uTm.value=t;tentU.uT.value=t;tentU.uRn.value=Math.max(ss(.03,.4,WX.rain),ss(.9,1,WX.after));if(jt){sandU.uMirC.value.copy(jt.bot.value).lerp(jt.top.value,.08);sandU.uMirB.value.copy(jt.bot.value).lerp(jt.top.value,.7)}
   mirP.enabled=root.visible&&WX.heat>.01;mirM.uniforms.uT.value=t;mirM.uniforms.uSky.value.copy(sandU.uMirC.value);
   /* the low sun warms the air layer, so the mirrored sky comes back amber at dusk */
-  mirM.uniforms.uTint.value.set(.95,.95,.95).lerp(_mirW,Math.max(LK.sunset,LK.sunrise*.7));rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;
+  mirM.uniforms.uTint.value.set(.95,.95,.95).lerp(_mirW,Math.max(LK.sunset,LK.sunrise*.7));rockU.uWetK.value=WX.wet;tentU.uWetC.value=WX.wet;rockU.uT.value=t;rockU.uVen.value=(.8+.18*Math.min(sfU.uFR.value,1.6))*(1-.3*WX.wet);
   pondU.uRainP.value=WX.rain;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
@@ -1576,6 +1670,14 @@ UPD.push((dt,t)=>{
   /* rain drowns the flames to a sputter over glowing embers */
   if(fireG.userData.flames){const fr=1-.8*ss(.08,.55,WX.rain);fireG.userData.flames.forEach(o=>o.f.scale.set(o.s.x*(.5+.5*fr),o.s.y*fr,1))}
   if(fireG.userData.charM)fireG.userData.charM.emissiveIntensity=mix(.25,.9,nk)*(1+.2*Math.sin(t*5));
+  {const on=ss(.25,.7,nk)*(1-ss(.08,.4,WX.rain));SPK.o.visible=on>.01;
+   if(on>.01){if(rnd()<dt*5)sparkOut(1,false);
+     if(st.t>SPK.pop){SPK.pop=st.t+rr(1.5,7);sparkOut(Math.floor(rr(4,11)),true);shotS(pick(["dPop1","dPop2","dPop3"]),.55*on,_fiP.set(FIRE.x,fireG.position.y+.3,FIRE.z),5,rr(.9,1.12))}
+     const sw=.3+wn;for(let i=0;i<SPK.n;i++){const q=SPKP[i],o=i*3;if(q.life<1){q.life+=dt/q.dur;q.vy*=Math.exp(-dt*.7);q.ph+=dt*9;
+       q.x+=(q.vx+WIND.x*sw*q.life*1.4+Math.sin(q.ph)*.12)*dt;q.z+=(q.vz+WIND.z*sw*q.life*1.4+Math.cos(q.ph*1.3)*.12)*dt;q.y+=q.vy*dt}
+       SPK.P[o]=q.x;SPK.P[o+1]=q.y;SPK.P[o+2]=q.z;SPK.Z[i]=.7+.5*(1-q.life);
+       SPK.A[i]=q.life<1?on*Math.pow(1-q.life,1.6)*(.55+.45*Math.sin(q.ph*2.3))*2.2:0}
+     SPK.g.attributes.position.needsUpdate=SPK.g.attributes.a.needsUpdate=SPK.g.attributes.z.needsUpdate=true;SPK.m.uniforms.uH.value=innerHeight}}
   if(RACK.cloths){const gR=gustAt(RACK.x,RACK.z);RACK.cloths.forEach((c,i)=>{c.rotation.x=(Math.sin(t*1.6+c.userData.ph)*.06*(.6+.8*gR)+.05*(.4+1.2*gR))*(.4+wn)})}
   /* sand wisps: grains hop and drift with the local gust */
   for(let i=0;i<SAND.n;i++){const q=SANDP[i];q.life+=dt/q.dur;
@@ -1608,28 +1710,40 @@ const HMAP=(()=>{const N=128,x0=-27,z0=-23,w=54,d=46,c=document.createElement("c
   return{t,v:new T.V4(x0,z0,w,d)}})();
 const GLSL_HM=`uniform sampler2D uHT;uniform vec4 uHM;
   float gH(vec2 p){vec2 uv=(p-uHM.xy)/uHM.zw;if(uv.x<0.||uv.y<0.||uv.x>1.||uv.y>1.)return -80.;float v=texture2D(uHT,uv).r*255.;return v<.6?-80.:(v-1.)/254.*12.-2.5;}`;
-const rainU={uT:{value:0},uRain:{value:0},uWS:{value:1},uWD:{value:new T.V2(WIND.x,WIND.z)},uCamL:{value:new V3()},uCol:{value:new C3()},uHT:{value:HMAP.t},uHM:{value:HMAP.v},uLen:{value:1.1}};
+const rainU={uT:{value:0},uRain:{value:0},uWS:{value:1},uWD:{value:new T.V2(WIND.x,WIND.z)},uCamL:{value:new V3()},uCol:{value:new C3()},uHT:{value:HMAP.t},uHM:{value:HMAP.v},uLen:{value:1.1},uRes:{value:new T.V2(1,1)}};
 const GLSL_CELL=`float hc(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float nc(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hc(i),hc(i+vec2(1,0)),f.x),mix(hc(i+vec2(0,1)),hc(i+vec2(1,1)),f.x),f.y);}
   float cellK(vec2 p){float n=nc(p*.03-uWD*uT*.11)*.65+nc(p*.08+uWD*uT*.05+3.)*.35;return smoothstep(.0,.3,n+uRain*1.05-.62);}`;
-const RAIN=(()=>{const n=MOB?1300:2800,R=new Float32Array(n*8),E=new Float32Array(n*2),P=new Float32Array(n*6);
-  for(let i=0;i<n;i++){const x=rr(-30,30),z=rr(-26,26),ph=rnd(),sj=rnd();for(let e=0;e<2;e++){const o=(i*2+e)*4;R[o]=x;R[o+1]=z;R[o+2]=ph;R[o+3]=sj;E[i*2+e]=e}}
-  const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("aR",new T.BA(R,4));g.setAttribute("aE",new T.BA(E,1));
-  const m=new T.SM({uniforms:rainU,transparent:true,depthWrite:false,
-    vertexShader:`attribute vec4 aR;attribute float aE;uniform float uT,uRain,uWS,uLen;uniform vec2 uWD;uniform vec3 uCamL;varying float vA;${GLSL_HM}${GLSL_CELL}
-      void main(){float sp=6.5+3.*aR.w;const float TOP=26.,HC=66.;
-        float y=TOP-mod(uT*sp+aR.z*HC,HC),fall=(TOP-y)/sp;
-        vec2 p=aR.xy+uWD*uWS*(fall-1.5);float g=gH(p);
-        vec3 dir=normalize(vec3(uWD.x*uWS,-sp,uWD.y*uWS));
-        vec3 P=vec3(p.x,max(y,g),p.y)-dir*uLen*aE*step(g,y);
-        float d=length(P-uCamL);
-        vA=step(g,y)*cellK(p)*step(aR.w*.9,uRain*1.6)*(1.-aE*.85)*(.35+.65*smoothstep(260.,25.,d))*smoothstep(-36.,-20.,y);
-        gl_Position=projectionMatrix*modelViewMatrix*vec4(P,1.);}`,
-    fragmentShader:`uniform vec3 uCol;varying float vA;void main(){if(vA<.004)discard;gl_FragColor=vec4(uCol,vA*.5);
-      #include <tonemapping_fragment>
-      #include <colorspace_fragment>
-      }`});
-  const o=new T.LS(g,m);o.frustumCulled=false;o.renderOrder=8;o.visible=false;W.add(o);return o})();
+/* drops are drawn as streaks the length a camera shutter smears them (longer far off, where single drops would vanish),
+   at least a pixel and a bit wide with their alpha thinned to match, brightest at the head. One layer spans the island;
+   a second fills a box that wraps round the camera, so a close view has rain falling right in front of it. */
+const RAIN=(()=>{const mk=(n,near)=>{const R=new Float32Array(n*16),C=new Float32Array(n*8),P=new Float32Array(n*12),I=[];
+    const cs=[-1,0,1,0,-1,1,1,1];
+    for(let i=0;i<n;i++){const x=near?rr(-1,1):rr(-30,30),z=near?rr(-1,1):rr(-26,26),ph=rnd(),sj=rnd();
+      for(let e=0;e<4;e++){const o=(i*4+e)*4;R[o]=x;R[o+1]=z;R[o+2]=ph;R[o+3]=sj;C[(i*4+e)*2]=cs[e*2];C[(i*4+e)*2+1]=cs[e*2+1]}
+      const b=i*4;I.push(b,b+1,b+2,b+2,b+1,b+3)}
+    const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("aR",new T.BA(R,4));g.setAttribute("aC",new T.BA(C,2));g.setIndex(I);
+    const m=new T.SM({uniforms:Object.assign({uNear:{value:near?3.5:0}},rainU),transparent:true,depthWrite:false,side:2,
+      vertexShader:`attribute vec4 aR;attribute vec2 aC;uniform float uT,uRain,uWS,uLen,uNear;uniform vec2 uWD,uRes;uniform vec3 uCamL;varying float vA;varying vec2 vC;${GLSL_HM}${GLSL_CELL}
+        void main(){float sp=6.5+3.*aR.w,y,fall;vec2 p;
+          if(uNear>0.){float B=2.*uNear;y=uCamL.y+mod(-uT*sp-aR.z*B-uCamL.y+uNear,B)-uNear;fall=(uCamL.y+uNear-y)/sp;
+            p=uCamL.xz+mod(aR.xy*uNear+uWD*uWS*(fall-1.5)-uCamL.xz+uNear,B)-uNear;}
+          else{const float TOP=26.,HC=66.;y=TOP-mod(uT*sp+aR.z*HC,HC);fall=(TOP-y)/sp;p=aR.xy+uWD*uWS*(fall-1.5);}
+          float g=gH(p);vec3 H=vec3(p.x,y,p.y),dir=normalize(vec3(uWD.x*uWS,-sp,uWD.y*uWS));
+          float d=length(H-uCamL),len=mix(.14,uLen,smoothstep(1.5,22.,d));
+          vec4 h=projectionMatrix*modelViewMatrix*vec4(H,1.),t=projectionMatrix*modelViewMatrix*vec4(H-dir*len,1.);
+          vC=aC;vA=step(g,y)*cellK(p)*step(aR.w*.9,uRain*1.6)*(.35+.65*smoothstep(260.,25.,d))*smoothstep(-36.,-20.,y)*step(.02,t.w)*step(.02,h.w);
+          if(uNear>0.)vA*=smoothstep(uNear,uNear*.6,length(H-uCamL))*smoothstep(.15,.5,d);
+          vec2 sd=h.xy/h.w-t.xy/t.w;sd*=uRes;vec2 nd=normalize(vec2(-sd.y,sd.x)+1e-5);
+          vec4 c=mix(t,h,aC.y);float px=.004*${S.toFixed(3)}*projectionMatrix[1][1]*uRes.y*.5/max(c.w,.01),wp=max(px,1.3);
+          vA*=clamp(px/wp*1.6,.55,1.)*mix(1.,.5,smoothstep(2.,6.,px));c.xy+=nd*aC.x*wp/uRes*c.w;gl_Position=c;}`,
+      fragmentShader:`uniform vec3 uCol;varying float vA;varying vec2 vC;void main(){float a=vA*(1.-vC.x*vC.x)*smoothstep(0.,.35,vC.y)*(.5+.5*vC.y);
+        if(a<.004)discard;gl_FragColor=vec4(uCol*(1.+.25*vC.y),a*.85);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+        }`});
+    const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=8;o.visible=false;W.add(o);return o};
+  const far=mk(MOB?1300:2800,0),near=mk(MOB?600:1400,1);return{far,near,set visible(v){far.visible=near.visible=v}}})();
 /* splashes: each fires about once a second where the shower is falling; on the pond they are left to the water's rings */
 const SPL=(()=>{const n=MOB?600:1400,S0=new Float32Array(n*4),P=new Float32Array(n*3);let k=0;
   while(k<n){const x=rr(-25,25),z=rr(-20,20);if(sN(x,z)>.93||pN(x,z)<1.02)continue;const o=k*4;S0[o]=x;S0[o+1]=z;S0[o+2]=rnd();S0[o+3]=rnd();P[k*3]=x;P[k*3+1]=hTop0(x,z);P[k*3+2]=z;k++}
@@ -1646,6 +1760,69 @@ const SPL=(()=>{const n=MOB?600:1400,S0=new Float32Array(n*4),P=new Float32Array
       #include <colorspace_fragment>
       }`});
   const o=new T.Points(g,m);o.frustumCulled=false;o.renderOrder=8;o.visible=false;W.add(o);return{o,m}})();
+/* rain on the tent: drops burst on the roof cloth; at the eaves water gathers into drops that hang, swell, fall and splash
+   on the sand, and they keep dripping for a while after the shower has passed */
+const TWS={o:null,U:{uT:{value:0},uRain:{value:0},uDrip:{value:0},uH:{value:innerHeight},uCol:rainU.uCol}};
+function tentWater(g){W.updateMatrixWorld(true);const Wi=new T.M4().copy(W.matrixWorld).invert(),M=new T.M4(),v=new V3(),n=new V3(),q=new V3();
+  const roof=[],edge=new Map(),ca=Math.cos(TENT.yaw),sa=Math.sin(TENT.yaw),gy=hTop(TENT.x,TENT.z);
+  g.traverse(c=>{if(!c.isMesh)return;M.multiplyMatrices(Wi,c.matrixWorld);const P=c.geometry.attributes.position,N=c.geometry.attributes.normal;
+    for(let i=0;i<P.count;i++){v.fromBufferAttribute(P,i).applyMatrix4(M);const y=v.y-gy;if(y<.35)continue;
+      if(!N)continue;n.fromBufferAttribute(N,i).transformDirection(M);if(n.y>.4&&y>.7&&rnd()<.5)roof.push(v.x,v.y+.02,v.z);if(n.y<.25||y<.6)continue;
+      const dx=v.x-TENT.x,dz=v.z-TENT.z,lx=dx*ca-dz*sa,lz=dx*sa+dz*ca,r=Math.hypot(lx/(TENT.L*.5),lz/(TENT.D*.5)),k=Math.round((Math.atan2(lz,lx)+Math.PI)/TAU*40)%40;
+      const e=edge.get(k);if(y<2.2&&(!e||r>e.r))edge.set(k,{r,x:v.x,y:v.y,z:v.z})}});
+  const nR=Math.min(roof.length/3|0,MOB?160:360),pts=[],at=[];
+  for(let i=0;i<nR;i++){const j=(rnd()*roof.length/3|0)*3;pts.push(roof[j],roof[j+1],roof[j+2]);at.push(rnd(),rr(.7,1.4),0,0)}
+  edge.forEach(e=>{for(let k=0;k<2;k++){pts.push(e.x+rr(-.06,.06),e.y-.02,e.z+rr(-.06,.06));at.push(rnd(),rr(.45,1.1),1,hTop(e.x,e.z)+.01)}});
+  const G=new T.BG();G.setAttribute("position",new T.BA(new Float32Array(pts),3));G.setAttribute("aS",new T.BA(new Float32Array(at),4));
+  const m=new T.SM({uniforms:TWS.U,transparent:true,depthWrite:false,
+    vertexShader:`attribute vec4 aS;uniform float uT,uRain,uDrip,uH;varying float vA,vK;
+      float hh(float x){return fract(sin(x*12.9898+aS.x*78.2)*43758.5453);}
+      void main(){float c=uT*aS.y+aS.x*7.,u=fract(c);vec3 P=position;float sz;vK=aS.z;
+        if(aS.z<.5){vA=step(hh(floor(c)),uRain*1.1)*(1.-smoothstep(0.,.18,u));P.y+=u*.12;sz=.04+.1*u;}
+        else{/* hang and swell for most of the cycle, then drop; under gravity it takes sqrt(2h/g) to reach the sand */
+          float per=1./aS.y,t=max(u-.6,0.)*per,h=P.y-aS.w,tg=sqrt(2.*h/9.8);vA=uDrip*step(hh(floor(c)+3.),.35+.65*uDrip);
+          if(t<=0.){sz=.01+.014*u/.6;}else if(t<tg){P.y-=4.9*t*t;sz=.02;}
+          else{float k=(t-tg)/.14;vK=2.;P.y=aS.w;vA*=1.-smoothstep(0.,1.,k);sz=.03+.07*k;}}
+        vec4 mv=modelViewMatrix*vec4(P,1.);gl_Position=projectionMatrix*mv;
+        gl_PointSize=clamp(sz*${S.toFixed(3)}*projectionMatrix[1][1]*uH*.5/max(.05,-mv.z),1.5,40.);}`,
+    fragmentShader:`uniform vec3 uCol;varying float vA,vK;void main(){vec2 q=gl_PointCoord-.5;float d=length(q)*2.,a;
+      if(vK>1.5||vK<.5)a=smoothstep(1.,.65,d)*smoothstep(.2,.6,d)*.8+.25*smoothstep(.5,0.,d);
+      else a=smoothstep(1.,.5,d);a*=vA;if(a<.004)discard;
+      gl_FragColor=vec4(uCol*(vK>.5&&vK<1.5?1.5:1.25)+.12*smoothstep(.5,.0,length(q+vec2(.15,.15))*2.),a*.75);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+      }`});
+  const o=new T.Points(G,m);o.frustumCulled=false;o.renderOrder=8;o.visible=false;W.add(o);onDes(o);TWS.o=o}
+UPD.push((dt,t)=>{if(!TWS.o)return;const d=Math.max(ss(.03,.4,WX.rain),ss(.88,1,WX.after)*.8);
+  TWS.o.visible=WX.rain>.004||d>.01;if(!TWS.o.visible)return;TWS.U.uT.value=t;TWS.U.uRain.value=WX.rain;TWS.U.uDrip.value=d;TWS.U.uH.value=innerHeight});
+/* splash crowns on the pond, in step with its rings (the same cells and phases as the water shader): a drop throws up a thin
+   crown of water whose rim breaks into droplets, it falls back, and a little jet rises from the middle as the ring spreads */
+const CROWN=(()=>{const pts=[],at=[],Ls=MOB?[0]:[0,1];
+  for(const L of Ls){const sc=L===0?2.6:3.7,of=L*7.31;
+    for(let cx=Math.floor((POND.x-POND.rx)*sc+of);cx<=Math.ceil((POND.x+POND.rx)*sc+of);cx++)for(let cz=Math.floor((POND.z-POND.rz)*sc+of);cz<=Math.ceil((POND.z+POND.rz)*sc+of);cz++){
+      const x=(cx+.5-of)/sc,z=(cz+.5-of)/sc;if(pN(x,z)>.93)continue;pts.push(x,POND.wy+.004,z);at.push(cx,cz,L,0)}}
+  const G=new T.BG();G.setAttribute("position",new T.BA(new Float32Array(pts),3));G.setAttribute("aC",new T.BA(new Float32Array(at),4));
+  const m=new T.SM({uniforms:{uT:pondU.uT,uRainP:pondU.uRainP,uH:{value:innerHeight},uCol:rainU.uCol},transparent:true,depthWrite:false,
+    vertexShader:`attribute vec4 aC;uniform float uT,uRainP,uH;varying float vK,vA,vS;${GLSL_NOISE}
+      void main(){float L=aC.z,sc=L<.5?2.6:3.7;vec2 c=aC.xy;float h=dh2(c+L*3.1);vec2 o=(vec2(dh2(c+1.3),dh2(c+2.7))-.5)*.5;
+        vec3 P=vec3((c+.5+o-L*7.31)/sc,0.).xzy;P.y=position.y;
+        float ph=fract(uT*(.9+.6*h)+h*7.);vK=ph/.3;vS=dh2(c+9.7);vA=step(h,uRainP*1.15)*step(ph,.3);
+        vec4 mv=modelViewMatrix*vec4(P+vec3(0.,.025,0.),1.);gl_Position=projectionMatrix*mv;
+        float px=.07*(.8+.4*vS)*${S.toFixed(3)}*projectionMatrix[1][1]*uH*.5/max(.05,-mv.z);vA*=smoothstep(4.,9.,px);gl_PointSize=min(px,90.);}`,
+    fragmentShader:`uniform vec3 uCol;varying float vK,vA,vS;void main(){vec2 q=gl_PointCoord-.5;q.y=-q.y;float a=0.,y=q.y+.38;
+      if(vK<.55){float k=vK/.55,hg=.38*sin(k*3.1416)*(.8+.4*vS),rad=.06+.2*k+max(y,0.)*.45;
+        a=smoothstep(.035,.0,abs(abs(q.x)-rad))*step(0.,y)*step(y,hg);
+        float e=length(vec2(q.x/max(rad,.01),(y-hg)/(rad*.32+.01)));a=max(a,smoothstep(.2,.0,abs(e-1.))*.7*step(.02,hg));
+        for(int i=0;i<6;i++){float an=float(i)/6.*6.2832+vS*6.;vec2 d=vec2(cos(an)*rad*1.1,hg+.05+sin(an)*rad*.32+.08*k)-vec2(q.x,y);a=max(a,smoothstep(.035,.015,length(d))*step(.25,k));}
+        a=max(a,smoothstep(.04,.0,abs(length(vec2(q.x,y*3.))-rad))*.6);a*=1.-smoothstep(.75,1.,k);}
+      else{float k=(vK-.55)/.45,jh=.32*sin(k*3.1416);a=smoothstep(.03,.0,abs(q.x))*step(0.,y)*step(y,jh)*.8;
+        a=max(a,smoothstep(.05,.03,length(vec2(q.x,y-jh-.04)))*step(.15,k));}
+      a*=vA;if(a<.01)discard;gl_FragColor=vec4(uCol*1.6+.1,a*.7);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+      }`});
+  const o=new T.Points(G,m);o.frustumCulled=false;o.renderOrder=9;o.visible=false;W.add(o);onDes(o);return{o,m}})();
+UPD.push(()=>{CROWN.o.visible=WX.rain>.01;if(CROWN.o.visible)CROWN.m.uniforms.uH.value=innerHeight});
 /* dust storm: big soft puffs streaming downwind close over the sand, recycled upwind */
 const DUST=(()=>{const n=MOB?26:56,P=new Float32Array(n*3),A=new Float32Array(n),Z=new Float32Array(n),Q=[];
   const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("a",new T.BA(A,1));g.setAttribute("z",new T.BA(Z,1));
@@ -1670,7 +1847,7 @@ UPD.push((dt,t)=>{
   RAIN.visible=on;SPL.o.visible=on;
   if(on){rainU.uT.value=t;rainU.uRain.value=R;rainU.uWS.value=.8+st.wn*3.2;rainU.uCamL.value.copy(_cl);rainU.uLen.value=MOB?1.25:1.1;
     _c1.copy(dc?dc.color:_c1.set("#999")).multiplyScalar(.55).add(_c2.copy(pi?pi.color:_c1).multiplyScalar(.12*(pi?pi.intensity:1)));
-    rainU.uCol.value.copy(_c1).multiplyScalar(1+WX.flash*1.5);SPL.m.uniforms.uH.value=innerHeight}
+    rainU.uCol.value.copy(_c1).multiplyScalar(1.2+WX.flash*1.5);SPL.m.uniforms.uH.value=innerHeight;Cn.getDrawingBufferSize(rainU.uRes.value)}
   const dz=WX.dust;DUST.o.visible=dz>.01;
   if(DUST.o.visible){const sp=(4+10*dz)*(.6+st.wn);DUST.m.uniforms.uT.value=t;DUST.m.uniforms.uH.value=innerHeight;
     DUST.m.uniforms.uC.value.copy(skyU.uDustC.value).multiplyScalar(1.05);
@@ -1832,11 +2009,13 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
         vec3 n=normalize(vec3(-(hx-h0)/e*a,1.,-(hz-h0)/e*a)),L=normalize(vec3(dot(uLd,vAx),max(uLd.y,.03),dot(uLd,vAz)));
         /* the floor of a print sits in its own shadow, so a track still reads as a line of dark dents from far off; close up the
            relief carries it and the floor is only a little darker than the sand round it */
-        float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-(k>3.5?.08:mix(.2,.45,smoothstep(.4,2.,max(fwidth(p.x),fwidth(p.y)))))*clamp(-h0*a/(k>3.5?4.:1.2),0.,1.);
+        float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-(k>3.5?.16:mix(.2,.45,smoothstep(.4,2.,max(fwidth(p.x),fwidth(p.y)))))*clamp(-h0*a/(k>3.5?4.:1.2),0.,1.);
         float F=clamp(mix(1.,df,uKs)*ao,.12,1.7);
+        /* pressed sand is packed smooth and reads darker than the loose sand round it, the heaped rim lighter, whatever the sun's height */
+        if(k>3.5)F*=(1.-.2*clamp(-h0/2.5,0.,1.))*(1.+.1*clamp(h0/1.5,0.,1.));
         /* a print only a few pixels across: its lit rim and shaded floor would average out to nothing, so it settles to a soft dent */
-        float lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y)))*step(k,2.5),R=k<1.5?9.*vG:6.*vG;
-        F=mix(F,1.-(k<.5?.56:.42)*(k<2.5?exp(-dot(p,p)/(R*R)):clamp(-h0*1.4,0.,1.)),lod);
+        float lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y)))*step(k,2.5),R=k<.5?10.5*vG:k<1.5?9.*vG:6.*vG;
+        F=mix(F,1.-(k<.5?.62:.42)*(k<2.5?exp(-dot(p,p)/(R*R)):clamp(-h0*1.4,0.,1.)),lod);
         F=mix(1.,F,a*smoothstep(.5,.42,max(abs(vQ.x),abs(vQ.y))/vG));
         if(abs(F-1.)<.004)discard;gl_FragColor=vec4(vec3(.5*F),1.);}`});
   const im=new T.IM(geo,m,N);im.count=0;im.frustumCulled=false;im.renderOrder=1;im.castShadow=im.receiveShadow=false;
@@ -1979,8 +2158,9 @@ function eagleMarks(e,off){const yaw=e.spot.yaw,fx=Math.sin(yaw),fz=Math.cos(yaw
     prAdd(PRK.talon,_pf.x,_pf.z,yaw+(nm==="Foot_L"?-.12:.12),0,off?1.3:1,nm==="Foot_R")}
   if(!n){cx=e.spot.p.x;cz=e.spot.p.z}else{cx/=n;cz/=n}
   /* the beach curves with the shore, so a wingtip that would brush the water is moved out from it onto the sand */
-  for(const sd of[-1,1]){const lx=fz*sd,lz=-fx*sd,k=off?.95:.85;let wx=cx+lx*k-fx*.12,wz=cz+lz*k-fz*.12;for(let t=0;t<14&&pN(wx,wz)<1.05;t++){const gx=pN(wx+.05,wz)-pN(wx-.05,wz),gz=pN(wx,wz+.05)-pN(wx,wz-.05),gl=Math.hypot(gx,gz)||1;wx+=gx/gl*.08;wz+=gz/gl*.08}
-    prAdd(PRK.wing,wx,wz,Math.atan2(lx,lz)+sd*(off?-.25:.2),0,off?1:.9,sd>0)}}
+  /* landing and take-off sweep the wings through the same arc, so a second brushing deepens the first instead of crossing it */
+  for(const sd of[-1,1]){const lx=fz*sd,lz=-fx*sd,k=.9;let wx=cx+lx*k-fx*.12,wz=cz+lz*k-fz*.12;for(let t=0;t<14&&pN(wx,wz)<1.05;t++){const gx=pN(wx+.05,wz)-pN(wx-.05,wz),gz=pN(wx,wz+.05)-pN(wx,wz-.05),gl=Math.hypot(gx,gz)||1;wx+=gx/gl*.08;wz+=gz/gl*.08}
+    prAdd(PRK.wing,wx,wz,Math.atan2(lx,lz)+sd*.2,0,off?.8:.9,sd>0)}}
 function eaglePuff(p){for(let i=0;i<PUFF.n;i++){const a=rnd()*TAU,u=rr(.5,1.5);
     PUFFP[i]={x:p.x+Math.cos(a)*.12,y:p.y+rr(.05,.35),z:p.z+Math.sin(a)*.12,vx:Math.cos(a)*u,vy:rr(.1,.7),vz:Math.sin(a)*u,life:-rr(0,.12),dur:rr(.7,1.3)};PUFF.Z[i]=rr(.6,1.5)}
   PUFF.o.visible=true}
@@ -2156,18 +2336,20 @@ function rsTongue(s,dt){const q=s.tq;if(!q)return;const G=s.tg;let e=0,th=0,sp=0
     L.copy(q.MTi).multiply(A).multiply(f.MF);L.decompose(f.b.position,f.b.quaternion,f.b.scale)}
   if(q.jaw){q.jaw.quaternion.copy(q.jq);q.jaw.position.copy(q.jp)}}
 /* ---- the rattle: the raised tail buzzes side to side (~60 Hz in life, far above the frame rate, so each frame catches it at
-   a random point of its swing and a faint fan shows the blur either side). Its strength follows the loudness of the sound
+   a random point of its swing). Drawn per frame that strobes, so the rattle itself only trembles slowly and a fan shows the
+   blur either side: densest at the ends of the swing, where a fast oscillation spends most of its time, banded by the segments). Its strength follows the loudness of the sound
    being heard: dRtlOn's envelope at 20 per second (a few warning buzzes rising into the full rattle), then the steady loop. ---- */
 const RTL_ENV="0003321142452144421343007888778789887978776766657544655565677666888777777887665665554555554543321100";
 const RTL_B=[["Spine_42",.9],["Spine_43",1.8],["Spine_44",3],["Rattle",4.5],["Rattle_2",3.2],["Rattle_3",2]];
 function rtlLevel(s){if(s.mode!=="def")return 0;const t=s.defT,e=t<5?+RTL_ENV[Math.min(99,t*20|0)]/9:0;return Math.max(e,.85*ss(3,4.5,t))}
-/* two strips, one each side of the rattle, from just inside its edge (u 0) out to where the tip travels (u 1) */
-const RFAN=(()=>{const N=32,d=new Uint8ClampedArray(N*N*4);
-  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const u=(i+.5)/N,v=(j+.5)/N,a=.55*Math.pow(1-u,1.6)*ss(0,.3,u*4)*ss(0,.3,v)*(1-ss(.88,1,v));d.set([0,a*255,0,255],(j*N+i)*4)}
+/* two strips, one each side of the rattle, from its axis (u 0, veiling the solid rattle) out to where the tip travels (u 1); v runs base to tip */
+const RFAN=(()=>{const N=64,d=new Uint8ClampedArray(N*N*4);
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const u=(i+.5)/N,v=(j+.5)/N,
+    band=.75+.25*Math.cos(v/.69*6*TAU),a=(.42+.33*u*u*u)*band*(1-ss(.8,1,u))*ss(0,.08,v)*(1-ss(.62,.78,v));d.set([0,a*255,0,255],(j*N+i)*4)}
   const am=new T.CTex(new ImageData(d,N,N));am.needsUpdate=true;
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(24),3));g.setAttribute("normal",new T.BA(new Float32Array(24),3));
   g.setAttribute("uv",new T.BA(new Float32Array([0,0,1,0,0,1,1,1,0,0,1,0,0,1,1,1]),2));g.setIndex([0,1,2,2,1,3,4,5,6,6,5,7]);
-  const m=new T.MSM({color:0x97785a,roughness:.6,metalness:0,transparent:true,alphaMap:am,depthWrite:false,side:2});
+  const m=new T.MSM({color:0x6e5238,roughness:.6,metalness:0,transparent:true,alphaMap:am,depthWrite:false,side:2});
   const o=new T.Mesh(g,m);o.frustumCulled=false;o.visible=false;o.renderOrder=2;o.castShadow=o.receiveShadow=false;W.add(o);onDes(o);return o})();
 const _ra=new V3(),_rb=new V3(),_rc=new V3(),_rs=new V3(),_rn=new V3(),_rQ=new T.Quat(),_rZ=new V3(0,0,1);
 function rsRattle(s,dt){const R=s.rt;s.rtK+=(rtlLevel(s)-s.rtK)*ease(s.mode==="def"?30:8,dt);RFAN.visible=false;if(!R||s.rtK<.02)return;
@@ -2177,14 +2359,14 @@ function rsRattle(s,dt){const R=s.rt;s.rtK+=(rtlLevel(s)-s.rtK)*ease(s.mode==="d
   r0.getWorldPosition(_ra);r2.getWorldPosition(_rb);W.worldToLocal(_ra);W.worldToLocal(_rb);
   _rc.subVectors(_rb,_ra);_rb.addScaledVector(_rc,.45);_rc.subVectors(_rb,_ra);
   _rn.addVectors(_ra,_rb).multiplyScalar(.5).sub(_cl).multiplyScalar(-1);_rs.crossVectors(_rc,_rn).normalize();
-  const ri=.008,wb=.004,wt=.006+.02*s.rtK,P=RFAN.geometry.attributes.position,Nn=RFAN.geometry.attributes.normal;
+  const ri=0,wb=.012+.008*s.rtK,wt=.016+.03*s.rtK,P=RFAN.geometry.attributes.position,Nn=RFAN.geometry.attributes.normal;
   for(let sd=-1,o=0;sd<=1;sd+=2,o+=4){const pt=(i,c,w)=>P.setXYZ(o+i,c.x+_rs.x*sd*w,c.y+_rs.y*sd*w,c.z+_rs.z*sd*w);
     pt(0,_ra,ri);pt(1,_ra,ri+wb);pt(2,_rb,ri);pt(3,_rb,ri+wt)}
   /* lit as the average of the rattle's round surface: mostly from above */
   _rn.crossVectors(_rs,_rc).normalize();if(_rn.dot(_cl)<_rn.dot(_ra))_rn.negate();_rn.y+=1.5;_rn.normalize();for(let i=0;i<8;i++)Nn.setXYZ(i,_rn.x,_rn.y,_rn.z);
   P.needsUpdate=Nn.needsUpdate=true;RFAN.material.opacity=ss(.05,.5,s.rtK);RFAN.visible=true;
-  s.rtS=-s.rtS;const k=s.rtK*D2R;
-  for(const[b,a]of R)b.quaternion.multiply(_rQ.setFromAxisAngle(_rZ,s.rtS*a*k*rr(.45,1)))}
+  const k=s.rtK*D2R,tw=Math.sin(st.t*TAU*2.3)*.3+Math.sin(st.t*TAU*5.1+1.)*.12;
+  for(const[b,a]of R)b.quaternion.multiply(_rQ.setFromAxisAngle(_rZ,tw*a*k))}
 /* ---- rattlesnake crawl ----
    The body is the 44 spine bones (Spine_01 behind the head .. Spine_44 before the rattle, .024 m apart). Each frame every bone
    is placed in island metres, framed by the body line (bone +y runs tailward, +z up) and given the local matrix that puts it
@@ -2320,14 +2502,14 @@ const rsGirth=i=>mix(.62,1,ss(0,9,i))*mix(1,.42,ss(26,43,i));
    shoves sideways against the sand (serpentine) or the body rolls off it (sidewinding). */
 /* sc: scale imprint (1 set down sidewinding, 2 rectilinear, 0 slid); ma, mb: the two points' places along the body (m) */
 function trkSeg(K,x0,z0,x1,z1,dep,px,pz,wr,mk,sc,ma,mb){const N=K.N,te=K.M/N,h=N/2,ax=(x0-K.ox)/te+h,az=(z0-K.oz)/te+h,bx=(x1-K.ox)/te+h,bz=(z1-K.oz)/te+h;
-  const r=RS_R*(wr||1),s2=2*(.68*r)**2,ro=1.25*r+.004,rw=2*(.4*r+.003)**2,mo=ro+.5*r+.007,mw=2*(.55*r+.005)**2,R=Math.ceil((mo+2.4*Math.sqrt(mw/2))/te);
+  const r=RS_R*(wr||1),s2=2*(.68*r)**2,ro=1.25*r+.004,rw=2*(.4*r+.003)**2,mo=ro+.75*r+.01,mw=2*(.85*r+.007)**2,R=Math.ceil((mo+2.4*Math.sqrt(mw/2))/te);
   const ex=bx-ax,ez=bz-az,L2=ex*ex+ez*ez||1e-9;mk=mk||0;
   let th=Math.atan2(ez,ex),sg=mb>=ma?1:-1;if(th<0){th+=Math.PI;sg=-sg}if(th>=Math.PI){th=0;sg=-sg}
   const cb=sc?(sc===1?1:129)+Math.round(th/Math.PI*126)%127:0;
   for(let j=Math.max(0,Math.floor(Math.min(az,bz))-R);j<=Math.min(N-1,Math.floor(Math.max(az,bz))+R);j++)
     for(let i=Math.max(0,Math.floor(Math.min(ax,bx))-R);i<=Math.min(N-1,Math.floor(Math.max(ax,bx))+R);i++){
       const cx=i+.5,cz=j+.5,uu=((cx-ax)*ex+(cz-az)*ez)/L2,u=cl(uu,0,1),dx=(cx-ax-ex*u)*te,dz=(cz-az-ez*u)*te,d=Math.hypot(dx,dz),sd=d>1e-4?(dx*px+dz*pz)/d:0;
-      const gr=dep*Math.exp(-d*d/s2),rim=dep*(.4+.6*sd)*Math.exp(-(d-ro)*(d-ro)/rw),mnd=dep*mk*Math.max(sd,0)**1.5*1.6*Math.exp(-(d-mo)*(d-mo)/mw);
+      const gr=dep*Math.exp(-d*d/s2),rim=dep*(.24+.36*sd)*Math.exp(-(d-ro)*(d-ro)/rw),mnd=dep*mk*Math.max(sd,0)**1.2*1.25*Math.exp(-(d-mo)*(d-mo)/mw);
       const o=(j*N+i)*4,va=gr*255|0,vb=Math.max(rim,mnd)*230|0;
       if(va>K.d[o]){K.d[o]=va;K.d[o+2]=cb;if(cb){const ph=sg*(ma+uu*(mb-ma))/RS_SCL;K.d[o+3]=(ph-Math.floor(ph))*256|0}}if(vb>K.d[o+1])K.d[o+1]=vb}
   K.dirty=K.any=1}
@@ -2346,6 +2528,11 @@ function trkTick(s,dt){const K=TRK;if(!K||!s.bd)return;const b=s.bd;
     for(let i=0;i<RS_N;i++){const was=Tc[i];Tc[i]=on(i)?1:0;if(!Tc[i])continue;const x=b.P[2*i],z=b.P[2*i+1];
       /* the J: the bent neck comes down first and hardest, digging the hook of each new track and flinging sand */
       if(side&&!was&&i<7&&s.a>.5)trkSpray(K,x,z,px,pz,MOB?8:14);
+      /* the hook of the J: the head comes down beyond the bar and curls round toward the way it is going */
+      if(side&&!was&&i<2&&s.a>.5&&i<RS_N-1){let tx=x-b.P[2*i+2],tz=z-b.P[2*i+3];const tl=Math.hypot(tx,tz),ml=Math.hypot(px,pz);
+        if(tl>1e-5&&ml>1e-5){tx/=tl;tz/=tl;const mx=-px/ml,mz=-pz/ml,sgn=Math.sign(tx*mz-tz*mx)||1;let hx=x,hz=z,a=Math.atan2(tz,tx);
+          for(let k=0;k<6;k++){a+=sgn*.36;const nx=hx+Math.cos(a)*.022*RS_SC/.9,nz=hz+Math.sin(a)*.022*RS_SC/.9;
+            trkSeg(K,hx,hz,nx,nz,1.45-.08*k,px,pz,mix(.72,.5,k/5),.9,1,i*RS_DS,i*RS_DS);hx=nx;hz=nz}}}
       if(Math.hypot(x-b.Ls[2*i],z-b.Ls[2*i+1])<.004)continue;b.Ls[2*i]=x;b.Ls[2*i+1]=z;
       let qx=px,qz=pz,mk=side?.7:0;
       /* serpentine: the outside of each bend is where the body shoves against the sand; the tighter the bend, the bigger the mound */
@@ -2454,7 +2641,7 @@ function devilUpdate(dt,t){
    Wind and blown sand are heard everywhere; the eagle, camels, snake, dust devil and fire are placed: pan from the camera's
    right axis, distance gain, and a low-pass that closes with distance so far calls arrive dull. Played through the site's
    master (volume slider, tap-to-start unlock). AU.cap records every voice for offline mixing of the captured videos. ---- */
-const AQ={dWnd:"@a:dWnd",dCalm:"@a:dCalm",dSnd:"@a:dSnd",dFire:"@a:dFire",dSnk:"@a:dSnk",dEg1:"@a:dEg1",dEg2:"@a:dEg2",dEg3:"@a:dEg3",dEg4:"@a:dEg4",dEg5:"@a:dEg5",
+const AQ={dWnd:"@a:dWnd",dCalm:"@a:dCalm",dSnd:"@a:dSnd",dFire:"@a:dFire",dPop1:"@a:dPop1",dPop2:"@a:dPop2",dPop3:"@a:dPop3",dSnk:"@a:dSnk",dEg1:"@a:dEg1",dEg2:"@a:dEg2",dEg3:"@a:dEg3",dEg4:"@a:dEg4",dEg5:"@a:dEg5",
   dCm1:"@a:dCm1",dCm2:"@a:dCm2",dCm3:"@a:dCm3",dCm4:"@a:dCm4",dCm5:"@a:dCm5",
   dOk1:"@a:dOk1",dOk2:"@a:dOk2",dOk3:"@a:dOk3",dOk4:"@a:dOk4",dOc1:"@a:dOc1",dOc2:"@a:dOc2",dOc3:"@a:dOc3",
   dFr1:"@a:dFr1",dFr2:"@a:dFr2",dFr3:"@a:dFr3",dFr4:"@a:dFr4",dFr5:"@a:dFr5",dFr6:"@a:dFr6",
@@ -2540,7 +2727,8 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   loopS("sand","dSnd",(.02+.26*ss(.2,1,wn))*ss(.3,.85,g)*calm*(1-.85*WX.wet));
   /* weather: rain on the sand everywhere, rain drumming on the tent cloth up close, the roar and hiss of a dust storm */
   loopS("rain","dRn",.6*ss(.01,.7,WX.rain));
-  loopS("rtent","dRt",.75*ss(.01,.5,WX.rain),_tnP.set(TENT.x,hTop(TENT.x,TENT.z)+1.6,TENT.z),6);
+  /* the cloth keeps dripping for a while after the rain: the same drumming, thinned and slowed */
+  {const dr=ss(.88,1,WX.after)*(1-ss(.01,.2,WX.rain));loopS("rtent","dRt",.75*ss(.01,.5,WX.rain)+.16*dr,_tnP.set(TENT.x,hTop(TENT.x,TENT.z)+1.6,TENT.z),6,1-.22*dr)}
   loopS("storm","dStm",.62*ss(.04,.7,WX.dust));
   loopS("stsand","dStS",.5*ss(.2,.9,WX.dust)*(.55+.45*g));
   oasis(dt,nk,Math.max(ss(.12,1,wn)*(.45+.75*g),WX.dust*1.3,WX.rain*.9));
@@ -2837,7 +3025,16 @@ UPD.push((dt,t)=>{
   sound(d);
 });
 
+/* the first time the desert is shown its shaders are linked in a handful of frames, not all in one: the island, rocks and sky
+   come first and the rest joins over the next few frames, so a phone never holds the main thread for the whole link */
+let _staged=false,_stageDone=false;
+function stageIn(){_staged=true;const L=[...root.children.filter(c=>c!==W),...W.children].filter(c=>c.visible&&!c.isLight),n=MOB?7:5,
+    B=Array.from({length:n},(_,i)=>L.slice(Math.round(i*L.length/n),Math.round((i+1)*L.length/n)));
+  for(const b of B.slice(1))for(const o of b)o.traverse(x=>{x.userData._lm=x.layers.mask;x.layers.mask=0});
+  let i=1;const f=()=>{if(i>=n){_stageDone=true;return}for(const o of B[i++])o.traverse(x=>{if(x.userData._lm!=null){x.layers.mask|=x.userData._lm;delete x.userData._lm}});nextFrame().then(f)};
+  nextFrame().then(f)}
 function show(on){
+  if(on&&!_staged)stageIn();
   root.visible=on;De.layers.set(on?3:0);window.__desA=on;grade.enabled=on;if(!on)mirP.enabled=false;
   if(bloom){if(on){if(!_bloomSave)_bloomSave={t:bloom.threshold,s:bloom.strength,r:bloom.radius};bloom.threshold=.9;bloom.strength=.2;bloom.radius=.45}
     else if(_bloomSave){bloom.threshold=_bloomSave.t;bloom.strength=_bloomSave.s;bloom.radius=_bloomSave.r;_bloomSave=null}}
@@ -2852,7 +3049,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={mirP,mirM,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},
@@ -2878,7 +3075,7 @@ const QA={mirP,mirM,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,st,W,S,YA
   /* fast-forward only the dune clock (and the ripple drift) by `sec` seconds of average wind */
   duneAdv(sec){const wk=.5+st.wn*1.4;duneEvolve(sec*.8*wk);sandU.uRipPh.value+=sec*.08*wk;
     sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk)},
-  dune:{DP,DUNE0,DCLK,GUST,crestXZ,dMask,gustAt},
+  dune:{DP,DUNE0,DCLK,GUST,crestXZ,dMask,gustAt},salt:()=>SALT,
   /* sound capture for the recorded videos: every voice's level/pan/low-pass per step, mixed offline */
   audCap(on){if(on){AU.cap={t0:st.t,ev:[]};return 0}const c=AU.cap;AU.cap=null;return c?c.ev:[]},AU,OAS,oasisNear,
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,play,rsBout}};

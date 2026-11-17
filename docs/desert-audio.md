@@ -15,7 +15,7 @@ desert scene, through its own bus under the app's master volume.
 | [645305](https://freesound.org/people/DarkShroom/sounds/645305/) | DarkShroom | desert_wind.wav | `dWnd` gusting wind bed |
 | [697217](https://freesound.org/people/dhallcomposer/sounds/697217/) | dhallcomposer | Looping Gentle Wind Ambience on an Open Desert Plain.wav | `dCalm` calm open-desert air |
 | [825860](https://freesound.org/people/Vrymaa/sounds/825860/) | Vrymaa | Desert sand - Dune atmosphere | `dSnd` blowing sand hiss, dust devil |
-| [363092](https://freesound.org/people/TheWoodlandNomad/sounds/363092/) | TheWoodlandNomad | Fire Crackle and Flames 002 | `dFire` campfire (night only) |
+| [363092](https://freesound.org/people/TheWoodlandNomad/sounds/363092/) | TheWoodlandNomad | Fire Crackle and Flames 002 | `dFire` campfire (night only); `dPop1`-`dPop3` single pops of the wood, each with a burst of sparks |
 | [851733](https://freesound.org/people/IENBA/sounds/851733/) | IENBA | Thick Sand Movements | `dSnk` snake rustle (granular resynthesis of the recording) |
 | [437958](https://freesound.org/people/craigsmith/sounds/437958/) | craigsmith | G12-26-Rattlesnake Rattle | `dRtlOn` startle burst, `dRtl` sustained rattle loop |
 | [166176](https://freesound.org/people/felix.blume/sounds/166176/) | felix.blume | Cricket in the desert (close recording) — Mojave Desert | `dOk1`–`dOk4` desert cricket calls in the shore grass |

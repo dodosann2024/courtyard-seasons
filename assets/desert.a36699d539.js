@@ -623,9 +623,9 @@ function renderPondReflection(){
   c.position.set(cp.x,2*Wy-cp.y,cp.z);c.up.set(e[4],-e[5],e[6]);
   c.lookAt(cp.x-e[8]*10,2*Wy-(cp.y-e[9]*10),cp.z-e[10]*10);c.updateMatrixWorld();
   pondU.uReflM.value.copy(pondRefl.bias).multiply(c.projectionMatrix).multiply(c.matrixWorldInverse);
-  const prevT=Cn.getRenderTarget(),prevA=Cn.getClearAlpha(),sAuto=Cn.shadowMap.autoUpdate;Cn.getClearColor(pondRefl.cc);
-  Cn.shadowMap.autoUpdate=false;Cn.setRenderTarget(pondRefl.rt);Cn.setClearColor(0x000000,0);Cn.clear();Cn.render(Jt,c);
-  Cn.setRenderTarget(prevT);Cn.setClearColor(pondRefl.cc,prevA);Cn.shadowMap.autoUpdate=sAuto;pondU.uReflOn.value=1}
+  const prevT=Cn.getRenderTarget(),prevA=Cn.getClearAlpha(),sAuto=Cn.shadowMap.autoUpdate,sNeed=Cn.shadowMap.needsUpdate;Cn.getClearColor(pondRefl.cc);
+  Cn.shadowMap.autoUpdate=false;Cn.shadowMap.needsUpdate=false;Cn.setRenderTarget(pondRefl.rt);Cn.setClearColor(0x000000,0);Cn.clear();Cn.render(Jt,c);
+  Cn.setRenderTarget(prevT);Cn.setClearColor(pondRefl.cc,prevA);Cn.shadowMap.autoUpdate=sAuto;Cn.shadowMap.needsUpdate=sNeed;pondU.uReflOn.value=1}
 
 /* ---------------- vegetation: grass tufts, reeds, shrubs ---------------- */
 const vegU={uT:{value:0},uWind:{value:.35},uGT:sandU.uGT,uWD:sandU.uWD};
@@ -1146,7 +1146,7 @@ function curtainUpdate(t){
   CURT.g.attributes.position.needsUpdate=CURT.g.attributes.aH.needsUpdate=true}
 /* ---------------- sand falls: sand blown to the rim pours over the lip all round the island, like the sky sea's water falls ----------------
    Each fall is one ribbon: a short run of moving sand over the surface to a low point of the lip, then a granular sheet that
-   leaves the lip, falls clear of the cliff (its path is fitted to the cliff mesh), tears into strands and grains and thins into dust
+   drops straight down off the lip close to the cliff face (sand has no jet momentum; its path is fitted to the cliff mesh), tears into strands and grains and thins into dust
    above the cloud sea. Wind sets the rate: more on the downwind rim and in gusts and dust storms; rain damps the sand into a few
    darker, lighter trickles. Sand is not water: most of the rim only sheds short broken trickles off the creeping veneer, and a few
    heavy falls hang a dense drape off the lip that fans out, clumps and surges, and gives itself up to dust drifting downwind. */
@@ -1172,22 +1172,23 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
     for(let tries=0;tries<3&&!best;tries++,hw*=.65)for(let c=0;c<9;c++){const th=k*sl+.4+prr(-.36,.36)*sl,[ix,iz]=edgeXZ(th,.93);if(pN(ix,iz)<1.4||!clearOf(ix,iz,hw+.35))continue;
       const E=frame(th),P=probe(E,hw);if(P.lipY<-50||P.bulge>1)continue;const sc=P.bulge+.08*c;if(!best||sc<best.sc)best={th,E,P,sc}}
     if(!best)continue;hw/=.65;
-    pick.push({ty,hw,E:best.E,P:best.P,k:prr(K[2],K[3]),sd:pr()*50,v0:prr(2.1,2.9)})}
+    pick.push({ty,hw,E:best.E,P:best.P,k:prr(K[2],K[3]),sd:pr()*50,v0:prr(.06,.14)})}
   const pos=[],aU=[],aK=[],aN=[],aT=[],idx=[],nG=MOB?4:6,nv=MOB?24:34;
   for(const f of pick){const{E,P,hw}=f,nu=hw<.3?3:MOB?7:10,o=pos.length/3,rows=[];
     const lipAt=d=>{const b=Math.floor((d+3)/.2);return b>=0&&b<16?P.LP[b]:-99};
     const req=y=>{const b=Math.floor((P.lipY-y)/.5);let m=-9;for(let k=Math.max(0,b);k<Math.min(64,b+3);k++)m=Math.max(m,P.B[k]);return m};
     /* the run over the surface to the lip: a funnel narrowing to the pour */
     for(let j=0;j<nG;j++){const g=j/nG,d=P.lipD-2.4*(1-g),x=E.x+E.nx*d,z=E.z+E.nz*d,y=Math.max(hTop(x,z)+.035,lipAt(d)+.05);rows.push({d,y,s:g-1,w:hw*(1.7-.7*g),sl:0})}
-    /* the pour: falls from the lip crest, clear of the cliff; s is fall time, the drop growing as s*s */
+    /* the pour: sand leaves the lip crest with next to no outward speed and drops plumb, sliding over any rock that juts out under it
+       and never moving back in; s is fall time, the drop growing as s*s */
     let dp=P.lipD;const path=[];
     for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.3),tau=s*SF.Tf,y=P.lipY+.05-.5*SF.G*tau*tau,c=req(y);
-      const d=Math.max(P.lipD+.04+f.v0*tau,c+.3,dp);dp=d;path.push([d,y]);
-      rows.push({d,y,s,w:hw*(1-.22*ss(0,.2,s)+[3.,2.4,1.2][f.ty]*Math.pow(ss(.05,1,s),1.25)),sl:Math.max(0,d-c-.3)})}
+      const d=Math.max(P.lipD+.04+f.v0*tau,c+.14,dp);dp=d;path.push([d,y]);
+      rows.push({d,y,s,w:hw*(1-.22*ss(0,.2,s)+[1.3,1.,.5][f.ty]*Math.pow(ss(.05,1,s),1.25)),sl:Math.max(0,d-c-.14)})}
     /* heavy falls hang a second, looser curtain just outside the first, so they have depth from afar (not on phones: it doubles the overdraw) */
     for(let ly=0;ly<(f.ty||MOB?1:2);ly++){const o=pos.length/3,R0=ly?rows.filter(r=>r.s>=0):rows;
-      for(const r of R0){const dd=r.d+ly*(.25+.9*r.s),cx=E.x+E.nx*dd,cz=E.z+E.nz*dd,w=r.w*(ly?1.18:1);
-        for(let i=0;i<=nu;i++){const u=i/nu,lat=(u*2-1)*w;pos.push(cx+E.tx*lat,r.y-ly*.12,cz+E.tz*lat);aU.push(u,r.s);aK.push(f.k,f.sd+ly*23,hw,ly);aN.push(E.nx,E.nz,r.sl+ly*(.25+.9*r.s));aT.push(E.tx*lat,E.tz*lat)}}
+      for(const r of R0){const dd=r.d+ly*(.14+.22*r.s),cx=E.x+E.nx*dd,cz=E.z+E.nz*dd,w=r.w*(ly?1.18:1);
+        for(let i=0;i<=nu;i++){const u=i/nu,lat=(u*2-1)*w;pos.push(cx+E.tx*lat,r.y-ly*.12,cz+E.tz*lat);aU.push(u,r.s);aK.push(f.k,f.sd+ly*23,hw,ly);aN.push(E.nx,E.nz,r.sl+ly*(.14+.22*r.s));aT.push(E.tx*lat,E.tz*lat)}}
       for(let j=0;j<R0.length-1;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}}
     SF.F.push({E,k:f.k,hw,path,ty:f.ty})}
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("aU",new T.BA(new Float32Array(aU),2));
@@ -1199,9 +1200,9 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         /* the downwind rim pours first; as the wind veers, falls on the rim it now blows across start and others ease off */
         float wl=length(uWV),k=aK.x+.22*(.5-.5*dot(n,uWV/max(wl,1e-4))),s=aU.y,vis=smoothstep(k,k+.3,uFR);vVis=vis;vec3 p=position;
         p.xz-=aT*(1.-(.45+.55*vis)*(1.+.25*clamp(uFR-1.,0.,1.)));
-        if(s>0.){float f=pow(s,1.7);
-          /* the wind carries the lower fall downwind and sways it; it may lean in toward the cliff only as far as the clearance allows */
-          vec2 tg=vec2(-n.y,n.x),dr=uWV*f*(.6+.8*gustF(p.xz))*3.+tg*sin(uT*.8+aK.y)*.3*f;
+        if(s>0.){float f=pow(s,2.4);
+          /* the wind only drifts the lower, dusty part a little downwind and sways it; it may lean in toward the cliff only as far as the clearance allows */
+          vec2 tg=vec2(-n.y,n.x),dr=uWV*f*(.6+.8*gustF(p.xz))*.45+tg*sin(uT*.8+aK.y)*.1*f;
           float side=dot(dr,tg);dr-=tg*side*(1.-.8*smoothstep(.45,.9,s));
           float inw=dot(dr,n);dr-=n*(inw-max(inw,-aN.z));p.xz+=dr;}
         vec4 w=modelMatrix*vec4(p,1.);vW=w.xyz;
@@ -1281,9 +1282,9 @@ const SFDP=[];{let ps=9127;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^p
 function sfDust(q){const F=SF.F,pr=SFD.pr;let f=F[q.f];
   /* heavier falls shed more dust */
   for(let k=0;k<5;k++){const c=F[Math.floor(pr()*F.length)];if(c.hw>f.hw||pr()<.15)f=c}
-  q.f=F.indexOf(f);q.s=.5+.55*Math.min(f.hw,2.2);const j=Math.floor((q.hz?.55+.4*pr():.25+.55*pr())*(f.path.length-1)),[d,y]=f.path[j],s=j/(f.path.length-1),lat=(pr()*2-1)*f.hw,dr=Math.pow(s,1.7)*3*sfU.uWV.value.length();
+  q.f=F.indexOf(f);q.s=.5+.55*Math.min(f.hw,2.2);const j=Math.floor((q.hz?.55+.4*pr():.25+.55*pr())*(f.path.length-1)),[d,y]=f.path[j],s=j/(f.path.length-1),lat=(pr()*2-1)*f.hw,dr=Math.pow(s,2.4)*.45*sfU.uWV.value.length();
   q.x=f.E.x+f.E.nx*(d+.2)+f.E.tx*lat+WIND.x*dr;q.z=f.E.z+f.E.nz*(d+.2)+f.E.tz*lat+WIND.z*dr;q.y=y;
-  q.vx=WIND.x*(.4+.6*pr())+f.E.nx*.35;q.vz=WIND.z*(.4+.6*pr())+f.E.nz*.35;q.vy=-1.2-1.2*pr();q.life=0;q.dur=q.hz?6+4*pr():2.5+3*pr();if(q.hz){q.vx*=1.6;q.vz*=1.6;q.vy*=.5}}
+  q.vx=WIND.x*(.12+.2*pr())+f.E.nx*.05;q.vz=WIND.z*(.12+.2*pr())+f.E.nz*.05;q.vy=-1.2-1.2*pr();q.life=0;q.dur=q.hz?6+4*pr():2.5+3*pr();if(q.hz){q.vx*=1.4;q.vz*=1.4;q.vy*=.5}}
 function sandFallsUpdate(dt,t,wn,nk){
   wn=Math.max(wn,.35+WX.dust*.7);
   /* the rate follows the wind and its gusts; dust storms feed it, wet sand barely moves */
@@ -3072,7 +3073,7 @@ const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,ag
   /* footprints: PR itself, prAdd for stamping, prAge(sec) wears every print by `sec` seconds of the current weather */
   PR,PRK,prAdd,camelLie,prAge:sec=>{const P=PR;P.E+=sec*(1/240+st.wn*.3/35+WX.dust/6+WX.rain/9);P.im.material.uniforms.uE.value=P.E},camelGo,eagleLand:s=>eagleLand(ANIM.eagle,s||eagleSpots()[1]),eagleSpots,
   /* sand falls: count, rate (sfR(v) pins it, null to release), and each fall's rim point, half width and threshold */
-  sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty}))}),sfR:v=>{SF.pin=v},
+  sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty,nx:f.E.nx,nz:f.E.nz,tx:f.E.tx,tz:f.E.tz,path:f.path}))}),sfR:v=>{SF.pin=v},
   freeze(on){st.lock=!!on},
   step(n,dt){for(let i=0;i<(n||1);i++)step(dt||1/30)},
   tod(p){st.tod=p||null;const ph=phaseNow();for(const k in LK)LK[k]=k===ph?1:0;applyLighting(0)},

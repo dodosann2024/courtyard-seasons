@@ -1046,13 +1046,15 @@ let fireL=null;
   for(let i=0;i<3;i++){const geo=new T.Plane(1,1,1,4);geo.translate(0,.5,0);const n=geo.attributes.position.count;geo.setAttribute("aK",new T.BA(new Float32Array(n).fill(i*.37+.1),1));
     const f=new T.Mesh(geo,flM);f.scale.set([.42,.32,.26][i],[.62,.48,.38][i],1);f.position.set([0,.08,-.07][i],.08,[0,.05,.06][i]);f.renderOrder=8;f.frustumCulled=false;fireG.add(f);flames.push(f)}
   fireG.userData.flames=flames.map(f=>({f,s:f.scale.clone()}));
-  fireL=new T.PL(new C3("#ff9a4a"),0,4.4,2);fireL.position.set(FIRE.x,hTop(FIRE.x,FIRE.z)+1.1,FIRE.z);W.add(fireL);fireL.layers.enable(3);
+  /* the light hangs well above the coals: the logs and the ring a hand's width from the flames are no longer burnt out,
+     and the glow on the sand falls off as the inverse square over several metres instead of stopping at an edge */
+  fireL=new T.PL(new C3("#ff9a4a"),0,12,2);fireL.position.set(FIRE.x,hTop(FIRE.x,FIRE.z)+1.5,FIRE.z);W.add(fireL);fireL.layers.enable(3);
 })();
 
 /* campfire smoke: thin, torn wisps, camera-facing ribbons that leave the fire narrow, bend downwind as they rise,
    spread and thin out to nothing by ~5 m; a fire this small never makes a sheet */
 const SMOKE_H=7.5;
-const smokeU={uT:{value:0},uBase:{value:new V3(FIRE.x,fireG.position.y+.4,FIRE.z)},uWind:{value:new V3(WIND.x,0,WIND.z)},uCamL:{value:new V3()},uOp:{value:1},uCol:{value:new C3(.66,.6,.56)},uG:{value:.4},uNt:{value:0}};
+const smokeU={uT:{value:0},uBase:{value:new V3(FIRE.x,fireG.position.y+.4,FIRE.z)},uWind:{value:new V3(WIND.x,0,WIND.z)},uCamL:{value:new V3()},uOp:{value:1},uCol:{value:new C3(.66,.6,.56)},uG:{value:.4},uNt:{value:0},uStm:{value:0}};
 const SMOKE=[];
 for(let r=0;r<3;r++){
   const SEG=56,n=SEG+1,aT=new Float32Array(n*2),aS=new Float32Array(n*2),pos=new Float32Array(n*6),idx=[];
@@ -1070,7 +1072,7 @@ for(let r=0;r<3;r++){
         vec3 tg=normalize(p2-q+vec3(0.,1e-4,0.)),vd=normalize(uCamL-p),sd=normalize(cross(tg,vd));
         float w=mix(.16,2.,pow(aT,.85))*uW;vec3 wp=p+sd*aS*w*.5;vN=vec2(aS*w*.5,aT*${SMOKE_H.toFixed(1)});
         gl_Position=projectionMatrix*modelViewMatrix*vec4(wp,1.);}`,
-    fragmentShader:`uniform float uT,uSeed,uA,uOp,uNt;uniform vec3 uCol;varying float vT,vS;varying vec2 vN;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uSeed,uA,uOp,uNt,uStm;uniform vec3 uCol;varying float vT,vS;varying vec2 vN;${GLSL_NOISE}
       void main(){float t=vT,h=vN.y;
         /* the column curls: its centre line wanders across the ribbon more the higher it gets */
         float cw=(dfbm(vec2(h*.32-uT*.42,uSeed))-.5)*1.3*smoothstep(.02,.4,t);
@@ -1082,8 +1084,11 @@ for(let r=0;r<3;r++){
         float a=uA*uOp*core*mix(mix(.55,1.,st),st*st,smoothstep(.04,.45,t));
         /* gaps open between the puffs the fire sends up */
         float puff=dn2(vec2(uSeed*3.1,h*.28-uT*.38));a*=mix(1.,.15+.85*smoothstep(.2,.62,puff),smoothstep(.05,.35,t));
-        a*=smoothstep(0.,.05,t)*(1.-smoothstep(.12,.62,t))*mix(1.25,.45,smoothstep(.04,.5,t));
-        if(a<.006)discard;gl_FragColor=vec4(uCol*mix(.86,1.04,smoothstep(0.,.4,vT))+vec3(.42,.2,.07)*uNt*(1.-smoothstep(.02,.3,vT)),a);
+        a*=smoothstep(0.,.05,t)*(1.-smoothstep(mix(.12,.05,uStm),mix(.62,.3,uStm),t))*mix(1.25,.45,smoothstep(.04,.5,t));
+        /* rain on the embers: thick white steam billows off low and is gone within a couple of metres */
+        a*=1.+1.6*uStm*(1.-smoothstep(.0,.22,t));
+        vec3 cc=mix(uCol,vec3(.84,.85,.86)*mix(1.,.42,uNt),uStm*(1.-smoothstep(.1,.35,t)));
+        if(a<.006)discard;gl_FragColor=vec4(cc*mix(.86,1.04,smoothstep(0.,.4,vT))+vec3(.42,.2,.07)*uNt*(1.-smoothstep(.02,.3,vT)),a);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`});
@@ -1679,9 +1684,11 @@ UPD.push((dt,t)=>{
   SMOKE.forEach(m=>{m.material.uniforms.uT.value=t});
   tentU.uWInv.value.copy(W.matrixWorld).invert();
   fireU.uT.value=t;fireU.uNight.value=nk;
-  if(fireL)fireL.intensity=(mix(.5,5.2,nk))*(1+.12*Math.sin(t*9)+.07*Math.sin(t*23))*(1-.55*WX.rain);
-  /* rain drowns the flames to a sputter over glowing embers */
-  if(fireG.userData.flames){const fr=1-.8*ss(.08,.55,WX.rain);fireG.userData.flames.forEach(o=>o.f.scale.set(o.s.x*(.5+.5*fr),o.s.y*fr,1))}
+  /* rain drowns the flames to a sputter over glowing embers, and the light goes down with them */
+  const rk=ss(.08,.55,WX.rain),fr=(1-.8*rk)*(1-.35*ss(.02,.3,WX.rain)*(.5+.5*Math.sin(t*11+3*Math.sin(t*4.3))));
+  if(fireL)fireL.intensity=mix(.6,5,nk)*(1+.12*Math.sin(t*9)+.07*Math.sin(t*23))*(.3+.7*fr);
+  if(fireG.userData.flames)fireG.userData.flames.forEach(o=>o.f.scale.set(o.s.x*(.5+.5*fr),o.s.y*fr,1));
+  smokeU.uStm.value=ss(.02,.3,WX.rain);
   if(fireG.userData.charM)fireG.userData.charM.emissiveIntensity=mix(.25,.9,nk)*(1+.2*Math.sin(t*5));
   {const on=ss(.25,.7,nk)*(1-ss(.08,.4,WX.rain));SPK.o.visible=on>.01;
    if(on>.01){if(rnd()<dt*5)sparkOut(1,false);
@@ -2660,11 +2667,19 @@ const AQ={dWnd:"@a:dWnd",dCalm:"@a:dCalm",dSnd:"@a:dSnd",dFire:"@a:dFire",dPop1:
   dFr1:"@a:dFr1",dFr2:"@a:dFr2",dFr3:"@a:dFr3",dFr4:"@a:dFr4",dFr5:"@a:dFr5",dFr6:"@a:dFr6",
   dDf1:"@a:dDf1",dDf2:"@a:dDf2",dDf3:"@a:dDf3",dGh1:"@a:dGh1",dGh2:"@a:dGh2",
   dRtl:"@a:dRtl",dRtlOn:"@a:dRtlOn",dRn:"@a:dRn",dRt:"@a:dRt",dStm:"@a:dStm",dStS:"@a:dStS",dTh1:"@a:dTh1",dTh2:"@a:dTh2",dTh3:"@a:dTh3",dTh4:"@a:dTh4",dTh5:"@a:dTh5"};
-const LL={dWnd:22,dCalm:36,dSnd:20,dFire:19,dSnk:8,dRtl:12,dRn:22,dRt:22,dStm:30,dStS:30};
+const LL={dSiz:6,dWnd:22,dCalm:36,dSnd:20,dFire:19,dSnk:8,dRtl:12,dRn:22,dRt:22,dStm:30,dStS:30};
 /* weather sounds load only when that weather comes */
-const WXA=new Set(["dRn","dRt","dStm","dStS","dTh1","dTh2","dTh3","dTh4","dTh5","dRtl","dRtlOn"]);
+const WXA=new Set(["dSiz","dRn","dRt","dStm","dStS","dTh1","dTh2","dTh3","dTh4","dTh5","dRtl","dRtlOn"]);
 const AU={b:{},pd:{},lp:{},bus:null,ob:null,pre:0,egT:rr(5,10),cmT:[rr(14,30),rr(30,60)],cmL:-99,q:[],cap:null};
 function SX(){return window.__sndX||null}
+/* rain hissing on the embers, made here rather than recorded: bright noise that swells and ebbs, with a sputter each time a drop
+   lands on the coals; laid out round a 6 s loop with the same 0.5 s padding as the recorded loops */
+function mkSiz(c){const R=c.sampleRate,L=LL.dSiz,n=Math.round(L*R),o=new Float32Array(n);let sd=9;const rn=()=>(sd=Math.imul(sd,1664525)+1013904223>>>0)/4294967296;
+  const kn=[...Array(24)].map(()=>.35+.65*rn());let lp=0;
+  for(let i=0;i<n;i++){const w=rn()*2-1;lp+=(w-lp)*.35;const u=i/n*24,j=Math.floor(u),f=(1-Math.cos((u-j)*Math.PI))/2;o[i]=(w-lp)*.16*(kn[j]+(kn[(j+1)%24]-kn[j])*f)}
+  for(let e=0,E=Math.round(L*8);e<E;e++){const t0=Math.floor(rn()*n),d=Math.round(R*(.012+.08*rn()*rn())),g=.25+.6*rn();let hp=0,pw=0;
+    for(let k=0;k<d*3;k++){const w=rn()*2-1;hp=w-pw;pw=w;o[(t0+k)%n]+=hp*g*Math.min(1,k/(R*.002))*Math.exp(-k/d)}}
+  const P=Math.round(.5*R),b=c.createBuffer(1,n+2*P,R),ch=b.getChannelData(0);for(let i=0;i<n+2*P;i++)ch[i]=o[((i-P)%n+n)%n];return b}
 function aOK(){const x=SX();return!!(x&&x.on&&x.s&&x.s.state==="running"&&root.visible)}
 function amb(){const x=SX();return AU.cap?true:!!(x&&x.amb)}
 function dec(k){if(AU.b[k]||AU.pd[k])return;const x=SX();if(!x||!x.s||!x.ld)return;AU.pd[k]=1;
@@ -2752,6 +2767,8 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   oasis(dt,nk,Math.max(ss(.12,1,wn)*(.45+.75*g),WX.dust*1.3,WX.rain*.9));
   /* placed: dust devil, the night fire, the snake's rustle (speed sets level and grain rate) */
   loopS("devil","dSnd",DV.amp?.55*DV.amp:0,_dvP.set(DV.x,hTop(DV.x,DV.z)+1.5,DV.z),10,1.12);
+  if(aOK()&&!AU.b.dSiz&&(AU.pre===2||WX.rain>.005))try{AU.b.dSiz=mkSiz(SX().s)}catch(e){}
+  loopS("fsiz","dSiz",.42*ss(.02,.25,WX.rain)*(1-.4*ss(.6,1,WX.rain)),_fiP.set(FIRE.x,hTop(FIRE.x,FIRE.z)+.3,FIRE.z),5,1,WX.rain>.004?.08:.35);
   loopS("fire","dFire",.5*ss(.35,.85,nk)*(1-.7*ss(.08,.55,WX.rain)),_fiP.set(FIRE.x,hTop(FIRE.x,FIRE.z)+.4,FIRE.z),5);
   const rs=ANIM.rs&&ANIM.rs.bd?ANIM.rs:null,sv=rs?cl(rs.spd/.2,0,1):0;
   loopS("snake","dSnk",rs?.75*ss(.04,.4,sv):0,rs?_snP.set(rs.bd.P[20],hTop(rs.bd.P[20],rs.bd.P[21])+.05,rs.bd.P[21]):null,3,.8+.35*sv);

@@ -212,7 +212,7 @@ try {
     /* once the snowfall stops the camels walk again, and their steps crunch in the lying snow */
     window.__set({weather: "sun", ct: "clear"}); q.tod("day"); q.sim(1, .5); q.audCap(true);
     for (let i = 0; i < 12 && !q.ANIM.camels.some(c => c.mode === "walk"); i++) { for (const c of q.ANIM.camels) if (c.mode === "job") c.timer = 0; q.sim(5, .1); }
-    q.sim(10, .1); r.crunch = q.audCap(false).filter(e => e[1] === "S" && e[2] === "dCrn").length;
+    q.sim(20, .1); r.crunch = q.audCap(false).filter(e => e[1] === "S" && e[2] === "dCrn").length;
     r.wetPeak = q.WX.mw; for (let i = 0; i < 24; i++) { q.sim(10, .5); r.wetPeak = Math.max(r.wetPeak, q.WX.mw); } r.coverAt300 = q.WX.sc; r.iceDay = q.WX.ice; r.frostDay = q.WX.frost;
     q.sim(900, 1); r.wetAfter = q.WX.mw; r.coldAfter = q.WX.cold;
     for (const k in r) if (typeof r[k] === "number") r[k] = +r[k].toFixed(3);

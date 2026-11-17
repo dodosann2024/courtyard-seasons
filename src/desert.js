@@ -396,8 +396,8 @@ function sandMat(){
           float trM=mix(smoothstep(.35,-.7,sin(mp+.85*sin(mp))),.45,smoothstep(.1,.4,fwS*2.3)),trF=.45;
           if(fwS<.3){vec2 RW=vec2(dfbm(q*.09)*4.,dfbm(q*.11+7.)*2.5);float h=ripH(q,RW,1.+.16*(dn2(q*.07+1.3)-.5),.5+.5*smoothstep(.28,.62,dn2(q*.21+11.)));
             trF=mix(smoothstep(.3,-.6,h),.45,smoothstep(.07,.3,fwS));}
-          /* the stripes follow the fine ripples (a hand apart), the coarse ridges only bias them */
-          float tr=mix(.3*trM+.7*.45,.18*trM+.82*trF,1.-smoothstep(.07,.3,fwS)),nn=dn2(q*.7+3.1)*.6+dn2(q*2.3)*.4;
+          /* the stripes follow the fine ripples (a hand apart); on flat sand the coarse troughs hold more of them than the coarse ridges */
+          float kM=mix(.5,.3,vDn.x),kF=mix(.4,.18,vDn.x),tr=mix(kM*trM+(1.-kM)*.45,kF*trM+(1.-kF)*trF,1.-smoothstep(.07,.3,fwS)),nn=dn2(q*.7+3.1)*.6+dn2(q*2.3)*.4;
           float B=.5*lee+.3*nf-1.1*ww-1.4*crs+(tr-.5)*1.6+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),ew=.13+fwS*.5;
           float lv=B+.38*uSnow-.31-wet*1.5-.3*(1.-smoothstep(.0,.25,uSnow));
           ${TRK?"lv-=1.4*smoothstep(.08,.4,trk.r+.5*trk.g);":""}
@@ -2271,13 +2271,15 @@ function hailSim(dt,t){const S0=HS,P=S0.P,hf=WX.hf,wn=st.wn;
   /* new stones: as many as the burst gives over the patch in view, capped so the pool turns over every several seconds */
   const wsp=(1.5+6*wn)*(.7+.5*WX.gf);
   S0.acc+=dt*hf*Math.min(MOB?28:64,Math.PI*S0.R*S0.R*1.4);
-  let free=0;const C=S0.cnt,cn=k=>{C[k]=(C[k]||0)+1};
+  let free=0;const C=S0.cnt,cn=k=>{C[k]=(C[k]||0)+1},CH=cactusHits();
   while(S0.acc>=1){S0.acc-=1;let s=null;for(let j=0;j<S0.n;j++){const q=P[(free+j)%S0.n];if(!q.m){s=q;free=(free+j+1)%S0.n;break}}
     if(!s){let o=1e9;for(const q of P)if(q.m===3&&q.t<o){o=q.t;s=q}if(!s)break}
     const a=rnd()*TAU,u=Math.sqrt(rnd())*S0.R,lx=S0.F.x+Math.cos(a)*u,lz=S0.F.z+Math.sin(a)*u,gy=hTop(lx,lz),hh=rr(5,8),tf=hh/10;
-    Object.assign(s,{m:1,x:lx-WIND.x*wsp*tf,z:lz-WIND.z*wsp*tf,y:Math.max(gy,POND.wy)+hh,vx:WIND.x*wsp*rr(.8,1.1),vz:WIND.z*wsp*rr(.8,1.1),vy:-rr(8.5,11.5),
+    /* the slant is aimed at what the stone meets first: over a cactus that is its crown, not the sand below it */
+    let ty=Math.max(gy,POND.wy);for(const c of CH){const dx=lx-c.x,dz=lz-c.z;if(dx*dx+dz*dz<c.r*c.r)ty=Math.max(ty,c.y-.3)}
+    Object.assign(s,{m:1,x:lx-WIND.x*wsp*tf,z:lz-WIND.z*wsp*tf,y:ty+hh,vx:WIND.x*wsp*rr(.8,1.1),vz:WIND.z*wsp*rr(.8,1.1),vy:-rr(8.5,11.5),
       r:.004+.008*Math.pow(rnd(),1.6),t:0,b:0,gy:Math.max(gy,POND.wy),pd:0,cd:0,td:0,sk:1});cn("spawn")}
-  const CH=cactusHits(),warm=(1-LK.night)*(LK.day+.5*LK.sunset+.5*LK.sunrise);let n=0;const M=S0.M,E=S0.ev;for(const k in E)E[k]=null;
+  const warm=(1-LK.night)*(LK.day+.5*LK.sunset+.5*LK.sunrise);let n=0;const M=S0.M,E=S0.ev;for(const k in E)E[k]=null;
   for(const s of P){if(!s.m)continue;s.t+=dt;
     if(s.m===1){s.vy=Math.max(s.vy-9.8*dt,-13);s.x+=s.vx*dt;s.y+=s.vy*dt;s.z+=s.vz*dt;
       if(!s.td&&TR.ok&&Math.abs(s.x-TENT.x)<4&&Math.abs(s.z-TENT.z)<4){const h=roofAt(s.x,s.z,_hn);if(h>-50&&s.y<h+s.r){s.y=h+s.r;

@@ -30,7 +30,10 @@ const onDes=o=>{if(o===root||!o.visible){o.traverse(c=>{c.layers.mask=1|L3});ret
   /* without the extension a link cannot be waited on: the model is compiled now and drawn a few frames later */
   if(PAR){warm(o).then(()=>requestAnimationFrame(on));return}
   const rv=root.visible,rt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(Ta.readBuffer||null);try{Cn.compile(o,De,Jt)}catch(_){}Cn.setRenderTarget(rt);root.visible=rv;
-  let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}on()};requestAnimationFrame(f)};
+  let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}reveal(on)};requestAnimationFrame(f)};
+/* the first draw of a model waits on its links, so models are shown one a frame and their links never pile into one long frame */
+const RQ=[];let rqB=0;
+function reveal(f){RQ.push(f);if(rqB)return;rqB=1;const g=()=>{const h=RQ.shift();if(h)h();if(RQ.length)requestAnimationFrame(g);else rqB=0};requestAnimationFrame(g)}
 /* KTX2Loader.detectSupport enables each format with getExtension, a synchronous GPU round trip that waits behind every frame
    already queued; the list of supported names is answered without one */
 function ktxCfg(){let s;try{s=new Set(Cn.getContext().getSupportedExtensions()||[])}catch(_){s=new Set()}const h=e=>s.has(e);
@@ -2997,12 +3000,17 @@ function trkSeg(K,x0,z0,x1,z1,dep,px,pz,wr,mk,sc,ma,mb){const N=K.N,te=K.M/N,h=N
   const ex=bx-ax,ez=bz-az,L2=ex*ex+ez*ez||1e-9;mk=mk||0;
   let th=Math.atan2(ez,ex),sg=mb>=ma?1:-1;if(th<0){th+=Math.PI;sg=-sg}if(th>=Math.PI){th=0;sg=-sg}
   const cb=sc?(sc===1?1:129)+Math.round(th/Math.PI*126)%127:0;
+  /* beyond these distances a term is under one step of the 8-bit texture and cannot change it */
+  const lg=v=>v>1?Math.log(v):-1,gD=s2*lg(255*dep),rD=rw*lg(138*dep),mD=mk>0?mw*lg(288*dep*mk):-1,dM=Math.max(Math.sqrt(Math.max(gD,0)),ro+Math.sqrt(Math.max(rD,0)),mo+Math.sqrt(Math.max(mD,0)));
+  if(gD<0&&rD<0&&mD<0)return;
   for(let j=Math.max(0,Math.floor(Math.min(az,bz))-R);j<=Math.min(N-1,Math.floor(Math.max(az,bz))+R);j++)
     for(let i=Math.max(0,Math.floor(Math.min(ax,bx))-R);i<=Math.min(N-1,Math.floor(Math.max(ax,bx))+R);i++){
-      const cx=i+.5,cz=j+.5,uu=((cx-ax)*ex+(cz-az)*ez)/L2,u=cl(uu,0,1),dx=(cx-ax-ex*u)*te,dz=(cz-az-ez*u)*te,d=Math.hypot(dx,dz),sd=d>1e-4?(dx*px+dz*pz)/d:0;
-      const gr=dep*Math.exp(-d*d/s2),rim=dep*(.24+.36*sd)*Math.exp(-(d-ro)*(d-ro)/rw),mnd=dep*mk*Math.max(sd,0)**1.2*1.25*Math.exp(-(d-mo)*(d-mo)/mw);
-      const o=(j*N+i)*4,va=gr*255|0,vb=Math.max(rim,mnd)*230|0;
-      if(va>K.d[o]){K.d[o]=va;K.d[o+2]=cb;if(cb){const ph=sg*(ma+uu*(mb-ma))/RS_SCL;K.d[o+3]=(ph-Math.floor(ph))*256|0}}if(vb>K.d[o+1])K.d[o+1]=vb}
+      const cx=i+.5,cz=j+.5,uu=((cx-ax)*ex+(cz-az)*ez)/L2,u=uu<0?0:uu>1?1:uu,dx=(cx-ax-ex*u)*te,dz=(cz-az-ez*u)*te,d2=dx*dx+dz*dz;
+      if(d2>dM*dM)continue;
+      const d=Math.sqrt(d2),sd=d>1e-4?(dx*px+dz*pz)/d:0,o=(j*N+i)*4;
+      if(d2<gD){const va=dep*Math.exp(-d2/s2)*255|0;if(va>K.d[o]){K.d[o]=va;K.d[o+2]=cb;if(cb){const ph=sg*(ma+uu*(mb-ma))/RS_SCL;K.d[o+3]=(ph-Math.floor(ph))*256|0}}}
+      const er=(d-ro)*(d-ro),em=(d-mo)*(d-mo),rim=er<rD?dep*(.24+.36*sd)*Math.exp(-er/rw):0,mnd=em<mD&&sd>0?dep*mk*sd**1.2*1.25*Math.exp(-em/mw):0;
+      const vb=Math.max(rim,mnd)*230|0;if(vb>K.d[o+1])K.d[o+1]=vb}
   K.dirty=K.any=1}
 /* sand thrown off where the neck slaps down at the head of a sidewinding track: a scatter of grains and small clods, most of
    them in the direction the sand is pushed (px,pz) */

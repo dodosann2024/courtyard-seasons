@@ -2790,7 +2790,9 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   const rOn=WX.rain>.004?1:0;
   loopS("rain","dRn",.6*rOn*Math.pow(Math.min(1,WX.rain/.62),.6),null,0,1,.08);
   /* the cloth keeps dripping for a while after the rain: the same drumming, thinned and slowed */
-  {const dr=ss(.88,1,WX.after)*(1-ss(.01,.2,WX.rain));loopS("rtent","dRt",.75*rOn*Math.pow(Math.min(1,WX.rain/.5),.6)+.16*dr,_tnP.set(TENT.x,hTop(TENT.x,TENT.z)+1.6,TENT.z),6,1-.22*dr,rOn?.08:.35)}
+  {const dr=ss(.88,1,WX.after)*(1-ss(.01,.2,WX.rain));loopS("rtent","dRt",.75*rOn*Math.pow(Math.min(1,WX.rain/.5),.6)+.16*dr,_tnP.set(TENT.x,hTop(TENT.x,TENT.z)+1.6,TENT.z),6,1-.22*dr,rOn?.08:.35);
+    /* heavy rain drums the cloth: a second, detuned pass of the canvas recording doubles the patter without blurring it into hiss */
+    loopS("rtent2","dRt",.5*rOn*ss(.45,.85,WX.rain),_tnP,6,1.17,rOn?.08:.35)}
   loopS("storm","dStm",.62*ss(.04,.7,WX.dust));
   loopS("stsand","dStS",.5*ss(.2,.9,WX.dust)*(.55+.45*g));
   oasis(dt,nk,Math.max(ss(.12,1,wn)*(.45+.75*g),WX.dust*1.3,WX.rain*.9));

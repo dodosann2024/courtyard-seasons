@@ -1429,6 +1429,7 @@ Ta.insertPass(mirP,1);
 const bloom=Ta.passes.find(p=>p&&p.strength!=null&&p.threshold!=null&&p.radius!=null)||null;
 
 /* ---------------- time of day ---------------- */
+const WNS={v:.35};
 const st={t:0,ts:1,wn:.35,night:0,day:0,phase:"sunset",tod:null,lock:false};
 const UPD=[];
 function nightRaw(){const n=qt.night||0;return(Ct.night||Ct.mode==="full"||Ct.mode==="crescent"||Ct.mode==="half")?Math.max(n,.92):n}
@@ -1560,7 +1561,8 @@ function update(dt){
   step(Math.min(dt,.05))}
 function step(dt){
   dt*=st.ts;st.t+=dt;
-  st.wn=Ue.uWind?Ue.uWind.value:(Ct.wind||.35);
+  /* follow the wind slider in scene time: the app's own smoothed uniform only advances on real frames */
+  const wT=Number.isFinite(+Ct.wind)?+Ct.wind:.35;WNS.v=dt>0?WNS.v+(wT-WNS.v)*(1-Math.exp(-dt*1.1)):wT;st.wn=WNS.v;
   applyLighting(dt);
   skyDome.position.copy(De.position);skyU.uT.value=st.t;skyU.uYaw0.value=168*D2R+st.t*.0012*(.5+st.wn);
   sunScreen();
@@ -1571,11 +1573,11 @@ UPD.push((dt,t)=>{
   const wn=st.wn,nk=st.night;
   _cl.copy(De.position);W.worldToLocal(_cl);
   /* wind: shared gust clock, dune creep, drifting-sand phase */
-  WS.d+=(wn-WS.d)*Math.min(1,dt*(wn>WS.d?.5:.035));WS.ph+=dt*(.012+.05*WS.d);
+  WS.d+=(wn-WS.d)*Math.min(1,dt*(wn>WS.d?.5:.15));WS.ph+=dt*(.012+.05*WS.d);
   WS.a=WS.pin!=null?WS.pin:DUNE.yaw+(.1+.4*ss(.4,1.1,WS.d))*(.62*Math.sin(WS.ph*1.3)+.38*Math.sin(WS.ph*2.9+1.1));
   WIND.x=Math.cos(WS.a);WIND.z=-Math.sin(WS.a);sandU.uWD.value.set(WIND.x,WIND.z);smokeU.uWind.value.set(WIND.x,0,WIND.z);rainU.uWD.value.set(WIND.x,WIND.z);
   GUST.t+=dt;sandU.uGT.value=GUST.t;
-  const wd=WS.d,gD=gustAt(DUNE0.x,DUNE0.z),wk=.5+wd*1.4;
+  const wd=WS.d,gD=gustAt(DUNE0.x,DUNE0.z),wk=ss(.04,.35,wd)*(.5+wd*1.4);
   duneEvolve(dt*(.35+.9*gD)*wk*(1-.9*WX.wet)*(1+2.5*WX.dust));CURK=ss(.2,.6,wd)*(1-.9*WX.wet)*(1+1.4*WX.dust);
   sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk);
   /* sand only moves above a threshold wind (saltation): a light breeze leaves the surface still, a strong wind sets fast, dense
@@ -2990,7 +2992,7 @@ const QA={mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,ag
   /* fast-forward only the dune clock (and the ripple drift) by `sec` seconds of average wind */
   duneAdv(sec){const wk=.5+st.wn*1.4;duneEvolve(sec*.8*wk);sandU.uRipPh.value+=sec*.08*wk;
     sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk)},
-  dune:{DP,DUNE0,DCLK,GUST,crestXZ,dMask,gustAt},
+  dune:{DP,DUNE0,DCLK,GUST,crestXZ,dMask,gustAt},salt:()=>SALT,
   /* sound capture for the recorded videos: every voice's level/pan/low-pass per step, mixed offline */
   audCap(on){if(on){AU.cap={t0:st.t,ev:[]};return 0}const c=AU.cap;AU.cap=null;return c?c.ev:[]},AU,OAS,oasisNear,
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,play,rsBout}};

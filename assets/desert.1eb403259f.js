@@ -3147,10 +3147,10 @@ const AQ={dWnd:"audio/dWnd.ff02237487.mp3",dCalm:"audio/dCalm.89da1bd867.mp3",dS
   dOk1:"audio/dOk1.e1cd0b8449.mp3",dOk2:"audio/dOk2.187122caa9.mp3",dOk3:"audio/dOk3.12a14d4f0e.mp3",dOk4:"audio/dOk4.2e238f8827.mp3",dOc1:"audio/dOc1.31d35bc855.mp3",dOc2:"audio/dOc2.ba99be553d.mp3",dOc3:"audio/dOc3.f21d195427.mp3",
   dFr1:"audio/dFr1.71022fc177.mp3",dFr2:"audio/dFr2.2933177163.mp3",dFr3:"audio/dFr3.ef371c70a6.mp3",dFr4:"audio/dFr4.3b0eb8afa7.mp3",dFr5:"audio/dFr5.f59005cbba.mp3",dFr6:"audio/dFr6.34303a83b9.mp3",
   dDf1:"audio/dDf1.c2bca8b159.mp3",dDf2:"audio/dDf2.f9c6cbb2b2.mp3",dDf3:"audio/dDf3.89d3852f46.mp3",dGh1:"audio/dGh1.fab43c03e1.mp3",dGh2:"audio/dGh2.db74adeb9b.mp3",
-  dRtl:"audio/dRtl.583fb265c7.mp3",dRtlOn:"audio/dRtlOn.8c54efd922.mp3",dRn:"audio/dRn.e65ce5597f.mp3",dRt:"audio/dRt.42d94b489e.mp3",dStm:"audio/dStm.5a9de5ce8c.mp3",dStS:"audio/dStS.3eb716e7e9.mp3",dTh1:"audio/dTh1.b13785294f.mp3",dTh2:"audio/dTh2.2231810e14.mp3",dTh3:"audio/dTh3.7d73564cb4.mp3",dTh4:"audio/dTh4.ddd885035b.mp3",dTh5:"audio/dTh5.b55b99d3da.mp3"};
-const LL={dHsd:6,dHtn:6,dHlf:6,dHwt:6,dSiz:6,dWnd:22,dCalm:36,dSnd:20,dFire:19,dSnk:8,dRtl:12,dRn:22,dRt:22,dStm:30,dStS:30,dSnw:8};
+  dRtl:"audio/dRtl.583fb265c7.mp3",dRtlOn:"audio/dRtlOn.8c54efd922.mp3",dRn:"audio/dRn.962d3a4b8e.mp3",dRt:"audio/dRt.42d94b489e.mp3",dRn2:"audio/dRn2.c4bd152bef.mp3",dRn3:"audio/dRn3.ce70d282d2.mp3",dRt2:"audio/dRt2.ea377a8b4f.mp3",dStm:"audio/dStm.5a9de5ce8c.mp3",dStS:"audio/dStS.3eb716e7e9.mp3",dTh1:"audio/dTh1.b13785294f.mp3",dTh2:"audio/dTh2.2231810e14.mp3",dTh3:"audio/dTh3.7d73564cb4.mp3",dTh4:"audio/dTh4.ddd885035b.mp3",dTh5:"audio/dTh5.b55b99d3da.mp3"};
+const LL={dHsd:11,dHtn:9,dHlf:8,dHwt:7,dRwt:11,dRlf:9,dRn2:13,dRn3:17,dRt2:17,dSiz:6,dWnd:22,dCalm:36,dSnd:20,dFire:19,dSnk:8,dRtl:12,dRn:22,dRt:22,dStm:30,dStS:30,dSnw:8};
 /* weather sounds load only when that weather comes */
-const WXA=new Set(["dCrn","dHsd","dHtn","dHlf","dHwt","dHs1","dHt1","dHp1","dHc1","dSiz","dSnw","dDp1","dDp2","dDp3","dRn","dRt","dStm","dStS","dTh1","dTh2","dTh3","dTh4","dTh5","dRtl","dRtlOn"]);
+const WXA=new Set(["dRn2","dRn3","dRt2","dRwt","dRlf","dRd1","dRd2","dRd3","dCrn","dHsd","dHtn","dHlf","dHwt","dHs1","dHt1","dHp1","dHc1","dSiz","dSnw","dDp1","dDp2","dDp3","dRn","dRt","dStm","dStS","dTh1","dTh2","dTh3","dTh4","dTh5","dRtl","dRtlOn"]);
 const AU={b:{},pd:{},lp:{},n:{},bus:null,ob:null,pre:0,egT:rr(5,10),cmT:[rr(14,30),rr(30,60)],cmL:-99,q:[],cap:null};
 function SX(){return window.__sndX||null}
 /* rain hissing on the embers, made here rather than recorded: bright noise that swells and ebbs, with a sputter each time a drop
@@ -3187,14 +3187,25 @@ function hClick(o,i0,R,g,rn){const n=o.length,m=2+Math.floor(rn()*4);let at=i0;
 function hPlink(o,i0,R,g,f,rn){const n=o.length,K=Math.round(.13*R);let ph=0,pw=0;
   for(let k=0;k<K;k++){const t=k/R,w=rn()*2-1,hp=w-pw;pw=w;const t2=Math.max(0,t-.006);ph+=TAU*f*(1+.55*Math.min(1,t2/.018))/R;
     o[(i0+k)%n]+=g*(.5*hp*Math.exp(-t/.0028)+(t>.006?.6*Math.sin(ph)*Math.exp(-t2/.024)*Math.min(1,t2/.001):0))}}
-function hLoop(R,seed,E,fn){const L=6,n=Math.round(L*R),o=new Float32Array(n),rn=lcg(seed);for(let e=0;e<L*E;e++)fn(o,Math.floor(rn()*n),rn);return padL(o,R)}
+/* loops of strikes, each as long as its own LL so the surfaces never line up; strikes wrap round the end, so the loop is seamless */
+function hLoop(R,seed,E,fn,L,post){const n=Math.round(L*R),o=new Float32Array(n),rn=lcg(seed);for(let e=0;e<L*E;e++)fn(o,Math.floor(rn()*n),rn);if(post)post(o,R);return padL(o,R)}
+/* a noise layer that is exactly periodic over the loop: the same n noise samples are filtered twice round and the second
+   pass kept, so the filters' state at the end runs straight on into the start */
+function pNoise(o,seed,f){const n=o.length,rn=lcg(seed),w=new Float32Array(n);for(let i=0;i<n;i++)w[i]=rn()*2-1;const S={};
+  for(let p=0;p<2;p++)for(let i=0;i<n;i++){const v=f(w[i],S,i/n);if(p)o[i]+=v}}
 Object.assign(SYN,{
-  dHsd:R=>hLoop(R,41,150,(o,i,rn)=>hThud(o,i,R,.05+.22*Math.pow(rn(),2.2),150+260*rn(),rn)),
-  dHtn:R=>hLoop(R,43,46,(o,i,rn)=>hDrum(o,i,R,.04+.2*Math.pow(rn(),1.8),95+75*rn(),rn)),
-  dHlf(R){const o=hLoop(R,47,70,(o,i,rn)=>hClick(o,i,R,.06+.3*Math.pow(rn(),1.5),rn)),rn=lcg(49);let l1=0,l2=0;
-    for(let i=0;i<o.length;i++){const w=rn()*2-1;l1+=(w-l1)*.5;l2+=(l1-l2)*.08;o[i]+=(l1-l2)*.05*(.6+.4*Math.sin(i/R*2.1))}return o},
-  dHwt(R){const o=hLoop(R,53,48,(o,i,rn)=>hPlink(o,i,R,.05+.2*Math.pow(rn(),1.6),1500+1700*rn(),rn)),rn=lcg(55);let pw=0;
-    for(let i=0;i<o.length;i++){const w=rn()*2-1;o[i]+=(w-pw)*.012;pw=w}return o},
+  dHsd:R=>hLoop(R,41,150,(o,i,rn)=>hThud(o,i,R,.05+.22*Math.pow(rn(),2.2),150+260*rn(),rn),LL.dHsd),
+  dHtn:R=>hLoop(R,43,46,(o,i,rn)=>hDrum(o,i,R,.04+.2*Math.pow(rn(),1.8),95+75*rn(),rn),LL.dHtn),
+  dHlf:R=>hLoop(R,47,70,(o,i,rn)=>hClick(o,i,R,.06+.3*Math.pow(rn(),1.5),rn),LL.dHlf,o=>pNoise(o,49,(w,S,u)=>{S.a=(S.a||0)+(w-(S.a||0))*.5;S.b=(S.b||0)+(S.a-(S.b||0))*.08;return(S.a-S.b)*.05*(.6+.4*Math.sin(TAU*3*u))})),
+  dHwt:R=>hLoop(R,53,48,(o,i,rn)=>hPlink(o,i,R,.05+.2*Math.pow(rn(),1.6),1500+1700*rn(),rn),LL.dHwt,o=>pNoise(o,55,(w,S)=>{const v=(w-(S.p||0))*.012;S.p=w;return v})),
+  /* rain on the pond: a dense fizz of small drops, each a tiny splash and a short high bubble plink */
+  dRwt:R=>hLoop(R,57,95,(o,i,rn)=>hPlink(o,i,R,.025+.11*Math.pow(rn(),2),2400+2600*rn(),rn),LL.dRwt,o=>pNoise(o,59,(w,S)=>{const v=(w-(S.p||0))*.02;S.p=w;return v})),
+  /* rain on the fronds: soft leaf ticks, many and quiet, over the leaves' wet rustle */
+  dRlf:R=>hLoop(R,61,160,(o,i,rn)=>hClick(o,i,R,.02+.09*Math.pow(rn(),1.7),rn),LL.dRlf,o=>pNoise(o,63,(w,S,u)=>{S.a=(S.a||0)+(w-(S.a||0))*.45;S.b=(S.b||0)+(S.a-(S.b||0))*.06;return(S.a-S.b)*.035*(.7+.3*Math.sin(TAU*2*u))})),
+  /* single near drops: a soft pat on sand, a taut tick on the cloth, a tick on a frond */
+  dRd1(R){const o=new Float32Array(Math.round(.07*R));hThud(o,0,R,.32,330,lcg(73));return o},
+  dRd2(R){const o=new Float32Array(Math.round(.28*R));hDrum(o,0,R,.28,175,lcg(75));return o},
+  dRd3(R){const o=new Float32Array(Math.round(.07*R));hClick(o,0,R,.32,lcg(77));return o},
   /* a camel's foot in snow: the squeak and crackle of crystals packing down over a soft thud */
   dCrn(R){const n=Math.round(.2*R),o=new Float32Array(n),rn=lcg(71);let lp=0;
     for(let i=0;i<n;i++){const t=i/R,w=rn()*2-1;lp+=(w-lp)*.3;o[i]=lp*.35*Math.min(1,t/.01)*Math.exp(-t/.05)}
@@ -3212,14 +3223,14 @@ function synB(k){if(AU.b[k])return true;const x=SX();if(!x||!x.s)return false;AU
   try{const d=SYN[k](x.s.sampleRate),b=x.s.createBuffer(1,d.length,x.s.sampleRate);b.getChannelData(0).set(d);AU.b[k]=b;return true}catch(e){return false}}
 function aOK(){const x=SX();return!!(x&&x.on&&x.s&&x.s.state==="running"&&root.visible)}
 function amb(){const x=SX();return AU.cap?true:!!(x&&x.amb)}
-function dec(k){if(AU.b[k]||AU.pd[k])return;const x=SX();if(!x||!x.s||!x.ld)return;AU.pd[k]=1;
+function dec(k){if(AU.b[k]||AU.pd[k]||!AQ[k])return;const x=SX();if(!x||!x.s||!x.ld)return;AU.pd[k]=1;
   x.ld(AQ[k]).then(B=>{const P=x.s.decodeAudioData(B,b=>{AU.b[k]=SEAM.has(k)?seam(x.s,b,LL[k]):b},()=>{});P&&P.catch&&P.catch(()=>{})}).catch(()=>{setTimeout(()=>{AU.pd[k]=0},8e3)})}
 function aBus(){if(AU.bus)return true;const x=SX();try{const b=x.s.createGain();b.gain.value=0;b.connect(x.r);AU.bus=b;
   const o=x.s.createGain(),f=x.s.createBiquadFilter();f.type="lowpass";f.Q.value=.5;f.frequency.value=19000;o.gain.value=0;o.connect(f);f.connect(b);AU.ob=o;AU.of=f;return true}catch(e){return false}}
 /* The rain beds are made exactly periodic once decoded. The file's loop [0.5 s, 0.5 s + T] joins only as well as the MP3
    frames on either side happen to match (and the decoder's padding differs between browsers), so the last 0.45 s of the
    loop is crossfaded into the copy of itself that sits just before the loop start; the wrap then continues sample for sample. */
-const SEAM=new Set(["dRn","dRt"]),BED=new Set(["rain","rtent","rtent2"]);
+const SEAM=new Set(["dRn","dRt","dRn2","dRn3","dRt2"]),BED=new Set(["rain","rain2","rain3","rtent","rtent2","rwat","rleaf","hsand","htent","hleaf","hwat"]);
 function seam(c,b,T){const sr=b.sampleRate,a=Math.round(.5*sr),n=Math.round(T*sr),x=Math.round(.45*sr);if(b.length<a+n||!c)return b;
   try{const o=c.createBuffer(b.numberOfChannels,n,sr);
     for(let ch=0;ch<b.numberOfChannels;ch++){const y=b.getChannelData(ch),d=o.getChannelData(ch);d.set(y.subarray(a,a+n));
@@ -3238,8 +3249,8 @@ function voice(c,out,pan,lpf){const g=c.createGain(),f=c.createBiquadFilter(),pn
 function loopS(id,k,v,p,ref,rate,tc,mf){let pan=0,lpf=19000;if(p){const q=spat(p,ref);pan=q[0];v*=q[1];lpf=q[2]}if(mf)lpf=Math.min(lpf,mf);rate=rate||1;
   capE(["L",id,k,+v.toFixed(4),+pan.toFixed(3),Math.round(lpf),+rate.toFixed(3)].concat(tc?[tc]:[]));
   if(!aOK()||!aBus())return;const c=SX().s;let L=AU.lp[id];
-  /* the rain beds start silent as soon as they are decoded and then run without a break for as long as the desert is
-     shown: rain only ever raises and lowers their gain, it never starts or stops a source */
+  /* the rain and hail beds start silent as soon as they are decoded (or made) and then run without a break for as long as
+     the desert is shown: the weather only ever raises and lowers their gain, it never starts or stops a source */
   if(!L){if(v<=.001&&!(BED.has(id)&&AU.b[k]))return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;
     if(b.seam){s.loopStart=0;s.loopEnd=b.duration}else{s.loopStart=.5;s.loopEnd=.5+LL[k]}
     L=voice(c,AU.bus,pan,lpf);L.g.gain.value=0;Object.assign(L,{s,v:0,lf:lpf,pa:pan,ra:1,w:-1});s.connect(L.g);s.start(0,b.seam?rnd()*b.duration:.5+rnd()*LL[k]);AU.lp[id]=L;AU.n[id]=(AU.n[id]||0)+1}catch(e){return}}
@@ -3299,7 +3310,7 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   if(aOK()){if(!AU.pre){AU.pre=1;Object.keys(LL).filter(k=>!WXA.has(k)).forEach(dec)}
     if(AU.pre===1&&AU.big){AU.pre=2;Object.keys(AQ).filter(k=>!WXA.has(k)).forEach(dec)}
     /* the rain beds are decoded ahead of the weather, so the first drops are heard as they are seen */
-    if(AU.pre===2||Ct.weather!=="sun"&&Ct.weather!=="dust")["dRn","dRt"].forEach(dec)}
+    if(AU.pre===2||Ct.weather!=="sun"&&Ct.weather!=="dust")["dRn","dRt","dRn2","dRn3","dRt2"].forEach(dec)}
   if(Ct.weather==="storm"&&aOK())["dTh1","dTh2","dTh3","dTh4","dTh5"].forEach(dec);
   if(ANIM.rs&&aOK())["dRtl","dRtlOn"].forEach(dec);
   if(aOK()&&aBus())AU.bus.gain.setTargetAtTime(1,SX().s.currentTime,.6);
@@ -3314,21 +3325,42 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   if(aOK()&&WX.sf>.01)synB("dSnw");
   loopS("snow","dSnw",.34*ss(0,.6,WX.sf)*(.7+.3*(1-ss(.3,1,wn))),null,0,1,.6);
   /* dew dripping off the fronds and the tent in the fog: into the pond at the edge, or a tap on a leaf or the cloth */
-  if(WX.dew>.12&&amb()&&(AU.dpT=(AU.dpT||0)-dt)<0){AU.dpT=rr(.35,2)/(.25+WX.dew);if(aOK())["dDp1","dDp2","dDp3"].forEach(synB);const r=rnd();
-    if(r<.5){const[x,z]=pondEdge(rr(-3.1,3.1),rr(.86,.98));shotS(rnd()<.6?"dDp1":"dDp2",.42*WX.dew,_oP.set(x,POND.wy,z),6,rr(.9,1.15),1)}
-    else if(r<.82){const p=PALMS[Math.floor(rnd()*PALMS.length)];if(p)shotS("dDp3",.32*WX.dew,_oP.set(p.x+rr(-1.6,1.6),hTop(p.x,p.z)+.1,p.z+rr(-1.6,1.6)),5,rr(.85,1.2),1)}
-    else shotS("dDp3",.36*WX.dew,_tnP.set(TENT.x+rr(-2,2),hTop(TENT.x,TENT.z)+.2,TENT.z+rr(-1.5,1.5)),6,rr(1.1,1.4))}
+  /* and after rain, while the cloth still streams and the fronds still shed (the same curve that draws the drips), thinning out */
+  const dr=ss(.88,1,WX.after)*(1-ss(.01,.2,WX.rain)),dw=Math.max(WX.dew,.85*dr);AU.dw=dw;
+  if(dw>.12&&amb()&&(AU.dpT=(AU.dpT||0)-dt)<0){AU.dpT=rr(.35,2)/(.25+dw);if(aOK())["dDp1","dDp2","dDp3"].forEach(synB);const r=rnd();AU.dpN=(AU.dpN||0)+1;
+    if(r<.5){const[x,z]=pondEdge(rr(-3.1,3.1),rr(.86,.98));shotS(rnd()<.6?"dDp1":"dDp2",.42*dw,_oP.set(x,POND.wy,z),6,rr(.9,1.15),1)}
+    else if(r<.82){const p=PALMS[Math.floor(rnd()*PALMS.length)];if(p)shotS("dDp3",.32*dw,_oP.set(p.x+rr(-1.6,1.6),hTop(p.x,p.z)+.1,p.z+rr(-1.6,1.6)),5,rr(.85,1.2),1)}
+    else shotS("dDp3",.36*dw,_tnP.set(TENT.x+rr(-2,2),hTop(TENT.x,TENT.z)+.2,TENT.z+rr(-1.5,1.5)),6,rr(1.1,1.4))}
   /* weather: rain on the sand everywhere, rain drumming on the tent cloth up close, the roar and hiss of a dust storm */
   /* level follows the streaks drawn (same WX.rain, same cut-off) with a loudness curve that is already clear at the first
      sparse drops, and a short gain lag so it starts and stops with the picture */
-  const rOn=WX.rain>.004?1:0;
-  loopS("rain","dRn",.6*rOn*Math.pow(Math.min(1,WX.rain/.62),.6),null,0,1,.08);
+  const rOn=WX.rain>.004?1:0,rv=.6*rOn*Math.pow(Math.min(1,WX.rain/.62),.6),sw=.5+.5*Math.sin(st.t*.043+1.1);
+  /* the soft patter on the sand all round is three beds of 22, 17 and 13 s (no common factor) started at random points, the
+     two shorter ones trading level slowly, so no stretch of it comes round again in any one listening */
+  loopS("rain","dRn",.75*rv,null,0,1,.08);
+  loopS("rain2","dRn2",.5*rv*(.75+.5*sw),null,0,1,.08);
+  loopS("rain3","dRn3",.45*rv*(1.25-.5*sw),null,0,1,.08);
   /* the cloth keeps dripping for a while after the rain: the same drumming, thinned and slowed */
-  {const dr=ss(.88,1,WX.after)*(1-ss(.01,.2,WX.rain));loopS("rtent","dRt",.75*rOn*Math.pow(Math.min(1,WX.rain/.5),.6)+.16*dr,_tnP.set(TENT.x,hTop(TENT.x,TENT.z)+1.6,TENT.z),6,1-.22*dr,rOn?.08:.35);
-    /* heavy rain drums the cloth: a second, detuned pass of the canvas recording doubles the patter without blurring it into hiss */
-    loopS("rtent2","dRt",.5*rOn*ss(.45,.85,WX.rain),_tnP,6,1.17,rOn?.08:.35)}
+  {loopS("rtent","dRt",.75*rOn*Math.pow(Math.min(1,WX.rain/.5),.6)+.16*dr,_tnP.set(TENT.x,hTop(TENT.x,TENT.z)+1.6,TENT.z),6,1-.22*dr,rOn?.08:.35);
+    /* heavy rain drums the cloth harder: a second stretch of the canvas recording, 17 s against the first's 22 */
+    loopS("rtent2","dRt2",.5*rOn*ss(.45,.85,WX.rain),_tnP,6,1,rOn?.08:.35)}
+  /* each surface where it is, louder the nearer and the harder it rains: plinks on the pond, ticks in the palm crowns */
+  {const T0=PALMS[0].g?PALMS[0].g.userData.top:null;
+    loopS("rwat","dRwt",.55*rv/.6,_hwP.set(POND.x,POND.wy,POND.z),7,1,.08);
+    loopS("rleaf","dRlf",.5*rv/.6,_oP.set(GROVE.x,T0?T0.y-1:8,GROVE.z),8,1,.08)}
+  /* single drops close by, on whatever is under them, at random: a pat on the sand, a tick on the cloth, a plink in the pond,
+     a tick on a frond overhead; only when the camera is down among them */
+  if(rOn&&amb()&&(AU.rdT=(AU.rdT||0)-dt)<0){AU.rdT=rr(.07,.4)/(.2+WX.rain);
+    const a=rnd()*TAU,d=rr(.5,3.5),x=_cl.x+Math.cos(a)*d,z=_cl.z+Math.sin(a)*d,gy=hTop(x,z);
+    if(_cl.y-gy<7){const g=rr(.35,1)*Math.pow(Math.min(1,WX.rain/.62),.4);AU.rdN=(AU.rdN||0)+1;
+      const rf=Math.abs(x-TENT.x)<4&&Math.abs(z-TENT.z)<4?roofAt(x,z):-99;
+      if(rf>-50)shotS("dRd2",.34*g,_oP.set(x,rf,z),3,rr(.85,1.2));
+      else if(pN(x,z)<1)shotS(rnd()<.6?"dDp1":"dDp2",.2*g,_oP.set(x,POND.wy,z),3,rr(1.2,1.7),1);
+      else shotS("dRd1",.3*g,_oP.set(x,gy,z),3,rr(.8,1.25));
+      for(const p of PALMS){const T0=p.g&&p.g.userData.top;if(T0&&Math.hypot(_cl.x-T0.x,_cl.z-T0.z)<4.5&&rnd()<.5){shotS("dRd3",.3*g,_oP.set(T0.x+rr(-2,2),T0.y-rr(0,1),T0.z+rr(-2,2)),4,rr(.85,1.2));break}}}}
   /* hail: the bed of strikes on the sand all round, drumming on the tent, crackle in the palm crowns and plinks on the pond,
      each where it is; the strikes simulated near the camera are heard singly on top */
+  if(aOK()&&(WX.rain>.004||/rain|storm/.test(Ct.weather)))for(const k of ["dRwt","dRlf","dRd1","dRd2","dRd3","dDp1","dDp2","dDp3"])if(!AU.b[k]){synB(k);break}
   if(aOK()&&WX.sc>.03)synB("dCrn");
   if(aOK()&&WX.hf>.004)["dHsd","dHtn","dHlf","dHwt","dHs1","dHt1","dHp1","dHc1"].forEach(synB);
   {const hv=Math.pow(ss(0,.8,WX.hf),.7),T0=PALMS[0].g?PALMS[0].g.userData.top:null;
@@ -3706,7 +3738,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={rq:()=>RQ.length,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={rq:()=>RQ.length,LL,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

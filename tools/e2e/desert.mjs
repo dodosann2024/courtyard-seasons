@@ -282,10 +282,10 @@ try {
      is started again, the level never dips and recovers, and the master level does not duck on a tap. Real time, frames running. */
   await page.keyboard.press("F9");
   await page.evaluate(() => { const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .5}); q.sim(120, .5); q.freeze(false); });
-  await page.waitForFunction(() => { const A = window.__desQA().AU; const S = window.__sound; return A.lp.rain && A.lp.rtent && S.ctx === "running" && S.gain >= .95 * S.vol; }, {timeout: 120000, polling: 250});
+  await page.waitForFunction(() => { const A = window.__desQA().AU; const S = window.__sound; return A.lp.rain && A.lp.rain2 && A.lp.rain3 && A.lp.rtent && A.lp.rtent2 && S.ctx === "running" && S.gain >= .95 * S.vol; }, {timeout: 120000, polling: 250});
   check("rain sound: one continuous bed, no dropouts, restarts or dips", ...await page.evaluate(async () => {
     const q = window.__desQA(), A = q.AU, S = window.__sound, sleep = ms => new Promise(r => setTimeout(r, ms));
-    const ids = ["rain", "rtent"], V = ids.map(k => A.lp[k]), src = V.map(L => L.s), n0 = ids.map(k => A.n[k]);
+    const ids = ["rain", "rain2", "rain3", "rtent", "rtent2"], V = ids.map(k => A.lp[k]), src = V.map(L => L.s), n0 = ids.map(k => A.n[k]);
     const r = {ctx: S.ctx, silentBefore: V.map(L => +L.g.gain.value.toFixed(3))}, G = ids.map(() => []), M = [];
     /* the weather is stepped ahead in one go (as a long stalled frame would); the audio then runs on in real time */
     window.__set({weather: "hrain", ct: "overcast"}); q.sim(30, .5);
@@ -297,10 +297,10 @@ try {
     }
     const dips = G.map(g => g.filter((v, i) => i > 0 && i < g.length - 1 && v < .9 * Math.min(g[i - 1], g[i + 1]) && g[i - 1] > .02).length);
     Object.assign(r, {sameSource: ids.every((k, j) => A.lp[k] === V[j] && V[j].s === src[j]), starts: ids.map((k, j) => A.n[k] - n0[j]), dips,
-      rainPeak: +Math.max(...G[0]).toFixed(3), rainEnd: +G[0][G[0].length - 1].toFixed(3), rainEndTarget: +(.6 * Math.min(1, Math.pow(q.WX.rain / .62, .6))).toFixed(3), masterMin: +Math.min(...M).toFixed(3), masterAt: M.indexOf(Math.min(...M)), master0: +M[0].toFixed(3), vol: S.vol});
+      rainPeak: +Math.max(...G[0]).toFixed(3), rainEnd: +G[0][G[0].length - 1].toFixed(3), rainEndTarget: +(.45 * Math.min(1, Math.pow(q.WX.rain / .62, .6))).toFixed(3), masterMin: +Math.min(...M).toFixed(3), masterAt: M.indexOf(Math.min(...M)), master0: +M[0].toFixed(3), vol: S.vol});
     /* the beds themselves: no 5 ms block 9 dB under the running level (a dropout in the recording), and the loop wraps
        without a step (the jump from the last sample to the first is no bigger than an ordinary sample-to-sample change) */
-    r.bed = ["dRn", "dRt"].map(k => { const B = A.b[k], n = B.length, d = new Float32Array(n), h = Math.round(B.sampleRate * .005), nb = Math.floor(n / h), e = [];
+    r.bed = ["dRn", "dRt", "dRn2", "dRn3", "dRt2"].map(k => { const B = A.b[k], n = B.length, d = new Float32Array(n), h = Math.round(B.sampleRate * .005), nb = Math.floor(n / h), e = [];
       for (let c = 0; c < B.numberOfChannels; c++) { const x = B.getChannelData(c); for (let i = 0; i < n; i++) d[i] += x[i] / B.numberOfChannels; }
       for (let b = 0; b < nb; b++) { let s = 0; for (let i = b * h; i < b * h + h; i++) s += d[i] * d[i]; e.push(10 * Math.log10(s / h + 1e-12)); }
       let gaps = 0; for (let b = 0; b < nb; b++) { const w = e.slice(Math.max(0, b - 40), b + 41).sort((u, v) => u - v); if (e[b] < w[w.length >> 1] - 9) gaps++; }
@@ -309,6 +309,42 @@ try {
     window.__set({weather: "sun", ct: "clear"}); q.freeze(true);
     return [r.bed.every(b => b.seamless && b.gaps === 0 && b.wrapStep < 4) && r.ctx === "running" && r.silentBefore.every(v => v < .01) && r.sameSource && r.starts.every(n => n === 0) && dips.every(n => n === 0) &&
       r.rainPeak > .3 && r.rainEnd < r.rainPeak && Math.abs(r.rainEnd - r.rainEndTarget) < .05 && r.masterMin >= .95 * r.vol, r];
+  }));
+
+  /* 16. the rain is heard as it is seen: the patter swells and dies with the drawn rain, from three beds of different lengths;
+     the pond plinks, the palm crowns tick, single drops land close by on the sand and the cloth, and when the rain has stopped
+     the cloth and fronds go on dripping for a while. Hail runs the same way: its beds start once and then only change level. */
+  check("rain sound follows the rain, by surface, near drops, drips after; hail beds never restart", ...await page.evaluate(() => {
+    const q = window.__desQA(), A = q.AU, T = q.TENT, r = {};
+    window.__set({weather: "sun", ct: "clear", wind: .5, hailLv: 1}); q.sim(400, 1);
+    const gx = T.x + 3.4, gz = T.z + 3.4, gy = q.hTop(gx, gz); q.lookAt(gx, gy + 1.6, gz, T.x, gy + 1, T.z);
+    q.audCap(true); const vis = [];
+    window.__set({weather: "hrain", ct: "overcast"}); for (let i = 0; i < 90; i++) { q.sim(1, 1 / 10); vis.push(q.WX.rain); }
+    const tStop = vis.length; window.__set({weather: "sun", ct: "clear"}); for (let i = 0; i < 150; i++) { q.sim(1, 1 / 10); vis.push(q.WX.rain); }
+    const ev = q.audCap(false), t0 = ev.length ? ev[0][0] : 0;
+    const tgt = id => { const o = [], L = ev.filter(e => e[1] === "L" && e[2] === id); let j = 0, v = 0; for (let i = 0; i < vis.length; i++) { while (j < L.length && L[j][0] - t0 < i + 1) v = L[j++][4]; o.push(v); } return o; };
+    const half = (a, from, up) => { const m = Math.max(...a); for (let i = from; i < a.length; i++) if (up ? a[i] >= m / 2 : a[i] < m / 2) return i; return -1; };
+    const au = tgt("rain"), au2 = tgt("rain2"), au3 = tgt("rain3"), vt = vis.map(v => Math.pow(Math.min(1, v / .62), .6));
+    r.onsetVis = half(vt, 0, 1); r.onsetAud = half(au, 0, 1); r.stopVis = half(vt, tStop, 0); r.stopAud = half(au, tStop, 0);
+    r.layers = [au, au2, au3].map(a => +Math.max(...a).toFixed(3));
+    r.surf = ["rwat", "rleaf", "rtent"].map(id => +Math.max(...tgt(id)).toFixed(3));
+    const shots = (k, a, b) => ev.filter(e => e[1] === "S" && e[2] === k && e[0] - t0 >= a && e[0] - t0 < b).length;
+    r.near = {sand: shots("dRd1", 0, tStop), tent: shots("dRd2", 0, tStop)};
+    const dry = vis.findIndex((v, i) => i > tStop && v < .004);
+    r.dryAt = dry; r.dripsAfter = ["dDp1", "dDp2", "dDp3"].reduce((s, k) => s + shots(k, dry, vis.length), 0); r.dropsAfter = shots("dRd1", dry + 1, vis.length) + shots("dRd2", dry + 1, vis.length);
+    r.lingerEnd = (() => { let l = -1; for (const e of ev) if (e[1] === "S" && /^dDp/.test(e[2])) l = e[0] - t0; return +(l - dry).toFixed(1); })();
+    /* hail, sun, hail again: every rain and hail bed that exists keeps its one source */
+    const B = ["rain", "rain2", "rain3", "rtent", "rtent2", "rwat", "rleaf", "hsand", "htent", "hleaf", "hwat"];
+    window.__set({weather: "hail"}); q.sim(40, 1 / 10);
+    const src = B.map(k => A.lp[k] && A.lp[k].s), n0 = B.map(k => A.n[k] || 0);
+    window.__set({weather: "sun", ct: "clear"}); q.sim(240, .5); window.__set({weather: "hail"}); q.sim(40, 1 / 10); window.__set({weather: "lrain"}); q.sim(30, .5);
+    r.voices = B.filter((k, j) => src[j]).length; r.restarts = B.filter((k, j) => !src[j] || A.lp[k].s !== src[j] || (A.n[k] || 0) !== n0[j]);
+    r.loopWrap = ["dHsd", "dHtn", "dHlf", "dHwt", "dRwt", "dRlf"].map(k => { const b = A.b[k]; if (!b) return null; const d = b.getChannelData(0), R = b.sampleRate, a = Math.round(.5 * R), e = a + Math.round(q.LL[k] * R);
+      let md = 0; for (let i = a + 1; i < e; i++) md += Math.abs(d[i] - d[i - 1]); md /= e - a - 1; return +(Math.abs(d[a] - d[e - 1]) / md).toFixed(2); });
+    window.__set({weather: "sun", ct: "clear"}); q.sim(400, 1);
+    return [Math.abs(r.onsetAud - r.onsetVis) <= 2 && Math.abs(r.stopAud - r.stopVis) <= 2 && r.layers.every(v => v > .1) &&
+      r.surf.every(v => v > .01) && r.near.sand > 8 && r.near.tent > 4 && r.dropsAfter === 0 && r.dripsAfter >= 3 && r.lingerEnd > 8 && r.lingerEnd < 60 &&
+      r.voices === B.length && r.restarts.length === 0 && r.loopWrap.every(w => w !== null && w < 4), r];
   }));
 } finally { await browser.close(); server.close(); }
 if (failures.length) { console.log(`\n${failures.length} failure(s)`); process.exit(1); }

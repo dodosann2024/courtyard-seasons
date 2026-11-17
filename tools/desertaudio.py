@@ -17,6 +17,7 @@ import hashlib, json, os, subprocess, sys, tempfile, urllib.request, wave
 import numpy as np
 from scipy import signal
 from scipy.ndimage import binary_dilation, median_filter
+from scipy.signal import welch
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADIR = os.path.join(ROOT, "assets", "audio")
@@ -108,6 +109,11 @@ LOOPS = {
     "dFire": (363092, 0.5, 19.0, 90, -20, True),
     "dRn": (866246, 19.0, 22.0, 120, -20, True, True),
     "dRt": (484723, 30.0, 22.0, 150, -20, True, True),
+    # second and third rain beds and a second tent bed, other stretches of the same recordings (the last a lighter, sparser
+    # rain), mono: lengths 22, 17 and 13 s share no factor, so the three together only line up again after 81 minutes
+    "dRn2": (866246, 2.0, 13.0, 120, -20, False, True),
+    "dRn3": (866246, 705.0, 17.0, 120, -20, False, True),
+    "dRt2": (484723, 58.0, 17.0, 150, -20, False, True),
     "dStm": (632771, 20.0, 30.0, 30, -18, True),
     "dStS": (438877, 3.0, 30.0, 200, -20, True),
     "dRtl": (437958, 14.0, 12.0, 300, -20, False),
@@ -173,28 +179,57 @@ def env_db(m, h):
     return 20 * np.log10(np.sqrt(np.mean(m[:n * h].reshape(n, h) ** 2, 1)) + 1e-9)
 
 
-def steady(y, gap_db=9.0, back=0.25, swell_db=2.5):
+def matched_noise(y, a0, b0, ok, rng, ctx=0.2):
+    """noise with the spectrum and level of the clean bed either side of [a0, b0), one independent stream per channel"""
+    L = b0 - a0
+    for c in (ctx, .5, 1.0):
+        idx = np.r_[max(0, a0 - N(c)):a0, b0:min(y.shape[1], b0 + N(c))]
+        idx = idx[ok[idx]]
+        if len(idx) >= N(.08):
+            break
+    seg = y[:, idx]
+    f, P = welch(seg, fs=SR, nperseg=512, axis=-1)
+    M = 1 << int(np.ceil(np.log2(L + 1024)))
+    fr = np.fft.rfftfreq(M, 1 / SR)
+    S = np.fft.rfft(rng.standard_normal((y.shape[0], M)), axis=1)
+    z = np.fft.irfft(S * np.sqrt(np.stack([np.interp(fr, f, P[ch]) for ch in range(y.shape[0])])), n=M, axis=1)[:, :L]
+    return z * np.sqrt(np.mean(seg ** 2, 1) / (np.mean(z ** 2, 1) + 1e-20))[:, None]
+
+
+def steady(y, gap_db=9.0, swell_db=2.5, seed=5):
     """fill micro-dropouts and level swells in a rain bed.
-    A 5 ms block more than gap_db under the running (400 ms median) level, widened by 10 ms each side, is replaced by the
-    same span from `back` s earlier (later near the start) with 4 ms equal-power crossfades. Then the 250 ms level is ridden
-    down wherever it stands more than swell_db over the bed's median, with a gain smoothed over 0.6 s so single drops keep
-    their attack."""
+    A 5 ms block more than gap_db under the running (400 ms median) level, widened by 10 ms each side, is replaced by noise
+    matched to the spectrum and level of the clean bed around it, with 4 ms equal-power crossfades: nothing is copied from
+    elsewhere in the bed, so a fill can never be heard again as an echo or a flam. Then the 250 ms level is ridden down
+    wherever it stands more than swell_db over the bed's median, with a gain smoothed over 0.6 s so single drops keep their
+    attack."""
     y = y.copy()
-    h, xf, off = N(.005), N(.004), N(back)
+    h, xf, rng = N(.005), N(.004), np.random.default_rng(seed)
     e = env_db(y.mean(0), h)
     bad = binary_dilation(e < median_filter(e, size=81, mode="nearest") - gap_db, iterations=2)
+    ok = np.ones(y.shape[1], bool)
+    ok[:len(bad) * h] = ~np.repeat(bad, h)
     d = np.diff(np.concatenate([[0], bad.astype(np.int8), [0]]))
-    filled = 0
+    filled, spans = 0, []
     for a, b in zip(np.where(d == 1)[0] * h, np.where(d == -1)[0] * h):
         a0, b0 = max(0, a - xf), min(y.shape[1], b + xf)
-        o = -off if a0 - off >= 0 else off
-        if b0 + o > y.shape[1]:
-            continue
         t = np.ones(b0 - a0)
         r = np.arange(xf) / xf
         t[:xf], t[-xf:] = np.sin(r * np.pi / 2), np.cos(r * np.pi / 2)
-        y[:, a0:b0] = y[:, a0:b0] * np.sqrt(1 - t ** 2) + y[:, a0 + o:b0 + o] * t
+        y[:, a0:b0] = y[:, a0:b0] * np.sqrt(1 - t ** 2) + matched_noise(y, a0, b0, ok, rng) * t
         filled += b - a
+        spans.append((a0, b0))
+    rep, m = 0.0, signal.sosfilt(signal.butter(4, 1000, "high", fs=SR, output="sos"), y.mean(0))
+    for a0, b0 in spans:
+        s = m[a0:b0]
+        w = m[max(0, a0 - N(.6)):min(y.shape[1], b0 + N(.6))]
+        if len(s) < 8 or len(w) <= len(s):
+            continue
+        cc = np.correlate(w, s, "valid") / (np.sqrt(np.convolve(w ** 2, np.ones(len(s)), "valid")) * np.linalg.norm(s) + 1e-12)
+        self_at = a0 - max(0, a0 - N(.6))
+        cc[max(0, self_at - xf):self_at + xf + 1] = 0
+        rep = max(rep, float(np.abs(cc).max()))
+    print(f"  steady: repeat-likeness of the fills (best normalised correlation within 0.6 s) {rep:.2f}", file=sys.stderr)
     e = env_db(y.mean(0), N(.05))
     lv = np.convolve(10 ** (e / 10), np.ones(5) / 5, mode="same")
     lv = 10 * np.log10(lv + 1e-12)

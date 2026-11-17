@@ -24,8 +24,8 @@ desert scene, through its own bus under the app's master volume.
 | [447319](https://freesound.org/people/antoineopeng/sounds/447319/) | antoineopeng | Dragonfly.wav | `dDf1`, `dDf2` dragonfly wing passes over the water |
 | [570203](https://freesound.org/people/RatBird/sounds/570203/) | RatBird | Dragonfly Flying By.wav | `dDf3` dragonfly fly-by |
 | [573935](https://freesound.org/people/TRP/sounds/573935/) | TRP | Grasshopper wing clicks snaps hot BADLANDS | `dGh1`, `dGh2` grasshopper wing snaps in the vegetation |
-| [866246](https://freesound.org/people/Fhmediahmo/sounds/866246/) | Fhmediahmo | Lluvia y Truenos Monzon Hermosillo | `dRn` desert monsoon rain bed; `dTh1`–`dTh3` close thunder cracks with their roll |
-| [484723](https://freesound.org/people/Breviceps/sounds/484723/) | Breviceps | Rain on tent | `dRt` rain drumming on the tent cloth |
+| [866246](https://freesound.org/people/Fhmediahmo/sounds/866246/) | Fhmediahmo | Lluvia y Truenos Monzon Hermosillo | `dRn`, `dRn2`, `dRn3` desert monsoon rain beds (22, 17 and 13 s from different stretches); `dTh1`–`dTh3` close thunder cracks with their roll |
+| [484723](https://freesound.org/people/Breviceps/sounds/484723/) | Breviceps | Rain on tent | `dRt`, `dRt2` rain drumming on the tent cloth (22 and 17 s) |
 | [476231](https://freesound.org/people/felix.blume/sounds/476231/) | felix.blume | Thunders and sheperd in the mountain Las Narices | `dTh4` far rolling thunder |
 | [347562](https://freesound.org/people/mikala_oidua/sounds/347562/) | mikala_oidua | Distant Thunder Clap_Gentle.wav | `dTh5` distant thunder |
 | [632771](https://freesound.org/people/gbayles/sounds/632771/) | gbayles | Sandstorm Looping | `dStm` sandstorm roar |
@@ -54,10 +54,25 @@ Weather (`wxUpdate()` and `sound()` in `src/desert.js`). The weather sounds load
   the frogs call for a few minutes, by day too.
 - **Rain beds are continuous:** the monsoon recording drops out for a few milliseconds here and there and swells
   under gusts, and looped every 22 s that was heard as the rain stuttering. `tools/desertaudio.py` (`steady()`)
-  fills each dropout from a quarter second earlier and rides the swells down. Once decoded, the loop is made exactly
+  fills each dropout with noise shaped to the spectrum and level of the clean audio around it (a copy from earlier
+  in the take was heard as a repeat in the dense clusters), and rides the swells down. Once decoded, the loop is made exactly
   periodic (its last 0.45 s is crossfaded into the copy before its start). The rain and tent loops then start silent
   and run without a break while the desert is shown. Rain, a change of intensity and taps only glide their gain;
   no source is started again.
+- **No audible repeat:** the patter all round is three beds of 22, 17 and 13 s (no common factor, so they only line
+  up again after 81 minutes), each started at a random point; the two shorter ones trade level slowly. The tent has
+  two beds of 22 and 17 s.
+- **By surface:** the rain on the pond is a fizz of small plinks (`dRwt`) heard from the water, and the palm crowns
+  tick (`dRlf`) from overhead; both are made in code and loop seamlessly. Close to the camera single drops land at
+  random: a soft pat on the sand (`dRd1`), a taut tick on the tent cloth (`dRd2`), a plink in the pond, a tick on a
+  frond overhead (`dRd3`). All of them grow with the rain's strength and fall away with distance.
+- **In step with the rain you see:** every rain voice follows the same rain amount that draws the streaks, so the
+  sound swells and dies with them. When the rain has stopped the cloth, fronds and pond go on dripping for about
+  ten seconds, thinning out.
+- **Hail:** made in code like the rain-on-surface loops: dull thuds on the sand (11 s loop), a taut drum on the tent
+  (9 s), a crackle in the palm crowns (8 s) and plinks on the pond (7 s), each heard from where it is, plus single
+  near strikes. The loops have different lengths, are exactly periodic, start silent once made and then only change
+  level, as the rain beds do.
 - **Thunderstorm:** each strike is seen first and heard after the sound's travel time (up to about 5 s). Near
   strikes crack and far ones roll, and the sound comes from the side the bolt fell on.
 - **Sand/dust storm:** the roar and the sand hiss rise with the storm level (浮尘 to 强沙尘暴). The insects stop,

@@ -424,25 +424,27 @@ function sandMat(){
           float dens=uHC*(.12+1.35*gat*gat);
           float pnr=1.-smoothstep(.004,.02,fwH);
           if(uHM>.003){float wm=uHM*smoothstep(.15,.55,gat*(.7+.6*dn2(q*8.3))+.25*dn2(q*21.))*(1.-wet);sc*=mix(vec3(1.),vec3(.52,.46,.41),wm);}
-          if(uHP>.003){vec2 cg=q*7.+3.1,ci=floor(cg),cf=fract(cg)-.5,off=(vec2(dh2(ci+2.3),dh2(ci+6.9))-.5)*.36;
-            float ph=dh2(ci+4.7);if(ph<uHP*.75){float rp=.16+.12*dh2(ci+1.1);vec2 d=cf-off;float r=length(d)/rp,age=clamp((uHP*.75-ph)*3.,0.,1.);
-              float rg=exp(-(r-1.12)*(r-1.12)/.025),rr2=exp(-(r-1.75)*(r-1.75)/.02)*.45+exp(-(r-2.35)*(r-2.35)/.03)*.25;
-              float dr=(r<1.?2.4*r:0.)-.8*(r-1.12)/.025*rg-.35*(r-1.75)/.02*rr2*(1.-.5*age);
-              float px=clamp(fwH*7./rp*1.6-.6,0.,1.),bowl=mix(smoothstep(1.05,.3,r),.4*rp*rp*3.14,px);
+          if(uHP>.003){vec2 cg=q*6.+3.1,ci=floor(cg),cf=fract(cg)-.5,off=(vec2(dh2(ci+2.3),dh2(ci+6.9))-.5)*.5;
+            float ph=dh2(ci+4.7)/max(.2,1.-.8*gat);if(ph<uHP*.32){float rp=.07+.08*pow(dh2(ci+1.1),1.5);vec2 d=cf-off;d*=1.+.25*(dn2(q*37.+ci)-.5);float r=length(d)/rp,age=clamp((uHP*.32-ph)*6.,0.,1.);
+              float rg=exp(-(r-1.12)*(r-1.12)/.025),rr2=exp(-(r-1.8)*(r-1.8)/.03)*.3*step(.55,dh2(ci+3.9));
+              float dr=(r<1.?2.4*r:0.)-.8*(r-1.12)/.025*rg-.3*(r-1.8)/.03*rr2*(1.-.5*age);
+              float px=clamp(fwH*6./rp*1.6-.6,0.,1.),bowl=mix(smoothstep(1.05,.3,r),.4*rp*rp*3.14,px);
               pitG+=d/max(length(d),1e-4)*dr*pnr*.55*(1.-.4*age);
               sc*=(1.-.32*bowl*(1.-.4*age))*(1.+mix(.18*rg+.08*rr2,0.,px)*pnr);}}
-          {vec2 cg=q*30.,ci=floor(cg),cf=fract(cg)-.5,off=(vec2(dh2(ci+.7),dh2(ci+3.3))-.5)*.3;float rad=.24+.2*dh2(ci+9.4);
-            vec2 d=cf-off;float r=length(d)/rad,ew=.08+fwH*30./rad*.7,on=step(dh2(ci+5.5),dens);
-            float stn=on*smoothstep(1.+ew,1.-ew,r),far=smoothstep(.02,.12,fwH*30.);
-            float avg=min(1.,dens*.55)*(.75+.25*gn);
-            float drift=smoothstep(.85,1.25,dens);
-            hsM=mix(max(stn,drift*(.75+.25*dn2(q*45.))),avg,far);
-            vec2 L2=normalize(uLd.xz+vec2(1e-4));float lit=dot(d/rad,L2),z=sqrt(max(0.,1.-r*r));
-            float sh2=on*(1.-stn)*smoothstep(1.7,1.05,r)*clamp(-dot(d/max(length(d),1e-4),L2)*1.3+.2,0.,1.)*(1.-far);
-            sc*=1.-.35*sh2;
-            pitG-=d/max(length(d),1e-4)*stn*(1.-z)*1.6*pnr;
-            vec3 ic=vec3(.84,.88,.92)*(.9+.12*dh2(ci+8.2))*(1.+.12*lit*(1.-far));
-            sc=mix(sc,ic,hsM*(.82+.1*z));}}
+          /* two staggered, turned grids of stones so no rows show; each cell holds at most one stone of its own size */
+          {float stn=0.,sh2=0.,z=0.,lit=0.,far=smoothstep(.02,.1,fwH*28.);vec2 L2=normalize(uLd.xz+vec2(1e-4)),gS=vec2(0.);
+           for(int Ly=0;Ly<2;Ly++){float sc2=Ly==0?24.:33.;mat2 R=Ly==0?mat2(1.,0.,0.,1.):mat2(.8,.6,-.6,.8);vec2 cg=R*q*sc2+float(Ly)*7.7,ci=floor(cg),cf=fract(cg)-.5;
+             vec2 off=(vec2(dh2(ci+.7),dh2(ci+3.3))-.5)*.42;float rad=.14+.2*pow(dh2(ci+9.4),1.3);vec2 d=cf-off;
+             d*=1.+.18*sin(atan(d.y,d.x)*3.+dh2(ci)*6.);float r=length(d)/rad,ew=.1+fwH*sc2/rad*.7,on=step(dh2(ci+5.5),dens*(Ly==0?.75:.6));
+             float s1=on*smoothstep(1.+ew,1.-ew,r);if(s1>stn){stn=s1;z=sqrt(max(0.,1.-r*r));lit=dot(d/rad,R*L2);gS=(d/max(length(d),1e-4))*R;}
+             sh2=max(sh2,on*(1.-s1)*smoothstep(1.7,1.05,r)*clamp(-dot(normalize(d+1e-5),R*L2)*1.3+.2,0.,1.));}
+           float avg=min(1.,dens*.5)*(.75+.25*gn),drift=smoothstep(.85,1.25,dens);
+           hsM=mix(max(stn,drift*(.7+.3*dn2(q*45.))),avg,far);
+           sc*=1.-.35*sh2*(1.-far);
+           pitG-=gS*stn*(1.-z)*1.6*pnr;
+           vec3 ic=mix(vec3(.74,.8,.86),vec3(.93,.95,.97),z)*(1.+.14*lit*(1.-far));
+           ic+=vec3(.25)*smoothstep(.55,.9,lit*.8+z*.4)*stn*(1.-far);
+           sc=mix(sc,ic,hsM*.9);}}
         diffuseColor.rgb=mix(sc,vec3(dot(sc`)
       .replace("roughnessFactor=mix(roughnessFactor,.64,rWM);","roughnessFactor=mix(mix(roughnessFactor,.64,rWM),.3,hsM*.8);")}}
   m.customProgramCacheKey=()=>TRK?"des70sandTg":"des70sandg";
@@ -1470,12 +1472,12 @@ const SKY_TILE=Math.PI*.5,SKY_HOR=-16*D2R,VD_DROP=200*Math.tan(-SKY_HOR);
 const skyU={map:{value:null},uYaw0:{value:168*D2R},uTile:{value:SKY_TILE},uVspan:{value:SKY_TILE*(576/1024)},uHor:{value:SKY_HOR},
   uSkyK:{value:1.45},uSunDir:{value:new V3()},uSunVis:{value:1},uExpo:{value:1},uCon:{value:1.08},
   uK:{value:new T.V4(1,0,0,0)},uMoonW:{value:new V3(0,.3,-1)},uMoonL:{value:1},uT:{value:0},
-  uCov:{value:0},uDark:{value:0},uDust:{value:0},uDustC:{value:new C3("#a77a4a")},uRain:{value:0},uShaft:{value:0},
+  uCov:{value:0},uDark:{value:0},uHg:{value:0},uDust:{value:0},uDustC:{value:new C3("#a77a4a")},uRain:{value:0},uShaft:{value:0},
   uBolt:{value:0},uBoltA:{value:0},uIc:{value:0},uIcA:{value:0},uBoltS:{value:0},uBoltE:{value:0},uRb:{value:0},uRbDir:{value:new V3(0,-1,0)},
   uVdSun:{value:new V3(0,1,0)},top:jt.top,bot:jt.bot,uGlowC:jt.uGlowC,uGlowA:jt.uGlowA,uSunDisk:jt.uSunDisk};
 const skyM=new T.SM({uniforms:skyU,side:1,depthWrite:false,depthTest:true,fog:false,toneMapped:false,transparent:true,premultipliedAlpha:true,
   vertexShader:`varying vec3 vDir;void main(){vec4 w=modelMatrix*vec4(position,1.);vDir=w.xyz-cameraPosition;gl_Position=projectionMatrix*viewMatrix*w;}`,
-  fragmentShader:`uniform sampler2D map;uniform float uYaw0,uTile,uVspan,uHor,uSkyK,uSunVis,uExpo,uCon,uMoonL,uT,uCov,uDark,uDust,uRain,uShaft,uBolt,uBoltA,uIc,uIcA,uBoltS,uBoltE,uRb,uGlowA;
+  fragmentShader:`uniform sampler2D map;uniform float uYaw0,uTile,uVspan,uHor,uSkyK,uSunVis,uExpo,uCon,uMoonL,uT,uCov,uDark,uHg,uDust,uRain,uShaft,uBolt,uBoltA,uIc,uIcA,uBoltS,uBoltE,uRb,uGlowA;
     uniform vec4 uK;uniform vec3 uSunDir,uMoonW,uDustC,uRbDir,uVdSun,top,bot,uGlowC,uSunDisk;varying vec3 vDir;
     float mir(float u){float m=mod(u,2.);return 1.-abs(m-1.);}
     float h1(float n){return fract(sin(n*127.1)*43758.5453);}
@@ -1540,7 +1542,7 @@ const skyM=new T.SM({uniforms:skyU,side:1,depthWrite:false,depthTest:true,fog:fa
       float lc=dot(col,vec3(.3,.55,.15));
       col=mix(col,vec3(lc)*vec3(.95,.97,1.03),.6*uCov);
       float cs=smoothstep(.35,.75,n2Y(2.6,uT*.004,ft*3.1+uT*.002));
-      col*=(1.-.45*uDark)*(1.-.32*uCov*cs);
+      col*=(1.-.45*uDark)*(1.-.32*uCov*cs)*mix(vec3(1.),vec3(.78,.9,.82),uHg);
       /* lightning lights the deck from inside around the strike */
       {float da=yaw-uBoltA,di=yaw-uIcA;da=da-6.2831853*floor((da+3.1415927)/6.2831853);di=di-6.2831853*floor((di+3.1415927)/6.2831853);
        col+=vec3(.78,.83,1.)*(uBolt*exp(-da*da*18.)+uIc*exp(-di*di*7.)*(.5+.5*n2Y(9.,0.,ft*6.)))*(.25+.9*l)*smoothstep(-1.2,-.05,ft);}
@@ -1778,13 +1780,13 @@ function applyLighting(dt){
     _c3.set("#7787a0").multiplyScalar(mix(1,.14,nk));_c1.lerp(_c3,.8*snK);_c3.set("#b4bfcf").multiplyScalar(mix(1,.15,nk));_c2.lerp(_c3,.82*snK);
     /* a hail cell's base is dark and green-grey (the deep cloud scatters the light it lets through toward green) */
     _c3.set("#47594f").multiplyScalar(mix(1,.12,nk));_c1.lerp(_c3,.88*hK);_c3.set("#7f9286").multiplyScalar(mix(1,.13,nk));_c2.lerp(_c3,.8*hK);
-    jt.top.value.copy(_c1);jt.bot.value.copy(_c2);
+    jt.top.value.copy(_c1);jt.bot.value.copy(_c2);if(jt.uDark&&hK>.01)jt.uDark.value=Math.max(jt.uDark.value,.92*hK);
     if(/rain|storm|snow|hail/.test(Ct.weather)&&jt.uCover)jt.uCover.value=mix(jt.uCover.value,.3+.62*WX.ovc,.9);
     if(WX.dust>.01&&jt.uCover)jt.uCover.value=mix(jt.uCover.value,.9,WX.dust);
     if(jt.moonDir){const ma=moonAzL+YAW,me=24*D2R;jt.moonDir.value.set(Math.cos(me)*Math.sin(ma),Math.sin(me),Math.cos(me)*Math.cos(ma))}
     if(jt.flash)jt.flash.value=WX.flash*.5;if(jt.uMist){jt.uMist.value=WX.fa*(1-.5*nk);jt.uMistC.value=WX.clr}}
   skyU.uK.value.set(LK.sunset,LK.day,LK.night,LK.sunrise);skyU.uSunVis.value=sunVis;skyU.uExpo.value=Cn?Cn.toneMappingExposure:1;skyU.uCon.value=mix(1.06,1.1,LK.sunset);
-  skyU.uCov.value=WX.ovc;skyU.uDark.value=WX.dark;skyU.uDust.value=WX.dust;skyU.uRain.value=WX.rain;skyU.uShaft.value=WX.shaft*(1-WX.dust);skyU.uRb.value=WX.rb;
+  skyU.uCov.value=WX.ovc;skyU.uDark.value=WX.dark;skyU.uHg.value=hK;skyU.uDust.value=WX.dust;skyU.uRain.value=WX.rain;skyU.uShaft.value=WX.shaft*(1-WX.dust);skyU.uRb.value=WX.rb;
   skyU.uDustC.value.set("#b98a5c").multiplyScalar(mix(1,.07,nk)*(1-.3*WX.dark));
   {const ma=moonAzL+YAW;skyU.uMoonW.value.set(Math.sin(ma),.3,Math.cos(ma));skyU.uMoonL.value=jt&&jt.uMoonVis?cl(jt.uMoonVis.value*1.2,.25,1):1}
   skyU.uBolt.value=WX.bolt;skyU.uBoltA.value=WX.boltA;skyU.uBoltS.value=WX.boltS;skyU.uBoltE.value=WX.boltE;
@@ -1798,7 +1800,7 @@ function applyLighting(dt){
     _c1.copy(jt?jt.bot.value:_c1.set("#c8b8b0")).multiplyScalar(.9);Jt.fog.color.copy(_c1).lerp(skyU.uDustC.value,ss(0,.2,dz))}
   const g=gradeM.uniforms;g.uCon.value=blendL("con")*(1-.45*WX.ovc)*(1-.5*WX.fa);g.uSat.value=blendL("sat")*(1-.25*WX.ovc)*(1-.22*WX.dust)*(1-.25*WX.fa)*(1-.2*snK)*(1-.18*hK);g.uRay.value=blendL("ray")*(1-WX.ovc)*(1-WX.dust)*(1-.6*WX.fa)+.3*WX.clr;g.uVig.value=blendL("vig")+.12*WX.dust;g.uLift.value=blendL("lift")+.02*WX.dust;
   g.uTint.value.set(0,0,0);for(const p in LK){const t=LIT[p].tint;g.uTint.value.x+=t[0]*LK[p];g.uTint.value.y+=t[1]*LK[p];g.uTint.value.z+=t[2]*LK[p]}
-  g.uTint.value.lerp(_v.set(.97,.99,1.03),.5*WX.ovc).lerp(_v.set(1.07,.97,.84),.7*WX.dust).lerp(_v.set(1.05,.99,.9),.45*WX.clr).lerp(_v.set(.94,.99,1.08),.6*snK).lerp(_v.set(.93,1.03,.97),.6*hK);
+  g.uTint.value.lerp(_v.set(.97,.99,1.03),.5*WX.ovc).lerp(_v.set(1.07,.97,.84),.7*WX.dust).lerp(_v.set(1.05,.99,.9),.45*WX.clr).lerp(_v.set(.94,.99,1.08),.6*snK).lerp(_v.set(.9,1.04,.95),.75*hK);
   {const F=FOGD,on=WX.fog>.004;F.g.visible=on;if(on){const u=F.U,wn=st.wn;u.uT.value=st.t;u.uB.value=WX.fb;u.uClr.value=WX.clr;u.uWD.value.set(WIND.x,WIND.z);
     /* radiation fog only forms in still air: a breeze carries the banks downwind, stretches them along the wind and tears holes
        in them, and a fresh wind mixes most of it away */

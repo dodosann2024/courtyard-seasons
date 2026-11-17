@@ -1941,11 +1941,13 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
         vec3 n=normalize(vec3(-(hx-h0)/e*a,1.,-(hz-h0)/e*a)),L=normalize(vec3(dot(uLd,vAx),max(uLd.y,.03),dot(uLd,vAz)));
         /* the floor of a print sits in its own shadow, so a track still reads as a line of dark dents from far off; close up the
            relief carries it and the floor is only a little darker than the sand round it */
-        float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-(k>3.5?.08:mix(.2,.45,smoothstep(.4,2.,max(fwidth(p.x),fwidth(p.y)))))*clamp(-h0*a/(k>3.5?4.:1.2),0.,1.);
+        float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-(k>3.5?.16:mix(.2,.45,smoothstep(.4,2.,max(fwidth(p.x),fwidth(p.y)))))*clamp(-h0*a/(k>3.5?4.:1.2),0.,1.);
         float F=clamp(mix(1.,df,uKs)*ao,.12,1.7);
+        /* pressed sand is packed smooth and reads darker than the loose sand round it, the heaped rim lighter, whatever the sun's height */
+        if(k>3.5)F*=(1.-.2*clamp(-h0/2.5,0.,1.))*(1.+.1*clamp(h0/1.5,0.,1.));
         /* a print only a few pixels across: its lit rim and shaded floor would average out to nothing, so it settles to a soft dent */
-        float lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y)))*step(k,2.5),R=k<1.5?9.*vG:6.*vG;
-        F=mix(F,1.-(k<.5?.56:.42)*(k<2.5?exp(-dot(p,p)/(R*R)):clamp(-h0*1.4,0.,1.)),lod);
+        float lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y)))*step(k,2.5),R=k<.5?10.5*vG:k<1.5?9.*vG:6.*vG;
+        F=mix(F,1.-(k<.5?.62:.42)*(k<2.5?exp(-dot(p,p)/(R*R)):clamp(-h0*1.4,0.,1.)),lod);
         F=mix(1.,F,a*smoothstep(.5,.42,max(abs(vQ.x),abs(vQ.y))/vG));
         if(abs(F-1.)<.004)discard;gl_FragColor=vec4(vec3(.5*F),1.);}`});
   const im=new T.IM(geo,m,N);im.count=0;im.frustumCulled=false;im.renderOrder=1;im.castShadow=im.receiveShadow=false;
@@ -2088,8 +2090,9 @@ function eagleMarks(e,off){const yaw=e.spot.yaw,fx=Math.sin(yaw),fz=Math.cos(yaw
     prAdd(PRK.talon,_pf.x,_pf.z,yaw+(nm==="Foot_L"?-.12:.12),0,off?1.3:1,nm==="Foot_R")}
   if(!n){cx=e.spot.p.x;cz=e.spot.p.z}else{cx/=n;cz/=n}
   /* the beach curves with the shore, so a wingtip that would brush the water is moved out from it onto the sand */
-  for(const sd of[-1,1]){const lx=fz*sd,lz=-fx*sd,k=off?.95:.85;let wx=cx+lx*k-fx*.12,wz=cz+lz*k-fz*.12;for(let t=0;t<14&&pN(wx,wz)<1.05;t++){const gx=pN(wx+.05,wz)-pN(wx-.05,wz),gz=pN(wx,wz+.05)-pN(wx,wz-.05),gl=Math.hypot(gx,gz)||1;wx+=gx/gl*.08;wz+=gz/gl*.08}
-    prAdd(PRK.wing,wx,wz,Math.atan2(lx,lz)+sd*(off?-.25:.2),0,off?1:.9,sd>0)}}
+  /* landing and take-off sweep the wings through the same arc, so a second brushing deepens the first instead of crossing it */
+  for(const sd of[-1,1]){const lx=fz*sd,lz=-fx*sd,k=.9;let wx=cx+lx*k-fx*.12,wz=cz+lz*k-fz*.12;for(let t=0;t<14&&pN(wx,wz)<1.05;t++){const gx=pN(wx+.05,wz)-pN(wx-.05,wz),gz=pN(wx,wz+.05)-pN(wx,wz-.05),gl=Math.hypot(gx,gz)||1;wx+=gx/gl*.08;wz+=gz/gl*.08}
+    prAdd(PRK.wing,wx,wz,Math.atan2(lx,lz)+sd*.2,0,off?.8:.9,sd>0)}}
 function eaglePuff(p){for(let i=0;i<PUFF.n;i++){const a=rnd()*TAU,u=rr(.5,1.5);
     PUFFP[i]={x:p.x+Math.cos(a)*.12,y:p.y+rr(.05,.35),z:p.z+Math.sin(a)*.12,vx:Math.cos(a)*u,vy:rr(.1,.7),vz:Math.sin(a)*u,life:-rr(0,.12),dur:rr(.7,1.3)};PUFF.Z[i]=rr(.6,1.5)}
   PUFF.o.visible=true}

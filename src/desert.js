@@ -415,8 +415,11 @@ function rockMat(extra){
          and on ledges, little on overhangs; how far it reaches varies round the rim. Its streaks slide downward. */
       float venA(vec3 nA){vec3 w=pow(abs(nA),vec3(4.));return mix(vRP.z,vRP.x,w.z/(w.x+w.z+1e-3));}
       float gCV=0.;
+      /* from afar (a pixel over a few cm of rock) the long narrow tongues down the gullies would be thin bright lines: they draw back */
+      float gFar=0.;
       float venC(vec3 nA){float d=vV;if(d>11.6)return 0.;float a=venA(nA),rim=.35+.65*smoothstep(.25,.75,dn2(vRP.xz*.11+1.7)*.7+dn2(vRP.xz*.37+4.1)*.3);
-        float tg=dn2(vec2(a*1.6,d*.12))*.65+dn2(vec2(a*4.3,d*.35+3.))*.35,reach=(.8+3.6*rim)*(.55+.9*tg)+4.5*rim*pow(smoothstep(.55,.85,tg),2.);
+        gFar=smoothstep(.01,.05,length(fwidth(vRP)));
+        float tg=dn2(vec2(a*1.6,d*.12))*.65+dn2(vec2(a*4.3,d*.35+3.))*.35,reach=(.8+3.6*rim)*(.55+.9*tg)+4.5*rim*pow(smoothstep(.55,.85,tg),2.)*(1.-.8*gFar);
         float c=1.-smoothstep(reach*.55,reach,d+.4*(dn2(vec2(a*9.,d*1.3))-.5));
         c*=mix(1.,.25,smoothstep(-.15,-.6,nA.y))*mix(1.,1.35,smoothstep(.25,.7,nA.y));return clamp(c*uVen,0.,1.);}`:""}
       float lum(vec3 c){return dot(c,vec3(.3,.55,.15));}
@@ -445,7 +448,7 @@ function rockMat(extra){
         ${extra&&extra.ven?`{float cv=venC(nA);gCV=cv;if(cv>.002){float a=venA(nA),d=vV,sp=.6+.8*uVen;
           float fl=dn2(vec2(a*7.,d*2.2-uT*sp*1.1))*.6+dn2(vec2(a*19.,d*6.-uT*sp*2.4))*.4,gr=dh2(floor(vec2(a*60.,d*60.-uT*sp*14.)));
           vec3 sc=uVenC*(.86+.26*fl)*(1.+.12*(gr-.5))*mix(vec3(1.),vec3(.62,.55,.5),uWetK);
-          c=mix(c,sc,smoothstep(0.,.35,cv)*(.55+.45*smoothstep(.3,.9,cv)));}}`:""}
+          c=mix(c,sc,smoothstep(0.,.35,cv)*(.55+.45*smoothstep(.3,.9,cv))*(1.-.25*gFar));}}`:""}
         c=mix(c,vec3(dot(c,vec3(.3,.59,.11)))*vec3(.74,.86,1.04),uNight*.68)*mix(1.,.55,uNight);
         diffuseColor.rgb=c;
         #ifdef USE_INSTANCING_COLOR
@@ -1277,7 +1280,10 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* a sheet seen edge-on piles up alpha into a hard line: keep the stream but thin it */
           vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.5,1.,smoothstep(.05,.45,abs(dot(N,normalize(cameraPosition-vW)))));
         }
-        a*=vis*(.72+.28*min(uFR,1.));if(a<.004)discard;
+        a*=vis*(.72+.28*min(uFR,1.));
+        /* a stream only a pixel or two wide from afar is a faint soft thread, not a hard yellow line */
+        float pxW=1./max(fwidth(x),1e-4),thin=1.-smoothstep(2.,12.,pxW);a*=1.-.8*thin;c=mix(c,mix(c,uFogC,.5)*.92+base*.08,thin*.6);
+        if(a<.004)discard;
         c=mix(c,uFogC,smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW)));
         float ck=c.r+c.g+c.b+a;if(!(ck>-1.&&ck<1e3))discard;
         gl_FragColor=vec4(c,clamp(a,0.,1.));
@@ -1311,7 +1317,8 @@ function sandFallsUpdate(dt,t,wn,nk){
     const o=i*3;SFD.P[o]=q.x;SFD.P[o+1]=q.y;SFD.P[o+2]=q.z;SFD.Z[i]=q.z0*q.s*(q.hz?2.2*(1+1.6*q.life):1+3*q.life);
     SFD.A[i]=Math.sin(q.life*Math.PI)*(q.hz?.028:.05)*vis*Math.min(1,f.hw/.35+.25)*(1+1.4*WX.dust)*(1-.85*WX.wet)}
   SFD.g.attributes.position.needsUpdate=SFD.g.attributes.a.needsUpdate=SFD.g.attributes.z.needsUpdate=true;SFD.m.uniforms.uH.value=innerHeight;
-  SFD.m.uniforms.uC.value.copy(curU.uCol.value).multiplyScalar(1.05)}
+  /* sand dust, not cloud: a warm ochre a shade deeper than the lit sand, so it never reads as the white mist of the cloud sea */
+  {const c=SFD.m.uniforms.uC.value.copy(curU.uCol.value);c.r*=1.02;c.g*=.88;c.b*=.68}}
 /* night fireflies over the oasis */
 const FF=softPoints(MOB?30:60,"#d8ff8a",.12,true);FF.o.renderOrder=9;W.add(FF.o);
 const FFP=[];for(let i=0;i<FF.n;i++){const[a,b]=pondEdge(rnd()*TAU,rr(.8,i%3?1.9:2.8));FFP.push({x:a,z:b,y:rr(.4,2.6),ph:rnd()*TAU,sp:rr(.3,.7),bl:rr(.6,1.4)});FF.Z[i]=rr(.8,1.2)}

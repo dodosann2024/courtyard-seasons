@@ -17,12 +17,20 @@ const G2=(x,z,cx,cz,rx,rz)=>Math.exp(-(((x-cx)/rx)**2)-(((z-cz)/rz)**2));
 
 const root=new T.Group();root.visible=false;Jt.add(root);
 const W=new T.Group();W.scale.setScalar(S);W.rotation.y=YAW;W.position.y=1.7;root.add(W);
-/* a model's shaders are compiled a few frames before it is drawn, so the GPU process builds them while frames go on instead of
-   the first draw blocking the main thread on the link; compiled against the composer's target, since tone mapping and output
-   encoding are part of the program and only the final pass draws to the screen */
+/* a model is drawn only once its programs are linked: compileAsync hands them to the GPU process, which links them on its own
+   threads where KHR_parallel_shader_compile exists, so frames go on instead of the first draw blocking the main thread on the link.
+   Compiled against the composer's target, since tone mapping and output encoding are part of the program and only the final pass
+   draws to the screen; a timeout reveals anything still pending rather than leaving it hidden */
+let PAR=false;try{PAR=Cn.extensions.has("KHR_parallel_shader_compile")}catch(_){}
+const warm=(o,rt,cam)=>{const rv=root.visible,prt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(rt===undefined?Ta.readBuffer||null:rt);let p;
+  try{p=Cn.compileAsync(o,cam||De,Jt)}catch(_){p=Promise.resolve()}Cn.setRenderTarget(prt);root.visible=rv;
+  return Promise.race([p.catch(()=>0),new Promise(r=>setTimeout(r,MOB?9000:6000))])};
 const onDes=o=>{if(o===root||!o.visible){o.traverse(c=>{c.layers.mask=1|L3});return}
-  o.traverse(c=>{c.layers.mask=0});const rv=root.visible,rt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(Ta.readBuffer||null);try{Cn.compile(o,De,Jt)}catch(_){}Cn.setRenderTarget(rt);root.visible=rv;
-  let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}o.traverse(c=>{c.layers.mask|=1|L3})};requestAnimationFrame(f)};
+  o.traverse(c=>{c.layers.mask=0});const on=()=>o.traverse(c=>{c.layers.mask|=1|L3});
+  /* without the extension a link cannot be waited on: the model is compiled now and drawn a few frames later */
+  if(PAR){warm(o).then(()=>requestAnimationFrame(on));return}
+  const rv=root.visible,rt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(Ta.readBuffer||null);try{Cn.compile(o,De,Jt)}catch(_){}Cn.setRenderTarget(rt);root.visible=rv;
+  let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}on()};requestAnimationFrame(f)};
 /* KTX2Loader.detectSupport enables each format with getExtension, a synchronous GPU round trip that waits behind every frame
    already queued; the list of supported names is answered without one */
 function ktxCfg(){let s;try{s=new Set(Cn.getContext().getSupportedExtensions()||[])}catch(_){s=new Set()}const h=e=>s.has(e);
@@ -631,7 +639,7 @@ function renderPondReflection(){
     pondRefl.rt=new RT(MOB?256:512,MOB?160:320);pondRefl.cam=De.clone();pondRefl.cam.layers.set(PALM_LAYER);pondU.uRefl.value=pondRefl.rt.texture}
   [pi,dc].forEach(l=>{if(l)l.layers.enable(PALM_LAYER)});
   /* the reflection pass needs its own build of every reflected shader: one more object joins it per frame */
-  for(const o of reflSet)if(!o.userData._rl){o.traverse(c=>c.layers.enable(PALM_LAYER));o.userData._rl=1;break}
+  for(const o of reflSet)if(!o.userData._rl){o.userData._rl=1;const on=()=>o.traverse(c=>c.layers.enable(PALM_LAYER));if(PAR)warm(o,pondRefl.rt,pondRefl.cam).then(on);else{on();break}}
   const Wy=W.position.y+POND.wy*S,c=pondRefl.cam;De.updateMatrixWorld();
   const e=De.matrixWorld.elements,cp=De.position;
   c.fov=De.fov;c.aspect=De.aspect;c.near=De.near;c.far=De.far;c.updateProjectionMatrix();
@@ -764,14 +772,14 @@ const LEAF_TS=256,LEAF_TEX=(()=>{const N=LEAF_TS,a=new Uint8ClampedArray(N*N*4),
     const o=(py*N+px)*4,k=cov?1-.28*rib/cov:1,s=Math.round(255*k);a[o]=s;a[o+1]=s;a[o+2]=Math.round(240*k);a[o+3]=Math.round(255*cov/(SS*SS))}
   const t=new T.CTex(new ImageData(a,N,N));t.flipY=false;t.colorSpace="";t.wrapS=1000;t.wrapT=1001;t.generateMipmaps=true;t.minFilter=1008;t.magFilter=1006;t.anisotropy=MOB?4:8;t.needsUpdate=true;return t})();
 const palmSway=(H,isTrunk)=>`
-        {float h=clamp(position.y/${H.toFixed(2)},0.,1.);float ph=modelMatrix[3].x*.9+modelMatrix[3].z*.7;
+        {float h=clamp(position.y/uPH,0.,1.);float ph=modelMatrix[3].x*.9+modelMatrix[3].z*.7;
          float s=(sin(uT*.8+ph)*.7+sin(uT*1.6+ph*1.3)*.3)*(.25+uWind)*.16;
          transformed.x+=s*h*h;transformed.z+=s*.45*h*h;
          ${isTrunk?"":`float r=length(position.xz);float fl=smoothstep(.4,3.5,r)*(.3+uWind);
          transformed.y+=sin(uT*2.3+r*2.1+ph+position.x)*.07*fl;transformed.x+=sin(uT*3.1+r*3.+ph)*.04*fl;`}}`;
 /* shadow caster for the crown: same sway, leaflet cut-outs */
-function palmDepthMat(H){return new T.SM({uniforms:Object.assign({uLeaf:{value:LEAF_TEX}},propU),
-  vertexShader:`uniform float uT,uWind;varying vec2 vUv;void main(){vUv=uv;vec3 transformed=position;${palmSway(H,false)}
+function palmDepthMat(H){return new T.SM({uniforms:Object.assign({uLeaf:{value:LEAF_TEX},uPH:{value:H}},propU),
+  vertexShader:`uniform float uT,uWind,uPH;varying vec2 vUv;void main(){vUv=uv;vec3 transformed=position;${palmSway(H,false)}
     gl_Position=projectionMatrix*modelViewMatrix*vec4(transformed,1.);}`,
   fragmentShader:`#include <packing>
     uniform sampler2D uLeaf;varying vec2 vUv;void main(){if(texture2D(uLeaf,vUv).a<.5)discard;gl_FragColor=packDepthToRGBA(gl_FragCoord.z);}`})}
@@ -780,8 +788,9 @@ function palmMat(H,isTrunk){
   /* crown: mipmapped leaflet alpha, sharpened to a ~1px edge by its own screen derivative (alpha-to-coverage where
      the target is multisampled, blended otherwise); coverage is boosted with the mip level so leaflets don't thin out far away */
   if(!isTrunk){m.map=LEAF_TEX;m.transparent=true;m.alphaToCoverage=true}
-  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,propU);
-    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uT,uWind;attribute vec2 aUV;varying vec2 vUV;")
+  /* the palm's height is a uniform, so all three palms share one program per variant */
+  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,propU,{uPH:{value:H}});
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uT,uWind,uPH;attribute vec2 aUV;varying vec2 vUV;")
       .replace("#include <begin_vertex>",`#include <begin_vertex>
         vUV=aUV;${palmSway(H,isTrunk)}`);
     if(!isTrunk)sh.fragmentShader=sh.fragmentShader.replace("#include <alphatest_fragment>",`{
@@ -798,11 +807,11 @@ function palmMat(H,isTrunk){
        have fallen off, leaving bare trunk with faint leaf-scar rings; the tone runs grey at the base to warm brown
        under the crown. Value noise is periodic around the trunk so the uv seam doesn't show. */
     if(isTrunk)sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-        varying vec2 vUV;float pHs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        uniform float uPH;varying vec2 vUV;float pHs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         float pN(vec2 p,float per){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);float x0=mod(i.x,per),x1=mod(i.x+1.,per);
           return mix(mix(pHs(vec2(x0,i.y)),pHs(vec2(x1,i.y)),f.x),mix(pHs(vec2(x0,i.y+1.)),pHs(vec2(x1,i.y+1.)),f.x),f.y);}`)
       .replace("#include <color_fragment>",`#include <color_fragment>
-        {float t=vUV.y/${H.toFixed(2)};
+        {float t=vUV.y/uPH;
          float ry=vUV.y/.17+.45*sin(vUV.x*6.2832+vUV.y*.8)+.35*pN(vec2(vUV.x*4.,vUV.y*.6),4.);
          float row=floor(ry),fy=fract(ry);
          float qx=vUV.x*8.+fract(row*.618)*8.+.4*sin(row*2.3);float cl=floor(qx),fx=fract(qx)-.5;
@@ -817,7 +826,7 @@ function palmMat(H,isTrunk){
          float k=mix(scar*mix(1.,stub,.3),stub,boot)*(.9+.2*fib);
          vec3 tone=mix(vec3(.84,.85,.88),vec3(1.,.89,.75),smoothstep(.05,.75,t))*mix(.9,1.1,pN(vec2(vUV.x*2.,vUV.y*.15),2.));
          diffuseColor.rgb*=mix(.88,k,aa)*tone*mix(vec3(1.),vec3(1.06,.98,.9),h1*boot);}`);};
-  m.customProgramCacheKey=()=>"des47palm"+(isTrunk?"t":"c")+H.toFixed(1);return m}
+  m.customProgramCacheKey=()=>"des67palm"+(isTrunk?"t":"c");return m}
 const DATE_GEO=(()=>{const{v,f}=icoSphere(1);return geoFrom(v.map(p=>[p[0]*.035,p[1]*.045,p[2]*.035]),f)})();
 function buildPalms(){
   const dates=[];
@@ -3184,9 +3193,12 @@ UPD.push((dt,t)=>{
 let _staged=false,_stageDone=false;
 function stageIn(){_staged=true;const L=[...root.children.filter(c=>c!==W),...W.children].filter(c=>c.visible&&!c.isLight),n=MOB?7:5,
     B=Array.from({length:n},(_,i)=>L.slice(Math.round(i*L.length/n),Math.round((i+1)*L.length/n)));
-  for(const b of B.slice(1))for(const o of b)o.traverse(x=>{x.userData._lm=x.layers.mask;x.layers.mask=0});
-  let i=1;const f=()=>{if(i>=n){_stageDone=true;return}for(const o of B[i++])o.traverse(x=>{if(x.userData._lm!=null){x.layers.mask|=x.userData._lm;delete x.userData._lm}});nextFrame().then(f)};
-  nextFrame().then(f)}
+  /* with parallel linking every batch is handed to the compiler at once and each is revealed, in order, once its programs are
+     linked; without it the first batch draws at once and one more joins per frame, so no single frame links them all */
+  for(const b of B.slice(PAR?0:1))for(const o of b)o.traverse(x=>{x.userData._lm=x.layers.mask;x.layers.mask=0});
+  const P=B.map((b,k)=>PAR?Promise.all(b.map(o=>warm(o))):Promise.resolve());if(!PAR)P.shift(),B.shift();
+  let i=0;const f=()=>{if(i>=B.length){_stageDone=true;return}const b=B[i];P[i++].then(()=>{for(const o of b)o.traverse(x=>{if(x.userData._lm!=null){x.layers.mask|=x.userData._lm;delete x.userData._lm}});nextFrame().then(f)})};
+  if(PAR)f();else nextFrame().then(f)}
 function show(on){
   if(on&&!_staged)stageIn();
   root.visible=on;De.layers.set(on?3:0);window.__desA=on;grade.enabled=on;if(!on)mirP.enabled=false;

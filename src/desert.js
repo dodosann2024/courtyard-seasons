@@ -18,9 +18,10 @@ const G2=(x,z,cx,cz,rx,rz)=>Math.exp(-(((x-cx)/rx)**2)-(((z-cz)/rz)**2));
 const root=new T.Group();root.visible=false;Jt.add(root);
 const W=new T.Group();W.scale.setScalar(S);W.rotation.y=YAW;W.position.y=1.7;root.add(W);
 /* a model's shaders are compiled a few frames before it is drawn, so the GPU process builds them while frames go on instead of
-   the first draw blocking the main thread on the link */
+   the first draw blocking the main thread on the link; compiled against the composer's target, since tone mapping and output
+   encoding are part of the program and only the final pass draws to the screen */
 const onDes=o=>{if(o===root||!o.visible){o.traverse(c=>{c.layers.mask=1|L3});return}
-  o.traverse(c=>{c.layers.mask=0});const rv=root.visible;root.visible=true;try{Cn.compile(o,De,Jt)}catch(_){}root.visible=rv;
+  o.traverse(c=>{c.layers.mask=0});const rv=root.visible,rt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(Ta.readBuffer||null);try{Cn.compile(o,De,Jt)}catch(_){}Cn.setRenderTarget(rt);root.visible=rv;
   let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}o.traverse(c=>{c.layers.mask|=1|L3})};requestAnimationFrame(f)};
 /* KTX2Loader.detectSupport enables each format with getExtension, a synchronous GPU round trip that waits behind every frame
    already queued; the list of supported names is answered without one */
@@ -883,9 +884,9 @@ buildPalms();
 const CLOD=[];
 /* resolves in a task of its own after the next frame, not inside the frame's rAF task */
 const nextFrame=()=>new Promise(r=>{let d=0;const f=()=>{if(!d){d=1;r()}};requestAnimationFrame(()=>setTimeout(f,0));setTimeout(f,60)});
-async function covMips(img,cut){
-  const w0=img.width,h0=img.height,c=document.createElement("canvas");c.width=w0;c.height=h0;const g=c.getContext("2d",{willReadFrequently:true});g.drawImage(img,0,0);
-  const d0=g.getImageData(0,0,w0,h0).data,t=Math.ceil(cut*255-1e-6);let n0=0;for(let i=3;i<d0.length;i+=4)if(d0[i]>=t)n0++;
+/* the downsample and coverage search are pure array work, done in a worker so a phone's main thread keeps drawing frames */
+function covLevels(d0,w0,h0,t){
+  let n0=0;for(let i=3;i<d0.length;i+=4)if(d0[i]>=t)n0++;
   const tgt=n0/(w0*h0),lv=[{data:new Uint8Array(d0.buffer.slice(0)),width:w0,height:h0}];
   let src=new Float32Array(d0.length),w=w0,h=h0;for(let i=0;i<d0.length;i++)src[i]=d0[i]/255;
   while(w>1&&h>1){const W2=w>>1,H2=h>>1,o=new Float32Array(W2*H2*4);
@@ -895,8 +896,21 @@ async function covMips(img,cut){
     src=o;w=W2;h=H2;const px=w*h,cov=s=>{let n=0;for(let i=0;i<px;i++)if(Math.round(Math.min(src[i*4+3]*s,1)*255)>=t)n++;return n/px};
     let lo=.25,hi=8;for(let it=0;it<24;it++){const m=.5*(lo+hi);if(cov(m)<tgt)lo=m;else hi=m}
     const d=new Uint8Array(px*4);for(let i=0;i<px;i++){d[i*4]=src[i*4]*255+.5;d[i*4+1]=src[i*4+1]*255+.5;d[i*4+2]=src[i*4+2]*255+.5;d[i*4+3]=Math.min(src[i*4+3]*hi,1)*255+.5}
-    lv.push({data:d,width:w,height:h});if(px>=65536)await nextFrame()}
+    lv.push({data:d,width:w,height:h})}
   return lv}
+const COV={w:null,n:0,cb:new Map(),idle:0};
+function covWorker(){if(COV.w!==null)return COV.w;
+  try{const u=URL.createObjectURL(new Blob(["const covLevels="+covLevels+";onmessage=e=>{const m=e.data,lv=covLevels(m.d,m.w,m.h,m.t);postMessage({id:m.id,lv},lv.map(l=>l.data.buffer))}"],{type:"text/javascript"}));
+    const w=new Worker(u);URL.revokeObjectURL(u);
+    w.onmessage=e=>{const c=COV.cb.get(e.data.id);COV.cb.delete(e.data.id);if(c)c.ok(e.data.lv);
+      clearTimeout(COV.idle);if(!COV.cb.size)COV.idle=setTimeout(()=>{if(!COV.cb.size&&COV.w){COV.w.terminate();COV.w=null}},3000)};
+    w.onerror=e=>{e.preventDefault();COV.w=false;const p=[...COV.cb.values()];COV.cb.clear();for(const c of p)c.ok(covLevels(c.d,c.wd,c.h,c.t))};
+    return COV.w=w}catch(_){return COV.w=false}}
+async function covMips(img,cut){
+  const w0=img.width,h0=img.height,c=document.createElement("canvas");c.width=w0;c.height=h0;const g=c.getContext("2d",{willReadFrequently:true});g.drawImage(img,0,0);
+  const d0=g.getImageData(0,0,w0,h0).data,t=Math.ceil(cut*255-1e-6),wk=covWorker();
+  if(!wk)return covLevels(d0,w0,h0,t);
+  return new Promise(ok=>{const id=++COV.n;COV.cb.set(id,{ok,d:d0,wd:w0,h:h0,t});wk.postMessage({id,d:d0,w:w0,h:h0,t})})}
 /* one texture level per frame: the full-size levels of a 2k card take a few hundred ms each on a phone */
 async function cactusAlpha(root){const M=VT.THREE,done=new Set(),todo=[];
   root.traverse(o=>{if(!o.isMesh)return;const m=o.material;if(m.alphaTest>0)o.castShadow=false;else o.castShadow=true;o.receiveShadow=true;
@@ -2323,7 +2337,7 @@ function rsTongueMesh(proto){proto.traverse(o=>{if(!o.isMesh||!/tongue/i.test((o
   const m=o.material;m.map=null;m.color.setRGB(.095,.009,.011);m.roughness=.28;m.needsUpdate=true})}
 function rsSpawn(proto,anims){
   const M=VT.THREE,g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";proto.position.y=0;
-  inner.add(proto);inner.scale.setScalar(RS_SC);g.add(inner);animalMats(g);W.add(g);onDes(g);
+  inner.add(proto);inner.scale.setScalar(RS_SC);g.add(inner);animalMats(g);W.add(g);
   /* light thrown back up off the sand: its own pattern lit softly from below, most when a low sun barely reaches its back */
   matsOf(g,m=>{if(m.map&&!m.userData.snFill){m.userData.snFill=1;m.emissiveMap=m.map;m.emissive=new C3(0,0,0);m.needsUpdate=true;SN_FILL.push(m)}});
   /* any transmission > 0 (cornea glass, rattle keratin) makes three re-render the whole scene into a transmission target every frame */
@@ -2331,7 +2345,7 @@ function rsSpawn(proto,anims){
     if(/cornea/i.test(m.name||"")){if(tr>0||!m.transparent){m.transparent=true;m.opacity=.22;m.roughness=.06}m.depthWrite=false}
     else if(/wet/i.test(m.name||"")){if(!m.clearcoat)m.roughness=.3}
     else if(tr>0&&m.emissive){m.emissive.copy(m.color).multiplyScalar(.08*tr/.15);m.roughness=Math.min(m.roughness,.42)}});
-  rsTongueMesh(proto);
+  rsTongueMesh(proto);onDes(g);
   let sk=null;proto.traverse(o=>{if(o.isSkinnedMesh&&!sk&&o.skeleton.bones.some(b=>b.name==="Tongue"))sk=o.skeleton});
   const s={g,r:rigUp(proto,anims),x:0,z:0,yaw:0,yr:0,gy:null,mode:"relax",timer:rr(6,10),tg:{next:rr(.8,2),b:null},tq:null,
     bd:null,w:0,wT:99,wF:1,a:0,rk:0,rph:0,sg:0,spd:0,caut:0,idle:rr(4,9),gait:"serp",hx:0,hz:0,path:null,pi:0,goal:null,next:null,inShade:0};
@@ -2845,7 +2859,7 @@ float pfCau(vec2 p,float t){p=mod(p*6.2832,6.2832)-250.;vec2 i=p;float c=1.;
         diffuseColor.a=.86*exp(-dW/max(Vw.y,.2)*1.3)*(1.-fr)*uVis;}
         #include <opaque_fragment>`)};
   m.needsUpdate=true})}
-function pfSpawn(src,male,anims){const s=VT.cloneSkinned(src.scene),g=new T.Group();g.rotation.order="YXZ";g.add(s);W.add(g);onDes(g);pfMats(g,male);
+function pfSpawn(src,male,anims){const s=VT.cloneSkinned(src.scene),g=new T.Group();g.rotation.order="YXZ";g.add(s);W.add(g);pfMats(g,male);onDes(g);
   const f={g,r:rigUp(s,anims),male,ter:-1,x:0,y:0,z:0,yaw:rr(-3,3),yr:0,pit:0,v:0,vt:0,mode:"pause",t:rr(0,1.5),hY:rr(.03,.14),tg:null,
     off:{a:rr(0,TAU),d:Math.sqrt(rnd())*.85},disp:rr(6,16),ct:0};
   const sw=f.r.acts.swim;if(sw){sw.play();sw.time=rr(0,.8)}f.r.cur="swim";
@@ -2960,7 +2974,7 @@ function agSpots(){const L=[];
     let ok=true;for(let k=0;k<4;k++){const a=k*TAU/4,yy=rockTop(o.x+Math.cos(a)*.12,o.z+Math.sin(a)*.12);if(Math.abs(yy-y)>.05)ok=false}
     if(ok)L.push({x:o.x,z:o.z,y,r:o.r,ta:0})}
   if(!L.length)L.push({x:GROVE.x+3,z:GROVE.z+3,y:-99,r:.3,ta:0});AG.spots=L}
-function agSpawn(scene,anims,male){const g=new T.Group();g.add(scene);W.add(g);onDes(g);
+function agSpawn(scene,anims,male){const g=new T.Group();g.add(scene);W.add(g);
   scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}});
   animalMats(scene,false);
   const U={uWarm:{value:0},uBlue:{value:null}};
@@ -2969,6 +2983,7 @@ function agSpawn(scene,anims,male){const g=new T.Group();g.add(scene);W.add(g);o
       .replace("#include <map_fragment>",`#ifdef USE_MAP
         vec4 sampledDiffuseColor=texture2D(map,vMapUv);sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,texture2D(uBlue,vMapUv).rgb,uWarm);diffuseColor*=sampledDiffuseColor;
         #endif`)};c.customProgramCacheKey=()=>"agBlue"});
+  onDes(g);
   const a={g,r:rigUp(scene,anims),male,U,x:0,z:0,ry:-99,yaw:rr(-3,3),mode:"idle",timer:rr(1,3),Tb:male?.8:.6,warm:male?.6:0,
     palm:null,ct:0,az:0,down:false,turn:null,ctGoal:0,path:null,pi:0,then:null,goal:null,burst:0,bob:rr(4,10),cond:"",spot:null,oP:new V3(),oQ:new T.Quat(),sp:null};
   for(const k of["climb","run","idle","bask","head_bob"]){const c=a.r.acts[k];if(c&&k==="head_bob")c.setLoop(VT.THREE.LoopOnce,1),c.clampWhenFinished=true}

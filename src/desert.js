@@ -2680,12 +2680,12 @@ const _yAx=new V3(0,1,0);
 function capE(e){if(AU.cap){AU.cap.ev.push([+(st.t-AU.cap.t0).toFixed(3)].concat(e));if(AU.cap.ev.length>4e5)AU.cap.ev.length=0}}
 function voice(c,out,pan,lpf){const g=c.createGain(),f=c.createBiquadFilter(),pn=c.createStereoPanner?c.createStereoPanner():null;f.type="lowpass";f.Q.value=.5;f.frequency.value=lpf;
   g.connect(f);if(pn){pn.pan.value=pan;f.connect(pn);pn.connect(out)}else f.connect(out);return{g,f,pn}}
-function loopS(id,k,v,p,ref,rate){let pan=0,lpf=19000;if(p){const q=spat(p,ref);pan=q[0];v*=q[1];lpf=q[2]}rate=rate||1;
+function loopS(id,k,v,p,ref,rate,tc){let pan=0,lpf=19000;if(p){const q=spat(p,ref);pan=q[0];v*=q[1];lpf=q[2]}rate=rate||1;
   capE(["L",id,k,+v.toFixed(4),+pan.toFixed(3),Math.round(lpf),+rate.toFixed(3)]);
   if(!aOK()||!aBus())return;const c=SX().s;let L=AU.lp[id];
   if(!L){if(v<=.001)return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;s.loopStart=.5;s.loopEnd=.5+LL[k];
     L=voice(c,AU.bus,pan,lpf);L.g.gain.value=0;L.s=s;s.connect(L.g);s.start(0,.5+rnd()*LL[k]);AU.lp[id]=L}catch(e){return}}
-  const now=c.currentTime;L.g.gain.setTargetAtTime(v,now,.35);L.f.frequency.setTargetAtTime(lpf,now,.3);L.pn&&L.pn.pan.setTargetAtTime(pan,now,.2);L.s.playbackRate.setTargetAtTime(rate,now,.3)}
+  const now=c.currentTime;L.g.gain.setTargetAtTime(v,now,tc||.35);L.f.frequency.setTargetAtTime(lpf,now,.3);L.pn&&L.pn.pan.setTargetAtTime(pan,now,.2);L.s.playbackRate.setTargetAtTime(rate,now,.3)}
 /* oas: route through the oasis bus, whose level follows the camera's distance from the water and the wind */
 function shotS(k,g,p,ref,rate,oas){const q=p?spat(p,ref):[0,1,19000];rate=rate||1;g*=q[1];
   capE(["S",k,+g.toFixed(4),+q[0].toFixed(3),Math.round(q[2]),+rate.toFixed(3)].concat(oas?["oas"]:[]));
@@ -2728,7 +2728,9 @@ function oasis(dt,nk,W){const zone=oasisNear(),hush=1-ss(.22,.6,W),v=zone*hush;
 function sound(dt){if(!root.visible&&!AU.cap)return;
   /* the ambient loops at once; the calls once the models are in, so on a slow link they don't compete with them */
   if(aOK()){if(!AU.pre){AU.pre=1;Object.keys(LL).filter(k=>!WXA.has(k)).forEach(dec)}
-    if(AU.pre===1&&AU.big){AU.pre=2;Object.keys(AQ).filter(k=>!WXA.has(k)).forEach(dec)}}
+    if(AU.pre===1&&AU.big){AU.pre=2;Object.keys(AQ).filter(k=>!WXA.has(k)).forEach(dec)}
+    /* the rain beds are decoded ahead of the weather, so the first drops are heard as they are seen */
+    if(AU.pre===2||Ct.weather!=="sun"&&Ct.weather!=="dust")["dRn","dRt"].forEach(dec)}
   if(Ct.weather==="storm"&&aOK())["dTh1","dTh2","dTh3","dTh4","dTh5"].forEach(dec);
   if(ANIM.rs&&aOK())["dRtl","dRtlOn"].forEach(dec);
   if(aOK()&&aBus())AU.bus.gain.setTargetAtTime(1,SX().s.currentTime,.6);
@@ -2739,9 +2741,12 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   loopS("wind","dWnd",(.06+.42*ss(.12,1,wn)*(.45+.75*g))*calm);
   loopS("sand","dSnd",(.02+.26*ss(.2,1,wn))*ss(.3,.85,g)*calm*(1-.85*WX.wet));
   /* weather: rain on the sand everywhere, rain drumming on the tent cloth up close, the roar and hiss of a dust storm */
-  loopS("rain","dRn",.6*ss(.01,.7,WX.rain));
+  /* level follows the streaks drawn (same WX.rain, same cut-off) with a loudness curve that is already clear at the first
+     sparse drops, and a short gain lag so it starts and stops with the picture */
+  const rOn=WX.rain>.004?1:0;
+  loopS("rain","dRn",.6*rOn*Math.pow(Math.min(1,WX.rain/.62),.6),null,0,1,.08);
   /* the cloth keeps dripping for a while after the rain: the same drumming, thinned and slowed */
-  {const dr=ss(.88,1,WX.after)*(1-ss(.01,.2,WX.rain));loopS("rtent","dRt",.75*ss(.01,.5,WX.rain)+.16*dr,_tnP.set(TENT.x,hTop(TENT.x,TENT.z)+1.6,TENT.z),6,1-.22*dr)}
+  {const dr=ss(.88,1,WX.after)*(1-ss(.01,.2,WX.rain));loopS("rtent","dRt",.75*rOn*Math.pow(Math.min(1,WX.rain/.5),.6)+.16*dr,_tnP.set(TENT.x,hTop(TENT.x,TENT.z)+1.6,TENT.z),6,1-.22*dr,rOn?.08:.35)}
   loopS("storm","dStm",.62*ss(.04,.7,WX.dust));
   loopS("stsand","dStS",.5*ss(.2,.9,WX.dust)*(.55+.45*g));
   oasis(dt,nk,Math.max(ss(.12,1,wn)*(.45+.75*g),WX.dust*1.3,WX.rain*.9));

@@ -224,7 +224,7 @@ try {
 
   /* 12. hail: a gust front, then a short burst of white stones out of a green-grey base. They bounce on the sand and pit it, roll
      into the ripple troughs and lie there; they drum on the tent and shake it, crack into the palm crowns, knock the cacti, splash
-     and float briefly on the lake. Each surface has its own sound. The cold-blooded animals hide and the camels stand with their
+     and float briefly on the lake. Each surface has its own sound. The cold-blooded animals hide (agamas and the snake under cover, the pupfish in the deep middle) and the camels stand with their
      backs to the wind. Then the sun melts the stones within minutes into dark wet spots that dry. */
   check("hail: bounce, pits, troughs, tent, palms, cacti, lake, sounds, animals, melt", ...await page.evaluate(() => {
     const q = window.__desQA(), C = q.HS.cnt, r = {}, H = q.WX.H, CS = q.ANIM.camels;
@@ -249,6 +249,9 @@ try {
     const hid = q.AG.list.every(a => !a.g.visible || a.then === "hide" || a.mode === "hide" || a.mode === "run" || (a.palm && a.mode === "climb"));
     const wy = Math.atan2(q.WIND.x, q.WIND.z), off = CS.filter(c => c.mode !== "kneel" && c.job !== "kneel").map(c => Math.abs(Math.atan2(Math.sin(c.yaw - wy), Math.cos(c.yaw - wy))));
     r.camelsWalking = CS.filter(c => c.mode === "walk").length; r.camelOffWind = off.map(a => +a.toFixed(2));
+    const rs = q.ANIM.rs, PF = q.PF ? q.PF.list : [];
+    r.snake = rs ? rs.mode + (rs.g.visible ? "" : ":hidden") : null; const snakeHid = !rs || !rs.g.visible;
+    r.fishDepth = PF.length ? +(PF.reduce((t, f) => t + q.pfDep(f.x, f.z), 0) / PF.length).toFixed(3) : null;
     window.__set({weather: "sun", ct: "clear"}); q.HS.pin = null;
     q.sim(60, .25); r.coverAt60 = q.WX.hc; r.wetPeak = q.WX.hm; for (let i = 0; i < 20; i++) { q.sim(15, .5); r.wetPeak = Math.max(r.wetPeak, q.WX.hm); }
     r.coverAt360 = q.WX.hc; q.sim(900, 1); r.wetAfter = q.WX.hm; r.coldAfter = q.WX.cold;
@@ -258,7 +261,7 @@ try {
       n("sand") > 60 && n("rebound") > 10 && n("pit") > 15 && n("tent") > 5 && n("palm") > 3 && n("pond") > 5 && (!sg || n("cactus") > 1) &&
       rt > lt + .1 && n("restTr") > n("restCr") && r.tentShake > .5 && r.palmTwitch > .1 &&
       ["dHs1", "dHt1", "dHp1", "dHc1"].every(k => shots.has(k)) && ["hsand", "htent", "hleaf", "hwat"].every(k => loops.has(k)) &&
-      r.cold === 1 && hid && r.camelsWalking === 0 && off.every(a => a < .45) &&
+      r.cold === 1 && hid && snakeHid && (r.fishDepth === null || r.fishDepth > .3) && r.camelsWalking === 0 && off.every(a => a < .45) &&
       r.coverAt60 < r.cover && r.coverAt360 < .03 && r.wetPeak > .2 && r.wetAfter < .05 && r.coldAfter === 0, r];
   }));
 

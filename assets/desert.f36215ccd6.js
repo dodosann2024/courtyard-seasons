@@ -31,9 +31,11 @@ const onDes=o=>{if(o===root||!o.visible){o.traverse(c=>{c.layers.mask=1|L3});ret
   if(PAR){warm(o).then(()=>requestAnimationFrame(on));return}
   const rv=root.visible,rt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(Ta.readBuffer||null);try{Cn.compile(o,De,Jt)}catch(_){}Cn.setRenderTarget(rt);root.visible=rv;
   let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}reveal(on)};requestAnimationFrame(f)};
-/* the first draw of a model waits on its links, so models are shown one a frame and their links never pile into one long frame */
+/* the first draw of a model waits on its links, so models are shown one a frame and their links never pile into one long frame;
+   anything queued over half a second goes at once, or on a slow device the queue would trickle first draws into play long after load */
 const RQ=[];let rqB=0;
-function reveal(f){RQ.push(f);if(rqB)return;rqB=1;const g=()=>{const h=RQ.shift();if(h)h();if(RQ.length)requestAnimationFrame(g);else rqB=0};requestAnimationFrame(g)}
+function reveal(f){RQ.push([f,performance.now()]);if(rqB)return;rqB=1;
+  const g=()=>{const n=performance.now();do RQ.shift()[0]();while(RQ.length&&n-RQ[0][1]>500);if(RQ.length)requestAnimationFrame(g);else rqB=0};requestAnimationFrame(g)}
 /* KTX2Loader.detectSupport enables each format with getExtension, a synchronous GPU round trip that waits behind every frame
    already queued; the list of supported names is answered without one */
 function ktxCfg(){let s;try{s=new Set(Cn.getContext().getSupportedExtensions()||[])}catch(_){s=new Set()}const h=e=>s.has(e);
@@ -2246,10 +2248,10 @@ const HB=(()=>{const n=MOB?260:640,P=new Float32Array(n*3),C=new Float32Array(n*
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
       }`});
-  for(let i=0;i<n;i++)Q.push({l:0});
+  for(let i=0;i<n;i++)Q.push({ty:"",x:0,y:0,z:0,vx:0,vy:0,vz:0,l:0,L:1,ph:0});
   const o=new T.Points(g,m);o.frustumCulled=false;o.renderOrder=9;o.visible=false;W.add(o);onDes(o);return{n,P,C,Z,Q,g,m,o,k:0}})();
 const HBK={clump:[.93,.95,.98,.09],drop:[.9,.94,.98,.05],grain:[.78,.6,.4,.009],leaf:[.3,.36,.2,.06],chip:[.95,.97,1,.012]};
-function hBit(ty,x,y,z,vx,vy,vz,life){const B=HB,q=B.Q[B.k];B.k=(B.k+1)%B.n;Object.assign(q,{ty,x,y,z,vx,vy,vz,l:life,L:life,ph:rnd()*TAU})}
+function hBit(ty,x,y,z,vx,vy,vz,life){const B=HB,q=B.Q[B.k];B.k=(B.k+1)%B.n;B.live=1;q.ty=ty;q.x=x;q.y=y;q.z=z;q.vx=vx;q.vy=vy;q.vz=vz;q.l=q.L=life;q.ph=rnd()*TAU}
 /* a stone at rest on a ripple: the ripple's slow terms are frozen where it lands, so its height and slope are cheap to follow */
 function ripFreeze(s,x,z,nY){const RD=sandU.uRipDir.value,dx=RD.x,dz=RD.y;s.wx=fbm2(x*.09,z*.09)*4;s.wz=fbm2(x*.11+7,z*.11+7)*2.5;
   s.pm=1+.16*(vn2(x*.07+1.3,z*.07+1.3)-.5);s.am=.5+.5*ss(.28,.62,vn2(x*.21+11,z*.21+11));
@@ -2323,13 +2325,13 @@ UPD.push((dt,t)=>{const on=WX.hf>.004,act=on||HS.act>0;
   HD.im.visible=st.t-HD.last<26;if(HD.im.visible){HD.im.material.uniforms.uT.value=st.t;HD.im.material.uniforms.uCol.value.copy(HLU.uCol.value);HD.im.material.uniforms.uSand.value.copy(_c1).multiply(_c2.set("#f3d2a2")).multiplyScalar(1.5)}
   /* bits */
   let any=false;const B=HB;
-  for(let i=0;i<B.n;i++){const q=B.Q[i],o=i*3;if(q.l<=0){B.C[i*4+3]=0;continue}any=true;q.l-=dt;
+  if(B.live)for(let i=0;i<B.n;i++){const q=B.Q[i],o=i*3;if(q.l<=0){B.C[i*4+3]=0;continue}any=true;q.l-=dt;
     if(q.ty==="leaf"){q.ph+=dt*7;q.vy=Math.max(q.vy-3*dt,-.9);q.vx=q.vx*Math.exp(-dt*2)+WIND.x*st.wn*.8*dt+Math.sin(q.ph)*.6*dt;q.vz=q.vz*Math.exp(-dt*2)+WIND.z*st.wn*.8*dt+Math.cos(q.ph*1.3)*.6*dt}
     else q.vy-=9.8*dt;
     q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;
     if(q.ty==="drop"&&q.vy<0&&q.y<POND.wy)q.l=0;else if(q.y<hTop(q.x,q.z)-.01&&q.ty!=="drop")q.l=Math.min(q.l,q.ty==="leaf"?1.2:0);
     const K=HBK[q.ty];B.P[o]=q.x;B.P[o+1]=q.y;B.P[o+2]=q.z;B.C[i*4]=K[0];B.C[i*4+1]=K[1];B.C[i*4+2]=K[2];B.C[i*4+3]=Math.min(1,q.l/q.L*3)*(q.ty==="drop"?.8:1);B.Z[i]=K[3]}
-  B.o.visible=any;if(any){B.g.attributes.position.needsUpdate=B.g.attributes.aC.needsUpdate=B.g.attributes.z.needsUpdate=true;B.m.uniforms.uH.value=innerHeight;B.m.uniforms.uL.value.copy(_c1).multiplyScalar(1.3)}
+  B.live=any;B.o.visible=any;if(any){B.g.attributes.position.needsUpdate=B.g.attributes.aC.needsUpdate=B.g.attributes.z.needsUpdate=true;B.m.uniforms.uH.value=innerHeight;B.m.uniforms.uL.value.copy(_c1).multiplyScalar(1.3)}
   /* the palms twitch under the strikes; the cloth shivers with the drumming */
   for(const pp of PALMS){if(!pp.tw)continue;pp.twA*=Math.exp(-dt*4.5);pp.tw.value=pp.twA*Math.sin(t*19+pp.x)+.06*WX.hf*Math.sin(t*13.7+pp.z*3)*Math.sin(t*5.1)}
   TENTH.k*=Math.exp(-dt*5);tentU.uShk.value=Math.min(1.4,.45*WX.hf+TENTH.k)});
@@ -3230,6 +3232,8 @@ function aBus(){if(AU.bus)return true;const x=SX();try{const b=x.s.createGain();
 /* The rain beds are made exactly periodic once decoded. The file's loop [0.5 s, 0.5 s + T] joins only as well as the MP3
    frames on either side happen to match (and the decoder's padding differs between browsers), so the last 0.45 s of the
    loop is crossfaded into the copy of itself that sits just before the loop start; the wrap then continues sample for sample. */
+/* made sounds are built one a frame as their weather comes, never all in one frame */
+const DSY=["dDp1","dDp2","dDp3"],RSY=["dRwt","dRlf","dRd1","dRd2","dRd3",...DSY],HSY=["dHsd","dHtn","dHlf","dHwt","dHs1","dHt1","dHp1","dHc1"];
 const SEAM=new Set(["dRn","dRt","dRn2","dRn3","dRt2"]),BED=new Set(["rain","rain2","rain3","rtent","rtent2","rwat","rleaf","hsand","htent","hleaf","hwat"]);
 function seam(c,b,T){const sr=b.sampleRate,a=Math.round(.5*sr),n=Math.round(T*sr),x=Math.round(.45*sr);if(b.length<a+n||!c)return b;
   try{const o=c.createBuffer(b.numberOfChannels,n,sr);
@@ -3249,9 +3253,9 @@ function voice(c,out,pan,lpf){const g=c.createGain(),f=c.createBiquadFilter(),pn
 function loopS(id,k,v,p,ref,rate,tc,mf){let pan=0,lpf=19000;if(p){const q=spat(p,ref);pan=q[0];v*=q[1];lpf=q[2]}if(mf)lpf=Math.min(lpf,mf);rate=rate||1;
   capE(["L",id,k,+v.toFixed(4),+pan.toFixed(3),Math.round(lpf),+rate.toFixed(3)].concat(tc?[tc]:[]));
   if(!aOK()||!aBus())return;const c=SX().s;let L=AU.lp[id];
-  /* the rain and hail beds start silent as soon as they are decoded (or made) and then run without a break for as long as
-     the desert is shown: the weather only ever raises and lowers their gain, it never starts or stops a source */
-  if(!L){if(v<=.001&&!(BED.has(id)&&AU.b[k]))return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;
+  /* the rain and hail beds start silent once they are decoded (or made) and wet weather is on its way, then run without a
+     break through the showers: the weather only raises and lowers their gain. After a long dry spell they are stopped */
+  if(!L){if(v<=.001&&!(BED.has(id)&&AU.b[k]&&AU.wet))return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;
     if(b.seam){s.loopStart=0;s.loopEnd=b.duration}else{s.loopStart=.5;s.loopEnd=.5+LL[k]}
     L=voice(c,AU.bus,pan,lpf);L.g.gain.value=0;Object.assign(L,{s,v:0,lf:lpf,pa:pan,ra:1,w:-1});s.connect(L.g);s.start(0,b.seam?rnd()*b.duration:.5+rnd()*LL[k]);AU.lp[id]=L;AU.n[id]=(AU.n[id]||0)+1}catch(e){return}}
   /* parameters only glide toward smoothed targets, written when they have moved and at most twenty times a second, so a
@@ -3315,6 +3319,9 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   if(ANIM.rs&&aOK())["dRtl","dRtlOn"].forEach(dec);
   if(aOK()&&aBus())AU.bus.gain.setTargetAtTime(1,SX().s.currentTime,.6);
   for(let i=AU.q.length-1;i>=0;i--)if(st.t>=AU.q[i].t){const f=AU.q[i].fn;AU.q.splice(i,1);f()}
+  AU.wet=WX.rain>.001||WX.hf>.001||/rain|storm|hail/.test(Ct.weather);
+  {let on=AU.wet;for(const id of BED){const L=AU.lp[id];if(L&&L.v>0)on=true}
+   if(on)AU.dryT=st.t;else if(st.t-(AU.dryT||0)>150)for(const id of BED){const L=AU.lp[id];if(!L)continue;delete AU.lp[id];try{L.s.stop();L.g.disconnect()}catch(e){}}}
   const nk=st.night,wn=st.wn,g=gustAt(_cl.x,_cl.z),calm=1-.5*nk;
   /* beds: a steady low air, wind that swells with the gusts, and the hiss of sand on the move */
   /* snow on the ground soaks up the high end: the wind comes muffled and softer, the sand barely hisses (it is frozen in place) */
@@ -3327,7 +3334,7 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   /* dew dripping off the fronds and the tent in the fog: into the pond at the edge, or a tap on a leaf or the cloth */
   /* and after rain, while the cloth still streams and the fronds still shed (the same curve that draws the drips), thinning out */
   const dr=ss(.88,1,WX.after)*(1-ss(.01,.2,WX.rain)),dw=Math.max(WX.dew,.85*dr);AU.dw=dw;
-  if(dw>.12&&amb()&&(AU.dpT=(AU.dpT||0)-dt)<0){AU.dpT=rr(.35,2)/(.25+dw);if(aOK())["dDp1","dDp2","dDp3"].forEach(synB);const r=rnd();AU.dpN=(AU.dpN||0)+1;
+  if(dw>.12&&amb()&&(AU.dpT=(AU.dpT||0)-dt)<0){AU.dpT=rr(.35,2)/(.25+dw);if(aOK())for(const k of DSY)if(!AU.b[k]){synB(k);break}const r=rnd();AU.dpN=(AU.dpN||0)+1;
     if(r<.5){const[x,z]=pondEdge(rr(-3.1,3.1),rr(.86,.98));shotS(rnd()<.6?"dDp1":"dDp2",.42*dw,_oP.set(x,POND.wy,z),6,rr(.9,1.15),1)}
     else if(r<.82){const p=PALMS[Math.floor(rnd()*PALMS.length)];if(p)shotS("dDp3",.32*dw,_oP.set(p.x+rr(-1.6,1.6),hTop(p.x,p.z)+.1,p.z+rr(-1.6,1.6)),5,rr(.85,1.2),1)}
     else shotS("dDp3",.36*dw,_tnP.set(TENT.x+rr(-2,2),hTop(TENT.x,TENT.z)+.2,TENT.z+rr(-1.5,1.5)),6,rr(1.1,1.4))}
@@ -3360,9 +3367,9 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
       for(const p of PALMS){const T0=p.g&&p.g.userData.top;if(T0&&Math.hypot(_cl.x-T0.x,_cl.z-T0.z)<4.5&&rnd()<.5){shotS("dRd3",.3*g,_oP.set(T0.x+rr(-2,2),T0.y-rr(0,1),T0.z+rr(-2,2)),4,rr(.85,1.2));break}}}}
   /* hail: the bed of strikes on the sand all round, drumming on the tent, crackle in the palm crowns and plinks on the pond,
      each where it is; the strikes simulated near the camera are heard singly on top */
-  if(aOK()&&(WX.rain>.004||/rain|storm/.test(Ct.weather)))for(const k of ["dRwt","dRlf","dRd1","dRd2","dRd3","dDp1","dDp2","dDp3"])if(!AU.b[k]){synB(k);break}
+  if(aOK()&&(WX.rain>.004||/rain|storm/.test(Ct.weather)))for(const k of RSY)if(!AU.b[k]){synB(k);break}
   if(aOK()&&WX.sc>.03)synB("dCrn");
-  if(aOK()&&WX.hf>.004)["dHsd","dHtn","dHlf","dHwt","dHs1","dHt1","dHp1","dHc1"].forEach(synB);
+  if(aOK()&&WX.hf>.004)for(const k of HSY)if(!AU.b[k]){synB(k);break}
   {const hv=Math.pow(ss(0,.8,WX.hf),.7),T0=PALMS[0].g?PALMS[0].g.userData.top:null;
    loopS("hsand","dHsd",.5*hv,null,0,1,.12);
    loopS("htent","dHtn",.9*hv,_tnP.set(TENT.x,hTop(TENT.x,TENT.z)+1.8,TENT.z),6,1,.12);

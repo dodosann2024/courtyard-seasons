@@ -3119,7 +3119,7 @@ function rsUpdate(s,dt){
   /* coiled: the clip pose, tongue now and then; leave at dusk or to reach shade */
   if(s.mode==="coil"){s.timer-=dt;
     if(s.timer<0){if(s.r.cur==="relaxed_coil"){play(s.r,"tongue_flick",.8,1);s.timer=rr(6,9)}else{play(s.r,"relaxed_coil",.9,1);s.timer=rr(9,15)}}
-    s.idle-=dt;if(s.idle<0&&(!day||!s.inShade)){s.mode="uncoil";s.next=null}}
+    s.idle-=dt;if(WX.hcold&&!s.inShade)s.idle=Math.min(s.idle,0);if(s.idle<0&&(!day||!s.inShade)){s.mode="uncoil";s.next=null}}
   if(s.mode==="uncoil"){rigTick(s.r,dt);rsFromClip(s);trInit(s);for(let i=0;i<RS_N*2;i++)b.Ls[i]=b.P[i];
     s.mode="rest";s.restT=.3;s.gait="serp";s.a=0;s.rk=s.caut>0?1:0;s.wT=0;s.wF=-.4;s.dtgt=null}
   /* travel */
@@ -3147,8 +3147,8 @@ function rsUpdate(s,dt){
   if(s.mode==="rest"&&s.gait==="side"&&s.a<.01){trInit(s);s.gait="serp"}
   if(day&&s.mode==="rest"&&!s.inShade&&!s.next)s.restT=Math.min(s.restT,.2);
   if(!day)s.inShade=0;
-  /* in snow, once coiled in its shady spot it slips down the burrow there until the sand warms again */
-  s.g.visible=!(WX.scold&&s.inShade&&s.mode==="coil");
+  /* in snow or hail, once coiled in its shady spot it slips down the burrow there until the sand warms again */
+  s.g.visible=!((WX.scold||WX.hcold)&&s.inShade&&s.mode==="coil");
   /* crawl weight: 1 travelling or resting stretched out, ramping to the clip pose when it coils */
   s.wT+=dt;const wf=s.wF||1;s.w=wf<0?ss(0,-wf,s.wT):1-ss(0,wf,s.wT);
   if(s.mode==="coiling"&&s.w<.002)s.mode="coil";
@@ -3500,8 +3500,9 @@ function pfStart(f,gx,gz,vt,T){f.gx=gx;f.gz=gz;f.vt=vt;f.t=T;f.mode="dart";
   if(f.r.cur!=="swim")play(f.r,"swim",.12)}
 function pfPause(f){const n=st.night>.5;f.mode="pause";f.vt=0;f.tg=null;f.t=n?rr(2,6):rr(.3,1.7);
   if(!n&&f.t>1.2&&rnd()<.4&&f.r.acts.idle_turn)play(f.r,"idle_turn",.3,rr(.8,1.3))}
-/* keep a goal over water of the right depth: pull it toward the pond centre when too shallow, out when too deep */
-function pfFit(f,x,z){const lo=f.ter>=0?.05:.08,hi=f.ter>=0?.3:.75;
+/* keep a goal over water of the right depth: pull it toward the pond centre when too shallow, out when too deep.
+   Under hail every fish keeps to the deep middle, out of reach of the strikes. */
+function pfFit(f,x,z){const hd=WX.hcold>0,lo=hd?.4:f.ter>=0?.05:.08,hi=hd?1.5:f.ter>=0?.3:.75;
   for(let k=0;k<8;k++){const d=pfDep(x,z);if(d<lo){x+=(POND.x-x)*.12;z+=(POND.z-z)*.12}else if(d>hi){x-=(POND.x-x)*.08;z-=(POND.z-z)*.08}else break}return[x,z]}
 function pfDart(f){
   let gx,gz;const ny=st.night>.5;

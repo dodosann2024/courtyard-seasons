@@ -501,9 +501,9 @@ try {
   /* 17. sand covers the whole rim: the fine sand over the lip runs all the way round the island. The rim is rendered from four
      sides with and without the sand veneer; along the top of the wall just under the lip (facing the camera) the picture must
      change nearly everywhere, in every quarter. The sand falls are hidden for these shots: where one pours in front of the
-     rim it hides the veneer in both renders alike. */
+     rim it hides the veneer in both renders alike, and so does the thin sand fringe spilling over the lip. */
   await page.evaluate(() => { document.body.classList.add("col", "snc"); const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .35}); q.tod("day"); q.sim(5); window.__C().Ce.enabled = false;
-    const m = q.sfMesh && q.sfMesh(); if (m) m.visible = false; });
+    const m = q.sfMesh && q.sfMesh(); if (m) m.visible = false; const rf = q.sfRim && q.sfRim(); if (rf) rf.visible = false; });
   const fr = n => page.evaluate(n => new Promise(r => { let k = 0; const f = () => (++k >= n ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
   const AZS = [.4, 2, 3.6, 5.2], rimShots = {};
   const aimRim = a => page.evaluate(a => { const q = window.__desQA(), C = window.__C(), [ex, ez] = q.edgeXZ(a, 1), h = q.hTop(ex * .97, ez * .97);
@@ -535,7 +535,7 @@ try {
       }
       r.quarters.push({az: a, n, covered: +(cov / Math.max(1, n)).toFixed(3)});
     }
-    q.rockU.uVen.value = 1; C.Ce.enabled = true; const sm = q.sfMesh && q.sfMesh(); if (sm) sm.visible = true;
+    q.rockU.uVen.value = 1; C.Ce.enabled = true; const sm = q.sfMesh && q.sfMesh(); if (sm) sm.visible = true; const rf = q.sfRim && q.sfRim(); if (rf) rf.visible = true;
     return [r.quarters.every(Q => Q.n >= 8 && Q.covered >= .9), r];
   }, rimShots, AZS));
 } finally { await browser.close(); server.close(); }

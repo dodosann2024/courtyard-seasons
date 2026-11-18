@@ -3,6 +3,7 @@
 // climb, perch under the crown in rain and hide at night, and rain wets the sand, pits it and rings the lake. Then the same with
 // fog lying (and the fog drifting and thinning with the wind), and snow: it lies in the ripple troughs and on lee slopes but not
 // on crests or windward faces (measured on rendered pixels), the animals take cover, and it melts into wet patches that dry.
+// The lake crabs and trout keep to the bank and the deep water and take cover from threats, rain and hail.
 // Fails on any console output or any request that leaves localhost.
 // Usage: node tools/e2e/desert.mjs   (CHROME=/path/to/chrome to override the browser)
 import http from "node:http";
@@ -105,6 +106,44 @@ try {
     const hidden = L.every(a => !a.g.visible || a.then === "hide" || (a.palm && a.mode === "climb"));
     q.tod("day"); q.sim(30);
     return [active && out.moved > .3 && perched && hidden, out];
+  }));
+
+  /* 4b. lake life: freshwater crabs (4–6 cm across) on the damp bank and in the shallows round their burrows, walking sideways,
+     bolting into a burrow or the water when something big comes close and going home in rain and hail; rainbow trout (26–38 cm)
+     schooling under the surface over the deep cold middle, rising at dawn and going down to the bed in hail */
+  check("lake: crabs on the bank, trout in the deep, both take cover", ...await page.evaluate(() => {
+    const q = window.__desQA(), CL = q.CR.list, TL = q.TT.list, r = {crabs: CL.length, trout: TL.length};
+    const hidden = () => CL.every(c => c.mode === "in" || c.mode === "down" || c.mode === "sub");
+    window.__set({weather: "sun", ct: "clear", wind: .4}); q.tod("day");
+    const seen = new Set(), side = [];
+    for (let i = 0; i < 40; i++) {
+      q.sim(3, .1);
+      for (const c of CL) { seen.add(c.mode); if (c.mode === "walk" && c.v > .03) { const m = Math.atan2(c.tx - c.x, c.tz - c.z); side.push(Math.abs(Math.sin(c.yaw - m))); } }
+    }
+    const C = q.crabs(), F = q.trout();
+    r.crabModes = [...seen].sort(); r.sideways = +(side.reduce((a, b) => a + b, 0) / Math.max(1, side.length)).toFixed(3); r.walkSamples = side.length;
+    r.crabDepth = [Math.min(...C.map(c => c.dep)), Math.max(...C.map(c => c.dep))].map(v => +v.toFixed(3)); r.crabScale = [Math.min(...C.map(c => c.s)), Math.max(...C.map(c => c.s))].map(v => +v.toFixed(2));
+    r.troutLen = [Math.min(...F.map(f => f.L)), Math.max(...F.map(f => f.L))].map(v => +v.toFixed(3));
+    r.troutWater = +Math.min(...F.map(f => f.dep)).toFixed(3); r.troutBelow = [Math.min(...F.map(f => f.below)), Math.max(...F.map(f => f.below))].map(v => +v.toFixed(3));
+    const placed = C.length >= 5 && C.every(c => c.dep > -.12 && c.dep < .45 && c.s > .8 && c.s < 1.2) && F.length >= 3 &&
+      F.every(f => f.L > .26 && f.L < .38 && f.dep > .8 && f.below > .15 && f.below < f.dep - .05);
+    /* something big at the water's edge next to a crab that is out */
+    let t = CL.find(c => c.mode === "out" || c.mode === "walk");
+    for (let i = 0; i < 30 && !t; i++) { q.sim(2, .1); t = CL.find(c => c.mode === "out" || c.mode === "walk"); }
+    if (t) {
+      const sx = t.x, sz = t.z, near = CL.filter(c => Math.hypot(c.x - sx, c.z - sz) < 1.6 && c.mode !== "in");
+      q.lakeScare(sx, sz, .6, 8); let ran = false; for (let i = 0; i < 40; i++) { q.sim(.2, .05); ran = ran || near.some(c => c.mode === "run"); }
+      r.scared = near.map(c => c.mode); r.ranOff = ran; r.scareOk = ran && near.every(c => c.mode === "in" || c.mode === "down" || c.mode === "sub");
+      q.sim(20, .1);
+    }
+    window.__set({weather: "hrain", ct: "overcast"}); q.sim(60, .1); r.rain = CL.map(c => c.mode); const rainHid = hidden();
+    window.__set({weather: "sun", ct: "clear"}); q.sim(600, .5); for (let i = 0; i < 30 && !CL.some(c => c.mode === "out" || c.mode === "walk"); i++) q.sim(5, .1);
+    r.outAgain = CL.filter(c => c.mode === "out" || c.mode === "walk").length;
+    q.tod("sunrise"); const r0 = q.TT.rises; q.sim(150, .1); r.dawnRises = q.TT.rises - r0;
+    q.tod("day"); window.__set({weather: "hail", hailLv: 1}); q.sim(30, .1);
+    r.hailAboveBed = +Math.max(...q.trout().map(f => f.dep - f.below)).toFixed(3); r.hail = CL.map(c => c.mode); const hailHid = hidden();
+    window.__set({weather: "sun", ct: "clear", hailLv: 1}); q.sim(900, 1);
+    return [placed && seen.has("walk") && r.sideways > .85 && !!r.scareOk && rainHid && r.outAgain > 0 && r.dawnRises > 0 && r.hailAboveBed < .3 && hailHid, r];
   }));
 
   /* 5. rain darkens and pits the sand and rings the lake, and the sand dries again afterwards */

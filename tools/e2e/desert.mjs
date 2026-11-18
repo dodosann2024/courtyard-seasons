@@ -3,6 +3,7 @@
 // climb, perch under the crown in rain and hide at night, and rain wets the sand, pits it and rings the lake. Then the same with
 // fog lying (and the fog drifting and thinning with the wind), and snow: it lies in the ripple troughs and on lee slopes but not
 // on crests or windward faces (measured on rendered pixels), the animals take cover, and it melts into wet patches that dry.
+// The lake crabs and trout keep to the bank and the deep water and take cover from threats, rain and hail.
 // Fails on any console output or any request that leaves localhost.
 // Usage: node tools/e2e/desert.mjs   (CHROME=/path/to/chrome to override the browser)
 import http from "node:http";
@@ -107,7 +108,74 @@ try {
     return [active && out.moved > .3 && perched && hidden, out];
   }));
 
+  /* 4b. lake life: freshwater crabs (4–6 cm across) on the damp bank and in the shallows round their burrows, walking sideways,
+     bolting into a burrow or the water when something big comes close and going home in rain and hail; rainbow trout (26–38 cm)
+     schooling under the surface over the deep cold middle, rising at dawn and going down to the bed in hail */
+  check("lake: crabs on the bank, trout in the deep, both take cover", ...await page.evaluate(() => {
+    const q = window.__desQA(), CL = q.CR.list, TL = q.TT.list, r = {crabs: CL.length, trout: TL.length};
+    const hidden = () => CL.every(c => c.mode === "in" || c.mode === "down" || c.mode === "sub");
+    window.__set({weather: "sun", ct: "clear", wind: .4}); q.tod("day");
+    const seen = new Set(), side = [];
+    for (let i = 0; i < 40; i++) {
+      q.sim(3, .1);
+      for (const c of CL) { seen.add(c.mode); if (c.mode === "walk" && c.v > .03) { const m = Math.atan2(c.tx - c.x, c.tz - c.z); side.push(Math.abs(Math.sin(c.yaw - m))); } }
+    }
+    const C = q.crabs(), F = q.trout();
+    r.crabModes = [...seen].sort(); r.sideways = +(side.reduce((a, b) => a + b, 0) / Math.max(1, side.length)).toFixed(3); r.walkSamples = side.length;
+    r.crabDepth = [Math.min(...C.map(c => c.dep)), Math.max(...C.map(c => c.dep))].map(v => +v.toFixed(3)); r.crabScale = [Math.min(...C.map(c => c.s)), Math.max(...C.map(c => c.s))].map(v => +v.toFixed(2));
+    r.troutLen = [Math.min(...F.map(f => f.L)), Math.max(...F.map(f => f.L))].map(v => +v.toFixed(3));
+    r.troutWater = +Math.min(...F.map(f => f.dep)).toFixed(3); r.troutBelow = [Math.min(...F.map(f => f.below)), Math.max(...F.map(f => f.below))].map(v => +v.toFixed(3));
+    const placed = C.length >= 5 && C.every(c => c.dep > -.12 && c.dep < .45 && c.s > .8 && c.s < 1.2) && F.length >= 3 &&
+      F.every(f => f.L > .26 && f.L < .38 && f.dep > .8 && f.below > .15 && f.below < f.dep - .05);
+    /* something big at the water's edge next to a crab that is out */
+    let t = CL.find(c => c.mode === "out" || c.mode === "walk");
+    for (let i = 0; i < 30 && !t; i++) { q.sim(2, .1); t = CL.find(c => c.mode === "out" || c.mode === "walk"); }
+    if (t) {
+      const sx = t.x, sz = t.z, near = CL.filter(c => Math.hypot(c.x - sx, c.z - sz) < 1.6 && c.mode !== "in");
+      q.lakeScare(sx, sz, .6, 8); let ran = false; for (let i = 0; i < 40; i++) { q.sim(.2, .05); ran = ran || near.some(c => c.mode === "run"); }
+      r.scared = near.map(c => c.mode); r.ranOff = ran; r.scareOk = ran && near.every(c => c.mode === "in" || c.mode === "down" || c.mode === "sub");
+      q.sim(20, .1);
+    }
+    window.__set({weather: "hrain", ct: "overcast"}); q.sim(60, .1); r.rain = CL.map(c => c.mode); const rainHid = hidden();
+    window.__set({weather: "sun", ct: "clear"}); q.sim(600, .5); for (let i = 0; i < 30 && !CL.some(c => c.mode === "out" || c.mode === "walk"); i++) q.sim(5, .1);
+    r.outAgain = CL.filter(c => c.mode === "out" || c.mode === "walk").length;
+    q.tod("sunrise"); const r0 = q.TT.rises; q.sim(150, .1); r.dawnRises = q.TT.rises - r0;
+    q.tod("day"); window.__set({weather: "hail", hailLv: 1}); q.sim(30, .1);
+    r.hailAboveBed = +Math.max(...q.trout().map(f => f.dep - f.below)).toFixed(3); r.hail = CL.map(c => c.mode); const hailHid = hidden();
+    window.__set({weather: "sun", ct: "clear", hailLv: 1}); q.sim(900, 1);
+    return [placed && seen.has("walk") && r.sideways > .85 && !!r.scareOk && rainHid && r.outAgain > 0 && r.dawnRises > 0 && r.hailAboveBed < .3 && hailHid, r];
+  }));
+
   /* 5. rain darkens and pits the sand and rings the lake, and the sand dries again afterwards */
+  /* 4c. the rugs on the drying rack swing out in a gust, hang in soft folds, and the hem rocks on for a moment after the gust drops */
+  check("rack rugs: gust swing, folds, after-swing", ...await page.evaluate(() => {
+    const q = window.__desQA(), c = q.RACK.cloths[0], u = c.userData, r = {}, P = c.geometry.attributes.position, nx = u.u0.length;
+    window.__set({weather: "sun", ct: "clear", wind: .04}); q.sim(40, .1); r.calm = Math.abs(u.th);
+    const hem = []; for (let i = P.count - nx; i < P.count; i++) hem.push(P.getZ(i)); const m = hem.reduce((a, b) => a + b) / nx;
+    r.folds = Math.sqrt(hem.reduce((a, b) => a + (b - m) ** 2, 0) / nx);
+    window.__set({wind: 1}); let mx = 0; for (let i = 0; i < 240; i++) { q.step(1, 1 / 30); mx = Math.max(mx, Math.abs(u.th)); } r.gust = mx;
+    const sg = Math.sign(u.th) || 1; window.__set({wind: .04}); const th = [], fi = [];
+    for (let i = 0; i < 360; i++) { q.step(1, 1 / 30); th.push(u.th * sg); fi.push(u.fi); }
+    const end = th[th.length - 1]; r.overshoot = Math.max(...th.map(v => end - v));
+    let x = 0; for (let i = 91; i < 300; i++) if (fi[i] * fi[i - 1] < 0) x++; r.hemSwings = x; r.hemAmp = Math.max(...fi.slice(90, 240).map(Math.abs));
+    window.__set({wind: .35}); q.sim(20, .1);
+    for (const k in r) if (typeof r[k] === "number") r[k] = +r[k].toFixed(4);
+    return [r.calm < .12 && r.folds > .008 && r.gust > .3 && r.overshoot > .02 && r.hemSwings >= 2 && r.hemAmp > .004, r];
+  }));
+
+  /* 4d. oasis insects: cicadas in the palms in the day's heat, katydids and crickets in the shore grass from dusk, none in rain */
+  check("oasis insects: cicadas by day, katydids and crickets from dusk", ...await page.evaluate(() => {
+    const q = window.__desQA(), C = window.__C(), p0 = C.De.position.clone(), t0 = C.Ce.target.clone(), en = C.Ce.enabled, r = {};
+    C.Ce.enabled = false; C.De.position.copy(q.toW(q.POND.x + 3, q.hTop(q.POND.x, q.POND.z) + 2, q.POND.z + 3)); C.Ce.target.copy(q.toW(q.POND.x, q.POND.wy, q.POND.z)); C.De.lookAt(C.Ce.target);
+    const run = (tod, w) => { window.__set({weather: w || "sun", ct: w ? "overcast" : "clear", wind: .2}); q.tod(tod); q.sim(40, .25); q.step(3, 1 / 30); q.audCap(true);
+      for (let i = 0; i < 1500; i++) q.step(1, 1 / 30); const ev = q.audCap(false), n = re => ev.filter(e => e[1] === "S" && re.test(e[2])).length;
+      return {ci: n(/^dCi/), kt: n(/^dKt/), cr: n(/^dO[ck]/), bed: Math.max(0, ...ev.filter(e => e[1] === "L" && e[2] === "cicb").map(e => e[4]))}; };
+    r.day = run("day"); r.dusk = run("sunset"); r.night = run("night"); r.rain = run("day", "hrain");
+    window.__set({weather: "sun", ct: "clear", wind: .8}); q.tod("day"); q.sim(900, 1);
+    C.De.position.copy(p0); C.Ce.target.copy(t0); C.Ce.enabled = en; C.De.lookAt(t0);
+    return [r.day.ci >= 4 && r.day.bed > .05 && r.day.kt === 0 && r.dusk.kt >= 4 && r.dusk.cr >= 2 && r.dusk.ci === 0 && r.night.cr >= 3 && r.night.ci === 0 && r.rain.ci === 0 && r.rain.kt === 0, r];
+  }));
+
   const rainCheck = () => page.evaluate(() => {
     const q = window.__desQA();
     window.__set({weather: "hrain", ct: "overcast"}); q.sim(90);
@@ -370,8 +438,10 @@ try {
 
   /* 17. sand covers the whole rim: the fine sand over the lip runs all the way round the island. The rim is rendered from four
      sides with and without the sand veneer; along the top of the wall just under the lip (facing the camera) the picture must
-     change nearly everywhere, in every quarter. */
-  await page.evaluate(() => { document.body.classList.add("col", "snc"); const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .35}); q.tod("day"); q.sim(5); window.__C().Ce.enabled = false; });
+     change nearly everywhere, in every quarter. The sand falls are hidden for these shots: where one pours in front of the
+     rim it hides the veneer in both renders alike. */
+  await page.evaluate(() => { document.body.classList.add("col", "snc"); const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .35}); q.tod("day"); q.sim(5); window.__C().Ce.enabled = false;
+    const m = q.sfMesh && q.sfMesh(); if (m) m.visible = false; });
   const fr = n => page.evaluate(n => new Promise(r => { let k = 0; const f = () => (++k >= n ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
   const AZS = [.4, 2, 3.6, 5.2], rimShots = {};
   const aimRim = a => page.evaluate(a => { const q = window.__desQA(), C = window.__C(), [ex, ez] = q.edgeXZ(a, 1), h = q.hTop(ex * .97, ez * .97);
@@ -403,7 +473,7 @@ try {
       }
       r.quarters.push({az: a, n, covered: +(cov / Math.max(1, n)).toFixed(3)});
     }
-    q.rockU.uVen.value = 1; C.Ce.enabled = true;
+    q.rockU.uVen.value = 1; C.Ce.enabled = true; const sm = q.sfMesh && q.sfMesh(); if (sm) sm.visible = true;
     return [r.quarters.every(Q => Q.n >= 8 && Q.covered >= .9), r];
   }, rimShots, AZS));
 } finally { await browser.close(); server.close(); }

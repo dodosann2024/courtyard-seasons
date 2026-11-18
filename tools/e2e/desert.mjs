@@ -64,12 +64,13 @@ try {
 
   /* 2. wind lifts grains off the sand and carries them downwind; the surface streaks keep flowing */
   const sandCheck = () => page.evaluate(() => {
-    const q = window.__desQA(), S = q.SAND, P0 = Float32Array.from(S.P), f0 = q.sandU.uFlowT.value;
+    const q = window.__desQA(), S = q.SAND, P0 = Float32Array.from(S.P), L0 = q.SANDP.map(p => p.life), f0 = q.sandU.uFlowT.value;
     q.sim(2, 1 / 30);
     let dw = 0, n = 0, lit = 0;
+    /* grains live 2.5 s or more, so one whose life grew over these 2 s was not respawned; in a strong gust they fly 3–7 m */
     for (let i = 0; i < S.n; i++) {
       const dx = S.P[i * 3] - P0[i * 3], dz = S.P[i * 3 + 2] - P0[i * 3 + 2];
-      if (Math.hypot(dx, dz) < 3) { dw += dx * q.WIND.x + dz * q.WIND.z; n++; }
+      if (q.SANDP[i].life > L0[i]) { dw += dx * q.WIND.x + dz * q.WIND.z; n++; }
       if (S.A[i] > .01) lit++;
     }
     const down = dw / Math.max(1, n), flow = q.sandU.uFlowT.value - f0, k = q.sandU.uFlowK.value;

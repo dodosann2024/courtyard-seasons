@@ -853,6 +853,28 @@ const FROST=uv=>`if(uFrost+uSnL>.003){vec3 upV=normalize((viewMatrix*vec4(0.,1.,
 function frostMat(m,uv){const f=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{if(f)f.call(m,sh,r);sh.uniforms.uFrost=propU.uFrost;sh.uniforms.uSnL=propU.uSnL;
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uFrost,uSnL;").replace("#include <normal_fragment_maps>","#include <normal_fragment_maps>\n"+FROST(uv))};
   if(!f)m.customProgramCacheKey=()=>"des70frost";m.needsUpdate=true}
+/* cacti read at 5-8 m: the ribs live only in the normal map, so their contrast hangs on the light. The skin's grooves are
+   darkened and its crests lifted by the surface's own curvature (normal change per metre, measured on screen while a rib still
+   spans a few pixels); the spine and wool cards glow when the sun is behind them, the halo a real cactus shows against the light. */
+function cacMat(m){const f=m.onBeforeCompile,al=m.alphaTest>0;m.onBeforeCompile=(sh,r)=>{if(f)f.call(m,sh,r);
+    sh.uniforms.uSunD=tentU.uSunD;sh.uniforms.uSunC=tentU.uSunC;sh.uniforms.uNt=tentU.uNt;
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform vec3 uSunD,uSunC;uniform float uNt;");
+    if(!al&&m.normalMap)sh.fragmentShader=sh.fragmentShader.replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
+      {vec3 cP=-vViewPosition,dpx=dFdx(cP),dpy=dFdy(cP),dnx=dFdx(normal),dny=dFdy(normal);
+       float kv=clamp((dot(dnx,dpx)/max(dot(dpx,dpx),1e-12)+dot(dny,dpy)/max(dot(dpy,dpy),1e-12))*.006,-1.,1.)*(1.-smoothstep(.009,.022,length(dpx)+length(dpy)));
+       diffuseColor.rgb*=1.-.6*max(-kv,0.)+.16*max(kv,0.);}`);
+    /* saguaro spine atlas: 4x4 clusters, star cells on rows 0 and 2 radiate from (.5,.48), tufts on rows 1 and 3 rise from
+       (.5,.93). The felt areole there is painted in, never thinner than about a pixel, and the dark centrals are set apart
+       from the pale radials, so a cluster still reads as pad + spines once single spines have merged on screen. */
+    if(m.name==="SaguaroSpines")sh.fragmentShader=sh.fragmentShader.replace("#include <map_fragment>",`#include <map_fragment>
+      {vec2 cu=vMapUv*4.,ci=floor(cu),f=fract(cu);float st=step(mod(ci.y,2.),.5);vec2 d=(f-mix(vec2(.5,.93),vec2(.5,.48),st))*vec2(1.,mix(1.7,1.,st));
+       float rad=clamp(.9*length(fwidth(cu)),.11,.18),pad=smoothstep(rad,rad*.55,length(d)),lu=dot(diffuseColor.rgb,vec3(.3,.59,.11));
+       diffuseColor.rgb*=mix(.2,.45,smoothstep(.12,.45,lu));
+       diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.5,.47,.41)*(.85+.3*fract(sin(dot(ci,vec2(12.9,78.2)))*43758.5)),pad);diffuseColor.a=max(diffuseColor.a,pad);}`);
+    if(al)sh.fragmentShader=sh.fragmentShader.replace("#include <opaque_fragment>",`{vec3 Ld=normalize((viewMatrix*vec4(uSunD,0.)).xyz);
+       float bk=pow(max(dot(-normalize(vViewPosition),Ld),0.),3.);outgoingLight+=diffuseColor.rgb*uSunC*.6*bk*(1.-.8*uNt);}
+      #include <opaque_fragment>`)};
+  m.customProgramCacheKey=()=>"des81cac"+(al?"a":"s")+(m.name==="SaguaroSpines"?"p":"");m.needsUpdate=true}
 function swayMat(m,key,amp,y0,y1){
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,propU);
     sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uT,uWind;")
@@ -1038,7 +1060,7 @@ async function covMips(img,cut){
 /* one texture level per frame: the full-size levels of a 2k card take a few hundred ms each on a phone */
 async function cactusAlpha(root){const M=VT.THREE,done=new Set(),todo=[];
   root.traverse(o=>{if(!o.isMesh)return;const m=o.material;if(m.alphaTest>0)o.castShadow=false;else o.castShadow=true;o.receiveShadow=true;
-    if(done.has(m))return;done.add(m);cleanMat(m);frostMat(m);if(!ANIM_MATS.includes(m))ANIM_MATS.push(m);
+    if(done.has(m))return;done.add(m);cleanMat(m);frostMat(m);cacMat(m);if(!ANIM_MATS.includes(m))ANIM_MATS.push(m);
     if(m.alphaTest>0&&m.map&&m.map.image)todo.push(m)});
   for(const m of todo){await nextFrame();
     const lv=await covMips(m.map.image,m.alphaTest),t=new M.DataTexture(lv[0].data,lv[0].width,lv[0].height,M.RGBAFormat,M.UnsignedByteType);

@@ -346,6 +346,45 @@ try {
       r.surf.every(v => v > .01) && r.near.sand > 8 && r.near.tent > 4 && r.dropsAfter === 0 && r.dripsAfter >= 3 && r.lingerEnd > 8 && r.lingerEnd < 60 &&
       r.voices === B.length && r.restarts.length === 0 && r.loopWrap.every(w => w !== null && w < 4), r];
   }));
+
+  /* 17. sand covers the whole rim: the fine sand over the lip runs all the way round the island. The rim is rendered from four
+     sides with and without the sand veneer; along the top of the wall just under the lip (facing the camera) the picture must
+     change nearly everywhere, in every quarter. */
+  await page.evaluate(() => { document.body.classList.add("col", "snc"); const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .35}); q.tod("day"); q.sim(5); window.__C().Ce.enabled = false; });
+  const fr = n => page.evaluate(n => new Promise(r => { let k = 0; const f = () => (++k >= n ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
+  const AZS = [.4, 2, 3.6, 5.2], rimShots = {};
+  const aimRim = a => page.evaluate(a => { const q = window.__desQA(), C = window.__C(), [ex, ez] = q.edgeXZ(a, 1), h = q.hTop(ex * .97, ez * .97);
+    C.De.position.copy(q.toW(ex * 1.55, h + 3, ez * 1.55)); C.Ce.target.copy(q.toW(ex, h - 1.2, ez)); C.De.lookAt(C.Ce.target); C.De.fov = 60; C.De.updateProjectionMatrix(); C.De.updateMatrixWorld(); }, a);
+  for (const v of [0, 1]) {
+    await page.evaluate(v => { window.__desQA().rockU.uVen.value = v; }, v);
+    for (const a of AZS) { await aimRim(a); await fr(4); await sleep(300); rimShots[a + ":" + v] = await page.screenshot({encoding: "base64"}); }
+  }
+  for (const a of AZS) await aimRim(a);
+  check("sand covers the whole rim", ...await page.evaluate(async (S, AZS) => {
+    const q = window.__desQA(), C = window.__C(), cam = C.De, M = q.rock(), P = M.geometry.attributes.position, V = M.geometry.attributes.aV;
+    const img = async b => { const im = await createImageBitmap(await (await fetch("data:image/png;base64," + b)).blob()), cv = new OffscreenCanvas(im.width, im.height), g = cv.getContext("2d");
+      g.drawImage(im, 0, 0); return {d: g.getImageData(0, 0, im.width, im.height).data, w: im.width, h: im.height}; };
+    const nR = 7 + 64, NT = (P.count - 1) / nR, r = {quarters: []}, p = new (cam.position.constructor)(), cl = new (cam.position.constructor)();
+    for (const a of AZS) {
+      const A = await img(S[a + ":0"]), B = await img(S[a + ":1"]), [ex, ez] = q.edgeXZ(a, 1), h = q.hTop(ex * .97, ez * .97);
+      cam.position.copy(q.toW(ex * 1.55, h + 3, ez * 1.55)); C.Ce.target.copy(q.toW(ex, h - 1.2, ez)); cam.lookAt(C.Ce.target); cam.fov = 60; cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+      M.updateMatrixWorld(); cl.copy(cam.position); M.worldToLocal(cl);
+      let n = 0, cov = 0;
+      for (let j = 0; j < NT; j++) {
+        const th = j / NT * Math.PI * 2, da = Math.atan2(Math.sin(th - a), Math.cos(th - a)); if (Math.abs(da) > .45) continue;
+        const k = 3 * NT + j, d = V.getX(k); if (d < .1 || d > 1.2) continue;
+        p.set(P.getX(k), P.getY(k), P.getZ(k)); const ox = Math.cos(th), oz = Math.sin(th);
+        if ((cl.x - p.x) * ox + (cl.z - p.z) * oz < 0) continue;
+        p.applyMatrix4(M.matrixWorld).project(cam); const x = Math.round((p.x + 1) / 2 * A.w), y = Math.round((1 - p.y) / 2 * A.h);
+        if (x < 3 || y < 3 || x >= A.w - 3 || y >= A.h - 3) continue;
+        let md = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const o = ((y + dy) * A.w + x + dx) * 4; md = Math.max(md, Math.abs(A.d[o] - B.d[o]) + Math.abs(A.d[o + 1] - B.d[o + 1]) + Math.abs(A.d[o + 2] - B.d[o + 2])); }
+        n++; if (md > 18) cov++;
+      }
+      r.quarters.push({az: a, n, covered: +(cov / Math.max(1, n)).toFixed(3)});
+    }
+    q.rockU.uVen.value = 1; C.Ce.enabled = true;
+    return [r.quarters.every(Q => Q.n >= 8 && Q.covered >= .9), r];
+  }, rimShots, AZS));
 } finally { await browser.close(); server.close(); }
 if (failures.length) { console.log(`\n${failures.length} failure(s)`); process.exit(1); }
 console.log("\nall desert checks ok");

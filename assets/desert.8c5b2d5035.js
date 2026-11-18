@@ -419,8 +419,10 @@ function sandMat(){
               float dt=smoothstep(r+.08,r-.06,gd)*smoothstep(hh.z-.1,hh.z+.1,fe),m=mix(dt,fe*(.35+.25*fe),ga);
               if(dt*(1.-ga)>gm){gm=dt*(1.-ga);gB=.8+.36*fract(hh.z*7.3);}
               gs*=1.-m;}
-            float g=1.-gs;gK=smoothstep(.0,.6,gm)*nrK;
-            lv=mix(lv,(g-.5)*2.*ew,nrK);}
+            /* once even the clumps are under a pixel it is the line as a whole that shows, as wide as it lies */
+            float flM=smoothstep(.3,-.24,hn+(gr-.5)*.42+(dn2(q*9.)-.5)*.3-mix(-.95,-.2,cv)-lee*smoothstep(.62,1.,cv))*smoothstep(.0,.12,cv),gF=smoothstep(.006,.02,fwS);
+            float g=1.-gs;gK=smoothstep(.0,.6,gm)*nrK*(1.-gF);
+            lv=mix(lv,(mix(g,flM,gF)-.5)*2.*ew,nrK);}
           ${TRK?"lv-=1.4*smoothstep(.08,.4,trk.r+.5*trk.g);":""}
           /* melt water soaks into the sand where the snow lay: dark, slightly cool patches that dry back to the sand's own colour */
           if(uMW>.003){float wm=uMW*smoothstep(-ew-.06,ew,B+.38*uSnP-.27-.3*(1.-smoothstep(.0,.25,uSnP)))*(.7+.3*nn);sc*=mix(vec3(1.),vec3(.5,.45,.42),wm);}

@@ -169,11 +169,12 @@ async function go(y,dir,push){
     document.title=title(y);document.documentElement.dataset.yard=y;
     await raf();await raf();
     const newS=shown?await snap():null;
-    if(!toD)pill(0);
+    /* a click on the desert while this switch finishes has already put up its loading pill: leave it */
+    if(!toD&&!desWant)pill(0);
     if(G&&!G.fail&&window.__keepTurn)G.last=[oldS,newS];
     await turn(shown?oldS:null,newS,dir,reduce);
     window.__turnP=1;
-  }catch{hideGL();pill(0)}
+  }catch{hideGL();if(!desWant)pill(0)}
   busy=false;
   if(pending){const p=pending;pending=null;go(...p)}
 }

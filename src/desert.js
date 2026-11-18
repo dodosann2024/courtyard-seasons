@@ -2545,8 +2545,8 @@ function groundFrame(x,z,yaw,L,Wd){
    and a shaded wall and a dark floor. Prints are laid where a foot actually comes to rest, and wind, blowing sand and rain
    wear them away (slowly in still air, within seconds in a dust storm). instanceColor carries (kind + variant/4, wear clock
    at birth, depth). ---- */
-const PRK={drom:0,bact:1,talon:2,wing:3,lie:4};
-const PR_SZ=[.28,.32,.2,.9,2.1];
+const PRK={drom:0,bact:1,talon:2,wing:3,lie:4,ost:5,tort:6,gerb:7,scorp:8,pal:9};
+const PR_SZ=[.28,.32,.2,.9,2.1,.25,.11,.065,.075,.5];
 const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
   const m=new T.SM({transparent:true,depthWrite:false,side:2,blending:5,blendSrc:208,blendDst:202,blendSrcAlpha:200,blendDstAlpha:201,
     polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,uniforms:{uE:{value:0},uKs:{value:.7},uSnw:{value:0},uLd:sandU.uLd,uWD:sandU.uWD},
@@ -2554,7 +2554,7 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
       void main(){vK=instanceColor;vWl=vec2(dot(vec3(uWD.x,0.,uWD.y),normalize(instanceMatrix[0].xyz)),dot(vec3(uWD.x,0.,uWD.y),normalize(instanceMatrix[2].xyz)));mat4 M=modelMatrix*instanceMatrix;vAx=normalize((M*vec4(1.,0.,0.,0.)).xyz);vAz=normalize((M*vec4(0.,0.,1.,0.)).xyz);
         vS=length(instanceMatrix[0].xyz);vL=length(instanceMatrix[2].xyz);vSd=fract(sin(dot(instanceMatrix[3].xz,vec2(12.9898,78.233)))*43758.5453);
         /* seen from afar a track is the trampled strip, not single prints: the quad grows to carry a soft dent wider than the foot */
-        vec3 c=(M*vec4(0.,0.,0.,1.)).xyz;vG=vK.x<2.5?clamp(length(cameraPosition-c)/(26.*vS),1.,2.):1.;vQ=position.xz*vG;
+        vec3 c=(M*vec4(0.,0.,0.,1.)).xyz;vG=vK.x<2.5||(vK.x>5.&&vK.x<6.)?clamp(length(cameraPosition-c)/(26.*vS),1.,2.):1.;vQ=position.xz*vG;
         gl_Position=projectionMatrix*viewMatrix*M*vec4(position*vG,1.);}`,
     fragmentShader:`uniform float uE,uKs,uSnw;uniform vec3 uLd;varying vec2 vQ,vWl;varying vec3 vK,vAx,vAz;varying float vS,vL,vSd,vG;
       ${GLSL_NOISE}
@@ -2587,7 +2587,31 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
         float sx=m.x-15.-.08*(p.y-62.),sy=p.y-62.;h-=1.6*exp(-sx*sx/18.)*smoothstep(0.,6.,sy)*smoothstep(34.,18.,sy);
         return h+.35*(dn2(p*.5+vSd*9.)-.5);}
       /* the dromedary's smaller pads sink deeper for their size (less foot under the same weight class) */
-      float hgt(vec2 p,float k,float v){if(k<1.5)return camel(p,v,k)*(k<.5?1.4:1.);if(k<2.5)return talon(p);if(k<3.5)return wing(p);return lie(p,v);}
+      /* ostrich: the big third toe pressed deep with a claw pock past its tip and creases across its pads, the small fourth toe
+         splayed to the outside, the sand thrown up in a crescent ahead where the foot pushed off */
+      float ost(vec2 p){vec2 a=vec2(0.,-5.),b=vec2(.3,7.),e=b-a;float t=clamp(dot(p-a,e)/dot(e,e),0.,1.),q1=length(p-a-e*t)/(3.3-.9*t);
+        vec2 c=vec2(2.6,-3.),f=vec2(5.4,3.2)-c;float u=clamp(dot(p-c,f)/dot(f,f),0.,1.),q2=length(p-c-f*u)/(2.-.6*u);
+        float q=-.25*log(exp(-q1/.25)+exp(-q2/.25)),h=-1.3*smoothstep(1.,.45,q);vec2 cw=p-vec2(.45,9.8);h-=1.3*exp(-dot(cw,cw)/1.1);
+        h+=.25*sin(p.y*1.15)*smoothstep(1.,.3,q1)*step(-3.,p.y);h+=.5*exp(-(q-1.2)*(q-1.2)*9.)*(1.+.9*smoothstep(-4.,10.,p.y));
+        return 1.4*(h+.1*(dn2(p*1.3+vSd*9.)-.5)*smoothstep(1.2,.6,q));}
+      /* desert tortoise: a round elephantine sole with the nails dug in ahead of it, five on the fore foot, four behind */
+      float tort(vec2 p,float hind){vec2 q=p/vec2(hind>.5?1.8:2.1,hind>.5?1.9:1.6);float r=length(q)+(dn2(p*1.7+vSd*9.)-.5)*.15;
+        float h=-1.1*smoothstep(1.,.45,r)+.4*exp(-(r-1.18)*(r-1.18)*8.);
+        for(int i=0;i<5;i++){if(hind>.5&&i==4)break;float n=hind>.5?3.:4.,a=(float(i)/n-.5)*1.5;vec2 d=p-vec2(sin(a)*2.5,cos(a)*2.4+.5);h-=.9*exp(-dot(d,d)/.16);}
+        return h;}
+      /* gerbil hop set: the two long hind feet side by side and the small fore feet pressed between and ahead of them */
+      float gerb(vec2 p){float h=0.;for(int i=0;i<2;i++){float s=float(i)*2.-1.;vec2 q=(p-vec2(s*1.05,-.8))/vec2(.42,1.15);h-=exp(-dot(q,q)*1.6);
+        vec2 f=(p-vec2(s*.42,1.7))/vec2(.32,.36);h-=.85*exp(-dot(f,f)*1.6);
+        for(int t=0;t<3;t++){vec2 c=p-vec2(s*1.05+(float(t)-1.)*.3,.55+.1*(1.-abs(float(t)-1.)));h-=.55*exp(-dot(c,c)/.035);}}
+        return 1.25*h;}
+      /* scorpion: four leg tips each side, a short arc of pin-pricks */
+      float scorp(vec2 p){float h=0.;for(int i=0;i<4;i++){float f=float(i);for(int j=0;j<2;j++){float s=float(j)*2.-1.;
+        vec2 d=p-vec2(s*(1.6+.4*f-.1*f*f),1.5-f*1.+.3*sin(vSd*9.+f*2.+s));h-=exp(-dot(d,d)/.07);}}return h;}
+      /* a hollow scraped or sat into the sand: a tortoise's shade pallet, the dip where an ostrich sat, the spoil heaped ahead */
+      float pal(vec2 p){float q=length(p/vec2(18.,23.))+(dn2(p*.12+vSd*4.)-.5)*.14;
+        return -2.6*smoothstep(1.03,.35,q)+1.5*exp(-(q-1.1)*(q-1.1)*14.)*(1.+1.4*smoothstep(0.,22.,p.y))+.3*(dn2(p*.6+vSd*7.)-.5);}
+      float hgt(vec2 p,float k,float v){if(k<1.5)return camel(p,v,k)*(k<.5?1.4:1.);if(k<2.5)return talon(p);if(k<3.5)return wing(p);if(k<4.5)return lie(p,v);
+        if(k<5.5)return ost(p);if(k<6.5)return tort(p,v);if(k<7.5)return gerb(p);if(k<8.5)return scorp(p);return pal(p);}
       /* wear (w 0 fresh .. 1 gone): the heaped rims blow away first and the walls slump, while drifting sand fills the print
          from its upwind edge in a ragged front that creeps downwind */
       float hW(vec2 p,float k,float v,float w){float h=hgt(p,k,v);h*=h>0.?(1.-w)*(1.-w):1.-.35*w;
@@ -2599,13 +2623,13 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
         vec3 n=normalize(vec3(-(hx-h0)/e*a,1.,-(hz-h0)/e*a)),L=normalize(vec3(dot(uLd,vAx),max(uLd.y,.03),dot(uLd,vAz)));
         /* the floor of a print sits in its own shadow, so a track still reads as a line of dark dents from far off; close up the
            relief carries it and the floor is only a little darker than the sand round it */
-        float df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-(k>3.5?.16:mix(.2,.45,smoothstep(.4,2.,max(fwidth(p.x),fwidth(p.y)))))*clamp(-h0*a/(k>3.5?4.:1.2),0.,1.);
+        float big=step(3.5,k)*step(k,4.5)+step(8.5,k),df=max(dot(n,L),0.)/max(L.y,.18),ao=1.-(big>.5?.16:mix(.2,.45,smoothstep(.4,2.,max(fwidth(p.x),fwidth(p.y)))))*clamp(-h0*a/(big>.5?4.:1.2),0.,1.);
         float F=clamp(mix(1.,df,uKs)*ao,.12,1.7);
         /* pressed sand is packed smooth and reads darker than the loose sand round it, the heaped rim lighter, whatever the sun's height */
-        if(k>3.5)F*=(1.-.2*clamp(-h0/2.5,0.,1.))*(1.+.1*clamp(h0/1.5,0.,1.));
+        if(big>.5)F*=(1.-.2*clamp(-h0/2.5,0.,1.))*(1.+.1*clamp(h0/1.5,0.,1.));
         /* a print only a few pixels across: its lit rim and shaded floor would average out to nothing, so it settles to a soft dent */
-        float lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y)))*step(k,2.5),R=k<.5?10.5*vG:k<1.5?9.*vG:6.*vG;
-        F=mix(F,1.-(k<.5?.62:.42)*(k<2.5?exp(-dot(p,p)/(R*R)):clamp(-h0*1.4,0.,1.)),lod);
+        float os=step(4.5,k)*step(k,5.5),lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y)))*max(step(k,2.5),os),R=k<.5?10.5*vG:k<1.5?9.*vG:os>.5?5.5*vG:6.*vG;
+        F=mix(F,1.-(k<.5?.62:.42)*(k<2.5||os>.5?exp(-dot(p-vec2(0.,os*2.),p-vec2(0.,os*2.))/(R*R)):clamp(-h0*1.4,0.,1.)),lod);
         F=mix(1.,F,a*smoothstep(.5,.42,max(abs(vQ.x),abs(vQ.y))/vG));
         /* in a dusting of snow the foot pushes through to the sand: the print's floor shows dark and warm against the white */
         float sk=uSnw*a*clamp(max(-h0*1.3,(1.-F)*2.2),0.,1.)*smoothstep(.5,.42,max(abs(vQ.x),abs(vQ.y))/vG);
@@ -4203,6 +4227,321 @@ function agLoad(){return glb("sinai_agama_v1b").then(({scene,animations})=>{agSp
   new VT.THREE.TextureLoader().load(ROOT()+"assets/models/sinai_agama_v1b_blue.webp",t=>{t.flipY=false;t.colorSpace="srgb";t.anisotropy=MOB?4:8;
     const m=M.U.uBlue.value;if(m){t.wrapS=m.wrapS;t.wrapT=m.wrapT}t.needsUpdate=true;M.U.uBlue.value=t;AG.blue=t});
   [M,F].forEach((a,i)=>{const sp=AG.spots[i%AG.spots.length];a.x=sp.x+(i?.6:0);a.z=sp.z+(i?-.5:0);a.spot=sp;a.ry=i?-99:sp.y;agDecide(a);agPose(a);AG.list.push(a)})})}
+/* ---------------- procedural animals: ostriches, desert tortoises, gerbils, scorpions ----------------
+   No model files: each animal is one skinned mesh built here from ellipsoids and lofted rings, every vertex bound to one or two
+   bones whose rest frames are all aligned with the model axes (+z forward, +y up, metres above the ground under the body), so a
+   pose is each bone's rotation (and for a few a shift), set by code every frame. All four share one material program: vertex
+   colour, a surface kind per vertex (aS) and the bind-pose position, from which the fine detail is drawn so it stays on the
+   body as it moves. Feet that carry weight stay where they were put down and print the sand there. */
+const PSK={skin:0,fur:1,plume:2,shell:3,cut:4,scale:5,bare:6,eye:7,claw:8,down:9};
+const _n3=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return[a[0]/l,a[1]/l,a[2]/l]},_x3=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const _fv=(f,...a)=>typeof f==="function"?f(...a):f;
+function paGeo(){const P=[],N=[],C=[],S=[],SI=[],SW=[],I=[],U=[];let n=0;const G={I,uv:null};
+  /* bw: a bone index, or [[i,w],[j,w]] */
+  G.v=(p,q,c,s,bw)=>{P.push(p[0],p[1],p[2]);let l=Math.hypot(q[0],q[1],q[2])||1;
+    /* plumes are shaded as the body under them (the coat reads soft, not as separate blades lit edge by edge) */
+    if(G.nOv){const o=G.nOv,k=G.nK;q=[q[0]/l*(1-k)+o[0]*k,q[1]/l*(1-k)+o[1]*k,q[2]/l*(1-k)+o[2]*k];l=Math.hypot(q[0],q[1],q[2])||1}
+    N.push(q[0]/l,q[1]/l,q[2]/l);U.push(G.uv?G.uv[0]:0,G.uv?G.uv[1]:-1);C.push(c[0],c[1],c[2]);S.push(s);
+    if(typeof bw==="number"){SI.push(bw,0,0,0);SW.push(1,0,0,0)}else{SI.push(bw[0][0],bw[1][0],0,0);SW.push(bw[0][1],bw[1][1],0,0)}return n++};
+  /* an ellipsoid; sh(x,y,z) may reshape the unit point; col(p,x,y,z) and bw(p) may be functions */
+  G.ell=(c,r,col,s,bw,nu,nv,sh)=>{const b=n;nu=nu||12;nv=nv||8;
+    for(let i=0;i<=nv;i++){const t=i/nv*Math.PI;for(let j=0;j<=nu;j++){const ph=j/nu*TAU;let x=Math.sin(t)*Math.sin(ph),y=Math.cos(t),z=Math.sin(t)*Math.cos(ph);
+        if(sh)[x,y,z]=sh(x,y,z);const p=[c[0]+x*r[0],c[1]+y*r[1],c[2]+z*r[2]];G.v(p,[x/r[0],y/r[1],z/r[2]],_fv(col,p,x,y,z),s,_fv(bw,p))}}
+    for(let i=0;i<nv;i++)for(let j=0;j<nu;j++){const a=b+i*(nu+1)+j,d=a+nu+1;I.push(a,d,a+1,a+1,d,d+1)}};
+  /* a lofted tube through rings {c, rx (half width), ry (half height), col, bw}; up: the axis the rings' "height" follows */
+  G.loft=(R,s,na,caps,up)=>{na=na||10;const b=n,M=R.length;up=up||[0,1,0];
+    for(let i=0;i<M;i++){const r=R[i],c=r.c,p0=R[Math.max(i-1,0)].c,p1=R[Math.min(i+1,M-1)].c,t=_n3([p1[0]-p0[0],p1[1]-p0[1],p1[2]-p0[2]]);
+      const sd=_n3(_x3(r.up||up,t)),uu=_x3(t,sd);r.t=t;
+      for(let j=0;j<=na;j++){const a=j/na*TAU,ca=Math.cos(a),sa=Math.sin(a),k=r.k?r.k(ca,sa):1,rx=r.rx*k,ry=r.ry*k;
+        const p=[c[0]+sd[0]*rx*ca+uu[0]*ry*sa,c[1]+sd[1]*rx*ca+uu[1]*ry*sa,c[2]+sd[2]*rx*ca+uu[2]*ry*sa];
+        if(G.pl)G.uv=[ca,i/(M-1)];G.v(p,[sd[0]*ca/rx+uu[0]*sa/ry,sd[1]*ca/rx+uu[1]*sa/ry,sd[2]*ca/rx+uu[2]*sa/ry],_fv(r.col,p,ca,sa),_fv(r.s!=null?r.s:s,p,ca,sa),_fv(r.bw,p))}}
+    if(G.pl)G.uv=null;
+    for(let i=0;i<M-1;i++)for(let j=0;j<na;j++){const a=b+i*(na+1)+j,d=a+na+1;I.push(a,a+1,d,a+1,d+1,d)}
+    if(caps){for(const[e,sg]of[[0,-1],[M-1,1]]){const r=R[e],t=r.t;if(G.pl)G.uv=[0,e?1:0];const c=G.v(r.c,[t[0]*sg,t[1]*sg,t[2]*sg],_fv(r.col,r.c,0,0),_fv(r.s!=null?r.s:s,r.c,0,0),_fv(r.bw,r.c));
+      for(let j=0;j<na;j++){const a=b+e*(na+1)+j;sg<0?I.push(c,a+1,a):I.push(c,a,a+1)}}G.uv=null}};
+  /* one loose plume: a flat blade from b along d, sagging under its own weight, widest a third of the way out; up is the side
+     that faces away from the body; col(t) runs root to tip */
+  G.plume=(b,d,len,wd,col,bw,droop,up,s)=>{const R=[],dl=_n3(d);
+    for(let i=0;i<=5;i++){const t=i/5,w=wd*Math.max(.12,Math.sin(Math.PI*Math.pow(t,.55)))*(i===5?.35:1);
+      R.push({c:[b[0]+dl[0]*len*t,b[1]+dl[1]*len*t-droop*t*t,b[2]+dl[2]*len*t],rx:w,ry:w*.28,col:_fv(col,t),bw})}
+    G.nOv=_n3(up);G.nK=.82;G.pl=1;G.loft(R,s==null?PSK.plume:s,6,true,up);G.nOv=null;G.pl=0};
+  G.build=()=>{const TH=VT.THREE,g=new TH.BufferGeometry();g.setAttribute("position",new TH.BufferAttribute(new Float32Array(P),3));
+    g.setAttribute("normal",new TH.BufferAttribute(new Float32Array(N),3));g.setAttribute("color",new TH.BufferAttribute(new Float32Array(C),3));
+    g.setAttribute("aS",new TH.BufferAttribute(new Float32Array(S),1));g.setAttribute("aU",new TH.BufferAttribute(new Float32Array(U),2));g.setAttribute("skinIndex",new TH.BufferAttribute(new Uint16Array(SI),4));
+    g.setAttribute("skinWeight",new TH.BufferAttribute(new Float32Array(SW),4));g.setIndex(I);return g};
+  return G}
+/* bones from [name, parent, rest head, (rest aim point)]; a bone's rest direction points at its aim point or first child */
+function paBones(defs){const TH=VT.THREE,B={},L=[],ix={};
+  defs.forEach((d,i)=>{const b=new TH.Bone();b.name=d[0];b.userData.rp=new V3(d[2][0],d[2][1],d[2][2]);const pr=d[1]?B[d[1]]:null;
+    b.position.copy(b.userData.rp);if(pr){b.position.sub(pr.userData.rp);pr.add(b)}B[d[0]]=b;L.push(b);ix[d[0]]=i});
+  defs.forEach(d=>{const b=B[d[0]],c=d[3]?new V3(d[3][0],d[3][1],d[3][2]):b.children[0]?b.children[0].userData.rp.clone():null;
+    b.rd=c?c.sub(b.userData.rp).normalize():new V3(0,0,1);b.len=d[3]||b.children[0]?(d[3]?Math.hypot(d[3][0]-d[2][0],d[3][1]-d[2][1],d[3][2]-d[2][2]):b.children[0].position.length()):0});
+  return{B,L,ix}}
+const PA_F=`
+float pH(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+vec2 pVor(vec2 p){vec2 i=floor(p),f=fract(p);float a=8.,b=8.;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 g=vec2(x,y),o=vec2(pH(i+g),pH(i+g+17.3));
+  float d=length(g+o-f);if(d<a){b=a;a=d;}else if(d<b)b=d;}return vec2(a,b);}
+/* the desert tortoise's carapace: 5 vertebral, 4+4 costal and a ring of marginal scutes, each with growth rings round its areola */
+vec3 pShell(vec3 p,vec3 c){vec2 q=p.xz;float d1=9.,d2=9.;vec2 ce=vec2(0.);
+  for(int i=0;i<35;i++){vec2 s;if(i<5)s=vec2(0.,-.1+.05*float(i));else if(i<13){float k=float(i-5);s=vec2((k<4.?1.:-1.)*.068,-.078+.052*mod(k,4.));}
+    else{float a=float(i-13)/22.*6.2832;s=vec2(.112*sin(a),.152*cos(a));}
+    float d=length((q-s)*vec2(1.,.9));if(d<d1){d2=d1;d1=d;ce=s;}else if(d<d2)d2=d;}
+  float seam=smoothstep(.0045,.0012,d2-d1),fw=fwidth(d1)*1.5,ring=.5+.5*cos(d1*6.2832/.0055);ring*=1.-smoothstep(.0025,.006,fw);
+  float h=pH(ce*91.),ar=smoothstep(.022,.006,d1);
+  c*=.8+.3*h;c=mix(c,c*vec3(1.25,1.12,.85),ar*.6);c*=1.-.16*ring*smoothstep(.008,.02,d1);c=mix(c,c*.32,seam);return c;}
+/* a plume's edge is a fringe of separate barbs angled out from the shaft toward the tip, and its tip frays apart */
+void paFray(){if(vU.y<0.)return;float u=abs(vU.x),v=vU.y,b=fract(v*11.+u*4.5+pH(vec2(floor(v*11.+u*4.5),vBP.x*37.))*.3);
+  float lim=1.-.55*smoothstep(.1,.9,v)*step(.55,b)-.35*smoothstep(.75,1.,v);if(u>lim)discard;}
+void paSurf(inout vec3 c,out float r){float s=vS,fa;r=.75;vec3 p=vBP;
+  if(s<.5){r=.62;c*=.92+.16*dn2(p.xz*90.+p.y*40.);}
+  else if(s<1.5){/* fur: fine strands along the body, darker roots between them */
+    vec2 q=vec2(p.x*700.+p.y*300.,p.z*160.);fa=1.-smoothstep(.4,1.2,length(fwidth(q)));c*=.84+.32*mix(.5,dn2(q),fa)+.08*(dn2(p.xz*60.)-.5);r=.86;}
+  else if(s<2.5){/* loose plumes: long soft barbs hanging down and back, with dark gaps between them */
+    vec2 q=vec2(p.x*34.+p.z*9.,p.y*7.+p.z*11.);fa=1.-smoothstep(.4,1.4,length(fwidth(q)));
+    float b=dn2(q),b2=dn2(q*vec2(3.1,1.4)+5.);c*=.72+.42*mix(.5,b*.65+b2*.35,fa);r=.9;}
+  else if(s<3.5){c=pShell(p,c);r=.66;}
+  else if(s<4.5){r=.32;c*=.9+.2*dn2(p.xz*400.);}
+  else if(s<5.5){/* scales: rounded plates with dark seams */
+    vec2 v=pVor(vec2(p.x*2.+p.z,p.y*1.6-p.z*.6)*95.);fa=1.-smoothstep(.15,.5,length(fwidth(p.xy*95.)));c*=mix(1.,.62+.48*smoothstep(0.,.25,v.y-v.x),fa);r=.7;}
+  else if(s<6.5){/* bare skin with sparse bristles */
+    float b=pH(floor(p.xy*vec2(260.,210.)+p.z*150.));fa=1.-smoothstep(.3,1.,length(fwidth(p.xy*260.)));c*=.95+.1*dn2(p.xy*30.)-.22*step(.93,b)*fa;r=.6;}
+  else if(s<7.5){r=.08;}
+  else if(s<8.5){r=.4;}
+  else{/* down: short soft feathering */c*=.85+.3*dn2(vec2(p.x*120.+p.z*80.,p.y*90.));r=.95;}
+  /* rain darkens and wets the coat */
+  c*=1.-.28*uWetA*step(.5,s)*step(s,2.5);r=mix(r,r*.45,uWetA);}`;
+const paU={uWetA:{value:0},uGlow:{value:0}};
+let PA_MAT=null;
+function paMat(){if(PA_MAT)return PA_MAT;const m=new VT.THREE.MeshStandardMaterial({vertexColors:true,roughness:.8,metalness:0});if(!ANIM_MATS.includes(m))ANIM_MATS.push(m);
+  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,paU);
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nattribute float aS;attribute vec2 aU;flat varying float vS;varying vec3 vBP;varying vec2 vU;")
+      .replace("#include <begin_vertex>","#include <begin_vertex>\nvS=aS;vBP=position;vU=aU;");
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uWetA,uGlow;flat varying float vS;varying vec3 vBP;varying vec2 vU;float paR;"+GLSL_NOISE+PA_F)
+      .replace("#include <color_fragment>","#include <color_fragment>\npaFray();paSurf(diffuseColor.rgb,paR);")
+      .replace("#include <roughnessmap_fragment>","#include <roughnessmap_fragment>\nroughnessFactor=paR;")
+      /* a scorpion's cuticle fluoresces a faint blue-green in the moonlight */
+      .replace("#include <emissivemap_fragment>","#include <emissivemap_fragment>\nif(vS>3.5&&vS<4.5)totalEmissiveRadiance+=vec3(.12,.62,.5)*uGlow*(.6+.4*dot(diffuseColor.rgb,vec3(.5)));")};
+  m.customProgramCacheKey=()=>"pa82";return PA_MAT=m}
+function paMesh(G,R){const TH=VT.THREE,m=new TH.SkinnedMesh(G.build(),paMat());m.add(R.L[0]);m.updateMatrixWorld(true);m.bind(new TH.Skeleton(R.L));
+  m.frustumCulled=false;m.castShadow=true;m.receiveShadow=true;return m}
+/* bone helpers in the model frame (bones rest with no rotation, so a bone's world rotation maps its rest offsets) */
+const _pa1=new V3(),_pa2=new V3(),_pa3=new V3(),_pq1=new T.Quat(),_pq2=new T.Quat(),_pm=new T.M4();
+/* set bone b (parent frame pq) so that its rest direction points along dir; returns its frame in out */
+function paAim(b,pq,dir,out){_pa1.copy(b.rd).applyQuaternion(pq);_pq1.setFromUnitVectors(_pa1,_pa2.copy(dir).normalize());out.copy(_pq1).multiply(pq);
+  b.quaternion.copy(pq).invert().multiply(out);return out}
+/* set bone b's own rotation to q (in its parent frame pq); returns its frame */
+function paRot(b,pq,q,out){b.quaternion.copy(q);return out.copy(pq).multiply(q)}
+/* two-bone IK: from a toward t with lengths L1, L2, the joint bent toward hint h; returns the joint position */
+const _ik1=new V3(),_ik2=new V3();
+function ik2(a,t,L1,L2,h,out){const d=_ik1.copy(t).sub(a),D=d.length()||1e-4;d.multiplyScalar(1/D);const Dm=cl(D,Math.abs(L1-L2)+1e-4,L1+L2-1e-4);
+  const x=(L1*L1-L2*L2+Dm*Dm)/(2*Dm),y=Math.sqrt(Math.max(0,L1*L1-x*x));_ik2.copy(h).addScaledVector(d,-h.dot(d));if(_ik2.lengthSq()<1e-8)_ik2.set(0,0,-1);_ik2.normalize();
+  return out.copy(a).addScaledVector(d,x).addScaledVector(_ik2,y)}
+/* island metres <-> an animal's model frame (its group stands at (x,gy,z) turned by yaw) */
+function toM(A,p,out){const dx=p.x-A.x,dz=p.z-A.z,c=Math.cos(A.yaw),s=Math.sin(A.yaw),k=1/A.sc;return out.set((dx*c-dz*s)*k,(p.y-A.gy)*k,(dx*s+dz*c)*k)}
+function toI(A,p,out){const c=Math.cos(A.yaw),s=Math.sin(A.yaw),k=A.sc;return out.set(A.x+(p.x*c+p.z*s)*k,A.gy+p.y*k,A.z+(-p.x*s+p.z*c)*k)}
+/* stepping: each foot's phase in the gait cycle; in stance it holds its planted point, at lift-off it sets off for where it will
+   be half way through its next stance (its rest spot under the hip, carried on by the body's speed and turn), and lands there */
+function paFeet(A,dt,F,o){const v=A.v,mv=v>.015||Math.abs(A.yr)>.08;
+  if(mv||F.some(f=>f.sw))A.gph=(A.gph+dt*o.freq)%1;let land=null;
+  const tS=(1-o.duty)/o.freq,tH=o.duty/o.freq*.5;
+  for(const f of F){const ph=(A.gph+f.ofs)%1,stance=ph<o.duty;
+    if(!mv&&!f.sw&&stance)continue;
+    if(stance){if(f.sw){f.sw=0;f.P.copy(f.to);f.y=f.P.y;land=f;if(o.land)o.land(f)}continue}
+    const s=(ph-o.duty)/(1-o.duty);if(!f.sw){if(!mv&&s>.08)continue;f.sw=1;f.from.copy(f.P)}
+    /* where it will come down: carried on by the time left in the swing plus half a stance */
+    const rem=(1-s)*tS+tH,yw=A.yaw+A.yr*rem,c=Math.cos(yw),sn=Math.sin(yw),fx=Math.sin(A.yaw)*v*rem,fz=Math.cos(A.yaw)*v*rem;
+    f.to.set(A.x+fx+f.nx*c+f.nz*sn,0,A.z+fz-f.nx*sn+f.nz*c);f.to.y=hTop(f.to.x,f.to.z);
+    const e=s*s*(3-2*s);f.cur.lerpVectors(f.from,f.to,e);f.cur.y+=Math.sin(Math.PI*s)*o.lift*(.4+.6*cl(v/o.vRef,0,1.6));f.s=s}
+  for(const f of F)if(!f.sw)f.cur.copy(f.P);
+  return land}
+function paFoot(nx,nz,ofs){return{nx,nz,ofs,P:new V3(),from:new V3(),to:new V3(),cur:new V3(),sw:0,s:0,y:0}}
+function paPlant(A,F){for(const f of F){const c=Math.cos(A.yaw),s=Math.sin(A.yaw);f.P.set(A.x+f.nx*c+f.nz*s,0,A.z-f.nx*s+f.nz*c);f.P.y=hTop(f.P.x,f.P.z);f.cur.copy(f.P);f.sw=0}}
+/* who is about: the camels, the rattlesnake, the eagle when low, the other animals and a viewer leaning in close */
+const MOV=[];
+function movers(){MOV.length=0;for(const a of ANIM.camels)MOV.push({x:a.x+Math.sin(a.yaw)*.6*a.sc,z:a.z+Math.cos(a.yaw)*.6*a.sc,r:1.4,k:"camel",o:a});
+  const s=ANIM.rs;if(s&&s.bd&&s.g.visible&&!s.sandB)MOV.push({x:s.bd.P[0],z:s.bd.P[1],r:.5,k:"snake",o:s});
+  const e=ANIM.eagle;if(e&&e.pos.y<6)MOV.push({x:e.pos.x,z:e.pos.z,r:e.mode==="perch"?1:3,k:"eagle",o:e});
+  for(const o of PA.os)MOV.push({x:o.x,z:o.z,r:.6,k:"ost",o});
+  for(const t of PA.tt)if(t.g.visible)MOV.push({x:t.x,z:t.z,r:.2,k:"tort",o:t});
+  for(const g of PA.gb)if(g.out)MOV.push({x:g.x,z:g.z,r:.05,k:"gerb",o:g});
+  if(_cl.y-hTop(_cl.x,_cl.z)<1.6)MOV.push({x:_cl.x,z:_cl.z,r:.2,k:"view",o:null});
+  if(PA.dbg&&st.t<PA.dbg.until)MOV.push(PA.dbg)}
+/* the nearest of the given kinds, by edge distance */
+function nearMov(A,ks){let b=null,bd=1e9;for(const m of MOV){if(m.o===A||!ks.includes(m.k))continue;const d=Math.hypot(m.x-A.x,m.z-A.z)-m.r;if(d<bd){bd=d;b=m}}return b?{m:b,d:bd}:null}
+const PA={os:[],tt:[],gb:[],sc:[],dbg:null,ppm:1};
+/* ---- ostriches: a cock (black, white wings and tail, pink-grey neck and shins) with his head ~2.45 m up, over a camel's hump,
+   and a grey-brown hen a tenth smaller. Two-toed feet on long bare legs: the knee is up under the plumage, the joint that bends
+   backward halfway down is the ankle. They walk the open sand pecking at seed and shoots, every few pecks the head comes up
+   to look round; something coming at them (the eagle low, the snake, a camel or a viewer too close) and they stalk off or,
+   startled, run; they sit down for the night, in hail and in a dust storm, and a hollow is left where they sat. ---- */
+const OS_B=[["body",null,[0,1.15,0]],
+  ["n0","body",[0,1.38,.42]],["n1","n0",[0,1.545,.465]],["n2","n1",[0,1.71,.495]],["n3","n2",[0,1.875,.505]],["n4","n3",[0,2.04,.5]],["n5","n4",[0,2.205,.485]],
+  ["head","n5",[0,2.37,.47],[0,2.37,.62]],["tail","body",[0,1.24,-.52],[0,1.12,-.7]],
+  ["wL","body",[.24,1.3,.12],[.26,1.1,-.42]],["wR","body",[-.24,1.3,.12],[-.26,1.1,-.42]],
+  ["fL","body",[.13,1.02,0]],["kL","fL",[.16,.93,.16]],["aL","kL",[.15,.5,.02]],["tL","aL",[.14,.065,.09],[.14,.03,.27]],
+  ["fR","body",[-.13,1.02,0]],["kR","fR",[-.16,.93,.16]],["aR","kR",[-.15,.5,.02]],["tR","aR",[-.14,.065,.09],[-.14,.03,.27]]];
+const OS_IX=Object.fromEntries(OS_B.map((d,i)=>[d[0],i]));
+function osGeo(male){const G=paGeo(),X=OS_IX,w=(a,b)=>[[X[a],.5],[X[b],.5]];
+  const blk=male?[.035,.032,.03]:[.34,.3,.25],skin=male?[.64,.48,.45]:[.55,.5,.46],neck=male?[.6,.5,.5]:[.52,.48,.44],
+    leg=male?[.64,.44,.39]:[.53,.48,.42],wht=male?[.88,.86,.82]:[.7,.66,.6],horn=[.72,.6,.48];
+  /* the body: a deep rounded keel of loose plumes, highest at the shoulders, ragged where the plumes hang below */
+  const BR=[[-.69,.04,.04,1.22],[-.6,.13,.13,1.2],[-.45,.23,.23,1.17],[-.25,.29,.28,1.15],[-.02,.31,.29,1.15],[.18,.29,.27,1.17],[.34,.23,.22,1.22],[.44,.15,.15,1.29],[.5,.07,.07,1.35]];
+  G.loft(BR.map((r,i)=>({c:[0,r[3],r[0]],rx:r[1]*.96,ry:r[2]*.96,bw:X.body,
+    col:(p,ca,sa)=>male?[blk[0]*.8,blk[1]*.8,blk[2]*.8]:sa<-.4?[.42,.38,.32]:[blk[0]*.85,blk[1]*.85,blk[2]*.85]})),PSK.plume,16,true,[0,1,0]);
+  /* the plumage over it: rows of loose plumes laid back along the body, longer and hanging lower down the flanks and belly */
+  const bAt=(z,a)=>{let i=0;while(i<BR.length-2&&BR[i+1][0]<z)i++;const r0=BR[i],r1=BR[i+1],u=cl((z-r0[0])/(r1[0]-r0[0]),0,1),
+      rx=mix(r0[1],r1[1],u),ry=mix(r0[2],r1[2],u),yc=mix(r0[3],r1[3],u),ca=Math.cos(a),sa=Math.sin(a);
+    return{p:[rx*ca*.97,yc+ry*sa*.97,z],n:_n3([ca/rx,sa/ry,0])}};
+  const pc=(t,lo)=>male?[mix(.022,.06,t),mix(.02,.052,t),mix(.018,.045,t)]:lo?[mix(.4,.6,t),mix(.36,.55,t),mix(.3,.47,t)]:[mix(.3,.52,t),mix(.26,.47,t),mix(.21,.4,t)];
+  let sd=7;const h1=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  for(let zi=0;zi<10;zi++){const z=.4-zi*.11;for(let j=0;j<12;j++){const a=-1.15+j/11*(Math.PI+2.3)+(zi%2)*.12,s=bAt(z,a),lo=Math.sin(a)<0;
+    const d=[s.n[0]*.35,-.25-(lo?.5:.1),-.9];G.plume(s.p,d,(lo?.2:.15)+.06*h1(),.075+.02*h1(),t=>pc(t,lo),X.body,lo?.07:.035,s.n)}}
+  /* wings: folded flat on the flanks, black coverts over a fringe of long white plumes drooping from the lower and rear edge */
+  for(const s of[-1,1]){const wb=s>0?X.wL:X.wR;
+    G.ell([s*.285,1.2,-.03],[.05,.17,.3],(p,x,y,z)=>male?blk:[.3,.27,.23],PSK.plume,wb,12,8,(x,y,z)=>[x,y-.3*Math.max(0,-z)*Math.max(0,-z),z]);
+    for(let i=0;i<15;i++){const t=i/14,b=[s*(.3+.012*Math.sin(i*2.1)),mix(1.1,1.08,t)-.08*t*t+.03*Math.sin(i*1.7),mix(.2,-.34,t)];
+      G.plume(b,[s*.22,-.8,-.55-.3*t],.24+.07*Math.sin(i*2.3)+.05*t,.085,u=>male?[mix(.78,.95,u),mix(.76,.93,u),mix(.72,.88,u)]:[mix(.42,.66,u),mix(.38,.62,u),mix(.32,.55,u)],wb,.07,[s,0,0])}}
+  /* tail: a spray of white plumes (the hen's dusky) */
+  for(let i=0;i<10;i++){const f=(i/9-.5)*1.9;G.plume([.04*Math.sin(f),1.22,-.6],[Math.sin(f)*.55,.3-.25*Math.abs(f),-1],.28+.05*Math.cos(i*1.7),.095,
+    u=>male?[mix(.8,.96,u),mix(.78,.94,u),mix(.74,.9,u)]:[mix(.45,.66,u),mix(.41,.62,u),mix(.35,.55,u)],X.tail,.11,[0,1,0])}
+  /* neck: bare pink-grey skin in a sparse down, one ring at every joint shared by the two bones that meet there */
+  const NK=["n0","n1","n2","n3","n4","n5","head"],NR=[.088,.068,.058,.051,.046,.042,.04],R=[];
+  for(let k=0;k<NK.length-1;k++){const a=OS_B[X[NK[k]]][2],b=OS_B[X[NK[k+1]]][2];
+    R.push({c:a,rx:NR[k]*1.05,ry:NR[k],bw:k?w(NK[k-1],NK[k]):w("body","n0"),col:neck,s:k<1?PSK.down:PSK.bare});
+    R.push({c:[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2],rx:(NR[k]+NR[k+1])*.52,ry:(NR[k]+NR[k+1])*.5,bw:X[NK[k]],col:neck,s:PSK.bare})}
+  R.push({c:[0,2.37,.47],rx:.04,ry:.04,bw:w("n5","head"),col:neck,s:PSK.bare});G.loft(R,PSK.bare,10,false,[0,0,1]);
+  /* where the neck meets the body plumage: a ruff of small plumes, white on the cock */
+  for(let j=0;j<14;j++){const a=j/14*TAU,ca=Math.cos(a),sa=Math.sin(a);G.plume([ca*.08,1.41,.42+sa*.08],[ca*.7,-.7,sa*.7-.1],.1,.04,male?wht:[.36,.32,.27],w("body","n0"),.015,[ca,.3,sa])}
+  /* head: a small flat skull in down, a broad flat bill, big dark eyes under a row of black lashes */
+  G.ell([0,2.4,.5],[.048,.05,.066],neck,PSK.down,X.head,12,8);
+  G.ell([0,2.384,.585],[.033,.016,.066],horn,PSK.skin,X.head,10,6,(x,y,z)=>[x*(1-.3*Math.max(0,z)),y,z]);
+  for(const s of[-1,1]){G.ell([s*.041,2.41,.522],[.02,.021,.021],[.05,.035,.025],PSK.eye,X.head,8,6);
+    G.ell([s*.043,2.429,.522],[.022,.006,.021],[.03,.028,.026],PSK.skin,X.head,8,4)}
+  /* legs: a fleshy bare thigh tapering to the ankle, a scaled shank, a broad sole and the two toes, the big one clawed */
+  for(const s of[-1,1]){const L=s>0?"L":"R",k=OS_B[X["k"+L]][2],a=OS_B[X["a"+L]][2],t=OS_B[X["t"+L]][2],lp=(u,v,f)=>[u[0]+(v[0]-u[0])*f,u[1]+(v[1]-u[1])*f,u[2]+(v[2]-u[2])*f];
+    G.loft([{c:[k[0],k[1]+.08,k[2]-.04],rx:.1,ry:.1,bw:X["f"+L]},{c:k,rx:.095,ry:.1,bw:w("f"+L,"k"+L)},{c:lp(k,a,.3),rx:.072,ry:.08,bw:X["k"+L]},
+      {c:lp(k,a,.62),rx:.052,ry:.058,bw:X["k"+L]},{c:lp(k,a,.88),rx:.04,ry:.042,bw:X["k"+L]},{c:a,rx:.038,ry:.04,bw:w("k"+L,"a"+L)}].map(r=>(r.col=skin,r)),PSK.bare,12,true,[0,0,1]);
+    G.ell(a,[.04,.044,.044],skin,PSK.bare,X["a"+L],10,6);
+    G.loft([{c:a,rx:.033,ry:.036,bw:X["a"+L]},{c:lp(a,t,.5),rx:.029,ry:.031,bw:X["a"+L]},{c:lp(a,t,.9),rx:.028,ry:.03,bw:X["a"+L]},{c:t,rx:.03,ry:.032,bw:w("a"+L,"t"+L)}].map(r=>(r.col=leg,r)),PSK.scale,10,false,[0,0,1]);
+    G.ell([t[0],t[1]-.025,t[2]+.02],[.05,.028,.06],[leg[0]*.85,leg[1]*.85,leg[2]*.85],PSK.skin,X["t"+L],10,6);
+    G.loft([{c:[t[0],t[1]-.02,t[2]+.02],rx:.032,ry:.024},{c:[t[0],.035,t[2]+.1],rx:.03,ry:.022},{c:[t[0],.027,.25],rx:.02,ry:.016}].map(r=>(r.col=leg,r.bw=X["t"+L],r)),PSK.scale,8,true);
+    G.ell([t[0],.027,.27],[.012,.012,.03],[.16,.13,.12],PSK.claw,X["t"+L],6,4);
+    G.loft([{c:[t[0]+s*.025,t[1]-.02,t[2]+.02],rx:.022,ry:.018},{c:[t[0]+s*.065,.03,t[2]+.08],rx:.018,ry:.015},{c:[t[0]+s*.08,.025,t[2]+.11],rx:.012,ry:.011}].map(r=>(r.col=leg,r.bw=X["t"+L],r)),PSK.scale,8,true)}
+  return G}
+/* the poses the neck blends between, per joint (bend forward, radians) */
+const OS_NK={stand:[-.12,.06,.06,.02,-.06,.04],alert:[-.24,-.04,0,0,-.02,0],graze:[1.1,.8,.5,.12,.02,0],run:[.5,.2,.05,-.05,-.1,-.05],sit:[-.06,.05,.06,0,-.05,.05],doze:[.35,.45,.5,.4,.3,.2]};
+function osSpawn(male){const G=osGeo(male),R=paBones(OS_B),m=paMesh(G,R),g=new T.Group(),sc=male?1:.9;g.add(m);g.scale.setScalar(sc);W.add(g);onDes(g);
+  const A={g,m,B:R.B,male,sc,x:0,z:0,yaw:0,gy:0,v:0,yr:0,gph:0,mode:"stand",t:rr(3,6),path:null,pi:0,vmax:1,
+    P:{cr:0,pit:0,gr:0,al:0,run:0,sit:0,doze:0,look:0,peck:0,wing:0,tail:0},lookT:0,lookA:0,peckT:rr(.5,1.5),scanT:rr(4,9),runT:rr(90,200),thr:null,sat:0,
+    F:[paFoot(.14*sc,.09*sc,0),paFoot(-.14*sc,.09*sc,.5)]};
+  A.F[0].fy=A.F[1].fy=0;return A}
+function osPlace(A,x,z,yaw){Object.assign(A,{x,z,yaw,v:0,yr:0});A.gy=hTop(x,z);paPlant(A,A.F);A.F.forEach(f=>{f.fy=yaw})}
+const _oq=new T.Quat(),_oq2=new T.Quat(),_oq3=new T.Quat(),_oqb=new T.Quat(),_ov=new V3(),_ov2=new V3(),_ov3=new V3(),_ov4=new V3(),_oh=new V3(0,0,-1),_oX=new V3(1,0,0),_oY=new V3(0,1,0);
+const _oF=new T.Quat(),_oK=new T.Quat(),_oA=new T.Quat(),_oT=new T.Quat(),_okn=new V3(),_oan=new V3(),_omt=new V3();
+function osPose(A,dt){const B=A.B,P=A.P,gp=A.gph*TAU,wk=cl(A.v/1.2,0,1)*(1-P.run),sit=P.sit;
+  /* body: tips forward to graze and to run, drops to sit; it bobs and rolls a little over the stance leg */
+  const gf=groundFrame(A.x,A.z,A.yaw,.4,.25),bob=(.018*Math.cos(2*gp)*wk-.035*Math.cos(2*gp)*P.run)*(1-sit);
+  const by=1.15-P.cr+bob-.8*ss(0,1,sit),pit=P.pit+gf.pitch*.6*(1-sit)+.08*Math.sin(st.t*1.3)*P.doze;
+  B.body.position.set(.022*Math.sin(gp)*wk*(1-sit),by,-.12*ss(0,1,sit));qYXZ(_oqb,pit,0,.03*Math.sin(gp)*wk+gf.roll*.4*(1-sit));B.body.quaternion.copy(_oqb);
+  /* neck: blend of the stance poses, the look turn spread up the neck, the walk's head bob and the peck */
+  const ws=Math.max(0,1-P.gr-P.al-P.run-sit),wd=sit*P.doze,N=OS_NK;let cum=pit;
+  for(let k=0;k<6;k++){let a=N.stand[k]*ws+N.graze[k]*P.gr+N.alert[k]*P.al+N.run[k]*P.run+N.sit[k]*(sit-wd)+N.doze[k]*wd;
+    if(k===0)a+=.06*Math.sin(2*gp+.8)*wk;if(k>=1&&k<=3)a+=P.peck*.2*P.gr;
+    const b=B["n"+k];qYXZ(b.quaternion,a,k>=1&&k<=4?P.look*.25:0,0);cum+=a}
+  /* the head stays near level, the bill tipped down to feed */
+  qYXZ(B.head.quaternion,(-.05+1.25*P.gr+.35*P.peck*P.gr+.2*P.run+.4*wd)-cum,0,0);
+  B.tail.quaternion.copy(qYXZ(_oq,-.25*P.tail-.15*P.run+.05*Math.sin(gp*2)*wk,0,0));
+  for(const s of[1,-1]){const wb=s>0?B.wL:B.wR;qYXZ(wb.quaternion,-.15*P.wing*Math.sin(st.t*7+s),s*.1*P.wing,s*.7*P.wing)}
+  /* legs: the planted foot holds, the knee swings under the body and the leg reaches it by bending at the ankle */
+  B.body.updateMatrix();
+  for(let i=0;i<2;i++){const f=A.F[i],s=i?-1:1,L=i?"R":"L",fb=B["f"+L],kb=B["k"+L],ab=B["a"+L],tb=B["t"+L];
+    const hip=_ov.copy(fb.userData.rp).sub(B.body.userData.rp).applyQuaternion(_oqb).add(B.body.position);
+    let sw=0;if(f.sw)sw=f.s;const ph=((A.gph+f.ofs)%1);
+    const kneeRel=_ov2.copy(kb.userData.rp).sub(fb.userData.rp);
+    const fs=(sit>.01?.55*ss(0,1,sit):0)+(.18*Math.sin(TAU*ph+.6)*(wk+P.run*1.6));
+    qYXZ(_oq,-fs,0,0);_oq2.copy(_oqb).multiply(_oq);const knee=_okn.copy(kneeRel).applyQuaternion(_oq2).add(hip);
+    /* where the toe joint must be: over the foot's point in the sand, or folded under the body to sit */
+    toM(A,f.cur,_omt);_omt.y+=.065;
+    if(sit>.01){const sp=_ov3.set(s*.14,.065,.32);_omt.lerp(sp,ss(0,1,sit))}
+    const hint=_oh.set(0,-.25*sit,-1);
+    const ank=ik2(knee,_omt,kb.len,ab.len,hint,_oan);
+    paAim(fb,_oqb,_ov3.copy(knee).sub(hip),_oF);
+    paAim(kb,_oF,_ov3.copy(ank).sub(knee),_oK);
+    paAim(ab,_oK,_ov3.copy(_omt).sub(ank),_oA);
+    /* the toes keep the heading they landed on; in the swing they turn to the new one and hang curled */
+    const fy=f.sw?wrapA(f.fy0+wrapA(A.yaw-f.fy0)*ss(0,1,f.s)-A.yaw):wrapA(f.fy-A.yaw),cu=f.sw?Math.sin(Math.PI*f.s)*.9:0;
+    paAim(tb,_oA,_ov3.set(Math.sin(fy+s*.05),-.19-cu,Math.cos(fy+s*.05)),_oT)}}
+function osTrack(A,f){const c=Math.sin(f.fy),d=Math.cos(f.fy),r=A.P.run>.5;
+  prAdd(PRK.ost,f.P.x+c*.05*A.sc,f.P.z+d*.05*A.sc,f.fy+(f.nx>0?.06:-.06),0,r?1.35:1,f.nx<0,A.sc);
+  if(r||A.v>2)spPuff(f.P.x,f.P.y,f.P.z,r?5:2,-c,-d,r?1.2:.5,.8,.04)}
+/* somewhere open to walk to: clear of the camels, the tent and the water's edge */
+function osSpot(A,near,r){const g=navGrid("ostrich",.9,1.25,.8);
+  return randFree(g,near?A.x:0,near?A.z:0,r||14,(x,z)=>ANIM.camels.every(c=>Math.hypot(c.x-x,c.z-z)>5)&&Math.hypot(x-TENT.x,z-TENT.z)>4.5&&PA.os.every(o=>o===A||Math.hypot(o.x-x,o.z-z)>2.5))}
+function osGo(A,p,run){const g=navGrid("ostrich",.9,1.25,.8),blk=ANIM.camels.map(c=>({x:c.x,z:c.z,r:3}));
+  const path=navPath(g,A.x,A.z,p.x,p.z,blk)||navPath(g,A.x,A.z,p.x,p.z);if(!path)return false;A.path=path;A.pi=1;A.mode=run?"run":"walk";A.vmax=run?rr(6,7.5):rr(.9,1.3);return true}
+function osFollow(A,dt){const p=A.path[A.pi],dx=p.x-A.x,dz=p.z-A.z,d=Math.hypot(dx,dz);
+  if(d<(A.mode==="run"?1.2:.4)){if(A.pi<A.path.length-1){A.pi++;return true}A.path=null;return false}
+  const dy=wrapA(Math.atan2(dx,dz)-A.yaw),run=A.mode==="run";steer(A,dy,run?1.3:1.5,dt);
+  const vt=A.vmax*cl(1-Math.abs(dy)/(run?1.6:1.2),.12,1)*(A.pi===A.path.length-1?cl(d/(run?6:1.5),.2,1):1);
+  A.v+=(vt-A.v)*Math.min(1,dt*(vt>A.v?(run?2.2:1.5):2.6));return true}
+function osUpdate(A,dt){const P=A.P,ny=st.night>.6||(st.night>.3&&st.phase==="night"),hail=WX.hf>.05||WX.hcold>0,dust=WX.dust>.5,sitW=ny||hail||dust;
+  A.t-=dt;A.runT-=dt;
+  /* threats: the eagle low or stooping, the snake, a camel walking up, a viewer leaning in */
+  const th=nearMov(A,["eagle","snake","camel","view","dbg"]);let fear=0;
+  if(th){const k=th.m.k,d=th.d;fear=k==="eagle"?ss(9,3,d)*(th.m.o&&th.m.o.mode!=="perch"?1.6:.6):k==="snake"?ss(3.5,1.2,d):k==="camel"?ss(3.5,1.5,d)*cl(th.m.o.spd||.3,.2,1):k==="view"?ss(3,1.1,d):ss(4,1,d)*1.5;
+    if(fear>.15){A.thr={x:th.m.x,z:th.m.z,until:st.t+3,k}}}
+  /* settle into the sitting pose or out of it */
+  const wantSit=A.mode==="sit";P.sit+=((wantSit?1:0)-P.sit)*Math.min(1,dt*(wantSit?.55:.9));
+  if(!wantSit&&A.sat&&P.sit<.4){prAdd(PRK.pal,A.x-Math.sin(A.yaw)*.05,A.z-Math.cos(A.yaw)*.05,A.yaw,0,.85,0,2.3*A.sc);A.sat=0}
+  if(wantSit&&P.sit>.9)A.sat=1;
+  const fleeFrom=(r)=>{const t=A.thr,ax=A.x-t.x,az=A.z-t.z,l=Math.hypot(ax,az)||1,g=navGrid("ostrich",.9,1.25,.8);
+    const p=randFree(g,A.x+ax/l*(r?9:4),A.z+az/l*(r?9:4),r?5:2.5,(x,z)=>Math.hypot(x-t.x,z-t.z)>Math.hypot(A.x-t.x,A.z-t.z)+2);return p&&osGo(A,p,r)};
+  switch(A.mode){
+    case"sit":A.v*=Math.exp(-dt*6);if(fear>.9&&P.sit>.8&&!hail){A.mode="stand";A.t=.5;break}
+      if(!sitW&&A.t<0){A.mode="stand";A.t=rr(2,4)}P.doze+=((ny&&fear<.2?1:0)-P.doze)*ease(.3,dt);break;
+    case"stand":case"graze":case"alert":{A.v*=Math.exp(-dt*5);A.yr*=Math.exp(-dt*4);
+      if(sitW&&A.mode!=="alert"){A.mode="sit";A.t=rr(20,40);break}
+      if(fear>.55&&A.thr){if(!fleeFrom(fear>1.1||A.thr.k==="eagle"))A.mode="alert";break}
+      if(fear>.2&&A.mode!=="alert"){A.mode="alert";A.t=rr(2,4);break}
+      if(A.mode==="graze"){A.peckT-=dt;A.scanT-=dt;
+        if(A.scanT<0){A.mode="alert";A.t=rr(1.5,3);A.scanT=rr(4,10);break}
+        /* a few steps on to the next patch */
+        if(A.peckT<-1.5){A.peckT=rr(.4,1.4);const p=osSpot(A,true,1.6);if(p&&rnd()<.35){osGo(A,p,false);A.vmax=rr(.25,.45);A.mode="walk";A.then="graze";break}}}
+      if(A.t<0){if(A.mode==="alert"&&fear>.2){A.t=1;break}
+        const r=rnd();if(A.runT<0&&!WX.rain){A.runT=rr(120,240);const p=osSpot(A,false,14);if(p&&Math.hypot(p.x-A.x,p.z-A.z)>8&&osGo(A,p,true))break}
+        if(r<.45){A.mode="graze";A.t=rr(8,20);A.peckT=rr(.3,1);A.scanT=rr(3,8)}
+        else if(r<.85){const p=osSpot(A,true,9);if(p&&osGo(A,p,false)){A.then=rnd()<.6?"graze":"stand";break}A.mode="stand";A.t=rr(2,4)}
+        else{A.mode="stand";A.t=rr(3,7)}}break}
+    case"walk":case"run":{if(sitW&&A.mode==="walk"&&!hail){A.path=null;A.mode="sit";A.t=rr(20,40);break}
+      if(A.mode==="walk"&&fear>.55&&A.thr&&A.thr.until>st.t&&!A.fled){A.fled=1;if(fleeFrom(fear>1.1))break}
+      if(!A.path||!osFollow(A,dt)){A.fled=0;A.path=null;A.mode=A.then||"stand";A.then=null;A.t=A.mode==="graze"?rr(6,16):rr(1.5,4);if(A.mode==="graze"){A.peckT=rr(.3,1);A.scanT=rr(3,8)}}
+      break}}
+  A.x+=Math.sin(A.yaw)*A.v*dt;A.z+=Math.cos(A.yaw)*A.v*dt;A.gy+=(hTop(A.x,A.z)-A.gy)*Math.min(1,dt*10);
+  /* targets for the pose */
+  const gr=A.mode==="graze"?1:0,al=A.mode==="alert"||(fear>.15&&A.mode!=="run")?1:0,ru=A.mode==="run"?ss(2,5,A.v):0;
+  const kq=ease(A.mode==="alert"?4:2.2,dt);P.gr+=(gr-P.gr)*kq;P.al+=(al*(1-P.sit)-P.al)*kq;P.run+=(ru-P.run)*ease(3,dt);
+  P.pit+=((gr?.5:0)+.2*P.run+(A.mode==="walk"?.06:0)-P.pit)*ease(2,dt);P.cr+=((gr?.13:0)+.05*cl(A.v,0,1)+.08*P.run-P.cr)*ease(2,dt);
+  if(gr){P.peck+=((Math.sin(st.t*5.3+A.sc*7)>.35&&A.peckT>0?1:0)-P.peck)*ease(9,dt)}else P.peck*=Math.exp(-dt*8);
+  /* where it looks: the threat, now and then the viewer, or a slow scan */
+  A.lookT-=dt;if(A.lookT<0){A.lookT=rr(1.2,3.5);A.lookA=rr(-.9,.9)*(gr?.3:1)}
+  let la=A.lookA;if(A.thr&&A.thr.until>st.t)la=cl(wrapA(Math.atan2(A.thr.x-A.x,A.thr.z-A.z)-A.yaw),-1.4,1.4);
+  P.look+=(la*(1-P.run)-P.look)*ease(A.mode==="alert"?5:2,dt);
+  P.tail+=((al?.8:0)+.5*P.run-P.tail)*ease(3,dt);P.wing+=((P.run>.3?.9:0)+(fear>1?.4:0)-P.wing)*ease(4,dt);
+  /* the feet: walk .55+.25 v steps a second, the stance share shrinking from .62 walking to .36 at a run */
+  if(A.mode==="sit"&&P.sit>.3){for(const f of A.F)if(f.sw){f.sw=0;f.P.copy(f.cur)}}
+  else{const v=A.v,freq=.55+.25*v,duty=mix(.62,.36,ss(1.5,5,v));
+    for(const f of A.F)if(!f.sw)f.fy0=f.fy;
+    const land=paFeet(A,dt,A.F,{freq,duty,lift:.13+.05*ss(2,6,v),vRef:1.2,land:f=>{f.fy=A.yaw;osTrack(A,f)}});void land}
+  A.g.position.set(A.x,A.gy,A.z);A.g.rotation.y=A.yaw;osPose(A,dt)}
+function osLoad(){const g=navGrid("ostrich",.9,1.25,.8);
+  for(const male of[true,false]){const A=osSpawn(male);PA.os.push(A);const p=osSpot(A,false,13)||randFree(g,0,0,14)||{x:2,z:2};osPlace(A,p.x,p.z,rr(-3,3))}
+  if(PA.os.length===2){const[a,b]=PA.os,p=randFree(g,a.x,a.z,4,(x,z)=>Math.hypot(x-a.x,z-a.z)>2.2);if(p)osPlace(b,p.x,p.z,a.yaw+rr(-1,1))}}
+/* per frame: who is about, then each animal; an animal too small on screen to see is skipped (it stays where it was) */
+const _pac=new V3();
+function paUpdate(dt){movers();const c=_pac.copy(De.position);W.worldToLocal(c);PA.ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
+  paU.uWetA.value+=(ss(.05,.5,WX.rain)-paU.uWetA.value)*Math.min(1,dt*(WX.rain>.05?.5:.04));
+  paU.uGlow.value=ss(.55,.95,st.night)*(1-.7*WX.rain);
+  for(const A of PA.os){osUpdate(A,dt);A.g.visible=2.4*A.sc*PA.ppm/Math.max(.1,c.distanceTo(A.g.position))>2}}
 /* ---- load + per-frame ---- */
 const animalsReady=propsReady.then(()=>{const big=[
   Promise.all(CAMEL_SLOTS.map((_,i)=>glb(camelKind(i).file))).then(ms=>{const used=new Set(),[c0,c1]=ms.map((m,i)=>{const s=used.has(m)?VT.cloneSkinned(m.scene):m.scene;used.add(m);return camelSpawn(s,m.animations,i,camelKind(i))});ANIM.camels.push(c0,c1);
@@ -4213,7 +4552,7 @@ const animalsReady=propsReady.then(()=>{const big=[
   ];
   /* the snake's file is the largest and the snake starts hidden in shade: on a slow link it must not hold up the rest */
   const after=Promise.all(big).then(()=>{AU.big=1});
-  return Promise.all(big.concat(after.then(pfLoad).catch(()=>{}),after.then(agLoad).catch(()=>{}),after.then(()=>glb(RS_FILE)).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
+  return Promise.all(big.concat(after.then(pfLoad).catch(()=>{}),after.then(agLoad).catch(()=>{}),after.then(osLoad).catch(()=>{}),after.then(()=>glb(RS_FILE)).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
     const day=st.phase==="day",sp=day?snakeShadeSpot():randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;
     Object.assign(s,{x:sp.x,z:sp.z,yaw:sp.yaw!=null?sp.yaw:-.8,inShade:day?1:0});s.gy=hTop(s.x,s.z);s.g.position.set(s.x,s.gy,s.z);s.g.rotation.set(0,s.yaw,0);
     play(s.r,"relaxed_coil",.01,1)}).catch(()=>{})))});
@@ -4229,6 +4568,7 @@ UPD.push((dt,t)=>{
   if(PF.list.length){pfVis();pfUpdate(d)}
   lakeThreats();lakeVis();ttUpdate(d);crUpdate(d);
   if(AG.list.length){agVis();agUpdate(d)}
+  paUpdate(d);
   blobEnd();spTick(d);
   devilUpdate(d,t);
   sound(d);
@@ -4274,6 +4614,9 @@ const QA={rq:()=>0,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,T
   /* lake life: trout() and crabs() states; lakeScare(x,z,r,sec) puts a threat by the water */
   trout:()=>TT.list.map(f=>({x:f.x,y:f.y,z:f.z,L:f.L,mode:f.mode,dep:pfDep(f.x,f.z),below:POND.wy-f.y})),TT,
   crabs:()=>CR.list.map(c=>({x:c.x,z:c.z,y:c.y,mode:c.mode,dep:pfDep(c.x,c.z),bx:c.bx,bz:c.bz,s:c.s,shown:c.mode!=="in"})),CR,
+  /* procedural animals: PA registry; os() ostrich states (head height in island metres); paThreat(x,z,sec) puts a threat down */
+  PA,paU,osPlace,osGo,osSpot,paThreat:(x,z,sec,r)=>{PA.dbg={x,z,r:r||.4,k:"dbg",o:null,until:st.t+(sec||4)}},
+  os:()=>PA.os.map(A=>{const h=A.B.head.getWorldPosition(new V3());W.worldToLocal(h);return{x:A.x,z:A.z,yaw:A.yaw,v:A.v,mode:A.mode,male:A.male,headY:h.y-A.gy,sit:A.P.sit,vis:A.g.visible}}),
   crSite,pondEdge,lakeScare:(x,z,r,sec)=>{LKdbg={x,z,r:r||2,k:"test",until:st.t+(sec||5)}},
   rsPut:(x,z,yaw)=>{const r=ANIM.rs;if(!r)return;Object.assign(r,{x,z,yaw:yaw||0,gy:hTop(x,z),mode:"coil",w:0,wT:99,wF:1,path:null,next:null});
     r.g.position.set(x,r.gy,z);r.g.rotation.set(0,r.yaw,0);r.g.updateMatrixWorld(true);play(r.r,"relaxed_coil",.01,1)},trk:TRK,RS_N,

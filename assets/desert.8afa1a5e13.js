@@ -1151,6 +1151,23 @@ const propsReady=Promise.all([
     g.traverse(c=>{if(c.isMesh){c.castShadow=c.receiveShadow=true;c.frustumCulled=false}});W.add(g);onDes(g);PROPS.tent=g;tentWater(g);tentRoof(g)}).catch(()=>{})]);
 
 /* ---------------- drying rack beside the tent: forked poles, cross-bar, striped rugs, waterskin ---------------- */
+/* a rug hung over the bar: the top stays on the bar; the whole cloth swings as a light pendulum on the gust's drag (it overshoots
+   when a gust lets go), and the hem is a second, faster mode that trails the swing and rocks on for a moment once the main swing
+   has settled. Soft vertical folds hang in it, deepest at the hem and pulled flatter by the wind, with ripples running down. */
+const CL_NX=12,CL_NY=18,_clA=new Float32Array(CL_NY+1),_clY=new Float32Array(CL_NY+1),_clZ=new Float32Array(CL_NY+1);
+function clothPose(m,F,gR,t){const d=m.userData,P=m.geometry.attributes.position,ds=d.len/CL_NY,flat=1-.55*Math.min(F,1);
+  let y=0,z=0;for(let r=0;r<=CL_NY;r++){const sv=r/CL_NY,a=d.th+d.fi*sv*sv;if(r){const am=.5*(a+_clA[r-1]);y-=ds*Math.cos(am);z+=ds*Math.sin(am)}_clA[r]=a;_clY[r]=y;_clZ[r]=z}
+  for(let r=0;r<=CL_NY;r++){const sv=r/CL_NY,a=_clA[r],ny=Math.sin(a),nz=Math.cos(a);
+    for(let c=0;c<=CL_NX;c++){const u=d.u0[c],un=u/d.w,
+        fo=(.012+.034*sv)*flat*(.7*Math.sin(un*TAU*1.6+d.f1)+.3*Math.sin(un*TAU*3.2+d.f2))*(.35+.65*Math.min(1,sv*4))
+          +F*(.2+.8*gR)*.04*sv*Math.sin(sv*9-t*6.5+un*3+d.ph)+.025*F*sv*sv*sv*Math.sin(t*8.3+un*6+d.ph);
+      P.setXYZ(r*(CL_NX+1)+c,u*(1-.035*sv*flat),_clY[r]+fo*ny,_clZ[r]+fo*nz)}}
+  P.needsUpdate=true;m.geometry.computeVertexNormals();m.geometry.computeBoundingSphere()}
+function clothStep(m,F,push,gR,t,dt){const d=m.userData,tgt=push*Math.atan(.35*F*F+.06*F)+.05*F*gR*Math.sin(t*2.3+d.ph);
+  const n=Math.min(30,Math.ceil(dt*60)),h=dt/n,w1=2.6,z1=.13,w2=6.2,z2=.07;
+  for(let i=0;i<n;i++){const ac=-w1*w1*(d.th-tgt)-2*z1*w1*d.thV;d.thV+=ac*h;d.th+=d.thV*h;
+    d.fiV+=(-w2*w2*d.fi-2*z2*w2*d.fiV-.75*ac)*h;d.fi+=d.fiV*h}
+  clothPose(m,F,gR,t)}
 const woodM=new T.MSM({color:"#6e4a2c",roughness:.9});
 function stripeTex(cols){const c=document.createElement("canvas");c.width=64;c.height=128;const x=c.getContext("2d");
   let y=0;while(y<128){const h=4+Math.floor(rnd()*14);x.fillStyle=cols[Math.floor(rnd()*cols.length)];x.fillRect(0,y,64,h);y+=h}
@@ -1163,10 +1180,11 @@ function stripeTex(cols){const c=document.createElement("canvas");c.width=64;c.h
     const f2=new T.Mesh(new T.Cyl(.025,.035,.4,5),woodM);f2.position.set(x-.08,h-.05,0);f2.rotation.z=.5;g.add(f2)};
   pole(-1.6,2.0,.03);pole(1.6,1.95,-.04);
   const bar=new T.Mesh(new T.Cyl(.035,.035,3.6,6),woodM);bar.rotation.z=Math.PI/2;bar.position.y=1.82;bar.castShadow=true;g.add(bar);
-  const cloth=(x,w,len,cols,ph)=>{const geo=new T.Plane(w,len,6,10),P=geo.attributes.position;
-    for(let i=0;i<P.count;i++){const u=P.getX(i)/w,v=P.getY(i)/len+.5;P.setZ(i,Math.sin(v*Math.PI)*.08*(1-Math.abs(u)));}
-    geo.computeVertexNormals();const m=new T.Mesh(geo,new T.MSM({map:stripeTex(cols),roughness:.95,side:2}));
-    m.position.set(x,1.82-len/2+.02,.04);m.castShadow=true;m.receiveShadow=true;m.userData.ph=ph;g.add(m);return m};
+  const cloth=(x,w,len,cols,ph)=>{const geo=new T.Plane(w,len,CL_NX,CL_NY);geo.translate(0,-len/2,0);
+    const m=new T.Mesh(geo,new T.MSM({map:stripeTex(cols),roughness:.95,side:2}));
+    m.position.set(x,1.84,.04);m.castShadow=true;m.receiveShadow=true;
+    m.userData={ph,w,len,th:0,thV:0,fi:0,fiV:0,f1:rr(0,TAU),f2:rr(0,TAU),u0:Float32Array.from({length:CL_NX+1},(_,i)=>(i/CL_NX-.5)*w)};
+    g.add(m);clothPose(m,0,0,0);return m};
   RACK.cloths=[cloth(-.75,1.1,1.5,["#8a2a22","#c8a070","#2a2a40","#b5452c","#e8d2a8"],0),cloth(.55,.9,1.3,["#d8c49a","#5a3a24","#a83a28","#efe2c0"],1.7)];
   const skin=new T.Mesh(new T.Sphere(.16,10,8),new T.MSM({color:"#5a3a22",roughness:.7}));skin.scale.set(1,1.35,.8);skin.position.set(1.35,1.45,0);skin.castShadow=true;g.add(skin);
   const pot=new T.Mesh(new T.Lathe([[0,0],[.14,.02],[.2,.12],[.18,.24],[.1,.3],[.11,.36]].map(p=>new T.V2(p[0],p[1])),12),new T.MSM({color:"#9a5a34",roughness:.85}));pot.position.set(-2.1,0,.5);pot.castShadow=true;g.add(pot);
@@ -1955,7 +1973,8 @@ UPD.push((dt,t)=>{
        SPK.P[o]=q.x;SPK.P[o+1]=q.y;SPK.P[o+2]=q.z;SPK.Z[i]=.7+.5*(1-q.life);
        SPK.A[i]=q.life<1?on*Math.pow(1-q.life,1.6)*(.55+.45*Math.sin(q.ph*2.3))*2.2:0}
      SPK.g.attributes.position.needsUpdate=SPK.g.attributes.a.needsUpdate=SPK.g.attributes.z.needsUpdate=true;SPK.m.uniforms.uH.value=innerHeight}}
-  if(RACK.cloths){const gR=gustAt(RACK.x,RACK.z);RACK.cloths.forEach((c,i)=>{c.rotation.x=(Math.sin(t*1.6+c.userData.ph)*.06*(.6+.8*gR)+.05*(.4+1.2*gR))*(.4+wn)})}
+  if(RACK.cloths){const gR=gustAt(RACK.x,RACK.z),F=wn*(.35+1.1*gR),wN=WIND.x*Math.sin(RACK.yaw)+WIND.z*Math.cos(RACK.yaw),push=(wN<0?-1:1)*(.3+.7*Math.abs(wN));
+    for(const c of RACK.cloths)clothStep(c,F,push,gR,t,dt)}
   /* sand wisps: grains hop and drift with the local gust */
   for(let i=0;i<SAND.n;i++){const q=SANDP[i];q.life+=dt/q.dur;
     if(q.life>=1){sandSeed(i,false);continue}
@@ -3248,7 +3267,7 @@ const AQ={dWnd:"audio/dWnd.ff02237487.mp3",dCalm:"audio/dCalm.89da1bd867.mp3",dS
   dFr1:"audio/dFr1.71022fc177.mp3",dFr2:"audio/dFr2.2933177163.mp3",dFr3:"audio/dFr3.ef371c70a6.mp3",dFr4:"audio/dFr4.3b0eb8afa7.mp3",dFr5:"audio/dFr5.f59005cbba.mp3",dFr6:"audio/dFr6.34303a83b9.mp3",
   dDf1:"audio/dDf1.c2bca8b159.mp3",dDf2:"audio/dDf2.f9c6cbb2b2.mp3",dDf3:"audio/dDf3.89d3852f46.mp3",dGh1:"audio/dGh1.fab43c03e1.mp3",dGh2:"audio/dGh2.db74adeb9b.mp3",
   dRtl:"audio/dRtl.583fb265c7.mp3",dRtlOn:"audio/dRtlOn.8c54efd922.mp3",dRn:"audio/dRn.962d3a4b8e.mp3",dRt:"audio/dRt.42d94b489e.mp3",dRn2:"audio/dRn2.c4bd152bef.mp3",dRn3:"audio/dRn3.ce70d282d2.mp3",dRt2:"audio/dRt2.ea377a8b4f.mp3",dStm:"audio/dStm.5a9de5ce8c.mp3",dStS:"audio/dStS.3eb716e7e9.mp3",dTh1:"audio/dTh1.b13785294f.mp3",dTh2:"audio/dTh2.2231810e14.mp3",dTh3:"audio/dTh3.7d73564cb4.mp3",dTh4:"audio/dTh4.ddd885035b.mp3",dTh5:"audio/dTh5.b55b99d3da.mp3"};
-const LL={dHsd:11,dHtn:9,dHlf:8,dHwt:7,dRwt:11,dRlf:9,dRn2:13,dRn3:17,dRt2:17,dSiz:6,dWnd:22,dCalm:36,dSnd:20,dFire:19,dSnk:8,dRtl:12,dRn:22,dRt:22,dStm:30,dStS:30,dSnw:8};
+const LL={dCiB:14,dHsd:11,dHtn:9,dHlf:8,dHwt:7,dRwt:11,dRlf:9,dRn2:13,dRn3:17,dRt2:17,dSiz:6,dWnd:22,dCalm:36,dSnd:20,dFire:19,dSnk:8,dRtl:12,dRn:22,dRt:22,dStm:30,dStS:30,dSnw:8};
 /* weather sounds load only when that weather comes */
 const WXA=new Set(["dRn2","dRn3","dRt2","dRwt","dRlf","dRd1","dRd2","dRd3","dCrn","dHsd","dHtn","dHlf","dHwt","dHs1","dHt1","dHp1","dHc1","dSiz","dSnw","dDp1","dDp2","dDp3","dRn","dRt","dStm","dStS","dTh1","dTh2","dTh3","dTh4","dTh5","dRtl","dRtlOn"]);
 const AU={b:{},pd:{},lp:{},n:{},bus:null,ob:null,pre:0,egT:rr(5,10),cmT:[rr(14,30),rr(30,60)],cmL:-99,q:[],cap:null};
@@ -3316,6 +3335,33 @@ Object.assign(SYN,{
   dHt1(R){const o=new Float32Array(Math.round(.3*R));hDrum(o,0,R,.55,128,lcg(63));return o},
   dHp1(R){const o=new Float32Array(Math.round(.16*R));hPlink(o,0,R,.6,2300,lcg(65));return o},
   dHc1(R){const o=new Float32Array(Math.round(.06*R));hClick(o,0,R,.6,lcg(67));return o}});
+/* oasis insects, made here: a desert cicada's call is tymbal clicks at ~200 a second, each ringing the abdomen near 6-7 kHz, a
+   hard metallic buzz that swells in, throbs as the abdomen pumps and winds down in rate and pitch at the end; the far chorus is
+   a loop of five of them waxing and waning, softened by distance; a katydid rasps groups of two or three pulses ("ka-ty-did"),
+   each a run of file-tooth strikes on a 4.5-5.5 kHz wing resonance */
+/* clicks and teeth are added from small precomputed kernels (four noise variants per resonance), so building a call costs
+   a few milliseconds and never a long frame */
+const _ik=new Map();
+function iKern(R,fc,tau,len,hr,hg,nz,v){const key=R+":"+Math.round(fc/25)+":"+tau+":"+v;let k=_ik.get(key);if(k)return k;const rn=lcg(97+v*13),K=Math.round(R*len);k=new Float32Array(K);
+  for(let i=0;i<K;i++){const t=i/R;k[i]=Math.sin(TAU*fc*t)*Math.exp(-t/tau)+hg*Math.sin(TAU*fc*hr*t+1.3)*Math.exp(-t/(tau*.62))+nz*(rn()*2-1)*Math.exp(-t/(tau*.4))}
+  let m=0,w=0;for(let i=0;i<K;i++){const e=Math.exp(-i/(R*tau));m+=k[i]*e;w+=e}m/=w;for(let i=0;i<K;i++)k[i]-=m*Math.exp(-i/(R*tau));
+  _ik.set(key,k);return k}
+function cicClick(o,i0,R,g,fc,rn){const n=o.length,k=iKern(R,fc,.00065,.0028,1.52,.35,.25,Math.floor(rn()*4));for(let j=0;j<k.length;j++)o[(i0+j)%n]+=g*k[j]}
+function cicCall(R,L,fp,fc,seed){const o=new Float32Array(Math.round(L*R)),rn=lcg(seed),am=2.8+2*rn();let t=.02;
+  while(t<L-.05){const u=t/L,wd=ss(.78,1,u),g=.24*ss(0,.12,u)*(1-ss(.8,1,u))*(.78+.22*Math.sin(TAU*am*t))*(.85+.3*rn());
+    cicClick(o,Math.floor(t*R),R,g,fc*(1-.12*wd)*(1+.01*(rn()-.5)),rn);t+=1/(fp*(1-.35*wd)*(1+.06*(rn()-.5)))}return o}
+function ktPulse(o,i0,R,d,g,fc,rn){let t=0;
+  while(t<d){const u=t/d,e=Math.pow(Math.sin(Math.PI*u),.6)*g,i=i0+Math.floor(t*R),k=iKern(R,fc,.0003,.0014,2.1,.5,.3,Math.floor(rn()*4));
+    for(let j=0;j<k.length&&i+j<o.length;j++)o[i+j]+=e*k[j];t+=.00045+.0003*u+.0001*rn()}}
+function ktCall(R,L,pat,fc,seed){const o=new Float32Array(Math.round(L*R)),rn=lcg(seed);let t=.05;
+  while(t<L-.45){let q=t;for(const d of pat){ktPulse(o,Math.floor(q*R),R,d*(.9+.2*rn()),.3*(.85+.3*rn()),fc,rn);q+=d+.06+.02*rn()}t+=.62+.18*rn()}return o}
+Object.assign(SYN,{dCi1:R=>cicCall(R,7.5,215,6300,87),dCi2:R=>cicCall(R,4.8,250,7300,89),
+  dKt1:R=>ktCall(R,3.4,[.045,.035,.05],4600,91),dKt2:R=>ktCall(R,3,[.05,.04],5500,93),
+  dCiB(R){const L=LL.dCiB,n=Math.round(L*R),o=new Float32Array(n),rn=lcg(83);
+    for(let v=0;v<5;v++){const fp=180+90*rn(),fc=5200+2400*rn(),c1=1+Math.floor(rn()*3),p1=rn()*TAU,am=Math.round((3+2*rn())*L)/L,g0=.04+.05*rn();let t=rn()/fp;
+      while(t<L){const env=Math.max(0,.3+.7*Math.sin(TAU*c1*t/L+p1));if(env>0)cicClick(o,Math.floor(t*R),R,g0*env*(.8+.2*Math.sin(TAU*am*t)),fc,rn);t+=1/(fp*(1+.05*(rn()-.5)))}}
+    const w=o.slice();let lp=0;for(let p=0;p<2;p++)for(let i=0;i<n;i++){lp+=(w[i]-lp)*.5;if(p)o[i]=lp}
+    return padL(o,R)}});
 function drip(R,f0,rise,s){const n=Math.round(.3*R),o=new Float32Array(n),rn=lcg(s);let ph=0;
   for(let i=0;i<n;i++){const t=i/R;ph+=TAU*f0*(1+rise*Math.min(1,t/.03))/R;o[i]=.5*Math.sin(ph)*Math.exp(-t/.032)*Math.min(1,t/.0015)+(t<.0012?(rn()*2-1)*.35*(1-t/.0012):0)}return o}
 /* the made sounds are built on first use; their loading slot is blocked so nothing tries to fetch them */
@@ -3383,29 +3429,38 @@ const _crP=new V3(),_hwP=new V3(),_hsP=new V3(),_rtP=new V3(),_snP=new V3(),_fiP
 /* thunder follows the flash by the sound's travel time; near strikes crack, far ones roll; heard from the bolt's side */
 function thunder(far){const k=far<.55?pick(["dTh1","dTh2","dTh3"]):pick(["dTh4","dTh5"]),ya=WX.boltA-YAW;
   capE(["T",+far.toFixed(3)]);later(.4+far*5,()=>shotS(k,mix(1,.5,far),_thP.set(_cl.x+Math.sin(ya)*60,_cl.y+20,_cl.z+Math.cos(ya)*60),60,rr(.92,1.04)))}
-/* oasis insects, only around the water: field and desert crickets in the shore grass and water frogs at the edge sing
-   at night (a cricket only now and then by day); by day an odd dragonfly pass over the water or a grasshopper's wing
-   snaps. Crickets sing in bouts with rests. Everything pauses while the wind is up and starts again in the lulls, and
+/* oasis insects, only around the water. In the day's heat cicadas buzz in the palms (singers near, a chorus further off)
+   with an odd dragonfly pass over the water or a grasshopper's wing snap; from dusk katydids rasp in the shore grass and field
+   and desert crickets start up, and at night the crickets and the water frogs at the edge carry on (a cricket only now and
+   then by day). Crickets sing in bouts with rests. Everything pauses while the wind is up and starts again in the lulls, and
    the group fades out as the camera leaves the oasis for the dunes. */
 const OAS=(()=>{const E=[],add=(ty,th,k,a,b)=>{const[x,z]=pondEdge(th,k);E.push({ty,x,z,a,b,t:rr(0,b),r:rr(.95,1.05),on:rnd()<.7,bt:rr(15,50)})};
   add("fc",.45,1.35,2,9);add("fc",2.7,1.3,3,12);add("dk",-1.15,1.45,3,6.5);add("dk",3.9,1.42,3.4,7);
-  add("fr",1.35,1.0,12,32);add("fr",-2.35,1.02,14,38);add("df",0,.6,22,50);add("gh",.95,1.55,16,40);add("gh",-1.9,1.45,18,46);return E})();
+  add("fr",1.35,1.0,12,32);add("fr",-2.35,1.02,14,38);add("df",0,.6,22,50);add("gh",.95,1.55,16,40);add("gh",-1.9,1.45,18,46);
+  add("kt",1.9,1.4,2.5,5.5);add("kt",-2.8,1.5,3,6.5);add("kt",.2,1.6,3.5,7.5);
+  PALMS.forEach((pp,i)=>E.push({ty:"ci",pp,x:pp.x,z:pp.z,a:3+2*i,b:12+3*i,t:rr(0,6),r:rr(.97,1.03),on:true,bt:0}));add("ci",-.6,1.7,6,15);return E})();
 /* clip lengths (s), so one singer never overlaps itself */
-const OLEN={dOc1:8.35,dOc2:6.94,dOc3:1.72,dOk1:1.08,dOk2:.92,dOk3:1.03,dOk4:1.13,dFr1:.57,dFr2:.66,dFr3:.5,dFr4:1.29,dFr5:1.05,dFr6:.65,dDf1:1.15,dDf2:1.15,dDf3:1.95,dGh1:1.3,dGh2:1.92};
+const OLEN={dCi1:7.5,dCi2:4.8,dKt1:3.4,dKt2:3,dOc1:8.35,dOc2:6.94,dOc3:1.72,dOk1:1.08,dOk2:.92,dOk3:1.03,dOk4:1.13,dFr1:.57,dFr2:.66,dFr3:.5,dFr4:1.29,dFr5:1.05,dFr6:.65,dDf1:1.15,dDf2:1.15,dDf3:1.95,dGh1:1.3,dGh2:1.92};
 const OSET={fc:[["dOc1","dOc2","dOc3"],.5,5],dk:[["dOk1","dOk2","dOk3","dOk4"],.42,5],fr:[["dFr1","dFr2","dFr3","dFr4","dFr5","dFr6"],.55,7],
-  df:[["dDf1","dDf2","dDf3"],.36,3],gh:[["dGh1","dGh2"],.3,4]};
+  df:[["dDf1","dDf2","dDf3"],.36,3],gh:[["dGh1","dGh2"],.3,4],ci:[["dCi1","dCi2"],.4,8],kt:[["dKt1","dKt2"],.34,5]},ISY=["dCi1","dCi2","dKt1","dKt2","dCiB"];
 function oasisNear(){const r=Math.hypot((_cl.x-POND.x)/POND.rx,(_cl.z-POND.z)/POND.rz),dh=Math.max(0,r-1.3)*6,dy=Math.max(0,_cl.y-hTop(POND.x,POND.z)-2.5);
   return 1-ss(3,15,Math.hypot(dh,dy*.7))}
 /* fog hushes the oasis: the singers are fewer and sound muffled, as if from further off, while dew drips from the fronds.
    In snow the insects and frogs are silent (too cold to sing). */
 function oasis(dt,nk,W){const zone=oasisNear(),hush=1-ss(.22,.6,W),fa=WX.fa,v=zone*hush*(1-.4*fa),lpf=Math.round(19000*Math.pow(2600/19000,ss(0,.7,fa)));
   capE(["B","oas",+v.toFixed(4),lpf]);if(aOK()&&aBus()){const n=SX().s.currentTime;AU.ob.gain.setTargetAtTime(v,n,.6);AU.of.frequency.setTargetAtTime(lpf,n,.6)}
-  const night=ss(.3,.9,nk),cold=(1-ss(.04,.3,Math.max(WX.sf,WX.sc)))*(1-.5*fa),act={fc:(.05+.95*night)*cold,dk:(.04+.96*night)*cold,fr:(.75*ss(.45,.95,nk)+.6*WX.after*(1-ss(.05,.3,WX.rain)))*cold,df:.55*(1-ss(.15,.5,nk))*cold,gh:.5*(1-ss(.15,.5,nk))*cold};
+  const night=ss(.3,.9,nk),dusk=ss(.3,.9,LK.sunset)*(1-night),cold=(1-ss(.04,.3,Math.max(WX.sf,WX.sc)))*(1-.5*fa),dry=1-ss(.03,.25,Math.max(WX.rain,WX.hf)),
+    hot=ss(.4,.9,LK.day)*(1-night)*dry*(1-.8*fa),act={fc:(.05+.95*Math.max(night,.8*dusk))*cold,dk:(.04+.96*Math.max(night,.7*dusk))*cold,
+    ci:.95*hot*cold,kt:(.9*dusk+.45*night)*cold*dry,fr:(.75*ss(.45,.95,nk)+.6*WX.after*(1-ss(.05,.3,WX.rain)))*cold,df:.55*(1-ss(.15,.5,nk))*cold,gh:.5*(1-ss(.15,.5,nk))*cold};
   for(const e of OAS){if(e.ty==="fc"||e.ty==="dk"){e.bt-=dt;if(e.bt<0){e.on=!e.on;e.bt=e.on?rr(25,80):rr(8,30)}}
     e.t-=dt;if(e.t>0)continue;e.t=rr(e.a,e.b);
     if(!amb()||zone<.02||hush<.25||(e.ty==="fc"||e.ty==="dk")&&!e.on||rnd()>act[e.ty])continue;
-    const S=OSET[e.ty],k=pick(S[0]);let x=e.x,z=e.z;if(e.ty==="df"){const[px,pz]=pondEdge(rr(-3.1,3.1),rr(.3,.95));x=px;z=pz}
-    e.t+=OLEN[k];shotS(k,S[1]*rr(.8,1.05),_oP.set(x,hTop(x,z)+(e.ty==="df"?.8:.15),z),S[2],e.r*rr(.98,1.02),1)}}
+    const S=OSET[e.ty],k=pick(S[0]);let x=e.x,z=e.z,y=hTop(x,z)+(e.ty==="df"?.8:.15);if(e.ty==="df"){const[px,pz]=pondEdge(rr(-3.1,3.1),rr(.3,.95));x=px;z=pz;y=hTop(x,z)+.8}
+    if(e.ty==="ci"){const T0=e.pp&&e.pp.g&&e.pp.g.userData.top;if(T0){x=T0.x+rr(-.4,.4);z=T0.z+rr(-.4,.4);y=T0.y-rr(.6,2.4)}else y=hTop(x,z)+1.2}
+    e.t+=OLEN[k];shotS(k,S[1]*rr(.8,1.05),_oP.set(x,y,z),S[2],e.r*rr(.98,1.02),1)}
+  /* the far cicadas: a chorus bed in the heat, on the oasis bus's level but its own loop */
+  if(aOK()&&zone>.02&&(act.ci>.03||act.kt>.03))for(const k of ISY)if(!AU.b[k]){synB(k);break}
+  loopS("cicb","dCiB",.3*v*act.ci,null,0,1,1.2,lpf)}
 function sound(dt){if(!root.visible&&!AU.cap)return;
   /* iOS interrupts the audio context (a call, a notification, the lock screen) and does not resume it by itself */
   {const x=SX();if(aOK())AU.ran=1;else if(AU.ran&&x&&x.s&&x.on&&root.visible&&x.s.state!=="closed"&&x.s.state!=="running"&&st.t>(AU.rsT||0)){AU.rsT=st.t+1.5;try{const p=x.s.resume();p&&p.catch&&p.catch(()=>{})}catch(e){}}}
@@ -4097,7 +4152,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={rq:()=>0,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={rq:()=>0,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

@@ -3229,7 +3229,7 @@ function aBus(){if(AU.bus)return true;const x=SX();try{const b=x.s.createGain();
    loop is crossfaded into the copy of itself that sits just before the loop start; the wrap then continues sample for sample. */
 /* made sounds are built one a frame as their weather comes, never all in one frame */
 const DSY=["dDp1","dDp2","dDp3"],RSY=["dRwt","dRlf","dRd1","dRd2","dRd3",...DSY],HSY=["dHsd","dHtn","dHlf","dHwt","dHs1","dHt1","dHp1","dHc1"];
-const SEAM=new Set(["dRn","dRt","dRn2","dRn3","dRt2"]),BED=new Set(["rain","rain2","rain3","rtent","rtent2","rwat","rleaf","hsand","htent","hleaf","hwat"]);
+const SEAM=new Set(["dRn","dRt","dRn2","dRn3","dRt2"]),BED=new Set(["rain","rain2","rain3","rtent","rtent2","rwat","rleaf","hsand","htent","hleaf","hwat"]),PRE=new Set(["rain","rtent"]);
 function seam(c,b,T){const sr=b.sampleRate,a=Math.round(.5*sr),n=Math.round(T*sr),x=Math.round(.45*sr);if(b.length<a+n||!c)return b;
   try{const o=c.createBuffer(b.numberOfChannels,n,sr);
     for(let ch=0;ch<b.numberOfChannels;ch++){const y=b.getChannelData(ch),d=o.getChannelData(ch);d.set(y.subarray(a,a+n));
@@ -3248,9 +3248,10 @@ function voice(c,out,pan,lpf){const g=c.createGain(),f=c.createBiquadFilter(),pn
 function loopS(id,k,v,p,ref,rate,tc,mf){let pan=0,lpf=19000;if(p){const q=spat(p,ref);pan=q[0];v*=q[1];lpf=q[2]}if(mf)lpf=Math.min(lpf,mf);rate=rate||1;
   capE(["L",id,k,+v.toFixed(4),+pan.toFixed(3),Math.round(lpf),+rate.toFixed(3)].concat(tc?[tc]:[]));
   if(!aOK()||!aBus())return;const c=SX().s;let L=AU.lp[id];
-  /* the rain and hail beds start silent once they are decoded (or made) and wet weather is on its way, then run without a
-     break through the showers: the weather only raises and lowers their gain. After a long dry spell they are stopped */
-  if(!L){if(v<=.001&&!(BED.has(id)&&AU.b[k]&&AU.wet))return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;
+  /* the rain and hail beds start silent and then run without a break: the weather only raises and lowers their gain. The base
+     patter and the cloth run from the moment they are decoded; the other layers start once wet weather is on its way and are
+     stopped again after a long dry spell, so a clear day runs only the two */
+  if(!L){if(v<=.001&&!(BED.has(id)&&AU.b[k]&&(AU.wet||PRE.has(id))))return;dec(k);const b=AU.b[k];if(!b)return;try{const s=c.createBufferSource();s.buffer=b;s.loop=true;
     if(b.seam){s.loopStart=0;s.loopEnd=b.duration}else{s.loopStart=.5;s.loopEnd=.5+LL[k]}
     L=voice(c,AU.bus,pan,lpf);L.g.gain.value=0;Object.assign(L,{s,v:0,lf:lpf,pa:pan,ra:1,w:-1});s.connect(L.g);s.start(0,b.seam?rnd()*b.duration:.5+rnd()*LL[k]);AU.lp[id]=L;AU.n[id]=(AU.n[id]||0)+1}catch(e){return}}
   /* parameters only glide toward smoothed targets, written when they have moved and at most twenty times a second, so a
@@ -3316,7 +3317,7 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   for(let i=AU.q.length-1;i>=0;i--)if(st.t>=AU.q[i].t){const f=AU.q[i].fn;AU.q.splice(i,1);f()}
   AU.wet=WX.rain>.001||WX.hf>.001||/rain|storm|hail/.test(Ct.weather);
   {let on=AU.wet;for(const id of BED){const L=AU.lp[id];if(L&&L.v>0)on=true}
-   if(on)AU.dryT=st.t;else if(st.t-(AU.dryT||0)>150)for(const id of BED){const L=AU.lp[id];if(!L)continue;delete AU.lp[id];try{L.s.stop();L.g.disconnect()}catch(e){}}}
+   if(on)AU.dryT=st.t;else if(st.t-(AU.dryT||0)>240)for(const id of BED){const L=AU.lp[id];if(!L||PRE.has(id))continue;delete AU.lp[id];try{L.s.stop();L.g.disconnect()}catch(e){}}}
   const nk=st.night,wn=st.wn,g=gustAt(_cl.x,_cl.z),calm=1-.5*nk;
   /* beds: a steady low air, wind that swells with the gusts, and the hiss of sand on the move */
   /* snow on the ground soaks up the high end: the wind comes muffled and softer, the sand barely hisses (it is frozen in place) */

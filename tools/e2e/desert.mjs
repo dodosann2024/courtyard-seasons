@@ -277,18 +277,21 @@ try {
   check("hail: wind blows sand", ...await sandCheck());
   check("hail: rain on sand, tent and lake", ...await rainCheck());
 
-  /* 15. the rain sound is one continuous bed. After the first key press unlocks the audio, the rain loops are already running silent
-     before any rain falls; rain, a change of intensity and taps on the screen then only move their gain, smoothly: no source
+  /* 15. the rain sound is one continuous bed. After the first key press unlocks the audio, the base patter and the cloth loops are
+     already running silent on a clear day (only those two, as on main); the other layers start silent as the rain is chosen, before
+     any drop falls; rain, a change of intensity and taps on the screen then only move their gain, smoothly: no source
      is started again, the level never dips and recovers, and the master level does not duck on a tap. Real time, frames running. */
   await page.keyboard.press("F9");
   await page.evaluate(() => { const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .5}); q.sim(120, .5); q.freeze(false); });
-  await page.waitForFunction(() => { const A = window.__desQA().AU; const S = window.__sound; return A.lp.rain && A.lp.rain2 && A.lp.rain3 && A.lp.rtent && A.lp.rtent2 && S.ctx === "running" && S.gain >= .95 * S.vol; }, {timeout: 120000, polling: 250});
+  await page.waitForFunction(() => { const A = window.__desQA().AU; const S = window.__sound; return A.lp.rain && A.lp.rtent && !A.lp.rain2 && !A.lp.rain3 && !A.lp.rtent2 && A.b.dRn2 && A.b.dRn3 && A.b.dRt2 && S.ctx === "running" && S.gain >= .95 * S.vol; }, {timeout: 120000, polling: 250});
   check("rain sound: one continuous bed, no dropouts, restarts or dips", ...await page.evaluate(async () => {
     const q = window.__desQA(), A = q.AU, S = window.__sound, sleep = ms => new Promise(r => setTimeout(r, ms));
+    const silentBefore = [A.lp.rain, A.lp.rtent].map(L => +L.g.gain.value.toFixed(3));
+    window.__set({weather: "hrain", ct: "overcast"}); q.sim(.1, .1);
     const ids = ["rain", "rain2", "rain3", "rtent", "rtent2"], V = ids.map(k => A.lp[k]), src = V.map(L => L.s), n0 = ids.map(k => A.n[k]);
-    const r = {ctx: S.ctx, silentBefore: V.map(L => +L.g.gain.value.toFixed(3))}, G = ids.map(() => []), M = [];
+    const r = {ctx: S.ctx, silentBefore}, G = ids.map(() => []), M = [];
     /* the weather is stepped ahead in one go (as a long stalled frame would); the audio then runs on in real time */
-    window.__set({weather: "hrain", ct: "overcast"}); q.sim(30, .5);
+    q.sim(30, .5);
     for (let i = 0; i < 120; i++) {
       await sleep(100);
       V.forEach((L, j) => G[j].push(L.g.gain.value)); M.push(S.gain);

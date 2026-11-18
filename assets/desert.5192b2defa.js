@@ -4505,8 +4505,10 @@ function osUpdate(A,dt){const P=A.P,ny=st.night>.6||(st.night>.3&&st.phase==="ni
   const wantSit=A.mode==="sit";P.sit+=((wantSit?1:0)-P.sit)*Math.min(1,dt*(wantSit?.55:.9));
   if(!wantSit&&A.sat&&P.sit<.4){prAdd(PRK.pal,A.x-Math.sin(A.yaw)*.05,A.z-Math.cos(A.yaw)*.05,A.yaw,0,.85,0,2.3*A.sc);A.sat=0}
   if(wantSit&&P.sit>.9)A.sat=1;
-  const fleeFrom=(r)=>{const t=A.thr,ax=A.x-t.x,az=A.z-t.z,l=Math.hypot(ax,az)||1,g=navGrid("ostrich",.9,1.25,.8);
-    const p=randFree(g,A.x+ax/l*(r?9:4),A.z+az/l*(r?9:4),r?5:2.5,(x,z)=>Math.hypot(x-t.x,z-t.z)>Math.hypot(A.x-t.x,A.z-t.z)+2);return p&&osGo(A,p,r)};
+  /* away from the threat, swinging wider to either side when the rim or the water is in the way */
+  const fleeFrom=(r)=>{const t=A.thr,a0=Math.atan2(A.x-t.x,A.z-t.z),g=navGrid("ostrich",.9,1.25,.8),D=r?9:4,d0=Math.hypot(A.x-t.x,A.z-t.z);
+    for(const da of[0,.6,-.6,1.2,-1.2,1.8,-1.8]){const a=a0+da,p=randFree(g,A.x+Math.sin(a)*D,A.z+Math.cos(a)*D,r?5:2.5,(x,z)=>Math.hypot(x-t.x,z-t.z)>d0+2);
+      if(p&&osGo(A,p,r))return true}return false};
   switch(A.mode){
     case"sit":A.v*=Math.exp(-dt*6);if(fear>.9&&P.sit>.8&&!hail){A.mode="stand";A.t=.5;break}
       if(!sitW&&A.t<0){A.mode="stand";A.t=rr(2,4)}P.doze+=((ny&&fear<.2?1:0)-P.doze)*ease(.3,dt);break;
@@ -4790,7 +4792,9 @@ function scUpdate(A,dt,cam){const P=A.P,rk=A.rk,dark=st.night>.55,dusk=st.phase=
       if(!A.goal){const g=navGrid("scorp",.05,1.3,.84),p=randFree(g,rk.dx,rk.dz,2.2);A.goal=p;A.pause=0}
       if(A.pause>0){A.pause-=dt;A.v*=Math.exp(-dt*10)}else if(A.goal&&go(.035,A.goal.x,A.goal.z)<.03){A.goal=null;A.pause=rr(2,7)}
       if(A.t<0&&!A.goal){A.mode=rnd()<.3?"door":"roam";A.t=rr(15,40)}break;
-    case"home":if(go(.06,rk.dx,rk.dz)<.04){if(go(.03,rk.hx,rk.hz)<.03||Math.hypot(A.x-rk.hx,A.z-rk.hz)<.05){A.mode="hide";A.t=rr(30,90)}}break}
+    case"home":if(!A.atDoor&&go(.06,rk.dx,rk.dz)<.04)A.atDoor=1;
+      if(A.atDoor&&go(.03,rk.hx,rk.hz)<.03){A.mode="hide";A.t=rr(30,90)}break}
+  if(A.mode!=="home")A.atDoor=0;
   /* threat: face it, raise up, open the pincers, sting arched forward; when it is on top of us back off home */
   const thr=fear>.25&&A.mode!=="hide"&&A.mode!=="home";if(thr){A.v*=Math.exp(-dt*10);const dy=wrapA(Math.atan2(tx-A.x,tz-A.z)-A.yaw);A.yaw=wrapA(A.yaw+cl(dy,-dt*3,dt*3))}
   P.thr+=((thr?1:0)-P.thr)*ease(thr?6:1.5,dt);P.open+=((thr?1:A.mode==="roam"?.3:0)-P.open)*ease(4,dt);P.feel+=((A.mode==="roam"&&A.v>.01?1:0)-P.feel)*ease(2,dt);

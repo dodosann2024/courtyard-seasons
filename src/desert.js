@@ -2794,7 +2794,7 @@ function eagleUpdate(e,dt){
 function snakeShadeSpot(near){
   const g=navGrid("snake",.32,1.3,.82);let best=null;
   for(const o of OBST){if(near?!(o.k==="rock"&&o.r>=.4||o.k==="shrub"&&o.r>=.45):o.k!=="rock"||o.r<.6)continue;const x=o.x+SHADE.x*(o.r+.42),z=o.z+SHADE.z*(o.r+.42);
-    if(!navFree(g,x,z))continue;const sc=near?-Math.hypot(x-near.x,z-near.z):-Math.hypot(x-SNK_HOME.x,z-SNK_HOME.z)*.12+o.r;if(!best||sc>best.sc)best={x,z,sc,yaw:Math.atan2(SHADE.x,SHADE.z)+2}}
+    if(!navFree(g,x,z)||near&&ANIM.camels.some(a=>Math.hypot(a.x-x,a.z-z)<3))continue;const sc=near?-Math.hypot(x-near.x,z-near.z):-Math.hypot(x-SNK_HOME.x,z-SNK_HOME.z)*.12+o.r;if(!best||sc>best.sc)best={x,z,sc,yaw:Math.atan2(SHADE.x,SHADE.z)+2}}
   return best||{x:-2,z:12,yaw:0}}
 /* ---- rattlesnake ----
    A snake tastes the air with its mouth shut: the tongue slides out through the notch at the front-centre of the upper lip,
@@ -3102,7 +3102,8 @@ function rsCentre(s){const P=s.bd.P;let x=0,z=0;for(let i=0;i<RS_N;i++){x+=P[2*i
 function rsGoTo(s,to){const P=s.bd.P,g=navGrid("snake",.32,1.3,.82),p=navPath(g,P[0],P[1],to.x,to.z);if(!p)return false;
   s.path=p;s.pi=1;s.goal=to;s.arr=0;s.legT=0;return true}
 function rsThreat(s){const P=s.bd.P,hx=P[0],hz=P[1];if(s.qth&&st.t<s.qth.until)return s.qth;if(s.noTh)return null;
-  for(const a of ANIM.camels){const d=Math.hypot(a.x-hx,a.z-hz);if(a.mode!=="rest"&&(d<1.6||a.spd>.1&&d<2.6))return{x:a.x,z:a.z}}
+  /* a camel braced motionless against hail is no threat: the snake slips past it to cover */
+  for(const a of ANIM.camels){const d=Math.hypot(a.x-hx,a.z-hz);if(a.mode!=="rest"&&!(WX.hcold&&a.spd<.05)&&(d<1.6||a.spd>.1&&d<2.6))return{x:a.x,z:a.z}}
   const e=ANIM.eagle;if(e&&e.mode!=="perch"&&e.pos&&Math.hypot(e.pos.x-hx,e.pos.z-hz)<4&&e.pos.y-hTop(hx,hz)<3.5)return{x:e.pos.x,z:e.pos.z};
   return null}
 function rsCoilAt(s,clip,fade){const P=s.bd.P,ya=Math.atan2(P[0]-P[6],P[1]-P[7]);
@@ -3118,7 +3119,8 @@ function rsUpdate(s,dt){
   if(th&&s.mode!=="def"){if(s.mode==="crawl"||s.mode==="rest")rsCoilAt(s,"defensive_coil",.55);else{play(s.r,"defensive_coil",.4,1)}
     s.mode="def";s.defT=0;s.calm=0;s.th=th;capE(["R","on"]);shotS("dRtlOn",.8,_snP.set(b.P[0],hTop(b.P[0],b.P[1])+.2,b.P[1]),4)}
   if(s.mode==="def"){s.defT+=dt;if(th){s.th=th;s.calm=0}else s.calm+=dt;
-    if(s.calm>2.5&&s.defT>5){s.mode="uncoil";s.caut=rr(12,20);const P=b.P,dx=P[0]-s.th.x,dz=P[1]-s.th.z,l=Math.hypot(dx,dz)||1;const hs=s.hunt&&rsHuntSpot(s,s.th);if(hs)hs.hunt=1;s.next=hs||{x:P[0]+dx/l*3.5,z:P[1]+dz/l*3.5}}}
+    if(s.calm>2.5&&s.defT>5){s.mode="uncoil";s.caut=rr(12,20);const P=b.P,dx=P[0]-s.th.x,dz=P[1]-s.th.z,l=Math.hypot(dx,dz)||1;const hs=s.hunt&&rsHuntSpot(s,s.th);if(hs)hs.hunt=1;
+      const cv=WX.hcold&&snakeShadeSpot({x:P[0],z:P[1]});s.next=cv?{x:cv.x,z:cv.z,shade:1,near:1}:hs||{x:P[0]+dx/l*3.5,z:P[1]+dz/l*3.5}}}
   /* coiled: the clip pose, tongue now and then; leave at dusk or to reach shade */
   if(s.mode==="coil"){s.timer-=dt;
     if(s.timer<0){if(s.r.cur==="relaxed_coil"){play(s.r,"tongue_flick",.8,1);s.timer=rr(6,9)}else{play(s.r,"relaxed_coil",.9,1);s.timer=rr(9,15)}}

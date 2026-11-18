@@ -1684,7 +1684,9 @@ Ta.insertPass(grade,Ta.passes.length-1);
 /* mirage: rays grazing the hot sand bend up, so a pool shows what stands above the sand line, upside down and squashed
    (sky, the cloud sea past the rim, a trunk or a camel's legs), trembling with the hot air. The sand marks its pools in
    alpha (.985 sand, down to ~.5 in a pool; everything else 1); this pass, right after the scene and before bloom, looks
-   straight up the screen for the first pixel that is not sand and mirrors the image about it */
+   straight up the screen for the first pixel that is not sand and mirrors the image about it. Its shimmer, column blur and
+   offsets are measured in 1/720ths of the screen height, so a tall phone screen at DPR 2-3 shows the same pools as a desktop
+   (in device pixels they came out 2-3 times finer there: hard broken edges at every trunk and blade behind a pool) */
 const _mirW=new V3(1.28,.9,.48);
 const mirM=new T.SM({uniforms:{tDiffuse:{value:null},uT:{value:0},uPx:{value:new T.V2(1,1)},uSky:{value:new C3()},uTint:{value:new V3(1,1,1)}},depthTest:false,depthWrite:false,
   vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
@@ -1706,7 +1708,7 @@ const mirM=new T.SM({uniforms:{tDiffuse:{value:null},uT:{value:0},uPx:{value:new
       vec3 b=texture2D(tDiffuse,vUv+sh).rgb;
       gl_FragColor=vec4(mix(b,r*uTint,smoothstep(0.,.6,mk)*.92),1.);}`});
 const mirQ=new T.Mesh(new T.Plane(2,2),mirM);mirQ.frustumCulled=false;
-const mirP={enabled:false,needsSwap:true,clear:false,renderToScreen:false,setSize(){},dispose(){},render(r,w,rd){const u=mirM.uniforms;u.tDiffuse.value=rd.texture;u.uPx.value.set(1/rd.width,1/rd.height);
+const mirP={enabled:false,needsSwap:true,clear:false,renderToScreen:false,setSize(){},dispose(){},render(r,w,rd){const u=mirM.uniforms,k=Math.max(1,rd.height/720);u.tDiffuse.value=rd.texture;u.uPx.value.set(k/rd.width,k/rd.height);
   r.setRenderTarget(this.renderToScreen?null:w);r.render(mirQ,gradeC)}};
 Ta.insertPass(mirP,1);
 const bloom=Ta.passes.find(p=>p&&p.strength!=null&&p.threshold!=null&&p.radius!=null)||null;

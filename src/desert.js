@@ -404,16 +404,28 @@ function sandMat(){
           float kM=mix(.5,.3,vDn.x),kF=mix(.4,.18,vDn.x),nrK=1.-smoothstep(.07,.3,fwS),tr=mix(kM*trM+(1.-kM)*.45,kF*trM+(1.-kF)*trF,nrK),nn=dn2(q*.7+3.1)*.6+dn2(q*2.3)*.4;
           float B0=.5*lee+.3*nf-1.1*ww-1.4*crs+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),B=B0+(tr-.5)*1.6,ew=.13+fwS*.5;
           float lv=B+.38*uSnow-.31-wet*1.5-.3*(1.-smoothstep(.0,.25,uSnow));
-          /* close up the dusting is not a set of patches but a line in the bottom of each ripple trough: the slope, shade and coarse
-             troughs only set how much there is, which widens the lines until they merge; the edges fray into the sand grain by grain */
+          /* close up the dusting is not a set of patches but a thin line of grains in the bottom of each ripple trough: the slope,
+             shade and coarse troughs only set how much there is, which widens the lines until they merge on the lee face. Up close
+             the line breaks into single grains a few millimetres across, packed in its middle and scattered at its edges. */
+          float gK=0.,gB=1.;
           if(nrK>.001){float cv=smoothstep(-.65,.45,B0+(kF*trM+(1.-kF)*.45-.5)*1.6+.38*uSnow-.31-wet*1.5-.3*(1.-smoothstep(.0,.25,uSnow)));
-            float gr=dn2(q*61.)*.55+dn2(q*23.)*.45,fl=smoothstep(.3,-.24,hn+(gr-.5)*.42+(dn2(q*9.)-.5)*.3-mix(-.95,-.2,cv)-lee*smoothstep(.62,1.,cv))*smoothstep(.0,.12,cv);
-            lv=mix(lv,(fl-.5)*2.*ew,nrK);}
+            float gr=dn2(q*61.)*.55+dn2(q*23.)*.45,fl=smoothstep(.2,-.32,hn+(gr-.5)*.3+(dn2(q*9.)-.5)*.24-mix(-.96,-.55,cv)-1.2*lee*smoothstep(.62,1.,cv))*smoothstep(.0,.12,cv);
+            /* three sizes of grain on turned grids (5 mm grains, 9 mm and 2 cm clumps), each faded to its mean once it is under a pixel */
+            float gs=1.,gm=0.;
+            for(int o=0;o<3;o++){float fo=float(o),ce=o==0?.0049:o==1?.0088:.018,an=fo*.71+.2,ga=smoothstep(.45*ce,1.4*ce,fwS);
+              float fe=clamp(fl*(1.12-.3*fo),0.,1.);vec2 gq=mat2(cos(an),sin(an),-sin(an),cos(an))*q/ce+fo*31.7,gi=floor(gq);
+              vec3 p3=fract(vec3(gi.xyx)*.1031);p3+=dot(p3,p3.yzx+33.33);vec3 hh=fract((p3.xxy+p3.yzz)*p3.zyx);
+              float r=(.16+.18*fe)*(.75+.5*fract(hh.z*13.1)),gd=length(fract(gq)-.5-(hh.xy-.5)*(1.-2.*r-.1));
+              float dt=smoothstep(r+.08,r-.06,gd)*smoothstep(hh.z-.1,hh.z+.1,fe),m=mix(dt,fe*(.35+.25*fe),ga);
+              if(dt*(1.-ga)>gm){gm=dt*(1.-ga);gB=.8+.36*fract(hh.z*7.3);}
+              gs*=1.-m;}
+            float g=1.-gs;gK=smoothstep(.0,.6,gm)*nrK;
+            lv=mix(lv,(g-.5)*2.*ew,nrK);}
           ${TRK?"lv-=1.4*smoothstep(.08,.4,trk.r+.5*trk.g);":""}
           /* melt water soaks into the sand where the snow lay: dark, slightly cool patches that dry back to the sand's own colour */
           if(uMW>.003){float wm=uMW*smoothstep(-ew-.06,ew,B+.38*uSnP-.27-.3*(1.-smoothstep(.0,.25,uSnP)))*(.7+.3*nn);sc*=mix(vec3(1.),vec3(.5,.45,.42),wm);}
-          snM=uSnow>.003?smoothstep(-ew,ew,lv)*(.42+.36*smoothstep(.0,.6,uSnow))*(1.-.4*uSnM):0.;
-          snM*=mix(1.,.3+.95*(dn2(q*61.)*.55+dn2(q*23.)*.45),1.-smoothstep(.006,.03,fwS));
+          snM=uSnow>.003?smoothstep(-ew,ew,lv)*(.42+.36*smoothstep(.0,.6,uSnow))*(1.-.4*uSnM)*(1.+.2*gK):0.;
+          snM*=mix(mix(1.,.3+.95*(dn2(q*61.)*.55+dn2(q*23.)*.45),1.-smoothstep(.006,.03,fwS)),gB,gK);
           vec3 slush=mix(sc,vec3(.58,.56,.53),.5)*vec3(1.,.97,.92);
           vec3 snC=mix(vec3(.85,.88,.93),slush,clamp(uSnM*.75+(1.-smoothstep(-ew,ew*5.,lv-.1))*.5,0.,1.)*.7);
           sc=mix(sc,snC,snM);}

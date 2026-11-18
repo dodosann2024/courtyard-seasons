@@ -644,9 +644,6 @@ for(const c of CACTI){addOb(c.x,c.z,c.r,"cactus")}
 for(const b of BARRELS){addOb(b.x,b.z,.42*b.s+.12,"cactus")}
 for(let k=-1;k<=1;k++)addOb(TENT.x+Math.cos(TENT.yaw)*k*2.1,TENT.z-Math.sin(TENT.yaw)*k*2.1,2.35,"tent");
 addOb(FIRE.x,FIRE.z,1.1,"fire");
-for(const s of SEATS)for(const k of[-.32,.32]){const c=Math.cos(s.yaw),n=Math.sin(s.yaw);addOb(s.x+n*k*s.len,s.z+c*k*s.len,.42,"fire")}
-for(const p of FIRE_KIT.piles){const q=fireAt(p.a,p.r);addOb(q.x,q.z,.4,"fire")}
-{const q=fireAt(FIRE_KIT.wood.a,FIRE_KIT.wood.r);addOb(q.x,q.z,.4,"fire")}
 addOb(RACK.x+Math.cos(RACK.yaw)*1.6,RACK.z-Math.sin(RACK.yaw)*1.6,.7,"rack");addOb(RACK.x-Math.cos(RACK.yaw)*1.6,RACK.z+Math.sin(RACK.yaw)*1.6,.7,"rack");
 
 /* ---------------- shared geometry helpers ---------------- */
@@ -926,7 +923,7 @@ function palmDepthMat(H,tw){return new T.SM({uniforms:Object.assign({uLeaf:{valu
   fragmentShader:`#include <packing>
     uniform sampler2D uLeaf;varying vec2 vUv;void main(){if(texture2D(uLeaf,vUv).a<.5)discard;gl_FragColor=packDepthToRGBA(gl_FragCoord.z);}`})}
 function palmMat(H,isTrunk,tw){
-  const m=new T.MSM({vertexColors:true,roughness:isTrunk?.95:.82,metalness:0,side:isTrunk?0:2});
+  const m=new T.MSM({vertexColors:true,roughness:isTrunk?.95:.88,metalness:0,side:isTrunk?0:2});
   /* crown: mipmapped leaflet alpha, sharpened to a ~1px edge by its own screen derivative (alpha-to-coverage where
      the target is multisampled, blended otherwise); coverage is boosted with the mip level so leaflets don't thin out far away */
   if(!isTrunk){m.map=LEAF_TEX;m.transparent=true;m.alphaToCoverage=true}
@@ -1011,8 +1008,9 @@ function buildPalms(){
         quad([a.clone().sub(w),c0,up,.5,.012],[a.clone().add(w),c0,up,.5,.012],[b.clone().sub(w),c1,up,.5,.012],[b.clone().add(w),c1,up,.5,.012])}};
     const NF=MOB?20:28,ga=2.39996;
     for(let i=0;i<NF;i++){const k=i/(NF-1),az=i*ga+pp.ry,el=(62-90*Math.pow(k,.85))*D2R,L=mix(2.6,3.7,Math.min(1,k*1.4))*cw*rr(.92,1.08);
-      /* date palm leaves are a dusty grey-green, not lime: muted, a little blue in the older fronds */
-      const g1=[mix(.09,.14,k),mix(.16,.2,k),mix(.08,.08,k)],g2=[mix(.25,.36,k),mix(.34,.39,k),mix(.2,.18,k)];
+      /* date palm leaves are a dusty grey-green, not lime: muted, a little blue in the older fronds, and mid-toned so the crown
+         doesn't flare pale against the midday sky */
+      const g1=[mix(.075,.11,k),mix(.13,.16,k),mix(.07,.07,k)],g2=[mix(.17,.24,k),mix(.23,.27,k),mix(.14,.13,k)];
       frond(az,el,L,mix(.18,.45,k),g1,g2,false)}
     for(let i=0;i<4;i++){const az=i/4*TAU+.5+pp.ry;frond(az,-68*D2R,2.4*cw,.1,[.33,.22,.11],[.55,.4,.22],true)}
     /* dead leaf sheaths under the crown: brown petiole bases hugging the trunk, the lower rings splayed further out;
@@ -1261,6 +1259,13 @@ let fireL=null;
    sit, sawn ends showing end grain and checks; a flat seat stone, two loose piles of spare ring stones and a stack of firewood.
    Built from its own seed so the rest of the island's random layout is untouched. */
 (function fireCircle(){const sd0=sd;sd=771203;
+  /* their footprint joins the obstacles only now, after the plants and stones are placed, so the island's layout is as it was;
+     any tuft that would poke through a log or a pile is dropped */
+  const disc=[];for(const s of SEATS)for(const k of[-.32,.32]){const c=Math.cos(s.yaw),n=Math.sin(s.yaw);disc.push([s.x+n*k*s.len,s.z+c*k*s.len,.42])}
+  for(const p of[...FIRE_KIT.piles,FIRE_KIT.wood,FIRE_KIT.seat]){const q=fireAt(p.a,p.r);disc.push([q.x,q.z,.4])}
+  for(const d of disc)addOb(d[0],d[1],d[2],"fire");
+  {const M=new T.M4(),Z=new T.M4().makeScale(0,0,0),e=M.elements;for(const im of VEG){let ch=0;for(let i=0;i<im.count;i++){im.getMatrixAt(i,M);
+    if(disc.some(d=>Math.hypot(e[12]-d[0],e[14]-d[1])<d[2]+.2)){im.setMatrixAt(i,Z);ch=1}}if(ch)im.instanceMatrix.needsUpdate=true}}
   const woodM=new T.MSM({vertexColors:true,roughness:.9,metalness:0});
   /* a log along x: a slightly bent, knobbly cylinder; colour from bark (fissured grey-brown), the worn top band and the end grain */
   const benchGeo=(len,r0,top)=>{const g=new T.Cyl(r0,r0,len,top?48:20,top?30:8,false),p=g.attributes.position,n=p.count,col=new Float32Array(n*3),bk=rr(0,50),bend=rr(-.04,.04);
@@ -1269,13 +1274,13 @@ let fireL=null;
       const tap=1-.07*u;
       const rid=Math.abs(Math.sin(an*6.5+2.2*vn2(an*1.3+bk,u*len*1.5)+bk)),knot=Math.exp(-((u-.27)**2+(an-1.1)**2*.01)/.0012)+Math.exp(-((u-.71)**2+(an+2)**2*.01)/.0009);
       /* long fissures in the grey bark, wandering along the grain */
-      const fv=Math.abs(Math.sin(an*7+1.8*vn2(an*1.1+bk,u*len*.9)+bk*.3)),fiss=top?ss(.22,0,fv)*(.5+.5*vn2(an*4+bk,u*len*2.5)):0;
-      const j=cap?1:1+.05*(vn2(an*3+bk,u*6)-.5)+.02*rid-.07*fiss+.12*knot*(top?1:0);
+      const fv=Math.abs(Math.sin(an*7+1.8*vn2(an*1.1+bk,u*len*.9)+bk*.3)),fiss=top?ss(.34,0,fv)*(.55+.45*vn2(an*4+bk,u*len*2.5)):0;
+      const j=cap?1:1+.05*(vn2(an*3+bk,u*6)-.5)+.035*rid-.13*fiss+.12*knot*(top?1:0);
       p.setXYZ(i,x*j*tap,y+(cap?.008*Math.sin(an*3+bk):0),z*j*tap);
       /* the log will lie with local +x up */
       /* linear albedo: bark a dark grey-brown, darkest in the fissures; the seat band worn to silvery bare wood; end grain tan */
-      const upk=cap?0:ss(.55,.92,x/r0*(top?1:0)+.25*(vn2(an*3+bk,u*len*1.2)-.5)),grain=.72+.5*vn2(an*14+bk,u*len*.7),chk=ss(.07,0,Math.abs(Math.sin(an*9+2*vn2(an+bk,u*len*.6))))*ss(.15,.35,u)*ss(.9,.7,u),fis=vn2(an*11+bk,u*len*5),bark=(.5+.7*fis)*(.7+.3*rid)*(1-.75*fiss)*(1-.5*knot);
-      let c=[.052*bark,.04*bark,.03*bark];
+      const upk=cap?0:ss(.55,.92,x/r0*(top?1:0)+.25*(vn2(an*3+bk,u*len*1.2)-.5)),grain=.72+.5*vn2(an*14+bk,u*len*.7),chk=ss(.07,0,Math.abs(Math.sin(an*9+2*vn2(an+bk,u*len*.6))))*ss(.15,.35,u)*ss(.9,.7,u),fis=vn2(an*11+bk,u*len*5),bark=(.42+.85*fis)*(.55+.45*rid)*(1-.88*fiss)*(1-.5*knot);
+      let c=[.05*bark,.036*bark,.025*bark];
       const wk=grain*(1-.75*chk);c=[mix(c[0],.15*wk,upk),mix(c[1],.13*wk,upk),mix(c[2],.105*wk,upk)];
       if(cap){const ck=ss(.75,1,rr0);c=[mix(.26,.05,ck),mix(.19,.038,ck),mix(.11,.028,ck)];
         if(vn2(an*4+bk,1.7)>.72&&rr0>.25)c=c.map(v=>v*.4)}
@@ -1459,7 +1464,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
     let dp=P.lipD;const path=[];
     for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.3),tau=s*SF.Tf,y=P.lipY+.05-.5*SF.G*tau*tau,c=req(y);
       const d=Math.max(P.lipD+.04+f.v0*tau,c+.14,dp);dp=d;path.push([d,y]);
-      rows.push({d,y,s,w:hw*(1-.18*ss(0,.25,s)+.12*ss(.75,1,s)),sl:Math.max(0,d-c-.14)})}
+      rows.push({d,y,s,w:hw*(1-.18*ss(0,.25,s)+(f.ty?.12*ss(.75,1,s):1.3*ss(.2,1,s))),sl:Math.max(0,d-c-.14)})}
+    /* a heavy pour spreads as it falls: the grains part and air drag fans the column out into a loose, widening plume */
     /* heavy falls hang a second, looser curtain just outside the first, so they have depth from afar (not on phones: it doubles the overdraw) */
     for(let ly=0;ly<(f.ty||MOB?1:2);ly++){const o=pos.length/3,R0=ly?rows.filter(r=>r.s>=0):rows;
       for(const r of R0){const dd=r.d+ly*(.14+.22*r.s),cx=E.x+E.nx*dd,cz=E.z+E.nz*dd,w=r.w*(ly?1.18:1);
@@ -1525,7 +1531,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* the feed is never steady: thicker and thinner pulses ride down with the sand, and a strong gust tears the lower stream into clots */
           body*=mix(.5,1.,smoothstep(.28,.62,fallN(vec2(sd*.31+1.,sd),s,.7,2.2)));
           float gb=smoothstep(.62,.92,vG)*smoothstep(.12,.45,s)*(1.-.6*wet);if(gb>.01)body*=1.-gb*(1.-smoothstep(.3,.62,fallN(vec2(Xw*.4+sd,sd+3.),s,3.,12.)));
-          body*=1.-.45*ly;
+          body*=(1.-.45*ly)*(1.-.5*hv*smoothstep(.2,.75,s));
           float endS=mix(.3,.62,smoothstep(.2,.7,hw))+.12*hv-.1*ly+mix(.16,.3,smoothstep(.4,.75,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
           /* grains, streaked by their speed; more of them shed at the sides and the foot */
           vec2 dq=vec2(x*Nt*2.2+sd,u*70.),dc=floor(dq);float dh=dh2(dc);vec2 df=fract(dq)-.5-(vec2(dh2(dc+3.1),dh2(dc+7.7))-.5)*.6;df.y*=mix(1.,.35,smoothstep(.1,.7,s));
@@ -1564,6 +1570,60 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         #include <colorspace_fragment>
       }`});
   SF.mesh=new T.Mesh(g,m);SF.mesh.frustumCulled=false;SF.mesh.renderOrder=6;W.add(SF.mesh)})();
+/* the rim fringe: between the falls no stretch of the lip is bare. All the way round, sand the wind has carried to the edge slips
+   off in a short ragged veil of strands and grains that drops a few metres down the cliff and gives itself up to ochre dust;
+   longer and thicker on the downwind rim and in gusts, patchy where little sand reaches the edge, damped by rain. One strip
+   round the whole lip, hung outside the cliff wherever it bulges. */
+(function rimFringe(){const M=MOB?160:288,NR=MOB?7:9,HC=9;
+  const rp=rockMesh.geometry.attributes.position.array,nV=rp.length/3,LIPV=3*NT,col=[];
+  for(let b=0;b<M;b++){const th=b/M*TAU,[x,z]=edgeXZ(th,1),[x1,z1]=edgeXZ(th+.02,1),[x0,z0]=edgeXZ(th-.02,1),l=Math.hypot(x1-x0,z1-z0),tx=(x1-x0)/l,tz=(z1-z0)/l;
+    col.push({th,x,z,nx:tz,nz:-tx,lipY:-99,lipD:-.2,B:new Float32Array(24).fill(-9)})}
+  const bk=(x,z)=>{let a=Math.atan2(z/AZ,x/AX);if(a<0)a+=TAU;return Math.round(a/TAU*M)%M};
+  for(let i=0;i<LIPV;i++){const x=rp[i*3],y=rp[i*3+1],z=rp[i*3+2],c=col[bk(x,z)],o=(x-c.x)*c.nx+(z-c.z)*c.nz;if(o>-1.2&&y>c.lipY){c.lipY=y;c.lipD=o}}
+  for(const c of col)if(c.lipY<-50){c.lipY=hTop(c.x,c.z);c.lipD=0}
+  for(let i=LIPV;i<nV;i++){const x=rp[i*3],y=rp[i*3+1],z=rp[i*3+2],b0=bk(x,z);
+    for(let db=-1;db<=1;db++){const c=col[(b0+db+M)%M],k=Math.floor((c.lipY-y)/.5);if(k<0||k>=24)continue;const o=(x-c.x)*c.nx+(z-c.z)*c.nz;if(o>c.B[k])c.B[k]=o}}
+  const pos=[],aF=[],aN=[],idx=[];let per=0;
+  for(let b=0;b<=M;b++){const c=col[b%M];if(b){const p=col[b-1];per+=Math.hypot(c.x-p.x,c.z-p.z)}let dp=-9;
+    for(let j=0;j<=NR;j++){const s=Math.pow(j/NR,1.25),y=c.lipY+.04-HC*s*s,k=Math.floor((c.lipY-y)/.5);let need=-9;for(let q=Math.max(0,k-1);q<Math.min(24,k+3);q++)need=Math.max(need,c.B[q]);
+      const d=Math.max(c.lipD+.05+.35*s,need+.15,dp);dp=d;pos.push(c.x+c.nx*d,y,c.z+c.nz*d);aF.push(per,s);aN.push(c.nx,c.nz)}}
+  for(let b=0;b<M;b++)for(let j=0;j<NR;j++){const q=b*(NR+1)+j,r=q+NR+1;idx.push(q,r,q+1,r,r+1,q+1)}
+  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("aF",new T.BA(new Float32Array(aF),2));g.setAttribute("aN",new T.BA(new Float32Array(aN),2));g.setIndex(idx);
+  const m=new T.SM({uniforms:sfU,transparent:true,depthWrite:false,side:2,
+    vertexShader:`attribute vec2 aF,aN;uniform float uT;uniform vec2 uWV;uniform vec3 uLd;${GLSL_GUST}varying vec2 vF;varying vec3 vW;varying float vLam,vFs,vWd,vG;
+      void main(){vF=aF;vec3 p=position;float s=aF.y,f=s*s;vec2 n=aN;vG=gustF(p.xz);
+        vec2 dr=uWV*f*(.35+.6*vG)*.7;float inw=dot(dr,n);dr-=n*min(inw,0.);p.xz+=dr;
+        float wl=length(uWV);vWd=.5+.5*dot(n,uWV/max(wl,1e-4));
+        vec4 w=modelMatrix*vec4(p,1.);vW=w.xyz;vec3 Nw=normalize(mat3(modelMatrix)*vec3(n.x,.25,n.y));vLam=.5+.5*max(dot(Nw,uLd),0.);
+        vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);gl_Position=projectionMatrix*viewMatrix*w;}`,
+    fragmentShader:`uniform float uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vF;varying vec3 vW;varying float vLam,vFs,vWd,vG;${GLSL_NOISE}
+      void main(){float P=vF.x,s=vF.y;
+        /* how much sand reaches this stretch of lip: the downwind rim and the gusts feed it, some stretches get little */
+        float feed=dn2(vec2(P*.07,3.1))*.65+dn2(vec2(P*.23,7.7))*.35,rate=uFR*(.45+.55*vWd)*(.75+.5*vG)*(1.+1.2*uDust)*(1.-.6*uWet);
+        float k=clamp(rate*(.35+.9*feed),0.,1.6);if(k<.04)discard;
+        float u=s-uFT*.42*(.8+.4*feed),X=P*2.4+.6*(dn2(vec2(P*.4,u*1.5))-.5);
+        float n1=dn2(vec2(X*.6,u*1.7)),n2=dn2(vec2(X*1.5+5.,u*4.2)),n3=dn2(vec2(X*3.3+9.,u*9.)),str=n1*.5+n2*.32+n3*.18;
+        /* strands far smaller than a pixel are drawn as their mean, so the fringe never shimmers from afar */
+        float aa=clamp(fwidth(X)*1.2-.3,0.,1.);
+        float tear=mix(smoothstep(.36+.14*s,.5+.2*s,str),.5,aa);
+        float endS=(.3+.55*feed)*min(1.,.5+.6*k)+.08*dn2(vec2(X*.9,7.)),cut=1.-smoothstep(endS-.18,endS+.05,s);
+        vec2 gq=vec2(X*4.,u*60.),gc=floor(gq),gf=fract(gq)-.5;float gw=clamp(max(fwidth(gq.x),fwidth(gq.y))*1.3-.3,0.,1.);
+        float grain=mix(step(.86,dh2(gc))*exp(-dot(gf,gf)*24.),.07,gw)*smoothstep(.0,.06,s)*(1.-smoothstep(endS,endS+.3,s));
+        float body=max((.82-.42*smoothstep(0.,.6,s))*tear,.7*(1.-smoothstep(.02,.09,s))*(.55+.45*feed))*cut*smoothstep(0.,.02,s);
+        float du=dn2(vec2(X*.35,u*2.2))*.6+dn2(vec2(X*.9,u*5.))*.4;
+        float dust=smoothstep(.1,.45,s)*(1.-smoothstep(.55+.25*feed,.95,s))*(.35+.5*du)*(.6+.5*uDust)*(1.-.8*uWet);
+        float a=(body+grain*.8+dust*(1.-body)*.7)*smoothstep(.04,.3,k)*(.55+.45*min(k,1.));
+        vec3 base=uCol*vLam*mix(vec3(1.),vec3(.7,.64,.58),uWet);base=mix(vec3(dot(base,vec3(.3,.55,.15))),base,1.18);
+        vec3 c=base*(.84+.2*n3);c=mix(c,base*1.1+uSheen*vFs*.6*(1.-.75*uNt),(1.-body)*.4);
+        float dF=dust*(1.-body)/(a+.001);c=mix(c,base*vec3(.96,.74,.48)*.9,clamp(dF,0.,1.)*.7);
+        float hL=dot(uFogC,vec3(.3,.59,.11)),bL=max(dot(base,vec3(.3,.59,.11)),.02);vec3 fO=mix(uFogC,base*(min(hL,bL*1.05)/bL)*vec3(1.,.82,.6),.7);
+        float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*.45);a*=1.-.6*fd*smoothstep(.2,.9,s);
+        if(a<.004)discard;
+        gl_FragColor=vec4(c,clamp(a,0.,1.));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`});
+  SF.rim=new T.Mesh(g,m);SF.rim.frustumCulled=false;SF.rim.renderOrder=5;W.add(SF.rim)})();
 /* dust trails: soft puffs shed by the falls that drift downwind, spread and thin out into the air below the island */
 const SFD=softPoints(MOB?96:190,"#e4c69c",.9,false);SFD.o.renderOrder=6;W.add(SFD.o);
 const SFDP=[];{let ps=9127;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^ps>>>15,1|ps);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
@@ -4990,7 +5050,7 @@ paThreat:(x,z,sec,r)=>{PA.dbg={x,z,r:r||.4,k:"dbg",o:null,until:st.t+(sec||4)}},
   /* footprints: PR itself, prAdd for stamping, prAge(sec) wears every print by `sec` seconds of the current weather */
   PR,PRK,prAdd,camelLie,prAge:sec=>{const P=PR;P.E+=sec*(1/240+st.wn*(1-.8*WX.sc)*.3/35+WX.dust/6+WX.rain/9+WX.sf/40);P.im.material.uniforms.uE.value=P.E},camelGo,eagleLand:s=>eagleLand(ANIM.eagle,s||eagleSpots()[1]),eagleSpots,
   /* sand falls: count, rate (sfR(v) pins it, null to release), and each fall's rim point, half width and threshold */
-  sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z,ra:WS.ra}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty,nx:f.E.nx,nz:f.E.nz,tx:f.E.tx,tz:f.E.tz,path:f.path}))}),sfR:v=>{SF.pin=v},sfMesh:()=>SF.mesh,
+  sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z,ra:WS.ra}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty,nx:f.E.nx,nz:f.E.nz,tx:f.E.tx,tz:f.E.tz,path:f.path}))}),sfR:v=>{SF.pin=v},sfMesh:()=>SF.mesh,sfRim:()=>SF.rim,
   freeze(on){st.lock=!!on},wxEase(on){st.wxEase=!!on},
   /* regression checks (tools/e2e/desert.mjs): run the simulation for `sec` seconds without drawing the pond reflection */
   sim(sec,dt){dt=dt||.1;st.qaNoRefl=1;for(let i=0,n=Math.round(sec/dt);i<n;i++)step(dt);st.qaNoRefl=0},sandU,pondU,SAND,SANDP,CURT,WIND,

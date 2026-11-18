@@ -317,21 +317,35 @@ try {
   check("rain sound follows the rain, by surface, near drops, drips after; hail beds never restart", ...await page.evaluate(() => {
     const q = window.__desQA(), A = q.AU, T = q.TENT, r = {};
     window.__set({weather: "sun", ct: "clear", wind: .5, hailLv: 1}); q.sim(400, 1);
-    const gx = T.x + 3.4, gz = T.z + 3.4, gy = q.hTop(gx, gz); q.lookAt(gx, gy + 1.6, gz, T.x, gy + 1, T.z);
-    q.audCap(true); const vis = [];
-    window.__set({weather: "hrain", ct: "overcast"}); for (let i = 0; i < 90; i++) { q.sim(1, 1 / 10); vis.push(q.WX.rain); }
-    const tStop = vis.length; window.__set({weather: "sun", ct: "clear"}); for (let i = 0; i < 150; i++) { q.sim(1, 1 / 10); vis.push(q.WX.rain); }
-    const ev = q.audCap(false), t0 = ev.length ? ev[0][0] : 0;
-    const tgt = id => { const o = [], L = ev.filter(e => e[1] === "L" && e[2] === id); let j = 0, v = 0; for (let i = 0; i < vis.length; i++) { while (j < L.length && L[j][0] - t0 < i + 1) v = L[j++][4]; o.push(v); } return o; };
-    const half = (a, from, up) => { const m = Math.max(...a); for (let i = from; i < a.length; i++) if (up ? a[i] >= m / 2 : a[i] < m / 2) return i; return -1; };
+    /* the camera stands on open sand beside the tent, where a fair share of the ground the near drops land on (0.5-3.5 m
+       round it, as the sound picks it) is the tent roof; that share is worked out with the same roof lookup */
+    const onRoof = (x, z) => Math.abs(x - T.x) < 4 && Math.abs(z - T.z) < 4 && q.roofAt(x, z) > -50;
+    const share = (cx, cz) => { let n = 0, t = 0, w = 0; for (let d = .55; d < 3.5; d += .1) for (let k = 0; k < 72; k++) { const a = k / 72 * Math.PI * 2, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; n++; if (onRoof(x, z)) t++; else if (q.pN(x, z) < 1) w++; } return {roof: t / n, pond: w / n}; };
+    let best = null;
+    for (let k = 0; k < 24; k++) for (const d of [2, 2.5, 3, 3.5, 4, 4.5, 5]) { const a = k / 24 * Math.PI * 2, x = T.x + Math.cos(a) * d, z = T.z + Math.sin(a) * d;
+      if (onRoof(x, z) || q.pN(x, z) < 1.3) continue; const S = share(x, z); if (S.pond > 0) continue;
+      if (!best || Math.abs(S.roof - .4) < Math.abs(best.roof - .4)) best = {x, z, roof: S.roof}; }
+    const gx = best.x, gz = best.z, gy = q.hTop(gx, gz), C = window.__C(); C.Ce.enabled = false;
+    /* aimed through the tent at a point well past it, so the view controls' minimum distance does not push the camera back */
+    const ux = (T.x - gx) / Math.hypot(T.x - gx, T.z - gz), uz = (T.z - gz) / Math.hypot(T.x - gx, T.z - gz);
+    q.lookAt(gx, gy + 1.6, gz, gx + ux * 14, gy + .4, gz + uz * 14); q.sim(1, 1 / 10);
+    /* the share is taken where the camera really is (the view controls may have nudged it) */
+    const cl = q.W.worldToLocal(C.De.position.clone()); r.camOff = +Math.hypot(cl.x - gx, cl.z - gz).toFixed(2); r.camAim = +best.roof.toFixed(3); r.roofShare = +share(cl.x, cl.z).roof.toFixed(3);
+    /* sampled every quarter second, so the swell at the start (well under a second to half strength) is resolved */
+    const h = .25, dt = h / 3; q.audCap(true); const T0 = q.st.t, vis = [], ts = [];
+    window.__set({weather: "hrain", ct: "overcast"}); for (let i = 0; i < 90 / h; i++) { q.sim(h, dt); vis.push(q.WX.rain); ts.push(q.st.t - T0); }
+    const tStop = vis.length, tS = ts[tStop - 1]; window.__set({weather: "sun", ct: "clear"}); for (let i = 0; i < 150 / h; i++) { q.sim(h, dt); vis.push(q.WX.rain); ts.push(q.st.t - T0); }
+    const ev = q.audCap(false), t0 = 0, tEnd = ts[ts.length - 1];
+    const tgt = id => { const o = [], L = ev.filter(e => e[1] === "L" && e[2] === id); let j = 0, v = 0; for (let i = 0; i < vis.length; i++) { while (j < L.length && L[j][0] <= ts[i]) v = L[j++][4]; o.push(v); } return o; };
+    const half = (a, from, up) => { const m = Math.max(...a); for (let i = from; i < a.length; i++) if (up ? a[i] >= m / 2 : a[i] < m / 2) return +ts[i].toFixed(2); return -1; };
     const au = tgt("rain"), au2 = tgt("rain2"), au3 = tgt("rain3"), vt = vis.map(v => Math.pow(Math.min(1, v / .62), .6));
     r.onsetVis = half(vt, 0, 1); r.onsetAud = half(au, 0, 1); r.stopVis = half(vt, tStop, 0); r.stopAud = half(au, tStop, 0);
     r.layers = [au, au2, au3].map(a => +Math.max(...a).toFixed(3));
     r.surf = ["rwat", "rleaf", "rtent"].map(id => +Math.max(...tgt(id)).toFixed(3));
     const shots = (k, a, b) => ev.filter(e => e[1] === "S" && e[2] === k && e[0] - t0 >= a && e[0] - t0 < b).length;
-    r.near = {sand: shots("dRd1", 0, tStop), tent: shots("dRd2", 0, tStop)};
-    const dry = vis.findIndex((v, i) => i > tStop && v < .004);
-    r.dryAt = dry; r.dripsAfter = ["dDp1", "dDp2", "dDp3"].reduce((s, k) => s + shots(k, dry, vis.length), 0); r.dropsAfter = shots("dRd1", dry + 1, vis.length) + shots("dRd2", dry + 1, vis.length);
+    r.near = {sand: shots("dRd1", 0, tS), tent: shots("dRd2", 0, tS)}; r.near.tentShare = +(r.near.tent / Math.max(1, r.near.sand + r.near.tent)).toFixed(3);
+    const dry = ts[vis.findIndex((v, i) => i > tStop && v < .004)];
+    r.dryAt = +dry.toFixed(2); r.dripsAfter = ["dDp1", "dDp2", "dDp3"].reduce((s, k) => s + shots(k, dry, tEnd + 1), 0); r.dropsAfter = shots("dRd1", dry + 1, tEnd + 1) + shots("dRd2", dry + 1, tEnd + 1);
     r.lingerEnd = (() => { let l = -1; for (const e of ev) if (e[1] === "S" && /^dDp/.test(e[2])) l = e[0] - t0; return +(l - dry).toFixed(1); })();
     /* hail, sun, hail again: every rain and hail bed that exists keeps its one source */
     const B = ["rain", "rain2", "rain3", "rtent", "rtent2", "rwat", "rleaf", "hsand", "htent", "hleaf", "hwat"];
@@ -341,9 +355,9 @@ try {
     r.voices = B.filter((k, j) => src[j]).length; r.restarts = B.filter((k, j) => !src[j] || A.lp[k].s !== src[j] || (A.n[k] || 0) !== n0[j]);
     r.loopWrap = ["dHsd", "dHtn", "dHlf", "dHwt", "dRwt", "dRlf"].map(k => { const b = A.b[k]; if (!b) return null; const d = b.getChannelData(0), R = b.sampleRate, a = Math.round(.5 * R), e = a + Math.round(q.LL[k] * R);
       let md = 0; for (let i = a + 1; i < e; i++) md += Math.abs(d[i] - d[i - 1]); md /= e - a - 1; return +(Math.abs(d[a] - d[e - 1]) / md).toFixed(2); });
-    window.__set({weather: "sun", ct: "clear"}); q.sim(400, 1);
-    return [Math.abs(r.onsetAud - r.onsetVis) <= 2 && Math.abs(r.stopAud - r.stopVis) <= 2 && r.layers.every(v => v > .1) &&
-      r.surf.every(v => v > .01) && r.near.sand > 8 && r.near.tent > 4 && r.dropsAfter === 0 && r.dripsAfter >= 3 && r.lingerEnd > 8 && r.lingerEnd < 60 &&
+    window.__set({weather: "sun", ct: "clear"}); q.sim(400, 1); C.Ce.enabled = true;
+    return [r.onsetVis > 0 && Math.abs(r.onsetAud - r.onsetVis) <= .5 && Math.abs(r.stopAud - r.stopVis) <= .5 && r.layers.every(v => v > .1) &&
+      r.surf.every(v => v > .01) && r.roofShare > .2 && r.near.sand >= 30 && r.near.tent >= 30 && Math.abs(r.near.tentShare - r.roofShare) < .12 && r.dropsAfter === 0 && r.dripsAfter >= 3 && r.lingerEnd > 8 && r.lingerEnd < 60 &&
       r.voices === B.length && r.restarts.length === 0 && r.loopWrap.every(w => w !== null && w < 4), r];
   }));
 

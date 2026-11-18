@@ -4096,7 +4096,7 @@ const QA={rq:()=>0,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TEN
   /* footprints: PR itself, prAdd for stamping, prAge(sec) wears every print by `sec` seconds of the current weather */
   PR,PRK,prAdd,camelLie,prAge:sec=>{const P=PR;P.E+=sec*(1/240+st.wn*(1-.8*WX.sc)*.3/35+WX.dust/6+WX.rain/9+WX.sf/40);P.im.material.uniforms.uE.value=P.E},camelGo,eagleLand:s=>eagleLand(ANIM.eagle,s||eagleSpots()[1]),eagleSpots,
   /* sand falls: count, rate (sfR(v) pins it, null to release), and each fall's rim point, half width and threshold */
-  sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z,ra:WS.ra}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty,nx:f.E.nx,nz:f.E.nz,tx:f.E.tx,tz:f.E.tz,path:f.path}))}),sfR:v=>{SF.pin=v},
+  sfU,wind:()=>({a:WS.a,d:WS.d,x:WIND.x,z:WIND.z,ra:WS.ra}),windPin:a=>{WS.pin=a},sf:()=>({n:SF.F.length,rate:sfU.uFR.value,F:SF.F.map(f=>({x:f.E.x,z:f.E.z,hw:f.hw,k:f.k,ty:f.ty,nx:f.E.nx,nz:f.E.nz,tx:f.E.tx,tz:f.E.tz,path:f.path}))}),sfR:v=>{SF.pin=v},sfMesh:()=>SF.mesh,
   freeze(on){st.lock=!!on},wxEase(on){st.wxEase=!!on},
   /* regression checks (tools/e2e/desert.mjs): run the simulation for `sec` seconds without drawing the pond reflection */
   sim(sec,dt){dt=dt||.1;st.qaNoRefl=1;for(let i=0,n=Math.round(sec/dt);i<n;i++)step(dt);st.qaNoRefl=0},sandU,pondU,SAND,SANDP,CURT,WIND,

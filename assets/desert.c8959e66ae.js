@@ -3137,7 +3137,7 @@ function rsUpdate(s,dt){
       if(to&&rsGoTo(s,to)){s.mode="crawl";s.a=0;const want=s.lock||rsGaitAt(s,b.P[0],b.P[1]);
         if(want==="side"){s.gait="side";swInit(s,s.path[1])}else{s.gait=want;s.rk=want==="rect"?1:0}}else s.restT=1}}
   if(s.mode==="crawl"&&WX.hcold&&!s.goal.near){const P=b.P,cv=rsCover(s);s.goal.near=1;
-    if(!cv){s.goal={x:P[0],z:P[1],shade:1,near:1};s.path=[s.goal,s.goal];s.pi=1}
+    if(!cv){s.goal={x:P[0],z:P[1],shade:1,near:1,sand:1};s.path=[s.goal,s.goal];s.pi=1}
     else if(Math.hypot(cv.x-P[0],cv.z-P[1])<Math.hypot(s.goal.x-P[0],s.goal.z-P[1])-1)rsGoTo(s,cv)}
   if(s.mode==="crawl"){const C=rsCentre(s),ref=s.gait==="side"?C:{x:b.P[0],z:b.P[1]};
     let wp=s.path[s.pi],last=s.pi===s.path.length-1;
@@ -3153,13 +3153,15 @@ function rsUpdate(s,dt){
       const dy=wrapA(Math.atan2(wp.x-b.P[0],wp.z-b.P[1])-s.yaw);steer(s,dy,1.1,dt)}
     else b.sw.goal=wp;
     if(s.a<.01&&stop){if(arrive){s.mode="rest";s.restT=s.goal.hunt?rr(4,9):rr(2.5,6);if(s.goal.hunt)rsBout(s,3);
-        if(s.goal.shade&&day){s.inShade=1;s.mode="coiling";rsCoilAt(s,"relaxed_coil",1.8);s.timer=rr(9,15);s.idle=rr(30,60)}}
+        if(s.goal.shade&&day){if(s.goal.sand)rsBurrow(s);else{s.inShade=1;s.mode="coiling";rsCoilAt(s,"relaxed_coil",1.8);s.timer=rr(9,15);s.idle=rr(30,60)}}}
       else{if(want==="side"){s.gait="side";swInit(s,s.path[s.pi])}else{s.gait=want;trInit(s);s.rk=want==="rect"?1:0}s.gwT=0}}}
   if(s.mode==="rest"&&s.gait==="side"&&s.a<.01){trInit(s);s.gait="serp"}
   if(day&&s.mode==="rest"&&!s.inShade&&!s.next)s.restT=Math.min(s.restT,.2);
   if(!day)s.inShade=0;
-  /* in snow or hail, once coiled in its shady spot it slips down the burrow there until the sand warms again */
-  s.g.visible=!((WX.scold||WX.hcold)&&s.inShade&&s.mode==="coil");
+  /* in snow or hail, once coiled in its shady spot it slips down the burrow there until the sand warms again;
+     out in the open it sinks into the sand first */
+  if(s.sandB&&s.mode==="coil"){s.sk=Math.min(1,(s.sk||0)+dt/2);s.g.position.y=s.gy-.16*s.sk}else if(s.sk){s.sk=0;s.g.position.y=s.gy}
+  s.g.visible=!((WX.scold||WX.hcold)&&s.inShade&&s.mode==="coil"&&(!s.sandB||s.sk>=1));
   /* crawl weight: 1 travelling or resting stretched out, ramping to the clip pose when it coils */
   s.wT+=dt;const wf=s.wF||1;s.w=wf<0?ss(0,-wf,s.wT):1-ss(0,wf,s.wT);
   if(s.mode==="coiling"&&s.w<.002)s.mode="coil";

@@ -3597,6 +3597,257 @@ function pfLoad(){return Promise.all([glb("pupfish_male_v3"),glb("pupfish_female
     else{const[cx,cz]=pondEdge(PF.sch.th,.74);f.x=cx+Math.cos(f.off.a)*f.off.d;f.z=cz+Math.sin(f.off.a)*f.off.d;[f.x,f.z]=pfFit(f,f.x,f.z)}
     f.y=POND.wy-pfDep(f.x,f.z)+f.hY;f.gx=f.x;f.gz=f.z;f.g.position.set(f.x,f.y,f.z);PF.list.push(f)}})}
 
+/* ---------------- under the pond's surface: the trout and the crabs are shaded like the pupfish. Drawn after the water and blended
+   over it by the light that comes back through it (absorbed with depth, cut by the surface reflection at grazing views, lifted to
+   their apparent depth and wobbled by the ripples, caustics on their backs); what is above the water is drawn as it is ---------------- */
+const UW={uWy:{value:0},uS:{value:S},uT:pondU.uT,uWob:{value:.02}};
+function uwMat(m,key,kA,A){m.transparent=true;m.depthWrite=true;if(!ANIM_MATS.includes(m))ANIM_MATS.push(m);m.customProgramCacheKey=()=>key;
+  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,UW,m.userData.U);
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uWy,uT,uWob;varying vec3 vUW;\n"+A.head)
+      .replace("#include <beginnormal_vertex>","#include <beginnormal_vertex>\n"+A.nrm)
+      .replace("#include <begin_vertex>","#include <begin_vertex>\n"+A.pos)
+      .replace("#include <project_vertex>",`vec4 uwP=modelMatrix*instanceMatrix*vec4(transformed,1.);vUW=uwP.xyz;float uwD=max(uWy-uwP.y,0.);
+        uwP.y+=uwD*.25;uwP.xz+=uWob*uwD*vec2(sin(uT*1.9+uwP.z*31.+uwP.x*17.),cos(uT*1.5+uwP.x*29.-uwP.z*13.));
+        vec4 mvPosition=viewMatrix*uwP;gl_Position=projectionMatrix*mvPosition;`);
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
+uniform float uWy,uS,uT,uVis;varying vec3 vUW;${A.fh||""}
+float uwCau(vec2 p,float t){p=mod(p*6.2832,6.2832)-250.;vec2 i=p;float c=1.;
+  for(int n=0;n<3;n++){float tt=t*(1.-3.5/float(n+1));i=p+vec2(cos(tt-i.x)+sin(tt+i.y),sin(tt-i.y)+cos(tt+i.x));
+    c+=1./length(vec2(p.x/(sin(i.x+tt)/.005),p.y/(cos(i.y+tt)/.005)));}
+  c=1.17-pow(c/3.,1.4);return pow(abs(c),8.);}`)
+      .replace("#include <color_fragment>","#include <color_fragment>\n"+(A.col||""))
+      .replace("#include <opaque_fragment>",`{vec3 Vw=normalize(cameraPosition-vUW);float dW=max(uWy-vUW.y,0.)/uS,uw=smoothstep(0.,.012,dW);
+        outgoingLight+=reflectedLight.directDiffuse*(uwCau(vUW.xz/uS*8.,uT*.7)*1.5-.3)*uw;
+        float path=dW+dW/max(Vw.y,.25);outgoingLight*=exp(-path*vec3(1.05,.42,.5));
+        float fr=.02+.98*pow(1.-clamp(Vw.y,0.,1.),5.);
+        diffuseColor.a*=mix(1.,.9*exp(-dW/max(Vw.y,.2)*${kA})*(1.-fr),uw)*uVis;}
+        #include <opaque_fragment>`)};
+  m.needsUpdate=true}
+/* a per-instance attribute (the app's three namespace has no InstancedBufferAttribute) */
+function iba(n,k){const a=new T.BA(new Float32Array(n*k),k);a.isInstancedBufferAttribute=true;a.meshPerAttribute=1;return a}
+const GLR=`mat3 rY(float a){float c=cos(a),s=sin(a);return mat3(c,0.,-s,0.,1.,0.,s,0.,c);}
+mat3 rZ(float a){float c=cos(a),s=sin(a);return mat3(c,s,0.,-s,c,0.,0.,0.,1.);}
+mat3 rX(float a){float c=cos(a),s=sin(a);return mat3(1.,0.,0.,0.,c,s,0.,-s,c);}`;
+/* what frightens the lake animals: a camel at or near the water, the eagle low over it, the rattlesnake on the bank */
+const LKT=[];let LKdbg=null;
+function lakeThreats(){LKT.length=0;
+  for(const a of ANIM.camels){const r=1.5*a.sc;LKT.push({x:a.x+Math.sin(a.yaw)*r,z:a.z+Math.cos(a.yaw)*r,r:2.4,k:"camel"},{x:a.x,z:a.z,r:3,k:"camel"})}
+  const e=ANIM.eagle;if(e&&e.pos.y<POND.wy+6)LKT.push({x:e.pos.x,z:e.pos.z,r:e.mode==="perch"?2.5:5,k:"eagle"});
+  const s=ANIM.rs;if(s&&s.bd&&s.g.visible)LKT.push({x:s.bd.P[0],z:s.bd.P[1],r:2.2,k:"snake"});
+  if(LKdbg&&st.t<LKdbg.until)LKT.push(LKdbg)}
+/* ground height at the lake from the pupfish's depth grid (hTop is too dear per animal per frame) */
+const lkY=(x,z)=>POND.wy-pfDep(x,z);
+
+/* ---------------- rainbow trout (Oncorhynchus mykiss), real size (26–38 cm). A few cold-water fish keep to the deep middle of the
+   pond, cruising slowly together in mid-water. At dawn and dusk one now and then rises to sip at the surface and leaves rings;
+   in hail, and when a camel drinks or the eagle comes low, they sink to the bottom. Procedural, one instanced draw. ---------------- */
+const TT_N=MOB?3:5,TT={list:[],im:null,A:null,sch:{th:rr(0,TAU),dir:1,turn:rr(25,50),k:.2,px:0,pz:0,hd:0},rise:rr(3,9),rises:0,vis:0,U:{uVis:{value:0}}};
+function ttGeo(){const P=[],N=[],U=[],I=[];let n=0;
+  const hh=u=>u<.3?.115*Math.sqrt(Math.max(0,1-(1-u/.3)**2)):mix(.115,.042,ss(.3,.86,u)),hw=u=>hh(u)*mix(.62,.42,ss(.2,.86,u)),
+    yc=u=>-.012*Math.sin(Math.PI*cl(u/.86,0,1)),zz=u=>.42-u,top=u=>yc(u)+hh(u),bot=u=>yc(u)-hh(u);
+  const NU=30,NA=16;
+  for(let i=0;i<=NU;i++){const u=.004+.856*i/NU,h=hh(u),w=hw(u),e=.004,dh=(hh(u+e)-hh(u-e))/(2*e),dw=(hw(u+e)-hw(u-e))/(2*e),dc=(yc(u+e)-yc(u-e))/(2*e);
+    for(let j=0;j<NA;j++){const a=j/NA*TAU,ca=Math.cos(a),sa=Math.sin(a),ta=[-w*sa,h*ca,0],tu=[dw*ca,dc+dh*sa,-1];
+      const nx=tu[1]*ta[2]-tu[2]*ta[1],ny=tu[2]*ta[0]-tu[0]*ta[2],nz=tu[0]*ta[1]-tu[1]*ta[0],l=Math.hypot(nx,ny,nz)||1;
+      P.push(w*ca,yc(u)+h*sa,zz(u));N.push(nx/l,ny/l,nz/l);U.push(u,sa,0);n++}}
+  for(let i=0;i<NU;i++)for(let j=0;j<NA;j++){const a=i*NA+j,b=i*NA+(j+1)%NA,c=a+NA,d=b+NA;I.push(a,c,b,b,c,d)}
+  const cap=(ring,u,dir)=>{const c=n;P.push(0,yc(u),zz(u)+dir*.004);N.push(0,0,dir);U.push(u,0,0);n++;
+    for(let j=0;j<NA;j++){const a=ring*NA+j,b=ring*NA+(j+1)%NA;dir>0?I.push(c,a,b):I.push(c,b,a)}};
+  cap(0,0,1);cap(NU,.86,-1);
+  /* fins: thin double-faced sheets */
+  const fin=(V,T3,id)=>{const nv=V.length,[A,B,C]=T3[0].map(k=>[V[k][0],V[k][1],zz(V[k][2])]),cb=[C[0]-B[0],C[1]-B[1],C[2]-B[2]],ab=[A[0]-B[0],A[1]-B[1],A[2]-B[2]];
+    const x=cb[1]*ab[2]-cb[2]*ab[1],y=cb[2]*ab[0]-cb[0]*ab[2],z=cb[0]*ab[1]-cb[1]*ab[0],l=Math.hypot(x,y,z)||1;
+    for(const s of[1,-1]){const o=n;for(const v of V){P.push(v[0],v[1],zz(v[2]));N.push(x/l*s,y/l*s,z/l*s);U.push(v[2],v[3],id);n++}
+      for(const t of T3)s>0?I.push(o+t[0],o+t[1],o+t[2]):I.push(o+t[0],o+t[2],o+t[1])}};
+  fin([[0,top(.84)-.004,.84,.2],[0,.125,1.,1],[0,0,.95,0],[0,-.125,1.,-1],[0,bot(.84)+.004,.84,-.2]],[[0,1,2],[0,2,4],[4,2,3]],1);
+  fin([[0,top(.36)-.005,.36,0],[0,top(.44)+.08,.44,1],[0,top(.52)+.028,.53,.4],[0,top(.5)-.005,.5,0]],[[0,1,2],[0,2,3]],2);
+  fin([[0,top(.72)-.004,.72,0],[0,top(.745)+.022,.75,1],[0,top(.77)-.004,.775,0]],[[0,1,2]],2);
+  fin([[0,bot(.63)+.005,.63,0],[0,bot(.67)-.052,.68,-1],[0,bot(.73)-.018,.74,-.4],[0,bot(.72)+.005,.72,0]],[[0,2,1],[0,3,2]],3);
+  for(const s of[1,-1]){fin([[s*.018,bot(.48)+.012,.47,0],[s*.05,bot(.53)-.03,.58,-1],[s*.018,bot(.53)+.012,.54,0]],[[0,1,2]],3);
+    fin([[s*hw(.19)*.85,yc(.19)-hh(.19)*.4,.18,0],[s*.075,yc(.3)-hh(.3)*.75,.33,-1],[s*hw(.23)*.85,yc(.23)-hh(.23)*.5,.23,0]],[[0,1,2]],4)}
+  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(P),3));g.setAttribute("normal",new T.BA(new Float32Array(N),3));
+  g.setAttribute("aTU",new T.BA(new Float32Array(U),3));g.setIndex(I);return g}
+/* body colour from the position along it (u, nose 0 .. fork 1) and round it (v, belly -1 .. back 1): olive back with fine black spots,
+   silver flanks under a rose-pink band, white belly; spotted dorsal, adipose and tail fins, white-tipped pelvic and anal fins */
+const TT_COL=`{float u=vTU.x,v=vTU.y,id=vTU.z;vec3 tc;
+  vec2 sq=vec2(u*44.,v*(id>.5?4.:7.)),si=floor(sq);float sh=fract(sin(dot(si+id*7.,vec2(12.9898,78.233)))*43758.5453);
+  vec2 sf=fract(sq)-.5-(vec2(fract(sh*7.1),fract(sh*3.7))-.5)*.5;float spot=smoothstep(.22,.13,length(sf*vec2(1.,1.3)))*step(.3,sh);
+  if(id<.5){float back=smoothstep(-.05,.85,v),belly=smoothstep(-.25,-.8,v);
+    tc=mix(vec3(.6,.62,.58),vec3(.15,.19,.1),back);tc=mix(tc,vec3(.86,.86,.82),belly);
+    float band=exp(-pow((v-.05)/.2,2.))*smoothstep(.06,.2,u)*smoothstep(.93,.7,u);tc=mix(tc,vec3(.72,.31,.34),band*.7);
+    tc=mix(tc,vec3(.68,.3,.32),exp(-pow((u-.19)/.035,2.))*smoothstep(-.6,.1,v)*smoothstep(.8,.3,v)*.55);
+    tc=mix(tc,vec3(.03,.035,.025),spot*smoothstep(-.3,.2,v)*smoothstep(.04,.1,u)*.9);
+    float ed=length(vec2((u-.068)/.017,(v-.2)/.19));tc=mix(tc,vec3(.72,.6,.3),smoothstep(1.2,1.,ed));tc=mix(tc,vec3(.015),smoothstep(.75,.55,ed));}
+  else{tc=vec3(.3,.31,.22);if(id<2.5)tc=mix(tc,vec3(.03),spot*.85);else{tc=mix(tc,vec3(.75,.4,.38),.25);tc=mix(tc,vec3(.9,.88,.84),smoothstep(.55,.85,abs(v)));}
+    diffuseColor.a=.88;}
+  diffuseColor.rgb=tc;}`;
+/* swimming: a wave runs down the body, small at the head and growing to the tail; turning bends it. The fins ride the same wave. */
+const TT_ANIM={head:"attribute vec3 aTU;attribute vec4 aSw;varying vec3 vTU;float ttX(float u){return aSw.y*(.12+.88*pow(smoothstep(.1,1.,u),1.6))*sin(6.2832*u*.95-aSw.x)+aSw.z*(u-.25)*(u-.25)*step(.25,u);}",
+  nrm:"float ttU=.42-position.z,ttF=-(ttX(ttU+.01)-ttX(ttU-.01))/.02;objectNormal.z-=ttF*objectNormal.x;objectNormal=normalize(objectNormal);",
+  pos:"transformed.x+=ttX(ttU);vTU=aTU;",fh:"varying vec3 vTU;",col:TT_COL};
+function ttBuild(){const g=ttGeo(),m=new T.MSM({roughness:.36,metalness:.1});m.userData.U=TT.U;uwMat(m,"tt",".8",TT_ANIM);
+  const A=iba(TT_N,4);g.setAttribute("aSw",A);
+  const im=new T.IM(g,m,TT_N);im.frustumCulled=false;im.renderOrder=3;W.add(im);onDes(im);TT.im=im;TT.A=A;
+  const[cx,cz]=pondEdge(TT.sch.th,TT.sch.k);TT.sch.px=cx;TT.sch.pz=cz;
+  for(let i=0;i<TT_N;i++){const a=rr(0,TAU),d=rr(.2,.8),x=cx+Math.cos(a)*d,z=cz+Math.sin(a)*d;
+    TT.list.push({L:rr(.26,.38),x,z,y:POND.wy-.45,yaw:rr(-3,3),pit:0,v:.12,yr:0,ph:rr(0,TAU),amp:.06,bend:0,off:{a:rr(0,TAU),d:rr(.25,.85),h:rr(-.12,.12)},mode:"cruise",t:0,r2:-1,rx:0,rz:0})}}
+ttBuild();
+const _tq=new T.Quat(),_tq2=new T.Quat(),_tm=new T.M4(),_ts=new V3();
+/* the rotation of Euler angles in YXZ order (heading, then pitch, then roll) */
+function qYXZ(q,x,y,z){const c1=Math.cos(x/2),c2=Math.cos(y/2),c3=Math.cos(z/2),s1=Math.sin(x/2),s2=Math.sin(y/2),s3=Math.sin(z/2);
+  return q.set(s1*c2*c3+c1*s2*s3,c1*s2*c3-s1*c2*s3,c1*c2*s3-s1*s2*c3,c1*c2*c3+s1*s2*s3)}
+function ttUpdate(dt){const L=TT.list,S0=TT.sch,ny=st.night>.5,hail=WX.hcold>0||WX.hf>.05,dusk=st.phase==="sunrise"||st.phase==="sunset";
+  S0.turn-=dt;if(S0.turn<0){S0.turn=rr(25,50);S0.dir*=-1}
+  S0.th=wrapA(S0.th+S0.dir*dt*(ny?.025:.06));S0.k=.17+.07*Math.sin(st.t*.013);
+  const[cx,cz]=pondEdge(S0.th,S0.k);if(Math.hypot(cx-S0.px,cz-S0.pz)>1e-4)S0.hd=Math.atan2(cx-S0.px,cz-S0.pz);S0.px=cx;S0.pz=cz;
+  /* a rise: at dawn and dusk now and then one fish leaves the school, sips at the surface and goes back down */
+  TT.rise-=dt;if(!dusk||hail||WX.rain>.5)TT.rise=Math.max(TT.rise,rr(3,9));
+  else if(TT.rise<0){TT.rise=rr(9,26);const f=L[(rnd()*L.length)|0];if(f.mode==="cruise"){f.mode="rise";f.t=6;f.rs=0;dec("dDp1")}}
+  for(const f of L){const dep=pfDep(f.x,f.z),bed=POND.wy-dep;let tx,tz,ty,vt,tr=.9;
+    let near=null,nd=1e9;for(const h of LKT){const d=Math.hypot(f.x-h.x,f.z-h.z)-h.r;if(d<nd){nd=d;near=h}}
+    const scared=nd<2.5;
+    if(f.mode==="rise"){f.t-=dt;tx=f.x+Math.sin(f.yaw)*.6;tz=f.z+Math.cos(f.yaw)*.6;
+      if(!f.rs){ty=POND.wy-.05;vt=.24;
+        const hy=f.y-Math.sin(f.pit)*.42*f.L;
+        if(hy>POND.wy-.035||f.t<0){f.rs=1;f.t=2.5;const hx=f.x+Math.sin(f.yaw)*.4*f.L,hz=f.z+Math.cos(f.yaw)*.4*f.L;TT.rises++;
+          hDecal(1,hx,POND.wy+.004,hz,rr(.32,.42));f.r2=.28;f.rx=hx;f.rz=hz;
+          for(let k=0;k<4;k++)hBit("drop",hx,POND.wy+.01,hz,rr(-.35,.35),rr(.5,1),rr(-.35,.35),rr(.4,.7));
+          _ts.set(hx,POND.wy,hz);shotS("dDp1",.5,_ts,6,rr(.5,.62),1)}}
+      else{ty=bed+Math.min(.6,dep*.45);vt=.18;if(f.t<0)f.mode="cruise"}
+      if(scared||hail)f.mode="cruise"}
+    if(f.mode==="cruise"){const a=S0.hd+f.off.a;tx=cx+Math.sin(a)*f.off.d;tz=cz+Math.cos(a)*f.off.d;
+      ty=hail||scared?bed+.14:ny?bed+.22:POND.wy-cl(dep*.32,.28,.55)+f.off.h;
+      vt=hail?.06:ny?.05:cl(Math.hypot(tx-f.x,tz-f.z)*.45,.07,.26);
+      if(scared){const d=Math.hypot(f.x-near.x,f.z-near.z)||1;tx=f.x+(f.x-near.x)/d*1.2;tz=f.z+(f.z-near.z)/d*1.2;vt=.34;tr=2}}
+    /* keep clear of the next fish */
+    for(const o of L){if(o===f)continue;const d=Math.hypot(o.x-f.x,o.z-f.z);if(d<.4){tx+=(f.x-o.x)/(d||1)*.4;tz+=(f.z-o.z)/(d||1)*.4}}
+    /* stay over the deep water */
+    if(pfDep(tx,tz)<.85){tx+=(-8.7-tx)*.5;tz+=(5.9-tz)*.5}
+    const want=Math.atan2(tx-f.x,tz-f.z),dy=wrapA(want-f.yaw),yr=cl(dy*1.5,-tr,tr);f.yr+=(yr-f.yr)*ease(3,dt);f.yaw=wrapA(f.yaw+f.yr*dt);
+    f.v+=(vt-f.v)*ease(vt>f.v?2:1,dt);
+    let nx=f.x+Math.sin(f.yaw)*f.v*dt,nz=f.z+Math.cos(f.yaw)*f.v*dt;if(pfDep(nx,nz)<.7){nx=f.x;nz=f.z;f.v*=.6}f.x=nx;f.z=nz;
+    const vy=cl((ty-f.y)*.8,-.16,f.mode==="rise"&&!f.rs?.3:.12),lo=POND.wy-pfDep(f.x,f.z)+.07;f.y=Math.max(lo,Math.min(f.y+vy*dt,POND.wy-.05));
+    f.pit+=(cl(-Math.atan2(vy,Math.max(f.v,.05)),-.6,.6)-f.pit)*ease(3,dt);
+    f.bend=cl(-f.yr*.1,-.07,.07);f.amp=.045+.09*cl(f.v/.4,0,1)+.03*Math.abs(f.yr);f.ph+=TAU*(1.1+2.4*f.v/f.L)*dt;
+    if(f.r2>0){f.r2-=dt;if(f.r2<=0)hDecal(1,f.rx,POND.wy+.004,f.rz,rr(.6,.8))}}
+  if(TT.vis>0){const A=TT.A.array;L.forEach((f,i)=>{qYXZ(_tq,f.pit,f.yaw,cl(f.yr*.12,-.3,.3));
+    _tm.compose(_ts.set(f.x,f.y,f.z),_tq,_v.set(f.L,f.L,f.L));TT.im.setMatrixAt(i,_tm);A[i*4]=f.ph;A[i*4+1]=f.amp;A[i*4+2]=f.bend});
+    TT.im.instanceMatrix.needsUpdate=true;TT.A.needsUpdate=true}}
+
+/* ---------------- freshwater crabs (Potamon potamios), real size: a carapace 4–5.5 cm across, legs spanning about 11 cm.
+   Each has a burrow in the damp bank just above the waterline. They pick over the wet margin and the shallows round it,
+   walking sideways in short runs and feeding claw to mouth in the pauses. A camel coming to the water, the rattlesnake on the
+   bank or the eagle low over it sends them scuttling, claws up, down the nearest burrow or into deeper water; rain, hail and
+   snow send them home. Procedural, one instanced draw; the legs and claws move in the vertex shader. ---------------- */
+const CR_N=MOB?5:8,CR={list:[],im:null,A:null,bm:null,vis:0,U:{uVis:{value:0}}};
+function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
+  const vtx=(p,nr,c,k,h)=>{P.push(p[0],p[1],p[2]);N.push(nr[0],nr[1],nr[2]);C.push(c[0],c[1],c[2]);K.push(k);H.push(h[0],h[1],h[2]);return n++};
+  const ell=(cx,cy,cz,rx,ry,rz,c,k,h,nu,nv,sh)=>{const b=n;for(let i=0;i<=nv;i++){const t=i/nv*Math.PI;for(let j=0;j<=nu;j++){const p=j/nu*TAU;
+        let x=Math.sin(t)*Math.cos(p),y=Math.cos(t),z=Math.sin(t)*Math.sin(p);const q=sh?sh(x,y,z):[x,y,z,1];
+        const ry2=q[1]>0?ry:ry*(sh?.55:1);vtx([cx+q[0]*rx,cy+q[1]*ry2,cz+q[2]*rz],(()=>{const a=q[0]/rx,bb=q[1]/ry2,d=q[2]/rz,l=Math.hypot(a,bb,d)||1;return[a/l,bb/l,d/l]})(),
+          [c[0]*q[3],c[1]*q[3],c[2]*q[3]],k,h)}}
+    for(let i=0;i<nv;i++)for(let j=0;j<nu;j++){const a=b+i*(nu+1)+j,d=a+nu+1;I.push(a,a+1,d,a+1,d+1,d)}};
+  const tube=(pts,rad,cols,k,h,sd)=>{const b=n,M=pts.length;
+    for(let i=0;i<M;i++){const p=pts[i],q=pts[Math.min(i+1,M-1)],o=pts[Math.max(i-1,0)];let d=[q[0]-o[0],q[1]-o[1],q[2]-o[2]];const l=Math.hypot(...d)||1;d=d.map(v=>v/l);
+      let u=Math.abs(d[1])<.9?[0,1,0]:[1,0,0];let a=[d[1]*u[2]-d[2]*u[1],d[2]*u[0]-d[0]*u[2],d[0]*u[1]-d[1]*u[0]];const la=Math.hypot(...a);a=a.map(v=>v/la);
+      const bb=[d[1]*a[2]-d[2]*a[1],d[2]*a[0]-d[0]*a[2],d[0]*a[1]-d[1]*a[0]];
+      for(let j=0;j<sd;j++){const an=j/sd*TAU,ca=Math.cos(an),sa=Math.sin(an),nr=[a[0]*ca+bb[0]*sa,a[1]*ca+bb[1]*sa,a[2]*ca+bb[2]*sa];
+        vtx([p[0]+nr[0]*rad[i],p[1]+nr[1]*rad[i],p[2]+nr[2]*rad[i]],nr,cols[i],k,h)}}
+    for(let i=0;i<M-1;i++)for(let j=0;j<sd;j++){const a=b+i*sd+j,c=b+i*sd+(j+1)%sd;I.push(a,a+sd,c,c,a+sd,c+sd)}};
+  const shell=[.21,.12,.055],shellD=[.13,.075,.035],leg=[.3,.18,.085],legD=[.2,.12,.055],tip=[.07,.045,.03],cream=[.62,.5,.34];
+  /* carapace: broad, a little squared at the front, domed over the gills, flatter underneath */
+  ell(0,.029,0,.025,.0135,.021,shell,0,[0,0,0],22,12,(x,y,z)=>{const zf=z>0?z*(1-.18*Math.abs(x)):z,xf=x*(1-.08*Math.max(0,z));
+    const dark=1-.28*Math.max(0,y)*(1-Math.abs(x))+.08*Math.max(0,-y);return[xf,y-.12*Math.abs(xf)*Math.max(0,y),zf,dark]});
+  /* front ridge between the eyes and the mouth */
+  ell(0,.028,.017,.01,.004,.004,shellD,0,[0,0,0],8,5);
+  /* four walking legs a side, three segments each, the last a pointed dactyl */
+  for(const s of[1,-1])for(let i=0;i<4;i++){const k=(s>0?1:5)+i,a=[.5,.15,-.22,-.6][i],dx=s*Math.cos(a),dz=Math.sin(a),h=[s*.021,.026,.007-i*.0085],
+      m=1+.08*(i===1||i===2),P1=[h[0]+dx*.016*m,h[1]+.01,h[2]+dz*.016*m],P2=[P1[0]+dx*.0135*m,P1[1]-.009,P1[2]+dz*.0135*m],P3=[P2[0]+dx*.007*m,.0012,P2[2]+dz*.007*m];
+    tube([h,P1,P2,P3],[.0042,.0039,.003,.0008],[leg,leg,legD,tip],k,h,7)}
+  /* claws: arm, carpus, a swollen palm and two pale-tipped fingers; the right one larger */
+  for(const s of[1,-1]){const k=s>0?9:10,c=s>0?1.2:1.6,h=[s*.015,.025,.016],Q1=[h[0]+s*.012,h[1]+.006,h[2]+.01],Q2=[Q1[0]-s*.002,Q1[1]+.002,Q1[2]+.012],Q3=[Q2[0]-s*.004,Q2[1],Q2[2]+.011*c];
+    tube([h,Q1,Q2],[.0034,.0034,.004],[leg,leg,shell],k,h,6);
+    ell(Q3[0],Q3[1],Q3[2],.0062*c,.0047*c,.0105*c,shell,k,h,10,7);
+    tube([[Q3[0]-s*.002,Q3[1]-.002,Q3[2]+.008*c],[Q3[0]-s*.004,Q3[1]-.003,Q3[2]+.016*c],[Q3[0]-s*.005,Q3[1]-.0032,Q3[2]+.022*c]],[.003*c,.0019*c,.0005],[legD,tip,cream],k,h,5);
+    tube([[Q3[0]+s*.0005,Q3[1]+.0025,Q3[2]+.008*c],[Q3[0]-s*.002,Q3[1]+.0028,Q3[2]+.016*c],[Q3[0]-s*.004,Q3[1]+.0018,Q3[2]+.021*c]],[.0026*c,.0017*c,.0005],[legD,tip,cream],k,h,5)}
+  /* eyes on short stalks */
+  for(const s of[1,-1]){tube([[s*.0065,.031,.019],[s*.008,.036,.0215]],[.0014,.0013],[shell,shell],11,[0,0,0],5);ell(s*.0082,.0372,.022,.0026,.0026,.0026,[.03,.03,.025],11,[0,0,0],7,5)}
+  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(P),3));g.setAttribute("normal",new T.BA(new Float32Array(N),3));
+  g.setAttribute("color",new T.BA(new Float32Array(C),3));g.setAttribute("aK",new T.BA(new Float32Array(K),1));g.setAttribute("aH",new T.BA(new Float32Array(H),3));g.setIndex(I);return g}
+/* legs: alternating tetrapod gait (L1 R2 L3 R4 against the rest), each lifting and swinging at its hip; claws: raised in a threat,
+   drawn in to the mouth in turn while feeding */
+const CR_ANIM={head:"attribute float aK;attribute vec3 aH;attribute vec4 aG;"+GLR+`
+mat3 crR(){float k=aK;if(k<.5||k>10.5)return mat3(1.);
+  if(k<8.5){float i=k-1.,sd=i<3.5?1.:-1.,j=mod(i,4.),g=mod(j+step(sd,0.),2.),ph=aG.x+g*3.14159;
+    return rY(.3*cos(ph)*aG.y*sd)*rZ(sd*.5*max(0.,sin(ph))*aG.y);}
+  float sd=k<9.5?1.:-1.,fd=k<9.5?max(aG.z,0.):max(-aG.z,0.);return rY(-sd*.5*fd)*rX(-.6*aG.w-.4*fd);}`,
+  nrm:"mat3 cR=crR();objectNormal=cR*objectNormal;",pos:"transformed=aH+cR*(transformed-aH);"};
+/* the burrow: a dark hole in a low collar of damp sand, the dug-out pellets heaped to one side */
+function crBurrowGeo(){const P=[],N=[],C=[],I=[];let n=0;const sand=[.16,.115,.07],dark=[.012,.009,.006];
+  const R=[0,.012,.02,.028,.042,.06],Y=[-.006,-.004,.001,.006,.003,0],CC=[dark,dark,[.25,.19,.12],sand,sand,sand];
+  for(let i=0;i<R.length;i++)for(let j=0;j<16;j++){const a=j/16*TAU;P.push(Math.cos(a)*R[i],Y[i],Math.sin(a)*R[i]);N.push(0,1,0);C.push(...CC[i]);n++}
+  for(let i=0;i<R.length-1;i++)for(let j=0;j<16;j++){const a=i*16+j,b=i*16+(j+1)%16;I.push(a,b,a+16,b,b+16,a+16)}
+  for(let p=0;p<9;p++){const a=rr(-.9,.9),d=rr(.045,.085),cx=Math.cos(a)*d,cz=Math.sin(a)*d,r=rr(.004,.007),b=n;
+    for(let i=0;i<=4;i++)for(let j=0;j<=6;j++){const t=i/4*Math.PI*.5,ph=j/6*TAU,x=Math.cos(t)*Math.cos(ph),y=Math.sin(t),z=Math.cos(t)*Math.sin(ph);
+      P.push(cx+x*r,y*r*.8,cz+z*r);N.push(x,y,z);C.push(sand[0]*.92,sand[1]*.92,sand[2]*.92);n++}
+    for(let i=0;i<4;i++)for(let j=0;j<6;j++){const a=b+i*7+j;I.push(a,a+7,a+1,a+1,a+7,a+8)}}
+  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(P),3));g.setAttribute("normal",new T.BA(new Float32Array(N),3));
+  g.setAttribute("color",new T.BA(new Float32Array(C),3));g.setIndex(I);return g}
+/* a burrow site: damp bank 2–8 cm above the water, not too steep */
+function crSite(th){for(let k=.8;k<1.2;k+=.005){const[x,z]=pondEdge(th,k),d=pfDep(x,z);if(d<-.025&&d>-.08){const s=Math.abs(pfDep(x+.15,z)-pfDep(x-.15,z))+Math.abs(pfDep(x,z+.15)-pfDep(x,z-.15));if(s<.2)return[x,z]}}return null}
+function crBuild(){const g=crGeo(),m=new T.MSM({vertexColors:true,roughness:.42,metalness:0});m.userData.U=CR.U;uwMat(m,"cr",".9",CR_ANIM);
+  const A=iba(CR_N,4);g.setAttribute("aG",A);
+  const im=new T.IM(g,m,CR_N);im.frustumCulled=false;im.renderOrder=3;W.add(im);onDes(im);CR.im=im;CR.A=A;
+  const bm=new T.IM(crBurrowGeo(),new T.MSM({vertexColors:true,roughness:.95,metalness:0,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2}),CR_N);
+  bm.frustumCulled=false;bm.receiveShadow=true;W.add(bm);onDes(bm);CR.bm=bm;
+  let th=rr(0,TAU);for(let i=0;i<CR_N;i++){let s=null;for(let t=0;t<40&&!s;t++){th+=TAU/CR_N*rr(.6,1.1);s=crSite(th);
+      if(s&&CR.list.some(c=>Math.hypot(c.bx-s[0],c.bz-s[1])<1.6))s=null}
+    if(!s)continue;const[bx,bz]=s,y=lkY(bx,bz),yaw=Math.atan2(POND.x-bx,POND.z-bz);
+    _tq.setFromUnitVectors(_hUp,nTop(bx,bz)).multiply(_tq2.setFromAxisAngle(_hUp,-yaw+rr(-.5,.5)));_tm.compose(_ts.set(bx,y+.002,bz),_tq,_v.set(1,1,1));bm.setMatrixAt(CR.list.length,_tm);
+    CR.list.push({bx,bz,x:bx,z:bz,y,yaw,mode:"in",t:rr(1,12),tx:bx,tz:bz,v:0,ph:0,walk:0,fph:rr(0,6),feed:0,up:0,sk:1,s:rr(.85,1.15),go:null})}
+  bm.count=CR.list.length;im.count=CR.list.length;bm.instanceMatrix.needsUpdate=true}
+crBuild();
+/* somewhere to forage: the wet margin and the first few centimetres of water within a metre or so of home */
+function crForage(c){for(let t=0;t<14;t++){const a=rr(0,TAU),d=rr(.15,1.2),x=c.bx+Math.cos(a)*d,z=c.bz+Math.sin(a)*d,dp=pfDep(x,z);if(dp>-.09&&dp<.045)return[x,z]}return[c.bx,c.bz]}
+/* the way into the water: straight for the pond centre until it is 8–15 cm deep */
+function crWater(c){const d=Math.hypot(POND.x-c.x,POND.z-c.z)||1,ux=(POND.x-c.x)/d,uz=(POND.z-c.z)/d;
+  for(let s=.1;s<3;s+=.05){const x=c.x+ux*s,z=c.z+uz*s;if(pfDep(x,z)>.1)return[x+ux*.15,z+uz*.15]}return[POND.x,POND.z]}
+function crGo(c,x,z,v,mode,go){c.tx=x;c.tz=z;c.vt=v;c.mode=mode;c.go=go}
+function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||WX.scold>0;
+  for(const c of CR.list){
+    let near=null,nd=1e9;for(const h of LKT){const d=Math.hypot(c.x-h.x,c.z-h.z)-h.r;if(d<nd){nd=d;near=h}}
+    const fear=nd<1.2;c.up+=((c.mode==="run"?1:fear&&c.mode!=="in"?.6:0)-c.up)*ease(6,dt);
+    if(fear&&(c.mode==="out"||c.mode==="walk"||c.mode==="emerge")){
+      const db=Math.hypot(c.bx-c.x,c.bz-c.z),bt=Math.hypot(c.bx-near.x,c.bz-near.z)>Math.hypot(c.x-near.x,c.z-near.z)-.3,[wx,wz]=crWater(c),dw=Math.hypot(wx-c.x,wz-c.z);
+      if(c.mode==="emerge"||db<.25||(bt&&db<dw*1.4))crGo(c,c.bx,c.bz,.42,"run","home");else crGo(c,wx,wz,.42,"run","water")}
+    else if(foul&&(c.mode==="out"||c.mode==="walk"))crGo(c,c.bx,c.bz,.2,"walk","home");
+    if(c.mode==="in"){c.sk=1;c.t-=dt;if(c.t<0&&!foul&&nd>2){c.mode="emerge";c.yaw=Math.atan2(POND.x-c.bx,POND.z-c.bz)+rr(-1,1)}else if(c.t<0)c.t=rr(2,5)}
+    else if(c.mode==="emerge"){c.sk-=dt/1.4;if(c.sk<=0){c.sk=0;c.mode="out";c.t=rr(1.5,4)}}
+    else if(c.mode==="down"){c.sk+=dt/.55;if(c.sk>=1){c.mode="in";c.t=rr(10,25)}}
+    else if(c.mode==="sub"){c.t-=dt;if(c.t<0&&nd>2.5&&!foul){const[x,z]=crForage(c);crGo(c,x,z,.09,"walk",null)}else if(c.t<0)c.t=rr(4,8)}
+    else if(c.mode==="out"){c.t-=dt;if(c.t<0){const[x,z]=crForage(c);crGo(c,x,z,rr(.06,.14),"walk",null)}}
+    if(c.mode==="walk"||c.mode==="run"){const dx=c.tx-c.x,dz=c.tz-c.z,d=Math.hypot(dx,dz);
+      if(d<.02){c.v=0;if(c.go==="home"){c.x=c.bx;c.z=c.bz;c.mode="down"}else if(c.go==="water"){c.mode="sub";c.t=rr(12,30)}else{c.mode="out";c.t=rr(1,5)}}
+      else{const dir=Math.atan2(dx,dz),y1=dir-Math.PI/2,y2=dir+Math.PI/2,ty=Math.abs(wrapA(y1-c.yaw))<Math.abs(wrapA(y2-c.yaw))?y1:y2,dy=wrapA(ty-c.yaw);
+        c.yaw=wrapA(c.yaw+cl(dy,-6*dt,6*dt));const vt=Math.abs(dy)<.5?c.vt:0;c.v+=(vt-c.v)*ease(c.mode==="run"?14:7,dt);
+        const st_=Math.min(c.v*dt,d);c.x+=dx/d*st_;c.z+=dz/d*st_}}
+    else c.v+=(0-c.v)*ease(10,dt);
+    c.ph+=c.v*dt/.032*TAU;c.walk+=((c.v>.01?1:0)-c.walk)*ease(10,dt);
+    const feeding=c.mode==="out"||c.mode==="sub";c.fph+=dt*(feeding?4.2:0);c.feed+=((feeding?1:0)-c.feed)*ease(3,dt);
+    c.y=lkY(c.x,c.z)}
+  if(CR.vis>0){const A=CR.A.array;CR.list.forEach((c,i)=>{const fw=Math.sin(c.yaw),fz=Math.cos(c.yaw),e=.03,
+      gp=(lkY(c.x+fw*e,c.z+fz*e)-lkY(c.x-fw*e,c.z-fz*e))/(2*e),gr=(lkY(c.x+fz*e,c.z-fw*e)-lkY(c.x-fz*e,c.z+fw*e))/(2*e);
+      qYXZ(_tq,-Math.atan(gp),c.yaw,Math.atan(gr));const sc=c.mode==="in"?0:c.s;
+      _tm.compose(_ts.set(c.x,c.y-c.sk*.05*c.s+.0025*c.walk*Math.abs(Math.sin(c.ph)),c.z),_tq,_v.set(sc,sc,sc));CR.im.setMatrixAt(i,_tm);
+      A[i*4]=c.ph;A[i*4+1]=c.walk;A[i*4+2]=Math.sin(c.fph)*c.feed*(1-c.up);A[i*4+3]=c.up});
+    CR.im.instanceMatrix.needsUpdate=true;CR.A.needsUpdate=true}}
+/* the lake animals are hidden once they are under a couple of pixels */
+function lakeVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
+  const D=Math.max(.5,Math.hypot((c.x-POND.x),(c.z-POND.z),c.y-POND.wy)-Math.max(POND.rx,POND.rz)*.6),ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
+  TT.vis=1-ss(.32*ppm/3*.6,.32*ppm/3,D);CR.vis=1-ss(.1*ppm/2.5*.6,.1*ppm/2.5,D);
+  TT.U.uVis.value=TT.vis;CR.U.uVis.value=CR.vis;TT.im.visible=TT.vis>0;CR.im.visible=CR.vis>0;CR.bm.visible=CR.vis>0;
+  UW.uWy.value=W.position.y+POND.wy*W.scale.y;UW.uWob.value=.012+.03*st.wn+.05*WX.rain}
+
 /* ---------------- Sinai agama (Pseudotrapelus sinaitus), real size (25 cm, 62 % of it tail) ----------------
    Two of them, a male and a female, living round the grove. They sprint in short bursts and pause, bask flat on a rock
    in the sun, head-bob, climb the date palms (along the trunk's own lean and sway) to sit in the crown's shade when hot,
@@ -3779,6 +4030,7 @@ UPD.push((dt,t)=>{
   if(ANIM.eagle)eagleUpdate(ANIM.eagle,d);
   if(ANIM.rs)rsUpdate(ANIM.rs,d);
   if(PF.list.length){pfVis();pfUpdate(d)}
+  lakeThreats();lakeVis();ttUpdate(d);crUpdate(d);
   if(AG.list.length){agVis();agUpdate(d)}
   devilUpdate(d,t);
   sound(d);
@@ -3821,6 +4073,10 @@ const QA={rq:()=>0,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TEN
   rsSet:o=>Object.assign(ANIM.rs,o),
   /* pupfish: pf() positions/modes; PF itself for tests */
   pf:()=>PF.list.map(f=>({x:f.x,y:f.y,z:f.z,yaw:f.yaw,v:f.v,mode:f.mode,male:f.male,ter:f.ter,clip:f.r.cur})),PF,pfDep,
+  /* lake life: trout() and crabs() states; lakeScare(x,z,r,sec) puts a threat by the water */
+  trout:()=>TT.list.map(f=>({x:f.x,y:f.y,z:f.z,L:f.L,mode:f.mode,dep:pfDep(f.x,f.z),below:POND.wy-f.y})),TT,
+  crabs:()=>CR.list.map(c=>({x:c.x,z:c.z,y:c.y,mode:c.mode,dep:pfDep(c.x,c.z),bx:c.bx,bz:c.bz,s:c.s,shown:c.mode!=="in"})),CR,
+  crSite,pondEdge,lakeScare:(x,z,r,sec)=>{LKdbg={x,z,r:r||2,k:"test",until:st.t+(sec||5)}},
   rsPut:(x,z,yaw)=>{const r=ANIM.rs;if(!r)return;Object.assign(r,{x,z,yaw:yaw||0,gy:hTop(x,z),mode:"coil",w:0,wT:99,wF:1,path:null,next:null});
     r.g.position.set(x,r.gy,z);r.g.rotation.set(0,r.yaw,0);r.g.updateMatrixWorld(true);play(r.r,"relaxed_coil",.01,1)},trk:TRK,RS_N,
   /* age the tracks by `sec` seconds of the current wind (for the fade time-lapse) */

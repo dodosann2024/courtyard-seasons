@@ -4510,8 +4510,9 @@ function osUpdate(A,dt){const P=A.P,ny=st.night>.6||(st.night>.3&&st.phase==="ni
     for(const da of[0,.6,-.6,1.2,-1.2,1.8,-1.8]){const a=a0+da,p=randFree(g,A.x+Math.sin(a)*D,A.z+Math.cos(a)*D,r?5:2.5,(x,z)=>Math.hypot(x-t.x,z-t.z)>d0+2);
       if(p&&osGo(A,p,r))return true}
     /* boxed in (water, rim, camels): any open stretch that gains distance, in a straight line */
-    for(const D2 of[D*.6,2.2])for(let k=0;k<12;k++){const a=a0+k*TAU/12,x=A.x+Math.sin(a)*D2,z=A.z+Math.cos(a)*D2;
-      if(navFree(g,x,z)&&Math.hypot(x-t.x,z-t.z)>d0+.8){A.path=[{x:A.x,z:A.z},{x,z}];A.pi=1;A.mode=r?"run":"walk";A.vmax=r?rr(6,7.5):rr(.9,1.3);return true}}
+    for(const D2 of[D,D*.6,2.2])for(let k=0;k<12;k++){const a=a0+(k&1?-1:1)*Math.ceil(k/2)*TAU/12,x=A.x+Math.sin(a)*D2,z=A.z+Math.cos(a)*D2;
+      let clear=Math.hypot(x-t.x,z-t.z)>d0+.8;for(let u=1;u<=6&&clear;u++)clear=navFree(g,A.x+Math.sin(a)*D2*u/6,A.z+Math.cos(a)*D2*u/6);
+      if(clear){A.path=[{x:A.x,z:A.z},{x,z}];A.pi=1;A.mode=r?"run":"walk";A.vmax=r?rr(6,7.5):rr(.9,1.3);return true}}
     return false};
   switch(A.mode){
     case"sit":A.v*=Math.exp(-dt*6);if(fear>.9&&P.sit>.8&&!hail){A.mode="stand";A.t=.5;break}

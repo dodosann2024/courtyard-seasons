@@ -23,3 +23,18 @@ jobs:
         run: node tools/e2e/desert.mjs
         env:
           CHROME: /usr/bin/google-chrome
+  clear-day-perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install the browser driver
+        working-directory: tools/e2e
+        run: npm install --no-audit --no-fund --no-package-lock
+      - name: Clear-day desert JS per frame vs main (iPhone 13, 4x CPU throttle)
+        run: node tools/e2e/perf.mjs
+        env:
+          CHROME: /usr/bin/google-chrome

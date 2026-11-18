@@ -64,12 +64,13 @@ try {
 
   /* 2. wind lifts grains off the sand and carries them downwind; the surface streaks keep flowing */
   const sandCheck = () => page.evaluate(() => {
-    const q = window.__desQA(), S = q.SAND, P0 = Float32Array.from(S.P), f0 = q.sandU.uFlowT.value;
+    const q = window.__desQA(), S = q.SAND, P0 = Float32Array.from(S.P), L0 = q.SANDP.map(p => p.life), f0 = q.sandU.uFlowT.value;
     q.sim(2, 1 / 30);
     let dw = 0, n = 0, lit = 0;
+    /* grains live 2.5 s or more, so one whose life grew over these 2 s was not respawned; in a strong gust they fly 3–7 m */
     for (let i = 0; i < S.n; i++) {
       const dx = S.P[i * 3] - P0[i * 3], dz = S.P[i * 3 + 2] - P0[i * 3 + 2];
-      if (Math.hypot(dx, dz) < 3) { dw += dx * q.WIND.x + dz * q.WIND.z; n++; }
+      if (q.SANDP[i].life > L0[i]) { dw += dx * q.WIND.x + dz * q.WIND.z; n++; }
       if (S.A[i] > .01) lit++;
     }
     const down = dw / Math.max(1, n), flow = q.sandU.uFlowT.value - f0, k = q.sandU.uFlowK.value;
@@ -205,27 +206,93 @@ try {
     const hid = q.AG.list.every(a => !a.g.visible || a.then === "hide" || a.mode === "hide" || a.mode === "run" || (a.palm && a.mode === "climb"));
     const camWalk = q.ANIM.camels.filter(c => c.mode === "walk").length, rs = q.ANIM.rs;
     r.camelsWalking = camWalk; r.snake = rs ? rs.mode + (rs.g.visible ? "" : ":hidden") : null;
+    /* a thin layer lies on the tent roof, the palm crowns and the cactus tops, flakes vanish at the water, and a thin steam fog lies on the lake */
+    r.tops = q.WX.scp; r.steam = q.WX.stm; r.steamOn = q.STM.o.visible;
     q.tod("sunrise"); q.sim(40, .5); r.dawnIce = q.WX.ice;
-    window.__set({weather: "sun", ct: "clear"}); q.tod("day"); q.sim(60, .5); r.slush = q.WX.sm; r.coverAt60 = q.WX.sc;
+    window.__set({weather: "sun", ct: "clear"}); q.tod("day"); q.sim(60, .5); r.slush = q.WX.sm; r.coverAt60 = q.WX.sc; r.topsAt60 = q.WX.scp;
+    /* once the snowfall stops the camels walk again, and their steps crunch in the lying snow */
+    window.__set({weather: "sun", ct: "clear"}); q.tod("day"); q.sim(1, .5); q.audCap(true);
+    for (let i = 0; i < 12 && !q.ANIM.camels.some(c => c.mode === "walk"); i++) { for (const c of q.ANIM.camels) if (c.mode === "job") c.timer = 0; q.sim(5, .1); }
+    q.sim(20, .1); r.crunch = q.audCap(false).filter(e => e[1] === "S" && e[2] === "dCrn").length;
     r.wetPeak = q.WX.mw; for (let i = 0; i < 24; i++) { q.sim(10, .5); r.wetPeak = Math.max(r.wetPeak, q.WX.mw); } r.coverAt300 = q.WX.sc; r.iceDay = q.WX.ice; r.frostDay = q.WX.frost;
     q.sim(900, 1); r.wetAfter = q.WX.mw; r.coldAfter = q.WX.cold;
     for (const k in r) if (typeof r[k] === "number") r[k] = +r[k].toFixed(3);
     return [r.cover > .8 && r.frost > .6 && r.flakes && r.cold === 1 && hid && camWalk === 0 && r.dawnIce > .3 && r.slush > .5 && r.coverAt60 < r.cover &&
+      r.tops > .6 && r.topsAt60 < r.tops * .5 && r.steam > .5 && r.steamOn && r.crunch > 3 &&
       r.coverAt300 < .02 && r.wetPeak > .3 && r.iceDay < .05 && r.frostDay < .05 && r.wetAfter < .05 && r.coldAfter === 0, r];
   }));
 
-  /* 12. the rain sound is one continuous bed. After the first key press unlocks the audio, the rain loops are already running silent
-     before any rain falls; rain, a change of intensity and taps on the screen then only move their gain, smoothly: no source
+  /* 12. hail: a gust front, then a short burst of white stones out of a green-grey base. They bounce on the sand and pit it, roll
+     into the ripple troughs and lie there; they drum on the tent and shake it, crack into the palm crowns, knock the cacti, splash
+     and float briefly on the lake. Each surface has its own sound. The cold-blooded animals hide and the camels stand with their
+     backs to the wind. Then the sun melts the stones within minutes into dark wet spots that dry. */
+  check("hail: bounce, pits, troughs, tent, palms, cacti, lake, sounds, animals, melt", ...await page.evaluate(() => {
+    const q = window.__desQA(), C = q.HS.cnt, r = {}, H = q.WX.H, CS = q.ANIM.camels;
+    window.__set({weather: "sun", ct: "clear", wind: .5, hailLv: 1}); q.tod("day"); q.sim(30, .5);
+    for (const k in C) delete C[k];
+    const tp = q.PALMS[0], sg = (q.SAG || [])[0], [cx, cz] = q.dune.crestXZ(0);
+    const pins = [{x: cx, z: cz, R: 6}, {x: q.TENT.x, z: q.TENT.z, R: 4}, {x: tp.x, z: tp.z, R: 3.5}, {x: q.POND.x, z: q.POND.z, R: 3}, sg && {x: sg.x, z: sg.z, R: 2}].filter(Boolean);
+    let shk = 0, tw = 0, gust = 0, wnG = 0, hf = 0;
+    const watch = () => { shk = Math.max(shk, q.tentU.uShk.value); tw = Math.max(tw, ...q.PALMS.map(p => Math.abs(p.tw ? p.tw.value : 0))); gust = Math.max(gust, q.WX.gf); wnG = Math.max(wnG, q.st.wn); hf = Math.max(hf, q.WX.hf); };
+    window.__set({weather: "hail", hailLv: 1}); q.audCap(true);
+    q.HS.pin = pins[0]; q.lookAt(cx + 6, q.hTop(cx, cz) + 4, cz + 6, cx, q.hTop(cx, cz), cz);
+    for (let i = 0; i < 18; i++) { q.sim(1, 1 / 30); watch(); }
+    r.burstAfterGust = H.ph === 2;
+    for (const p of pins) { q.HS.pin = p; q.lookAt(p.x + 7, q.hTop(p.x, p.z) + 4, p.z + 7, p.x, q.hTop(p.x, p.z) + 1, p.z); for (let i = 0; i < 12; i++) { q.sim(1, 1 / 30); watch(); } }
+    q.HS.pin = pins[0]; q.lookAt(cx + 6, q.hTop(cx, cz) + 4, cz + 6, cx, q.hTop(cx, cz), cz); q.sim(10, 1 / 30); watch();
+    const ev = q.audCap(false), shots = new Set(ev.filter(e => e[1] === "S" && /^dH/.test(e[2])).map(e => e[2])), loops = new Set(ev.filter(e => e[1] === "L" && /^h/.test(e[2]) && e[4] > .05).map(e => e[2]));
+    Object.assign(r, {gust, windInGust: wnG, hail: hf, tentShake: shk, palmTwitch: tw, cover: q.WX.hc, pits: q.WX.hp, rain: q.WX.rain, streaks: q.HLU.uRain.value, cold: q.WX.cold, sky: q.skyU.uHg ? q.skyU.uHg.value : null});
+    r.counts = {...C}; r.shots = [...shots].sort(); r.loops = [...loops].sort();
+    const lt = (C.landTr || 0) / Math.max(1, (C.landTr || 0) + (C.landCr || 0)), rt = (C.restTr || 0) / Math.max(1, (C.restTr || 0) + (C.restCr || 0));
+    r.troughShareLanding = +lt.toFixed(3); r.troughShareResting = +rt.toFixed(3);
+    r.agamas = q.AG.list.map(a => a.mode + (a.g.visible ? "" : ":hidden"));
+    const hid = q.AG.list.every(a => !a.g.visible || a.then === "hide" || a.mode === "hide" || a.mode === "run" || (a.palm && a.mode === "climb"));
+    const wy = Math.atan2(q.WIND.x, q.WIND.z), off = CS.filter(c => c.mode !== "kneel" && c.job !== "kneel").map(c => Math.abs(Math.atan2(Math.sin(c.yaw - wy), Math.cos(c.yaw - wy))));
+    r.camelsWalking = CS.filter(c => c.mode === "walk").length; r.camelOffWind = off.map(a => +a.toFixed(2));
+    window.__set({weather: "sun", ct: "clear"}); q.HS.pin = null;
+    q.sim(60, .25); r.coverAt60 = q.WX.hc; r.wetPeak = q.WX.hm; for (let i = 0; i < 20; i++) { q.sim(15, .5); r.wetPeak = Math.max(r.wetPeak, q.WX.hm); }
+    r.coverAt360 = q.WX.hc; q.sim(900, 1); r.wetAfter = q.WX.hm; r.coldAfter = q.WX.cold;
+    for (const k in r) if (typeof r[k] === "number") r[k] = +r[k].toFixed(3);
+    const n = k => C[k] || 0;
+    return [r.burstAfterGust && r.gust > .6 && r.windInGust > .7 && r.hail > .8 && r.rain < .05 && r.streaks > .5 && r.cover > .4 && r.pits > .4 &&
+      n("sand") > 60 && n("rebound") > 10 && n("pit") > 15 && n("tent") > 5 && n("palm") > 3 && n("pond") > 5 && (!sg || n("cactus") > 1) &&
+      rt > lt + .1 && n("restTr") > n("restCr") && r.tentShake > .5 && r.palmTwitch > .1 &&
+      ["dHs1", "dHt1", "dHp1", "dHc1"].every(k => shots.has(k)) && ["hsand", "htent", "hleaf", "hwat"].every(k => loops.has(k)) &&
+      r.cold === 1 && hid && r.camelsWalking === 0 && off.every(a => a < .45) &&
+      r.coverAt60 < r.cover && r.coverAt360 < .03 && r.wetPeak > .2 && r.wetAfter < .05 && r.coldAfter === 0, r];
+  }));
+
+  /* 13. hail with rain: the stones fall through rain that wets the sand, tent and lake as rain does */
+  check("hail with rain", ...await page.evaluate(() => {
+    const q = window.__desQA();
+    window.__set({weather: "hail", hailLv: 2}); q.sim(60, 1 / 10);
+    const r = {hail: q.WX.hf, rain: q.WX.rain, wet: q.WX.wet, lake: q.pondU.uRainP.value, tent: q.tentU.uWetC.value};
+    for (const k in r) r[k] = +r[k].toFixed(3);
+    window.__set({weather: "sun", ct: "clear", hailLv: 1}); q.sim(600, 1);
+    return [r.hail > .5 && r.rain > .3 && r.wet > .2 && r.lake > .2 && r.tent > .2, r];
+  }));
+
+  /* 14. after the hail the dune still creeps, the wind still carries sand, and rain still wets everything */
+  await page.evaluate(() => { window.__set({weather: "sun", ct: "clear", wind: .8}); window.__desQA().sim(10); });
+  check("hail: dune deforms in wind", ...await duneCheck());
+  check("hail: wind blows sand", ...await sandCheck());
+  check("hail: rain on sand, tent and lake", ...await rainCheck());
+
+  /* 15. the rain sound is one continuous bed. After the first key press unlocks the audio, the base patter and the cloth loops are
+     already running silent on a clear day (only those two, as on main); the other layers start silent as the rain is chosen, before
+     any drop falls; rain, a change of intensity and taps on the screen then only move their gain, smoothly: no source
      is started again, the level never dips and recovers, and the master level does not duck on a tap. Real time, frames running. */
   await page.keyboard.press("F9");
   await page.evaluate(() => { const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .5}); q.sim(120, .5); q.freeze(false); });
-  await page.waitForFunction(() => { const A = window.__desQA().AU; const S = window.__sound; return A.lp.rain && A.lp.rtent && S.ctx === "running" && S.gain >= .95 * S.vol; }, {timeout: 120000, polling: 250});
+  await page.waitForFunction(() => { const A = window.__desQA().AU; const S = window.__sound; return A.lp.rain && A.lp.rtent && !A.lp.rain2 && !A.lp.rain3 && !A.lp.rtent2 && A.b.dRn2 && A.b.dRn3 && A.b.dRt2 && S.ctx === "running" && S.gain >= .95 * S.vol; }, {timeout: 120000, polling: 250});
   check("rain sound: one continuous bed, no dropouts, restarts or dips", ...await page.evaluate(async () => {
     const q = window.__desQA(), A = q.AU, S = window.__sound, sleep = ms => new Promise(r => setTimeout(r, ms));
-    const ids = ["rain", "rtent"], V = ids.map(k => A.lp[k]), src = V.map(L => L.s), n0 = ids.map(k => A.n[k]);
-    const r = {ctx: S.ctx, silentBefore: V.map(L => +L.g.gain.value.toFixed(3))}, G = ids.map(() => []), M = [];
+    const silentBefore = [A.lp.rain, A.lp.rtent].map(L => +L.g.gain.value.toFixed(3));
+    window.__set({weather: "hrain", ct: "overcast"}); q.sim(.1, .1);
+    const ids = ["rain", "rain2", "rain3", "rtent", "rtent2"], V = ids.map(k => A.lp[k]), src = V.map(L => L.s), n0 = ids.map(k => A.n[k]);
+    const r = {ctx: S.ctx, silentBefore}, G = ids.map(() => []), M = [];
     /* the weather is stepped ahead in one go (as a long stalled frame would); the audio then runs on in real time */
-    window.__set({weather: "hrain", ct: "overcast"}); q.sim(30, .5);
+    q.sim(30, .5);
     for (let i = 0; i < 120; i++) {
       await sleep(100);
       V.forEach((L, j) => G[j].push(L.g.gain.value)); M.push(S.gain);
@@ -234,10 +301,10 @@ try {
     }
     const dips = G.map(g => g.filter((v, i) => i > 0 && i < g.length - 1 && v < .9 * Math.min(g[i - 1], g[i + 1]) && g[i - 1] > .02).length);
     Object.assign(r, {sameSource: ids.every((k, j) => A.lp[k] === V[j] && V[j].s === src[j]), starts: ids.map((k, j) => A.n[k] - n0[j]), dips,
-      rainPeak: +Math.max(...G[0]).toFixed(3), rainEnd: +G[0][G[0].length - 1].toFixed(3), rainEndTarget: +(.6 * Math.min(1, Math.pow(q.WX.rain / .62, .6))).toFixed(3), masterMin: +Math.min(...M).toFixed(3), masterAt: M.indexOf(Math.min(...M)), master0: +M[0].toFixed(3), vol: S.vol});
+      rainPeak: +Math.max(...G[0]).toFixed(3), rainEnd: +G[0][G[0].length - 1].toFixed(3), rainEndTarget: +(.45 * Math.min(1, Math.pow(q.WX.rain / .62, .6))).toFixed(3), masterMin: +Math.min(...M).toFixed(3), masterAt: M.indexOf(Math.min(...M)), master0: +M[0].toFixed(3), vol: S.vol});
     /* the beds themselves: no 5 ms block 9 dB under the running level (a dropout in the recording), and the loop wraps
        without a step (the jump from the last sample to the first is no bigger than an ordinary sample-to-sample change) */
-    r.bed = ["dRn", "dRt"].map(k => { const B = A.b[k], n = B.length, d = new Float32Array(n), h = Math.round(B.sampleRate * .005), nb = Math.floor(n / h), e = [];
+    r.bed = ["dRn", "dRt", "dRn2", "dRn3", "dRt2"].map(k => { const B = A.b[k], n = B.length, d = new Float32Array(n), h = Math.round(B.sampleRate * .005), nb = Math.floor(n / h), e = [];
       for (let c = 0; c < B.numberOfChannels; c++) { const x = B.getChannelData(c); for (let i = 0; i < n; i++) d[i] += x[i] / B.numberOfChannels; }
       for (let b = 0; b < nb; b++) { let s = 0; for (let i = b * h; i < b * h + h; i++) s += d[i] * d[i]; e.push(10 * Math.log10(s / h + 1e-12)); }
       let gaps = 0; for (let b = 0; b < nb; b++) { const w = e.slice(Math.max(0, b - 40), b + 41).sort((u, v) => u - v); if (e[b] < w[w.length >> 1] - 9) gaps++; }
@@ -247,6 +314,95 @@ try {
     return [r.bed.every(b => b.seamless && b.gaps === 0 && b.wrapStep < 4) && r.ctx === "running" && r.silentBefore.every(v => v < .01) && r.sameSource && r.starts.every(n => n === 0) && dips.every(n => n === 0) &&
       r.rainPeak > .3 && r.rainEnd < r.rainPeak && Math.abs(r.rainEnd - r.rainEndTarget) < .05 && r.masterMin >= .95 * r.vol, r];
   }));
+
+  /* 16. the rain is heard as it is seen: the patter swells and dies with the drawn rain, from three beds of different lengths;
+     the pond plinks, the palm crowns tick, single drops land close by on the sand and the cloth, and when the rain has stopped
+     the cloth and fronds go on dripping for a while. Hail runs the same way: its beds start once and then only change level. */
+  check("rain sound follows the rain, by surface, near drops, drips after; hail beds never restart", ...await page.evaluate(() => {
+    const q = window.__desQA(), A = q.AU, T = q.TENT, r = {};
+    window.__set({weather: "sun", ct: "clear", wind: .5, hailLv: 1}); q.sim(400, 1);
+    /* the camera stands on open sand beside the tent, where a fair share of the ground the near drops land on (0.5-3.5 m
+       round it, as the sound picks it) is the tent roof; that share is worked out with the same roof lookup */
+    const onRoof = (x, z) => Math.abs(x - T.x) < 4 && Math.abs(z - T.z) < 4 && q.roofAt(x, z) > -50;
+    const share = (cx, cz) => { let n = 0, t = 0, w = 0; for (let d = .55; d < 3.5; d += .1) for (let k = 0; k < 72; k++) { const a = k / 72 * Math.PI * 2, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; n++; if (onRoof(x, z)) t++; else if (q.pN(x, z) < 1) w++; } return {roof: t / n, pond: w / n}; };
+    let best = null;
+    for (let k = 0; k < 24; k++) for (const d of [2, 2.5, 3, 3.5, 4, 4.5, 5]) { const a = k / 24 * Math.PI * 2, x = T.x + Math.cos(a) * d, z = T.z + Math.sin(a) * d;
+      if (onRoof(x, z) || q.pN(x, z) < 1.3) continue; const S = share(x, z); if (S.pond > 0) continue;
+      if (!best || Math.abs(S.roof - .4) < Math.abs(best.roof - .4)) best = {x, z, roof: S.roof}; }
+    const gx = best.x, gz = best.z, gy = q.hTop(gx, gz), C = window.__C(); C.Ce.enabled = false;
+    /* aimed through the tent at a point well past it, so the view controls' minimum distance does not push the camera back */
+    const ux = (T.x - gx) / Math.hypot(T.x - gx, T.z - gz), uz = (T.z - gz) / Math.hypot(T.x - gx, T.z - gz);
+    q.lookAt(gx, gy + 1.6, gz, gx + ux * 14, gy + .4, gz + uz * 14); q.sim(1, 1 / 10);
+    /* the share is taken where the camera really is (the view controls may have nudged it) */
+    const cl = q.W.worldToLocal(C.De.position.clone()); r.camOff = +Math.hypot(cl.x - gx, cl.z - gz).toFixed(2); r.camAim = +best.roof.toFixed(3); r.roofShare = +share(cl.x, cl.z).roof.toFixed(3);
+    /* sampled every quarter second, so the swell at the start (well under a second to half strength) is resolved */
+    const h = .25, dt = h / 3; q.audCap(true); const T0 = q.st.t, vis = [], ts = [];
+    window.__set({weather: "hrain", ct: "overcast"}); for (let i = 0; i < 90 / h; i++) { q.sim(h, dt); vis.push(q.WX.rain); ts.push(q.st.t - T0); }
+    const tStop = vis.length, tS = ts[tStop - 1]; window.__set({weather: "sun", ct: "clear"}); for (let i = 0; i < 150 / h; i++) { q.sim(h, dt); vis.push(q.WX.rain); ts.push(q.st.t - T0); }
+    const ev = q.audCap(false), t0 = 0, tEnd = ts[ts.length - 1];
+    const tgt = id => { const o = [], L = ev.filter(e => e[1] === "L" && e[2] === id); let j = 0, v = 0; for (let i = 0; i < vis.length; i++) { while (j < L.length && L[j][0] <= ts[i]) v = L[j++][4]; o.push(v); } return o; };
+    const half = (a, from, up) => { const m = Math.max(...a); for (let i = from; i < a.length; i++) if (up ? a[i] >= m / 2 : a[i] < m / 2) return +ts[i].toFixed(2); return -1; };
+    const au = tgt("rain"), au2 = tgt("rain2"), au3 = tgt("rain3"), vt = vis.map(v => Math.pow(Math.min(1, v / .62), .6));
+    r.onsetVis = half(vt, 0, 1); r.onsetAud = half(au, 0, 1); r.stopVis = half(vt, tStop, 0); r.stopAud = half(au, tStop, 0);
+    r.layers = [au, au2, au3].map(a => +Math.max(...a).toFixed(3));
+    r.surf = ["rwat", "rleaf", "rtent"].map(id => +Math.max(...tgt(id)).toFixed(3));
+    const shots = (k, a, b) => ev.filter(e => e[1] === "S" && e[2] === k && e[0] - t0 >= a && e[0] - t0 < b).length;
+    r.near = {sand: shots("dRd1", 0, tS), tent: shots("dRd2", 0, tS)}; r.near.tentShare = +(r.near.tent / Math.max(1, r.near.sand + r.near.tent)).toFixed(3);
+    const dry = ts[vis.findIndex((v, i) => i > tStop && v < .004)];
+    r.dryAt = +dry.toFixed(2); r.dripsAfter = ["dDp1", "dDp2", "dDp3"].reduce((s, k) => s + shots(k, dry, tEnd + 1), 0); r.dropsAfter = shots("dRd1", dry + 1, tEnd + 1) + shots("dRd2", dry + 1, tEnd + 1);
+    r.lingerEnd = (() => { let l = -1; for (const e of ev) if (e[1] === "S" && /^dDp/.test(e[2])) l = e[0] - t0; return +(l - dry).toFixed(1); })();
+    /* hail, sun, hail again: every rain and hail bed that exists keeps its one source */
+    const B = ["rain", "rain2", "rain3", "rtent", "rtent2", "rwat", "rleaf", "hsand", "htent", "hleaf", "hwat"];
+    window.__set({weather: "hail"}); q.sim(40, 1 / 10);
+    const src = B.map(k => A.lp[k] && A.lp[k].s), n0 = B.map(k => A.n[k] || 0);
+    window.__set({weather: "sun", ct: "clear"}); q.sim(240, .5); window.__set({weather: "hail"}); q.sim(40, 1 / 10); window.__set({weather: "lrain"}); q.sim(30, .5);
+    r.voices = B.filter((k, j) => src[j]).length; r.restarts = B.filter((k, j) => !src[j] || A.lp[k].s !== src[j] || (A.n[k] || 0) !== n0[j]);
+    r.loopWrap = ["dHsd", "dHtn", "dHlf", "dHwt", "dRwt", "dRlf"].map(k => { const b = A.b[k]; if (!b) return null; const d = b.getChannelData(0), R = b.sampleRate, a = Math.round(.5 * R), e = a + Math.round(q.LL[k] * R);
+      let md = 0; for (let i = a + 1; i < e; i++) md += Math.abs(d[i] - d[i - 1]); md /= e - a - 1; return +(Math.abs(d[a] - d[e - 1]) / md).toFixed(2); });
+    window.__set({weather: "sun", ct: "clear"}); q.sim(400, 1); C.Ce.enabled = true;
+    return [r.onsetVis > 0 && Math.abs(r.onsetAud - r.onsetVis) <= .5 && Math.abs(r.stopAud - r.stopVis) <= .5 && r.layers.every(v => v > .1) &&
+      r.surf.every(v => v > .01) && r.roofShare > .2 && r.near.sand >= 30 && r.near.tent >= 30 && Math.abs(r.near.tentShare - r.roofShare) < .12 && r.dropsAfter === 0 && r.dripsAfter >= 3 && r.lingerEnd > 8 && r.lingerEnd < 60 &&
+      r.voices === B.length && r.restarts.length === 0 && r.loopWrap.every(w => w !== null && w < 4), r];
+  }));
+
+  /* 17. sand covers the whole rim: the fine sand over the lip runs all the way round the island. The rim is rendered from four
+     sides with and without the sand veneer; along the top of the wall just under the lip (facing the camera) the picture must
+     change nearly everywhere, in every quarter. */
+  await page.evaluate(() => { document.body.classList.add("col", "snc"); const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .35}); q.tod("day"); q.sim(5); window.__C().Ce.enabled = false; });
+  const fr = n => page.evaluate(n => new Promise(r => { let k = 0; const f = () => (++k >= n ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
+  const AZS = [.4, 2, 3.6, 5.2], rimShots = {};
+  const aimRim = a => page.evaluate(a => { const q = window.__desQA(), C = window.__C(), [ex, ez] = q.edgeXZ(a, 1), h = q.hTop(ex * .97, ez * .97);
+    C.De.position.copy(q.toW(ex * 1.55, h + 3, ez * 1.55)); C.Ce.target.copy(q.toW(ex, h - 1.2, ez)); C.De.lookAt(C.Ce.target); C.De.fov = 60; C.De.updateProjectionMatrix(); C.De.updateMatrixWorld(); }, a);
+  for (const v of [0, 1]) {
+    await page.evaluate(v => { window.__desQA().rockU.uVen.value = v; }, v);
+    for (const a of AZS) { await aimRim(a); await fr(4); await sleep(300); rimShots[a + ":" + v] = await page.screenshot({encoding: "base64"}); }
+  }
+  for (const a of AZS) await aimRim(a);
+  check("sand covers the whole rim", ...await page.evaluate(async (S, AZS) => {
+    const q = window.__desQA(), C = window.__C(), cam = C.De, M = q.rock(), P = M.geometry.attributes.position, V = M.geometry.attributes.aV;
+    const img = async b => { const im = await createImageBitmap(await (await fetch("data:image/png;base64," + b)).blob()), cv = new OffscreenCanvas(im.width, im.height), g = cv.getContext("2d");
+      g.drawImage(im, 0, 0); return {d: g.getImageData(0, 0, im.width, im.height).data, w: im.width, h: im.height}; };
+    const nR = 7 + 64, NT = (P.count - 1) / nR, r = {quarters: []}, p = new (cam.position.constructor)(), cl = new (cam.position.constructor)();
+    for (const a of AZS) {
+      const A = await img(S[a + ":0"]), B = await img(S[a + ":1"]), [ex, ez] = q.edgeXZ(a, 1), h = q.hTop(ex * .97, ez * .97);
+      cam.position.copy(q.toW(ex * 1.55, h + 3, ez * 1.55)); C.Ce.target.copy(q.toW(ex, h - 1.2, ez)); cam.lookAt(C.Ce.target); cam.fov = 60; cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+      M.updateMatrixWorld(); cl.copy(cam.position); M.worldToLocal(cl);
+      let n = 0, cov = 0;
+      for (let j = 0; j < NT; j++) {
+        const th = j / NT * Math.PI * 2, da = Math.atan2(Math.sin(th - a), Math.cos(th - a)); if (Math.abs(da) > .45) continue;
+        const k = 3 * NT + j, d = V.getX(k); if (d < .1 || d > 1.2) continue;
+        p.set(P.getX(k), P.getY(k), P.getZ(k)); const ox = Math.cos(th), oz = Math.sin(th);
+        if ((cl.x - p.x) * ox + (cl.z - p.z) * oz < 0) continue;
+        p.applyMatrix4(M.matrixWorld).project(cam); const x = Math.round((p.x + 1) / 2 * A.w), y = Math.round((1 - p.y) / 2 * A.h);
+        if (x < 3 || y < 3 || x >= A.w - 3 || y >= A.h - 3) continue;
+        let md = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const o = ((y + dy) * A.w + x + dx) * 4; md = Math.max(md, Math.abs(A.d[o] - B.d[o]) + Math.abs(A.d[o + 1] - B.d[o + 1]) + Math.abs(A.d[o + 2] - B.d[o + 2])); }
+        n++; if (md > 18) cov++;
+      }
+      r.quarters.push({az: a, n, covered: +(cov / Math.max(1, n)).toFixed(3)});
+    }
+    q.rockU.uVen.value = 1; C.Ce.enabled = true;
+    return [r.quarters.every(Q => Q.n >= 8 && Q.covered >= .9), r];
+  }, rimShots, AZS));
 } finally { await browser.close(); server.close(); }
 if (failures.length) { console.log(`\n${failures.length} failure(s)`); process.exit(1); }
 console.log("\nall desert checks ok");

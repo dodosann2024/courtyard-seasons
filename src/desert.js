@@ -2545,8 +2545,8 @@ function groundFrame(x,z,yaw,L,Wd){
    and a shaded wall and a dark floor. Prints are laid where a foot actually comes to rest, and wind, blowing sand and rain
    wear them away (slowly in still air, within seconds in a dust storm). instanceColor carries (kind + variant/4, wear clock
    at birth, depth). ---- */
-const PRK={drom:0,bact:1,talon:2,wing:3,lie:4,ost:5,tort:6,gerb:7,scorp:8,pal:9};
-const PR_SZ=[.28,.32,.2,.9,2.1,.25,.11,.065,.075,.5];
+const PRK={drom:0,bact:1,talon:2,wing:3,lie:4,ost:5,tort:6,gerb:7,scorp:8,pal:9,hole:10};
+const PR_SZ=[.28,.32,.2,.9,2.1,.25,.11,.065,.075,.5,.17];
 const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
   const m=new T.SM({transparent:true,depthWrite:false,side:2,blending:5,blendSrc:208,blendDst:202,blendSrcAlpha:200,blendDstAlpha:201,
     polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,uniforms:{uE:{value:0},uKs:{value:.7},uSnw:{value:0},uLd:sandU.uLd,uWD:sandU.uWD},
@@ -2610,7 +2610,10 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
       /* a hollow scraped or sat into the sand: a tortoise's shade pallet, the dip where an ostrich sat, the spoil heaped ahead */
       float pal(vec2 p){float q=length(p/vec2(18.,23.))+(dn2(p*.12+vSd*4.)-.5)*.14;
         return -2.6*smoothstep(1.03,.35,q)+1.5*exp(-(q-1.1)*(q-1.1)*14.)*(1.+1.4*smoothstep(0.,22.,p.y))+.3*(dn2(p*.6+vSd*7.)-.5);}
-      float hgt(vec2 p,float k,float v){if(k<1.5)return camel(p,v,k)*(k<.5?1.4:1.);if(k<2.5)return talon(p);if(k<3.5)return wing(p);if(k<4.5)return lie(p,v);
+      /* a gerbil's hole: a dark mouth sloping down under the sand, the spoil kicked out of it fanned on one side */
+      float hole(vec2 p){float r=length(p/vec2(2.5,2.3))+(dn2(p*.9+vSd*3.)-.5)*.12;vec2 m=(p-vec2(0.,4.6))/vec2(4.2,3.4);
+        return -5.*smoothstep(1.05,.25,r)+.9*exp(-(r-1.15)*(r-1.15)*6.)+1.5*exp(-dot(m,m))*(1.+.4*dn2(p*.7+vSd*5.));}
+      float hgt(vec2 p,float k,float v){if(k>9.5)return hole(p);if(k<1.5)return camel(p,v,k)*(k<.5?1.4:1.);if(k<2.5)return talon(p);if(k<3.5)return wing(p);if(k<4.5)return lie(p,v);
         if(k<5.5)return ost(p);if(k<6.5)return tort(p,v);if(k<7.5)return gerb(p);if(k<8.5)return scorp(p);return pal(p);}
       /* wear (w 0 fresh .. 1 gone): the heaped rims blow away first and the walls slump, while drifting sand fills the print
          from its upwind edge in a ragged front that creeps downwind */
@@ -2627,6 +2630,7 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
         float F=clamp(mix(1.,df,uKs)*ao,.12,1.7);
         /* pressed sand is packed smooth and reads darker than the loose sand round it, the heaped rim lighter, whatever the sun's height */
         if(big>.5)F*=(1.-.2*clamp(-h0/2.5,0.,1.))*(1.+.1*clamp(h0/1.5,0.,1.));
+        if(k>9.5)F*=mix(1.,.18,smoothstep(-1.5,-4.,h0));
         /* a print only a few pixels across: its lit rim and shaded floor would average out to nothing, so it settles to a soft dent */
         float os=step(4.5,k)*step(k,5.5),lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y)))*max(step(k,2.5),os),R=k<.5?10.5*vG:k<1.5?9.*vG:os>.5?5.5*vG:6.*vG;
         F=mix(F,1.-(k<.5?.62:.42)*(k<2.5||os>.5?exp(-dot(p-vec2(0.,os*2.),p-vec2(0.,os*2.))/(R*R)):clamp(-h0*1.4,0.,1.)),lod);
@@ -4320,7 +4324,7 @@ function paMat(){if(PA_MAT)return PA_MAT;const m=new VT.THREE.MeshStandardMateri
       .replace("#include <color_fragment>","#include <color_fragment>\npaFray();paSurf(diffuseColor.rgb,paR);")
       .replace("#include <roughnessmap_fragment>","#include <roughnessmap_fragment>\nroughnessFactor=paR;")
       /* a scorpion's cuticle fluoresces a faint blue-green in the moonlight */
-      .replace("#include <emissivemap_fragment>","#include <emissivemap_fragment>\nif(vS>3.5&&vS<4.5)totalEmissiveRadiance+=vec3(.12,.62,.5)*uGlow*(.6+.4*dot(diffuseColor.rgb,vec3(.5)));")};
+      .replace("#include <emissivemap_fragment>","#include <emissivemap_fragment>\nif(vS>3.5&&vS<4.5)totalEmissiveRadiance+=vec3(.035,.2,.16)*uGlow*(.6+.4*dot(diffuseColor.rgb,vec3(.5)));")};
   m.customProgramCacheKey=()=>"pa82";return PA_MAT=m}
 function paMesh(G,R){const TH=VT.THREE,m=new TH.SkinnedMesh(G.build(),paMat());m.add(R.L[0]);m.updateMatrixWorld(true);m.bind(new TH.Skeleton(R.L));
   m.frustumCulled=false;m.castShadow=true;m.receiveShadow=true;return m}
@@ -4637,6 +4641,164 @@ function torFollow(A,dt){const p=A.path[A.pi],dx=p.x-A.x,dz=p.z-A.z,d=Math.hypot
   const dy=wrapA(Math.atan2(dx,dz)-A.yaw);steer(A,dy,.45,dt);const vt=.07*cl(1-Math.abs(dy)/1.,.1,1);A.v+=(vt-A.v)*Math.min(1,dt*1.5);return true}
 function torLoad(){const g=navGrid("tort",.18,1.12,.82);
   for(let i=0;i<2;i++){const A=torSpawn();PA.tt.push(A);const o=PINS.filter(p=>pN(p.x,p.z)>1.5)[i*3+1]||{x:0,z:0};const p=randFree(g,o.x,o.z,1.2)||randFree(g,0,0,12)||{x:1,z:1};torPlace(A,p.x,p.z,rr(-3,3))}}
+/* ---- gerbils: 10 cm of sandy-orange back over a white belly, a 12 cm tail ending in a dark tuft, big black eyes and long
+   hind feet. Each lives at a burrow (a hole with its spoil heaped beside it) by a patch of dry tufts. Out at dawn, dusk and
+   through the night, below ground in the heat of the day and in rain, hail or a dust storm. Out, it darts about in bursts of
+   hops, stops to nibble seed, sits up on its hind feet to scan, and at anything coming (the snake, the eagle, an ostrich, a
+   camel, a viewer leaning in) it bolts for its hole and dives in with a spurt of sand, peeking out again a while later. ---- */
+const GB_B=[["body",null,[0,.03,0]],["chest","body",[0,.032,.035]],["head","chest",[0,.04,.068],[0,.037,.11]],
+  ["t0","body",[0,.028,-.032]],["t1","t0",[0,.022,-.065]],["t2","t1",[0,.016,-.1]],["t3","t2",[0,.013,-.135],[0,.012,-.165]],
+  ["hL","body",[.017,.026,-.012]],["sL","hL",[.021,.013,-.004]],["fL","sL",[.02,.004,-.014],[.02,.002,.017]],
+  ["hR","body",[-.017,.026,-.012]],["sR","hR",[-.021,.013,-.004]],["fR","sR",[-.02,.004,-.014],[-.02,.002,.017]],
+  ["aL","chest",[.011,.024,.045]],["pL","aL",[.012,.006,.05],[.012,.002,.058]],["aR","chest",[-.011,.024,.045]],["pR","aR",[-.012,.006,.05],[-.012,.002,.058]]];
+const GB_IX=Object.fromEntries(GB_B.map((d,i)=>[d[0],i]));
+function gbGeo(){const G=paGeo(),X=GB_IX,w=(a,b)=>[[X[a],.5],[X[b],.5]],back=[.8,.63,.44],bel=[.95,.93,.88],pink=[.92,.74,.7],ft=[.93,.88,.8];
+  const col=(p,ca,sa)=>sa<-.25?bel:sa<.1?[mix(bel[0],back[0],ss(-.25,.1,sa)),mix(bel[1],back[1],ss(-.25,.1,sa)),mix(bel[2],back[2],ss(-.25,.1,sa))]:[back[0]*(1-.12*sa),back[1]*(1-.14*sa),back[2]*(1-.16*sa)];
+  G.loft([[-.04,.012,.011,.03,X.body],[-.03,.021,.021,.03,X.body],[-.012,.026,.025,.031,X.body],[.008,.024,.023,.032,X.body],[.028,.02,.02,.034,w("body","chest")],[.048,.016,.016,.037,X.chest],[.062,.012,.013,.04,w("chest","head")]]
+    .map(r=>({c:[0,r[3],r[0]],rx:r[1],ry:r[2],bw:r[4],col})),PSK.fur,14,true,[0,1,0]);
+  /* head: a rounded skull tapering to a blunt pink-nosed snout, big dark eyes ringed pale, round ears */
+  G.ell([0,.043,.083],[.0155,.0155,.024],(p,x,y,z)=>y<-.3?bel:Math.hypot(x,z-.3)<.0?bel:back,PSK.fur,X.head,12,8,(x,y,z)=>[x*(1-.45*Math.max(0,z)),y*(1-.35*Math.max(0,z)),z]);
+  G.ell([0,.039,.106],[.0033,.003,.003],pink,PSK.skin,X.head,6,4);
+  for(const s of[-1,1]){G.ell([s*.0095,.0475,.087],[.0062,.0062,.0062],[.97,.93,.86],PSK.fur,X.head,8,6);G.ell([s*.0112,.0478,.0885],[.0052,.0055,.0055],[.06,.05,.05],PSK.eye,X.head,8,6);
+    G.ell([s*.0105,.058,.072],[.0055,.0085,.0022],(p,x,y,z)=>z>0?pink:back,PSK.skin,X.head,8,5,(x,y,z)=>[x*Math.cos(.5)-z*Math.sin(.5)*s,y,x*Math.sin(.5)*s+z*Math.cos(.5)])}
+  /* tail: thin, furred, the last third a dark brush */
+  G.loft([{c:[0,.028,-.032],rx:.0045,ry:.0045,bw:w("body","t0")},{c:[0,.022,-.065],rx:.0035,ry:.0035,bw:w("t0","t1")},{c:[0,.016,-.1],rx:.003,ry:.003,bw:w("t1","t2")},{c:[0,.013,-.135],rx:.0028,ry:.0028,bw:w("t2","t3")},{c:[0,.012,-.16],rx:.002,ry:.002,bw:X.t3}]
+    .map(r=>(r.col=back,r)),PSK.fur,6,true);
+  G.ell([0,.012,-.152],[.0048,.0048,.017],[.32,.24,.17],PSK.fur,X.t3,8,6);
+  /* hind legs: a haunch, the shank, the long pale-furred foot; the forelegs short, with small pink hands */
+  for(const s of[-1,1]){const L=s>0?"L":"R",h=GB_B[X["h"+L]][2],k=GB_B[X["s"+L]][2],f=GB_B[X["f"+L]][2],tp=GB_B[X["f"+L]][3];
+    G.ell([h[0],h[1]-.004,h[2]-.002],[.0095,.012,.015],col,PSK.fur,w("body","h"+L),10,6);
+    G.loft([{c:h,rx:.005,ry:.005,bw:X["h"+L]},{c:k,rx:.0035,ry:.0035,bw:w("h"+L,"s"+L)},{c:f,rx:.003,ry:.003,bw:w("s"+L,"f"+L)}].map(r=>(r.col=bel,r)),PSK.fur,6,false,[0,0,1]);
+    G.loft([{c:f,rx:.0034,ry:.003,bw:X["f"+L]},{c:[f[0],.003,f[2]+.016],rx:.003,ry:.0022,bw:X["f"+L]},{c:tp,rx:.0022,ry:.0015,bw:X["f"+L]}].map(r=>(r.col=ft,r)),PSK.fur,6,true);
+    const a=GB_B[X["a"+L]][2],pw=GB_B[X["p"+L]][2];
+    G.loft([{c:a,rx:.0035,ry:.0035,bw:w("chest","a"+L)},{c:pw,rx:.0022,ry:.0022,bw:w("a"+L,"p"+L)}].map(r=>(r.col=bel,r)),PSK.fur,6,false,[0,0,1]);
+    G.ell([pw[0],.004,pw[2]+.004],[.0028,.0018,.004],pink,PSK.skin,X["p"+L],6,4)}
+  return G}
+/* burrows, by tufts away from the water and the camels' beat */
+const GB_H=[];
+function gbHoles(){if(GB_H.length)return GB_H;const g=navGrid("gerb",.15,1.4,.8);
+  const C=PINS.filter(o=>pN(o.x,o.z)>1.6&&Math.hypot(o.x-TENT.x,o.z-TENT.z)>5&&REST.every(r=>Math.hypot(o.x-r.x,o.z-r.z)>4)).sort((a,b)=>Math.hypot(a.x,a.z)-Math.hypot(b.x,b.z));
+  for(const o of C){if(GB_H.length>=3)break;if(GB_H.some(h=>Math.hypot(h.x-o.x,h.z-o.z)<5))continue;const p=randFree(g,o.x,o.z,.8);if(!p)continue;
+    GB_H.push({x:p.x,z:p.z,yaw:rr(-3,3),t:0})}
+  for(const h of GB_H)gbStamp(h);return GB_H}
+/* a hole is a print that never quite wears out: it is pressed again before the wind can fill it */
+function gbStamp(h){prAdd(PRK.hole,h.x,h.z,h.yaw,0,1,0,1);h.t=0}
+function gbSpawn(h){const G=gbGeo(),R=paBones(GB_B),m=paMesh(G,R),g=new T.Group();g.add(m);W.add(g);onDes(g);
+  return{g,m,B:R.B,sc:1,h,x:h.x,z:h.z,yaw:h.yaw,gy:hTop(h.x,h.z),v:0,yr:0,hph:0,hop:0,mode:"in",t:rr(1,6),out:false,emerge:0,goal:null,
+    P:{up:0,nib:0,crouch:0,look:0,lp:0,in:1},lookT:0,lookA:0,nibT:0}}
+const _gq=new T.Quat(),_gq2=new T.Quat(),_gqb=new T.Quat(),_gqc=new T.Quat(),_gv=new V3();
+function gbPose(A){const B=A.B,P=A.P,hp=A.hph,air=A.v>.05?Math.sin(Math.PI*hp):0,up=P.up,kick=A.v>.05?1:0;
+  /* the hop: body arcs, hind legs drive back at take-off and swing forward to land, forepaws reach ahead */
+  const ex=kick*Math.sin(TAU*hp),body_y=.03+.018*air*cl(A.v/1,0,1.2)+.026*up-.008*P.crouch-.05*P.in;
+  B.body.position.set(0,body_y+.006*P.nib,0);qYXZ(_gqb,-.15*ex*kick-1.15*up+.12*P.crouch-.6*P.nib,0,0);B.body.quaternion.copy(_gqb);
+  qYXZ(B.chest.quaternion,-.1*ex*kick-.25*up-.2*P.nib,0,0);
+  qYXZ(B.head.quaternion,.08*kick+1.05*up+.55*P.nib+.12*P.nib*Math.max(0,Math.sin(st.t*13))-.1+.15*P.crouch,P.look*(1-.6*P.nib),0);
+  for(let i=0;i<4;i++)qYXZ(B["t"+i].quaternion,(i?-.12:-.25)+.18*up+.05*Math.sin(st.t*3+i)*(1-kick)+.12*ex*kick,.12*Math.sin(st.t*1.7+i*.8)*(1-up),0);
+  for(const s of[1,-1]){const L=s>0?"L":"R";
+    qYXZ(B["h"+L].quaternion,.7*ex*kick+.35*up+.25*P.crouch+.45*P.nib,0,0);qYXZ(B["s"+L].quaternion,-.9*ex*kick+.5*up-.3*P.crouch+.1*P.nib,0,0);
+    qYXZ(B["f"+L].quaternion,.5*ex*kick+.3*up+.05*P.nib,0,0);
+    qYXZ(B["a"+L].quaternion,-.9*ex*kick-.55*up-1.25*P.nib,0,s*(.1-.2*P.nib));qYXZ(B["p"+L].quaternion,-.4*up-.5*P.nib,0,0)}}
+function gbThreat(A){const th=nearMov(A,["snake","eagle","ost","camel","tort","view","dbg"]);if(!th)return 0;const k=th.m.k,d=th.d;
+  return k==="eagle"?ss(10,4,d):k==="camel"||k==="ost"?ss(3,1.2,d):k==="view"?ss(1.6,.6,d):k==="tort"?ss(.4,.15,d):ss(2.2,.8,d)}
+function gbUpdate(A,dt,cam){const P=A.P,h=A.h,act=(st.phase!=="day"||st.night>.25)&&WX.rain<.08&&WX.hf<.02&&!WX.hcold&&WX.dust<.4&&WX.sf<.1;
+  A.t-=dt;const fear=A.mode==="in"?0:gbThreat(A);if(fear>.35&&A.mode!=="in"&&A.mode!=="bolt"&&A.mode!=="dive"){A.mode="bolt";A.t=3}
+  const toH=()=>{const dx=h.x-A.x,dz=h.z-A.z;return{d:Math.hypot(dx,dz),a:Math.atan2(dx,dz)}};
+  const go=(spd,tx,tz)=>{const dx=tx-A.x,dz=tz-A.z,d=Math.hypot(dx,dz),dy=wrapA(Math.atan2(dx,dz)-A.yaw);A.yaw=wrapA(A.yaw+cl(dy,-dt*9,dt*9));
+    const vt=spd*cl(1-Math.abs(dy)/1.5,0,1)*cl(d/.08,.2,1);A.v+=(vt-A.v)*Math.min(1,dt*10);return d};
+  switch(A.mode){
+    case"in":A.v=0;A.out=false;P.in=1;if(act&&A.t<0){A.mode="peek";A.t=rr(2,5);A.x=h.x;A.z=h.z;A.yaw=h.yaw+rr(-1,1);P.in=.6}break;
+    case"peek":A.out=true;A.v=0;P.in+=(.45-P.in)*ease(3,dt);if(!act||gbThreat(A)>.25){A.mode="in";A.t=rr(6,15);break}
+      if(A.t<0){A.mode="forage";A.t=rr(8,20);A.goal=null}break;
+    case"forage":{P.in*=Math.exp(-dt*8);if(!act){A.mode="bolt";break}
+      if(!A.goal||A.t<0&&A.v<.05){A.t=rr(.6,3);const r=rnd();if(r<.25){A.mode="stand";A.t=rr(1.2,3);break}if(r<.5){A.mode="nibble";A.t=rr(1.5,4);break}
+        const g=navGrid("gerb",.15,1.4,.8),p=randFree(g,h.x,h.z,2.6);A.goal=p;A.spd=rr(.5,1.4)}
+      if(A.goal&&go(A.spd,A.goal.x,A.goal.z)<.05){A.goal=null;A.t=rr(.2,1.2)}if(A.goal===null)A.v*=Math.exp(-dt*12);
+      if(Math.hypot(A.x-h.x,A.z-h.z)>3){A.goal={x:h.x,z:h.z}}break}
+    case"stand":case"nibble":A.v*=Math.exp(-dt*14);if(A.t<0){A.mode="forage";A.t=0;A.goal=null}break;
+    case"bolt":{const o=toH();if(go(2.2,h.x,h.z)<.06){A.mode="dive";A.t=.35;spPuff(h.x,hTop(h.x,h.z),h.z,8,-Math.sin(A.yaw),-Math.cos(A.yaw),.6,.5,.012)}break}
+    case"dive":A.v=0;P.in+=(1-P.in)*ease(9,dt);if(A.t<0){A.mode="in";A.t=rr(8,25);P.in=1;if(rnd()<.5)h.dig=1}break}
+  /* sand thrown back out of the hole as it clears it */
+  if(A.mode==="in"&&h.dig&&act){h.dg=(h.dg||0)-dt;if(h.dg<0){h.dg=rr(.25,.6);spPuff(h.x+Math.sin(h.yaw)*.03,hTop(h.x,h.z),h.z+Math.cos(h.yaw)*.03,3,Math.sin(h.yaw),Math.cos(h.yaw),.4,.5,.01)}if(rnd()<dt*.15)h.dig=0}
+  h.t+=dt;if(h.t>70)gbStamp(h);
+  /* hops: about 7 a second at a dash, each landing leaving a hop set */
+  if(A.v>.05){const ph=A.hph+dt*(4+3*cl(A.v,0,1.5));if(ph>=1&&A.mode!=="dive")paPrint(PRK.gerb,A.x,A.z,A.yaw,0,.9,0,1);A.hph=ph%1}else A.hph=0;
+  A.x+=Math.sin(A.yaw)*A.v*dt;A.z+=Math.cos(A.yaw)*A.v*dt;A.gy=hTop(A.x,A.z);
+  P.up+=((A.mode==="stand"?1:0)-P.up)*ease(7,dt);P.nib+=((A.mode==="nibble"?1:0)-P.nib)*ease(6,dt);P.crouch+=((A.mode==="peek"||A.mode==="nibble"?1:0)-P.crouch)*ease(5,dt);
+  A.lookT-=dt;if(A.lookT<0){A.lookT=rr(.3,1.4);A.lookA=rr(-.9,.9)}P.look+=(A.lookA-P.look)*ease(10,dt);
+  const D=Math.max(.05,cam.distanceTo(A.g.position));A.g.visible=A.mode!=="in"&&.12*PA.ppm/D>2.5;
+  A.g.position.set(A.x,A.gy-(P.in>.01?.0:0),A.z);A.g.rotation.y=A.yaw;if(A.g.visible){gbPose(A);blobAdd(A.x,A.gy,A.z,A.yaw,.03,.05,.3+.2*sunCast(),.6,0)}}
+function gbLoad(){for(const h of gbHoles()){const A=gbSpawn(h);PA.gb.push(A)}}
+/* ---- scorpions: deathstalkers, 9 cm of straw-yellow cuticle, slender pincers, the five-segment tail carried curled over
+   the back with the dark sting at its tip. By day each lies up under a rock; at dusk it waits at the rock's edge, and at night
+   it wanders slowly over the sand with long still pauses, feeling ahead with its pincers. When the snake, a camel, an ostrich
+   or a viewer comes near it turns to face it, rises on its legs, opens its pincers and arches the tail high, sting forward;
+   too close and it backs off under its rock. Under the moon its cuticle gives back a faint blue-green glow. ---- */
+const SC_TZ=[-.03,-.036,-.043,-.05,-.058,-.067,-.076];
+const SC_B=(()=>{const B=[["body",null,[0,.008,0]],["m1","body",[0,.009,SC_TZ[0]]]];
+  for(let i=1;i<6;i++)B.push(["m"+(i+1),"m"+i,[0,.009,SC_TZ[i]]]);B[B.length-1][3]=[0,.009,SC_TZ[6]];
+  for(const s of[1,-1]){const L=s>0?"L":"R";B.push(["pa"+L,"body",[s*.006,.009,.016]],["pb"+L,"pa"+L,[s*.017,.01,.026]],["pc"+L,"pb"+L,[s*.019,.01,.04]],["pd"+L,"pc"+L,[s*.017,.009,.052],[s*.015,.008,.068]]);
+    for(let k=0;k<4;k++){const z=.012-k*.0075;B.push(["la"+L+k,"body",[s*.006,.007,z]],["lb"+L+k,"la"+L+k,[s*.016,.014,z+(1.5-k)*.004]],["lc"+L+k,"lb"+L+k,[s*.026,.004,z+(1.5-k)*.009],[s*.031,0,z+(1.5-k)*.013]])}}
+  return B})();
+const SC_IX=Object.fromEntries(SC_B.map((d,i)=>[d[0],i]));
+function scGeo(){const G=paGeo(),X=SC_IX,w=(a,b)=>[[X[a],.5],[X[b],.5]],y=[.86,.74,.44],yD=[.7,.56,.3],dk=[.24,.17,.1];
+  /* carapace and the seven plates of the abdomen, flat and broad, darker at the seams */
+  G.ell([0,.009,.011],[.0075,.0035,.0105],y,PSK.cut,X.body,12,6,(a,b,c)=>[a*(1-.25*Math.max(0,c)),b,c]);
+  for(let i=0;i<7;i++){const z=-.0005-i*.0042,wd=.0085-(i>4?(i-4)*.0012:0);G.ell([0,.0085,z],[wd,.0033,.0027],i%2?y:[y[0]*.95,y[1]*.94,y[2]*.92],PSK.cut,i<6?X.body:w("body","m1"),10,5)}
+  /* the tail: five beaded segments getting longer, the last darkening into the bulb and the sting */
+  for(let i=0;i<5;i++){const a=SC_TZ[i],b=SC_TZ[i+1],r=.0028-i*.0001,c=i>3?[mix(y[0],dk[0],.4),mix(y[1],dk[1],.4),mix(y[2],dk[2],.4)]:y;
+    G.ell([0,.009,(a+b)/2],[r,r*.95,(a-b)*.6],c,PSK.cut,X["m"+(i+1)],8,6)}
+  G.ell([0,.009,-.071],[.0027,.0027,.0045],yD,PSK.cut,X.m6,8,6);
+  G.loft([{c:[0,.0085,-.075],rx:.0012,ry:.0012},{c:[0,.0065,-.0785],rx:.0008,ry:.0008},{c:[0,.004,-.079],rx:.0003,ry:.0003}].map(r=>(r.col=dk,r.bw=X.m6,r)),PSK.claw,6,true,[1,0,0]);
+  /* pincers on slender arms, and eight thin legs */
+  for(const s of[1,-1]){const L=s>0?"L":"R",p=n=>SC_B[X[n+L]][2];
+    G.loft([{c:p("pa"),rx:.0013,ry:.0013,bw:X["pa"+L]},{c:p("pb"),rx:.0013,ry:.0012,bw:w("pa"+L,"pb"+L)},{c:p("pc"),rx:.0014,ry:.0013,bw:w("pb"+L,"pc"+L)},{c:p("pd"),rx:.0018,ry:.0016,bw:X["pd"+L]}].map(r=>(r.col=y,r)),PSK.cut,6,false,[0,1,0]);
+    const d=p("pd");G.ell([d[0]-s*.0005,d[1],d[2]+.004],[.0026,.0022,.0055],y,PSK.cut,X["pd"+L],8,5);
+    G.loft([{c:[d[0]-s*.001,d[1],d[2]+.008],rx:.0009,ry:.0008},{c:[d[0]-s*.002,d[1],d[2]+.016],rx:.0003,ry:.0003}].map(r=>(r.col=yD,r.bw=X["pd"+L],r)),PSK.cut,5,true,[0,1,0]);
+    G.loft([{c:[d[0]+s*.0005,d[1],d[2]+.008],rx:.0008,ry:.0007},{c:[d[0]-s*.0005,d[1],d[2]+.015],rx:.0003,ry:.0003}].map(r=>(r.col=yD,r.bw=X["pd"+L],r)),PSK.cut,5,true,[0,1,0]);
+    for(let k=0;k<4;k++){const a=SC_B[X["la"+L+k]][2],b=SC_B[X["lb"+L+k]][2],c=SC_B[X["lc"+L+k]][2],t=SC_B[X["lc"+L+k]][3];
+      G.loft([{c:a,rx:.0009,ry:.0009,bw:X["la"+L+k]},{c:b,rx:.0008,ry:.0008,bw:w("la"+L+k,"lb"+L+k)},{c:c,rx:.0006,ry:.0006,bw:w("lb"+L+k,"lc"+L+k)},{c:t,rx:.00025,ry:.00025,bw:X["lc"+L+k]}].map(r=>(r.col=y,r)),PSK.cut,5,true,[0,1,0])}}
+  return G}
+function scSpawn(rk){const G=scGeo(),R=paBones(SC_B),m=paMesh(G,R),g=new T.Group();g.add(m);W.add(g);onDes(g);
+  return{g,m,B:R.B,sc:1,rk,x:rk.hx,z:rk.hz,yaw:rk.hy,gy:0,v:0,yr:0,gph:0,mode:"hide",t:rr(2,8),goal:null,trav:0,
+    P:{thr:0,raise:0,open:0,feel:0,look:0},thr:null}}
+/* rocks a scorpion can live under: its hiding place just inside the rock's shaded edge, its doorstep just outside */
+function scRocks(){const g=navGrid("scorp",.05,1.3,.84),L=OBST.filter(o=>o.k==="rock"&&o.r>=.35&&o.r<1.2&&pN(o.x,o.z)>1.5).sort((a,b)=>Math.hypot(a.x,a.z)-Math.hypot(b.x,b.z));const out=[];
+  for(const o of L){if(out.length>=2)break;if(out.some(r=>Math.hypot(r.x-o.x,r.z-o.z)<4))continue;const a=Math.atan2(SHADE.x,SHADE.z),ox=o.x+SHADE.x*(o.r+.08),oz=o.z+SHADE.z*(o.r+.08);
+    if(!navFree(g,ox,oz))continue;out.push({x:o.x,z:o.z,r:o.r,hx:o.x+SHADE.x*o.r*.7,hz:o.z+SHADE.z*o.r*.7,hy:a,dx:ox,dz:oz})}
+  return out}
+const _sqb=new T.Quat(),_sv=new V3();
+function scPose(A){const B=A.B,P=A.P,gp=A.gph*TAU,mv=cl(A.v/.04,0,1),th=P.thr;
+  B.body.position.set(0,.008+.004*th+.0006*Math.sin(gp*2)*mv,0);qYXZ(_sqb,-.12*th,0,.03*Math.sin(gp*2)*mv);B.body.quaternion.copy(_sqb);
+  /* tail: curled up and over the back; in threat higher and tighter, the sting over the head and twitching */
+  const tw=th*.12*Math.sin(st.t*9)*(Math.sin(st.t*1.7)>.3?1:0),C=[.75,.68,.6,.55,.48,.45],CT=[.95,.78,.65,.58,.52,.75];
+  for(let i=0;i<6;i++)qYXZ(B["m"+(i+1)].quaternion,mix(C[i],CT[i],th)+(i>3?tw:0)+.04*Math.sin(st.t*.9+i)*(1-th),i===0?P.look*.2:0,0);
+  for(const s of[1,-1]){const L=s>0?"L":"R",o=P.open;
+    qYXZ(B["pa"+L].quaternion,-.2*th-.15*P.feel*Math.sin(st.t*3+s),s*(.15+.35*o),0);qYXZ(B["pb"+L].quaternion,-.15*th,s*(-.5+.5*o+.15*P.feel*Math.sin(st.t*2.3)),0);
+    qYXZ(B["pc"+L].quaternion,0,s*(.45-.2*o),0);qYXZ(B["pd"+L].quaternion,0,s*.05,0);
+    /* legs: an alternating tetrapod, legs 1 and 3 of one side with 2 and 4 of the other */
+    for(let k=0;k<4;k++){const ph=gp+((k%2)^(s>0?0:1))*Math.PI,sw=Math.sin(ph),lf=Math.max(0,Math.cos(ph));
+      qYXZ(B["la"+L+k].quaternion,0,s*.32*sw*mv,s*(.35*lf*mv-.12*th));qYXZ(B["lb"+L+k].quaternion,0,0,s*.25*th)}}}
+function scUpdate(A,dt,cam){const P=A.P,rk=A.rk,dark=st.night>.55,dusk=st.phase==="sunset"||st.night>.3,bad=WX.rain>.15||WX.hf>.03||WX.hcold>0||WX.sf>.1;
+  A.t-=dt;const th=nearMov(A,["snake","camel","ost","view","tort","gerb","dbg"]);let fear=0,tx=0,tz=0;
+  if(th&&A.mode!=="hide"){const k=th.m.k,d=th.d;fear=k==="camel"||k==="ost"?ss(1.6,.5,d):k==="gerb"?ss(.25,.08,d):k==="view"?ss(.7,.2,d):ss(.9,.25,d);tx=th.m.x;tz=th.m.z}
+  const go=(spd,x,z)=>{const dx=x-A.x,dz=z-A.z,d=Math.hypot(dx,dz),dy=wrapA(Math.atan2(dx,dz)-A.yaw);A.yaw=wrapA(A.yaw+cl(dy,-dt*2.5,dt*2.5));A.v+=(spd*cl(1-Math.abs(dy),0,1)*cl(d/.05,.2,1)-A.v)*Math.min(1,dt*6);return d};
+  switch(A.mode){
+    case"hide":A.v=0;A.x=rk.hx;A.z=rk.hz;if(A.t<0&&(dusk||dark)&&!bad){A.mode="door";A.t=rr(20,50)}break;
+    case"door":if(go(.03,rk.dx,rk.dz)<.03)A.v*=Math.exp(-dt*8);if(fear>.85||bad||!dusk&&!dark){A.mode="home";break}
+      if(A.t<0&&dark){A.mode="roam";A.t=rr(6,14);A.goal=null}break;
+    case"roam":if(fear>.85||bad||!dark){A.mode="home";break}
+      if(!A.goal){const g=navGrid("scorp",.05,1.3,.84),p=randFree(g,rk.dx,rk.dz,2.2);A.goal=p;A.pause=0}
+      if(A.pause>0){A.pause-=dt;A.v*=Math.exp(-dt*10)}else if(A.goal&&go(.035,A.goal.x,A.goal.z)<.03){A.goal=null;A.pause=rr(2,7)}
+      if(A.t<0&&!A.goal){A.mode=rnd()<.3?"door":"roam";A.t=rr(15,40)}break;
+    case"home":if(go(.06,rk.dx,rk.dz)<.04){if(go(.03,rk.hx,rk.hz)<.03||Math.hypot(A.x-rk.hx,A.z-rk.hz)<.05){A.mode="hide";A.t=rr(30,90)}}break}
+  /* threat: face it, raise up, open the pincers, sting arched forward; when it is on top of us back off home */
+  const thr=fear>.25&&A.mode!=="hide"&&A.mode!=="home";if(thr){A.v*=Math.exp(-dt*10);const dy=wrapA(Math.atan2(tx-A.x,tz-A.z)-A.yaw);A.yaw=wrapA(A.yaw+cl(dy,-dt*3,dt*3))}
+  P.thr+=((thr?1:0)-P.thr)*ease(thr?6:1.5,dt);P.open+=((thr?1:A.mode==="roam"?.3:0)-P.open)*ease(4,dt);P.feel+=((A.mode==="roam"&&A.v>.01?1:0)-P.feel)*ease(2,dt);
+  A.x+=Math.sin(A.yaw)*A.v*dt;A.z+=Math.cos(A.yaw)*A.v*dt;A.gy=hTop(A.x,A.z);
+  if(A.v>.004){A.gph=(A.gph+dt*(1.5+60*A.v))%1;A.trav+=A.v*dt;if(A.trav>.07){A.trav=0;paPrint(PRK.scorp,A.x,A.z,A.yaw,0,.7,0,1)}}
+  const D=Math.max(.05,cam.distanceTo(A.g.position));A.g.visible=A.mode!=="hide"&&.09*PA.ppm/D>2.5;
+  A.g.position.set(A.x,A.gy,A.z);A.g.rotation.y=A.yaw;if(A.g.visible){scPose(A);blobAdd(A.x,A.gy,A.z,A.yaw,.035,.05,.25+.2*sunCast(),.7,0)}}
+function scLoad(){for(const rk of scRocks()){const A=scSpawn(rk);A.gy=hTop(A.x,A.z);PA.sc.push(A)}}
 /* per frame: who is about, then each animal; an animal too small on screen to see is skipped (it stays where it was) */
 const _pac=new V3();
 function paUpdate(dt){movers();const c=_pac.copy(De.position);W.worldToLocal(c);PA.ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
@@ -4644,6 +4806,8 @@ function paUpdate(dt){movers();const c=_pac.copy(De.position);W.worldToLocal(c);
   paU.uGlow.value=ss(.55,.95,st.night)*(1-.7*WX.rain);
   PA.tok=Math.min(6,PA.tok+dt*4);
   for(const A of PA.tt)torUpdate(A,dt,c);
+  for(const A of PA.gb)gbUpdate(A,dt,c);
+  for(const A of PA.sc)scUpdate(A,dt,c);
   for(const A of PA.os){osUpdate(A,dt);A.g.visible=2.4*A.sc*PA.ppm/Math.max(.1,c.distanceTo(A.g.position))>2}}
 /* ---- load + per-frame ---- */
 const animalsReady=propsReady.then(()=>{const big=[
@@ -4655,7 +4819,7 @@ const animalsReady=propsReady.then(()=>{const big=[
   ];
   /* the snake's file is the largest and the snake starts hidden in shade: on a slow link it must not hold up the rest */
   const after=Promise.all(big).then(()=>{AU.big=1});
-  return Promise.all(big.concat(after.then(pfLoad).catch(()=>{}),after.then(agLoad).catch(()=>{}),after.then(osLoad).catch(()=>{}),after.then(torLoad).catch(()=>{}),after.then(()=>glb(RS_FILE)).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
+  return Promise.all(big.concat(after.then(pfLoad).catch(()=>{}),after.then(agLoad).catch(()=>{}),after.then(osLoad).catch(()=>{}),after.then(torLoad).catch(()=>{}),after.then(gbLoad).catch(()=>{}),after.then(scLoad).catch(()=>{}),after.then(()=>glb(RS_FILE)).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
     const day=st.phase==="day",sp=day?snakeShadeSpot():randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;
     Object.assign(s,{x:sp.x,z:sp.z,yaw:sp.yaw!=null?sp.yaw:-.8,inShade:day?1:0});s.gy=hTop(s.x,s.z);s.g.position.set(s.x,s.gy,s.z);s.g.rotation.set(0,s.yaw,0);
     play(s.r,"relaxed_coil",.01,1)}).catch(()=>{})))});
@@ -4719,6 +4883,7 @@ const QA={rq:()=>0,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,T
   crabs:()=>CR.list.map(c=>({x:c.x,z:c.z,y:c.y,mode:c.mode,dep:pfDep(c.x,c.z),bx:c.bx,bz:c.bz,s:c.s,shown:c.mode!=="in"})),CR,
   /* procedural animals: PA registry; os() ostrich states (head height in island metres); paThreat(x,z,sec) puts a threat down */
   PA,paU,osPlace,osGo,osSpot,torPlace,torGo,torShade,
+  gbHoles,scRocks,gb:()=>PA.gb.map(A=>({x:A.x,z:A.z,mode:A.mode,v:A.v,up:A.P.up,vis:A.g.visible,h:A.h})),sc:()=>PA.sc.map(A=>({x:A.x,z:A.z,mode:A.mode,thr:A.P.thr,vis:A.g.visible,rk:A.rk})),
   tor:()=>PA.tt.map(A=>({x:A.x,z:A.z,yaw:A.yaw,v:A.v,mode:A.mode,wd:A.P.wd,dig:A.P.dig,sink:A.sink,vis:A.g.visible})),
 paThreat:(x,z,sec,r)=>{PA.dbg={x,z,r:r||.4,k:"dbg",o:null,until:st.t+(sec||4)}},
   os:()=>PA.os.map(A=>{const h=A.B.head.getWorldPosition(new V3());W.worldToLocal(h);return{x:A.x,z:A.z,yaw:A.yaw,v:A.v,mode:A.mode,male:A.male,headY:h.y-A.gy,sit:A.P.sit,vis:A.g.visible}}),

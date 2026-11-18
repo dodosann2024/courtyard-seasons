@@ -2790,10 +2790,11 @@ function eagleUpdate(e,dt){
   e.g.rotation.set(e.pit*.6-.7*wd,e.yaw,e.bank);rigTick(e.r,dt);eaglePlace(e)}
 
 /* ---- snake: coiled in shade by day; slithers by dusk and night, never into the water ---- */
-function snakeShadeSpot(){
+/* caught out in hail it makes for the nearest cover, a smaller rock or a shrub with a burrow under it */
+function snakeShadeSpot(near){
   const g=navGrid("snake",.32,1.3,.82);let best=null;
-  for(const o of OBST){if(o.k!=="rock"||o.r<.6)continue;const x=o.x+SHADE.x*(o.r+.42),z=o.z+SHADE.z*(o.r+.42);
-    if(!navFree(g,x,z))continue;const sc=-Math.hypot(x-SNK_HOME.x,z-SNK_HOME.z)*.12+o.r;if(!best||sc>best.sc)best={x,z,sc,yaw:Math.atan2(SHADE.x,SHADE.z)+2}}
+  for(const o of OBST){if(near?!(o.k==="rock"&&o.r>=.4||o.k==="shrub"&&o.r>=.45):o.k!=="rock"||o.r<.6)continue;const x=o.x+SHADE.x*(o.r+.42),z=o.z+SHADE.z*(o.r+.42);
+    if(!navFree(g,x,z))continue;const sc=near?-Math.hypot(x-near.x,z-near.z):-Math.hypot(x-SNK_HOME.x,z-SNK_HOME.z)*.12+o.r;if(!best||sc>best.sc)best={x,z,sc,yaw:Math.atan2(SHADE.x,SHADE.z)+2}}
   return best||{x:-2,z:12,yaw:0}}
 /* ---- rattlesnake ----
    A snake tastes the air with its mouth shut: the tongue slides out through the notch at the front-centre of the upper lip,
@@ -3127,9 +3128,11 @@ function rsUpdate(s,dt){
   /* travel */
   if(s.mode==="rest"){s.restT-=dt;if(s.restT<0){let to=s.next;s.next=null;
       s.hg=s.hunt?(rnd()<.6?"side":"serp"):null;
-      if(!to){if(day){const sp=snakeShadeSpot();to={x:sp.x,z:sp.z,shade:1}}else if(s.hunt&&(to=rsHuntSpot(s))){to.hunt=1}else{const g=navGrid("snake",.32,1.3,.82);to=randFree(g,SNK_HOME.x,SNK_HOME.z,9,(x,z)=>Math.hypot(x-b.P[0],z-b.P[1])>2.5)}}
+      if(!to){if(day){const sp=snakeShadeSpot(WX.hcold?{x:b.P[0],z:b.P[1]}:null);to={x:sp.x,z:sp.z,shade:1}}else if(s.hunt&&(to=rsHuntSpot(s))){to.hunt=1}else{const g=navGrid("snake",.32,1.3,.82);to=randFree(g,SNK_HOME.x,SNK_HOME.z,9,(x,z)=>Math.hypot(x-b.P[0],z-b.P[1])>2.5)}}
       if(to&&rsGoTo(s,to)){s.mode="crawl";s.a=0;const want=s.lock||rsGaitAt(s,b.P[0],b.P[1]);
         if(want==="side"){s.gait="side";swInit(s,s.path[1])}else{s.gait=want;s.rk=want==="rect"?1:0}}else s.restT=1}}
+  if(s.mode==="crawl"&&WX.hcold&&!s.goal.near){const sp=snakeShadeSpot({x:b.P[0],z:b.P[1]});s.goal.near=1;
+    if(Math.hypot(sp.x-b.P[0],sp.z-b.P[1])<Math.hypot(s.goal.x-b.P[0],s.goal.z-b.P[1])-1)rsGoTo(s,{x:sp.x,z:sp.z,shade:1,near:1})}
   if(s.mode==="crawl"){const C=rsCentre(s),ref=s.gait==="side"?C:{x:b.P[0],z:b.P[1]};
     let wp=s.path[s.pi],last=s.pi===s.path.length-1;
     if(!last&&Math.hypot(wp.x-ref.x,wp.z-ref.z)<(s.gait==="side"?.7:.45)){s.pi++;wp=s.path[s.pi];last=s.pi===s.path.length-1}

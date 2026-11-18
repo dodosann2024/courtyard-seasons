@@ -164,7 +164,8 @@ try {
     r.osModes = [...om].sort(); r.osMoved = +Math.max(...PA.os.map((o, i) => Math.hypot(o.x - op[i][0], o.z - op[i][1]))).toFixed(1);
     r.ttModes = [...tm].sort(); r.ttMaxV = +Math.max(...PA.tt.map(t => t.v)).toFixed(3);
     /* the eagle stooping on an ostrich: it runs */
-    const O = PA.os[0]; O.mode = "graze"; O.t = 9; const ox = O.x, oz = O.z; q.paThreat(O.x + 2, O.z + 2, 6, 1.5); let vmax = 0;
+    const O = PA.os[0], s0 = q.osSpot(O, false, 7); if (s0) q.osPlace(O, s0.x, s0.z, 0); O.path = null; O.mode = "graze"; O.t = 9; O.P.sit = 0;
+    const ox = O.x, oz = O.z, ol = Math.hypot(ox, oz) || 1; q.paThreat(ox + ox / ol * 2, oz + oz / ol * 2, 6, 1.5); let vmax = 0;
     for (let i = 0; i < 40; i++) { q.step(3, 1 / 30); vmax = Math.max(vmax, O.v); } r.osFlee = +vmax.toFixed(2); r.osAway = +Math.hypot(O.x - ox, O.z - oz).toFixed(1); q.paThreat(0, 0, 0);
     /* hail: tortoises pull in */
     window.__set({weather: "hail", hailLv: 1}); q.sim(20, .1); r.ttHail = PA.tt.map(t => +t.P.wd.toFixed(2)); const shell = PA.tt.every(t => t.P.wd > .9);

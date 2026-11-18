@@ -3106,6 +3106,9 @@ function rsThreat(s){const P=s.bd.P,hx=P[0],hz=P[1];if(s.qth&&st.t<s.qth.until)r
   for(const a of ANIM.camels){const d=Math.hypot(a.x-hx,a.z-hz);if(a.mode!=="rest"&&!(WX.hcold&&a.spd<.05)&&(d<1.6||a.spd>.1&&d<2.6))return{x:a.x,z:a.z}}
   const e=ANIM.eagle;if(e&&e.mode!=="perch"&&e.pos&&Math.hypot(e.pos.x-hx,e.pos.z-hz)<4&&e.pos.y-hTop(hx,hz)<3.5)return{x:e.pos.x,z:e.pos.z};
   return null}
+/* in hail: the nearest cover if it is close; with none close by it shimmies down into the sand where it lies */
+function rsCover(s){const P=s.bd.P,sp=snakeShadeSpot({x:P[0],z:P[1]});return Math.hypot(sp.x-P[0],sp.z-P[1])<4.5?{x:sp.x,z:sp.z,shade:1,near:1}:null}
+function rsBurrow(s){s.inShade=1;s.sandB=1;s.mode="coiling";rsCoilAt(s,"relaxed_coil",1.8);s.timer=rr(9,15);s.idle=rr(30,60)}
 function rsCoilAt(s,clip,fade){const P=s.bd.P,ya=Math.atan2(P[0]-P[6],P[1]-P[7]);
   s.yaw=ya;s.x=P[8]-Math.sin(ya)*.1;s.z=P[9]-Math.cos(ya)*.1;s.gy=hTop(s.x,s.z);s.g.position.set(s.x,s.gy,s.z);s.g.rotation.set(0,ya,0);
   play(s.r,clip,.01,1);s.wT=0;s.wF=fade}
@@ -3120,21 +3123,22 @@ function rsUpdate(s,dt){
     s.mode="def";s.defT=0;s.calm=0;s.th=th;capE(["R","on"]);shotS("dRtlOn",.8,_snP.set(b.P[0],hTop(b.P[0],b.P[1])+.2,b.P[1]),4)}
   if(s.mode==="def"){s.defT+=dt;if(th){s.th=th;s.calm=0}else s.calm+=dt;
     if(s.calm>2.5&&s.defT>5){s.mode="uncoil";s.caut=rr(12,20);const P=b.P,dx=P[0]-s.th.x,dz=P[1]-s.th.z,l=Math.hypot(dx,dz)||1;const hs=s.hunt&&rsHuntSpot(s,s.th);if(hs)hs.hunt=1;
-      const cv=WX.hcold&&snakeShadeSpot({x:P[0],z:P[1]});s.next=cv?{x:cv.x,z:cv.z,shade:1,near:1}:hs||{x:P[0]+dx/l*3.5,z:P[1]+dz/l*3.5}}}
+      s.next=WX.hcold?rsCover(s):hs||{x:P[0]+dx/l*3.5,z:P[1]+dz/l*3.5}}}
   /* coiled: the clip pose, tongue now and then; leave at dusk or to reach shade */
   if(s.mode==="coil"){s.timer-=dt;
     if(s.timer<0){if(s.r.cur==="relaxed_coil"){play(s.r,"tongue_flick",.8,1);s.timer=rr(6,9)}else{play(s.r,"relaxed_coil",.9,1);s.timer=rr(9,15)}}
-    s.idle-=dt;if(WX.hcold&&!s.inShade)s.idle=Math.min(s.idle,0);if(s.idle<0&&(!day||!s.inShade)){s.mode="uncoil";s.next=null}}
+    s.idle-=dt;if(WX.hcold&&!s.inShade)s.idle=Math.min(s.idle,0);if(s.sandB&&!WX.hcold){s.sandB=0;s.inShade=0;s.idle=Math.min(s.idle,rr(5,15))}if(s.idle<0&&(!day||!s.inShade)){s.mode="uncoil";s.next=null}}
   if(s.mode==="uncoil"){rigTick(s.r,dt);rsFromClip(s);trInit(s);for(let i=0;i<RS_N*2;i++)b.Ls[i]=b.P[i];
     s.mode="rest";s.restT=.3;s.gait="serp";s.a=0;s.rk=s.caut>0?1:0;s.wT=0;s.wF=-.4;s.dtgt=null}
   /* travel */
   if(s.mode==="rest"){s.restT-=dt;if(s.restT<0){let to=s.next;s.next=null;
       s.hg=s.hunt?(rnd()<.6?"side":"serp"):null;
-      if(!to){if(day){const sp=snakeShadeSpot(WX.hcold?{x:b.P[0],z:b.P[1]}:null);to={x:sp.x,z:sp.z,shade:1}}else if(s.hunt&&(to=rsHuntSpot(s))){to.hunt=1}else{const g=navGrid("snake",.32,1.3,.82);to=randFree(g,SNK_HOME.x,SNK_HOME.z,9,(x,z)=>Math.hypot(x-b.P[0],z-b.P[1])>2.5)}}
+      if(!to){if(day&&WX.hcold){to=rsCover(s);if(!to)rsBurrow(s)}else if(day){const sp=snakeShadeSpot();to={x:sp.x,z:sp.z,shade:1}}else if(s.hunt&&(to=rsHuntSpot(s))){to.hunt=1}else{const g=navGrid("snake",.32,1.3,.82);to=randFree(g,SNK_HOME.x,SNK_HOME.z,9,(x,z)=>Math.hypot(x-b.P[0],z-b.P[1])>2.5)}}
       if(to&&rsGoTo(s,to)){s.mode="crawl";s.a=0;const want=s.lock||rsGaitAt(s,b.P[0],b.P[1]);
         if(want==="side"){s.gait="side";swInit(s,s.path[1])}else{s.gait=want;s.rk=want==="rect"?1:0}}else s.restT=1}}
-  if(s.mode==="crawl"&&WX.hcold&&!s.goal.near){const sp=snakeShadeSpot({x:b.P[0],z:b.P[1]});s.goal.near=1;
-    if(Math.hypot(sp.x-b.P[0],sp.z-b.P[1])<Math.hypot(s.goal.x-b.P[0],s.goal.z-b.P[1])-1)rsGoTo(s,{x:sp.x,z:sp.z,shade:1,near:1})}
+  if(s.mode==="crawl"&&WX.hcold&&!s.goal.near){const P=b.P,cv=rsCover(s);s.goal.near=1;
+    if(!cv){s.goal={x:P[0],z:P[1],shade:1,near:1};s.path=[s.goal,s.goal];s.pi=1}
+    else if(Math.hypot(cv.x-P[0],cv.z-P[1])<Math.hypot(s.goal.x-P[0],s.goal.z-P[1])-1)rsGoTo(s,cv)}
   if(s.mode==="crawl"){const C=rsCentre(s),ref=s.gait==="side"?C:{x:b.P[0],z:b.P[1]};
     let wp=s.path[s.pi],last=s.pi===s.path.length-1;
     if(!last&&Math.hypot(wp.x-ref.x,wp.z-ref.z)<(s.gait==="side"?.7:.45)){s.pi++;wp=s.path[s.pi];last=s.pi===s.path.length-1}

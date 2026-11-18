@@ -374,7 +374,9 @@ try {
     const wy = Math.atan2(q.WIND.x, q.WIND.z), off = CS.filter(c => c.mode !== "kneel" && c.job !== "kneel").map(c => Math.abs(Math.atan2(Math.sin(c.yaw - wy), Math.cos(c.yaw - wy))));
     r.camelsWalking = CS.filter(c => c.mode === "walk").length; r.camelOffWind = off.map(a => +a.toFixed(2));
     const rs = q.ANIM.rs, PF = q.PF ? q.PF.list : [];
-    r.snake = rs ? rs.mode + (rs.g.visible ? "" : ":hidden") : null; const snakeHid = !rs || !rs.g.visible;
+    r.snake = rs ? rs.mode + (rs.g.visible ? "" : ":hidden") + (rs.goal && rs.goal.near ? ":toCover" : "") : null;
+    /* a snake caught out in the open is still crawling to its cover when the short burst ends */
+    const snakeHid = !rs || !rs.g.visible || (rs.mode === "crawl" && !!(rs.goal && rs.goal.near));
     r.fishDepth = PF.length ? +(PF.reduce((t, f) => t + q.pfDep(f.x, f.z), 0) / PF.length).toFixed(3) : null;
     window.__set({weather: "sun", ct: "clear"}); q.HS.pin = null;
     q.sim(60, .25); r.coverAt60 = q.WX.hc; r.wetPeak = q.WX.hm; for (let i = 0; i < 20; i++) { q.sim(15, .5); r.wetPeak = Math.max(r.wetPeak, q.WX.hm); }

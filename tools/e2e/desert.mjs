@@ -147,6 +147,35 @@ try {
   }));
 
   /* 5. rain darkens and pits the sand and rings the lake, and the sand dries again afterwards */
+  /* 4c. the rugs on the drying rack swing out in a gust, hang in soft folds, and the hem rocks on for a moment after the gust drops */
+  check("rack rugs: gust swing, folds, after-swing", ...await page.evaluate(() => {
+    const q = window.__desQA(), c = q.RACK.cloths[0], u = c.userData, r = {}, P = c.geometry.attributes.position, nx = u.u0.length;
+    window.__set({weather: "sun", ct: "clear", wind: .04}); q.sim(40, .1); r.calm = Math.abs(u.th);
+    const hem = []; for (let i = P.count - nx; i < P.count; i++) hem.push(P.getZ(i)); const m = hem.reduce((a, b) => a + b) / nx;
+    r.folds = Math.sqrt(hem.reduce((a, b) => a + (b - m) ** 2, 0) / nx);
+    window.__set({wind: 1}); let mx = 0; for (let i = 0; i < 240; i++) { q.step(1, 1 / 30); mx = Math.max(mx, Math.abs(u.th)); } r.gust = mx;
+    const sg = Math.sign(u.th) || 1; window.__set({wind: .04}); const th = [], fi = [];
+    for (let i = 0; i < 360; i++) { q.step(1, 1 / 30); th.push(u.th * sg); fi.push(u.fi); }
+    const end = th[th.length - 1]; r.overshoot = Math.max(...th.map(v => end - v));
+    let x = 0; for (let i = 91; i < 300; i++) if (fi[i] * fi[i - 1] < 0) x++; r.hemSwings = x; r.hemAmp = Math.max(...fi.slice(90, 240).map(Math.abs));
+    window.__set({wind: .35}); q.sim(20, .1);
+    for (const k in r) if (typeof r[k] === "number") r[k] = +r[k].toFixed(4);
+    return [r.calm < .12 && r.folds > .008 && r.gust > .3 && r.overshoot > .02 && r.hemSwings >= 2 && r.hemAmp > .004, r];
+  }));
+
+  /* 4d. oasis insects: cicadas in the palms in the day's heat, katydids and crickets in the shore grass from dusk, none in rain */
+  check("oasis insects: cicadas by day, katydids and crickets from dusk", ...await page.evaluate(() => {
+    const q = window.__desQA(), C = window.__C(), p0 = C.De.position.clone(), t0 = C.Ce.target.clone(), en = C.Ce.enabled, r = {};
+    C.Ce.enabled = false; C.De.position.copy(q.toW(q.POND.x + 3, q.hTop(q.POND.x, q.POND.z) + 2, q.POND.z + 3)); C.Ce.target.copy(q.toW(q.POND.x, q.POND.wy, q.POND.z)); C.De.lookAt(C.Ce.target);
+    const run = (tod, w) => { window.__set({weather: w || "sun", ct: w ? "overcast" : "clear", wind: .2}); q.tod(tod); q.sim(40, .25); q.step(3, 1 / 30); q.audCap(true);
+      for (let i = 0; i < 1500; i++) q.step(1, 1 / 30); const ev = q.audCap(false), n = re => ev.filter(e => e[1] === "S" && re.test(e[2])).length;
+      return {ci: n(/^dCi/), kt: n(/^dKt/), cr: n(/^dO[ck]/), bed: Math.max(0, ...ev.filter(e => e[1] === "L" && e[2] === "cicb").map(e => e[4]))}; };
+    r.day = run("day"); r.dusk = run("sunset"); r.night = run("night"); r.rain = run("day", "hrain");
+    window.__set({weather: "sun", ct: "clear", wind: .8}); q.tod("day"); q.sim(900, 1);
+    C.De.position.copy(p0); C.Ce.target.copy(t0); C.Ce.enabled = en; C.De.lookAt(t0);
+    return [r.day.ci >= 4 && r.day.bed > .05 && r.day.kt === 0 && r.dusk.kt >= 4 && r.dusk.cr >= 2 && r.dusk.ci === 0 && r.night.cr >= 3 && r.night.ci === 0 && r.rain.ci === 0 && r.rain.kt === 0, r];
+  }));
+
   const rainCheck = () => page.evaluate(() => {
     const q = window.__desQA();
     window.__set({weather: "hrain", ct: "overcast"}); q.sim(90);

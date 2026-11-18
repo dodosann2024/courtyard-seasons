@@ -2647,6 +2647,54 @@ const camelKind=i=>{const k=CAMEL_KIND[CAMEL_SLOTS[i]];return k&&k.file?k:CAMEL_
 /* the kneel clips drop the root ~3 cm in a single key where the knees meet the sand; two short box passes keep the settle without the pop */
 function smoothRoot(anims){for(const c of anims)if(/kneel_down|stand_up/.test(c.name))for(const t of c.tracks)if(!t._sm&&/Root\.position$/.test(t.name)){t._sm=1;const v=t.values,n=v.length/3;
   for(let p=0;p<2;p++){const o=Float32Array.from(v);for(let i=1;i<n-1;i++){const r=Math.min(4,i,n-1-i);for(let d=0;d<3;d++){let s=0;for(let j=-r;j<=r;j++)s+=o[(i+j)*3+d];v[i*3+d]=s/(2*r+1)}}}}}
+/* fur: shells over each camel's body, clones of the skinned mesh on its own skeleton. Shell k of N sits k/N of the local hair
+   length out along the skinned normal and droops under gravity (and flutters a little in the wind) the further out it is; each
+   cuts strands out of a jittered cell pattern laid in bind-pose metres, tapering to the tips, and once a strand is under a pixel
+   it is widened to about a pixel with its alpha cut to keep the coverage it would give (alpha-to-coverage), so a shell never
+   fills in as a solid layer, and far off the coat reads as soft fuzz.
+   Hair is short over most of the body and long where camels carry it: the hump(s), the mane along the neck, the throat, the
+   tail, and on the Bactrian a beard, leg "chaps" and a forelock (head at +z, humps at z -.4, or -.8 and 0, in bind pose).
+   Shells are only drawn within a few metres of the camera and fewer of them on phones. */
+const FUR_N=MOB?5:12,FUR_D=MOB?4.5:9,_fD=new V3(),_fW=new V3(),_fM=new T.M4();
+const FUR_V=`uniform float uH,uKind,uFT;uniform vec3 uDown,uWindO;varying vec3 vFP,vFN;varying float vFL;
+  float bmp(float x,float c,float w){return smoothstep(w,0.,abs(x-c));}
+  float furLen(vec3 p,vec3 n){float y=p.y,z=p.z,up=n.y,bk=uKind;
+    float hump=smoothstep(1.4,1.8,y)*smoothstep(-.15,.4,up)*(bk>.5?max(bmp(z,-.8,.42),bmp(z,0.,.42)):bmp(z,-.4,.55));
+    float mane=smoothstep(.4,.6,z)*smoothstep(1.2,1.0,z)*smoothstep(1.05,1.35,y)*smoothstep(-.1,.4,up);
+    float thr=smoothstep(.35,.55,z)*smoothstep(1.12,.95,z)*smoothstep(.85,1.05,y)*smoothstep(1.7,1.45,y)*smoothstep(.05,-.35,up);
+    float tail=smoothstep(-1.2,-1.38,z)*smoothstep(1.3,.7,y);
+    float chap=smoothstep(.2,.35,z)*smoothstep(.8,.6,z)*smoothstep(.7,.85,y)*smoothstep(1.3,1.1,y)*smoothstep(.25,.55,abs(n.x));
+    float fore=smoothstep(1.12,1.25,z)*smoothstep(1.72,1.84,y)*smoothstep(-.1,.4,up);
+    float low=smoothstep(.55,.8,y);
+    return bk>.5?(.016*low+.004)+.1*hump+.05*mane+.11*thr+.07*tail+.085*chap+.055*fore
+                :(.005*low+.002)+.065*hump+.038*mane+.05*thr+.07*tail;}`;
+const FUR_F=`uniform float uH,uKind;varying vec3 vFP,vFN;varying float vFL;
+  float fh1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}`;
+function furMat(src,h,U,bk){const m=src.clone(),base=src.onBeforeCompile;m.alphaToCoverage=true;m.transparent=false;m.side=0;
+  m.onBeforeCompile=(sh,r)=>{if(base&&base!==m.onBeforeCompile)base.call(m,sh,r);Object.assign(sh.uniforms,U,{uH:{value:h}});
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\n"+FUR_V)
+      .replace("#include <skinning_vertex>",`#include <skinning_vertex>
+        {vFP=position;vFN=normal;float L=furLen(position,normal);vFL=L;vec3 nS=normalize(objectNormal);
+         transformed+=nS*L*uH+uDown*L*uH*uH*.75+uWindO*L*uH*uH*(.55+.45*sin(uFT*3.3+dot(position,vec3(9.,4.,6.))));}`);
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\n"+FUR_F)
+      .replace("#include <color_fragment>",`#include <color_fragment>
+        {if(vFL<.0022)discard;vec3 an=abs(vFN);float cs=mix(.0022,.0055,smoothstep(.01,.08,vFL));
+         vec2 q=(an.x>an.y&&an.x>an.z?vFP.zy*vec2(1.,.6):an.y>an.z?vFP.xz:vFP.xy*vec2(1.,.6))/cs;
+         vec2 c=floor(q),f=fract(q);float ln=.4+.6*fh1(c+3.),r=.36*(1.-uH/ln);
+         vec2 o=.28+.44*vec2(fh1(c),fh1(c+11.));float rs=max(r,0.),fw=min(length(fwidth(q)),.45),re=max(rs,.55*fw);
+         diffuseColor.a=step(uH,ln)*smoothstep(re,re*.45,length(f-o))*min(1.,rs*rs/(re*re)*1.3);if(diffuseColor.a<.04)discard;
+         diffuseColor.rgb*=mix(.58,1.06,uH)*(1.+${bk?".0":".12"}*uH*uH);}`)};
+  m.customProgramCacheKey=()=>"des81fur"+(src.userData.coat?"c":"t");m.needsUpdate=true;return m}
+function furUp(a){const bk=CAMEL_SLOTS[a.i]==="bact"?1:0,U={uKind:{value:bk},uFT:{value:0},uDown:{value:new V3(0,-1,0)},uWindO:{value:new V3()}},sh=[];
+  const SK=VT.THREE.SkinnedMesh;let body=null;a.mdl.traverse(o=>{if(o.isSkinnedMesh&&o.name==="Camel"&&!body)body=o});if(!body||!SK)return;
+  for(let k=1;k<=FUR_N;k++){const s=new SK(body.geometry,furMat(body.material,k/FUR_N,U,bk));s.bind(body.skeleton,body.bindMatrix);
+    s.position.copy(body.position);s.quaternion.copy(body.quaternion);s.scale.copy(body.scale);s.castShadow=false;s.receiveShadow=true;s.frustumCulled=false;s.visible=false;
+    body.parent.add(s);sh.push(s)}
+  a.fur={U,sh,body}}
+function furTick(a){const F=a.fur;if(!F)return;const d=Math.hypot(_cl.x-a.x,_cl.y-(a.g.position.y+1.3*a.sc),_cl.z-a.z),n=root.visible?d<FUR_D*.45?FUR_N:d<FUR_D?Math.ceil(FUR_N/2):0:0;
+  F.sh.forEach((s,k)=>{s.visible=n===FUR_N||n>0&&k%2===1});if(!n)return;
+  F.body.updateMatrixWorld();_fM.copy(F.body.matrixWorld).invert();F.U.uDown.value.copy(_fD.set(0,-1,0).transformDirection(_fM));
+  const g=gustAt(a.x,a.z)*st.wn;F.U.uWindO.value.copy(_fW.set(WIND.x,0,WIND.z).transformDirection(_fM)).multiplyScalar(.5*g);F.U.uFT.value=st.t}
 function camelSpawn(sc,anims,i,kind){smoothRoot(anims);
  const g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";const s=kind.sc;
   sc.position.y=0;inner.add(sc);inner.scale.setScalar(s);g.add(inner);animalMats(g,kind.coat);W.add(g);onDes(g);
@@ -2656,7 +2704,7 @@ function camelSpawn(sc,anims,i,kind){smoothRoot(anims);
   /* the four feet: the tip below each leg's last joint, fore or hind by where it stands in the bind pose */
   a.feet=[];for(const n in a.bones){const m=n.match(/([01])_(Left|Right)_Limb_3$/);if(!m)continue;const b=a.bones[n];a.feet.push({b:b.children.find(c=>c.isBone)||b,R:m[2]==="Right",p:null,sw:0,hind:0})}
   if(a.feet.length===4){g.updateMatrixWorld(true);const z=a.feet.map(f=>g.worldToLocal(f.b.getWorldPosition(new V3())).z),mid=[...z].sort((x,y)=>x-y).slice(1,3).reduce((x,y)=>x+y)/2;a.feet.forEach((f,i)=>{f.hind=z[i]<mid?1:0})}
-  return a}
+  furUp(a);return a}
 function camelPrints(a,dt){if(a.spd<.05){for(const f of a.feet)f.p=null;return}const bk=CAMEL_SLOTS[a.i]==="bact";
   for(const f of a.feet){const h=footPlant(f,f.b,a.spd,dt,.3);if(h)prAdd(bk?PRK.bact:PRK.drom,h.x,h.z,a.yaw+.06*Math.sin(h.x*7.1+h.z*3.3),f.hind,1,f.R)}}
 /* the hollow it lay in, left as it gets up: centred under the chest and belly, a little ahead of the root */
@@ -4117,7 +4165,7 @@ UPD.push((dt,t)=>{
   if(SN_FILL.length&&pi){const k=(1-st.night)*(1-.6*WX.ovc)*(.05+.3*(1-ss(.12,.55,sandU.uLd.value.y)));
     for(const m of SN_FILL)m.emissive.setRGB(pi.color.r*.95*k,pi.color.g*.78*k,pi.color.b*.55*k)}
   if(dt<=0)return;const d=Math.min(dt,.1);
-  ANIM.camels.forEach(a=>camelUpdate(a,d));prTick(d);
+  ANIM.camels.forEach(a=>{camelUpdate(a,d);furTick(a)});prTick(d);
   if(ANIM.eagle)eagleUpdate(ANIM.eagle,d);
   if(ANIM.rs)rsUpdate(ANIM.rs,d);
   if(PF.list.length){pfVis();pfUpdate(d)}

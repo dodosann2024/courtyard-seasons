@@ -30,12 +30,7 @@ const onDes=o=>{if(o===root||!o.visible){o.traverse(c=>{c.layers.mask=1|L3});ret
   /* without the extension a link cannot be waited on: the model is compiled now and drawn a few frames later */
   if(PAR){warm(o).then(()=>requestAnimationFrame(on));return}
   const rv=root.visible,rt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(Ta.readBuffer||null);try{Cn.compile(o,De,Jt)}catch(_){}Cn.setRenderTarget(rt);root.visible=rv;
-  let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}reveal(on)};requestAnimationFrame(f)};
-/* the first draw of a model waits on its links, so models are shown one a frame and their links never pile into one long frame;
-   anything queued over half a second goes at once, or on a slow device the queue would trickle first draws into play long after load */
-const RQ=[];let rqB=0;
-function reveal(f){RQ.push([f,performance.now()]);if(rqB)return;rqB=1;
-  const g=()=>{const n=performance.now();do RQ.shift()[0]();while(RQ.length&&n-RQ[0][1]>500);if(RQ.length)requestAnimationFrame(g);else rqB=0};requestAnimationFrame(g)}
+  let n=3;const f=()=>{if(--n>0){requestAnimationFrame(f);return}on()};requestAnimationFrame(f)};
 /* KTX2Loader.detectSupport enables each format with getExtension, a synchronous GPU round trip that waits behind every frame
    already queued; the list of supported names is answered without one */
 function ktxCfg(){let s;try{s=new Set(Cn.getContext().getSupportedExtensions()||[])}catch(_){s=new Set()}const h=e=>s.has(e);
@@ -3745,7 +3740,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={rq:()=>RQ.length,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={rq:()=>0,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

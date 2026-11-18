@@ -3,7 +3,8 @@
 // climb, perch under the crown in rain and hide at night, and rain wets the sand, pits it and rings the lake. Then the same with
 // fog lying (and the fog drifting and thinning with the wind), and snow: it lies in the ripple troughs and on lee slopes but not
 // on crests or windward faces (measured on rendered pixels), the animals take cover, and it melts into wet patches that dry.
-// The lake crabs and trout keep to the bank and the deep water and take cover from threats, rain and hail.
+// The lake crabs and trout keep to the bank and the deep water and take cover from threats, rain and hail. The ostriches, tortoises,
+// gerbils and scorpions keep their sizes, hours and refuges, react to threats and print their own tracks.
 // Fails on any console output or any request that leaves localhost.
 // Usage: node tools/e2e/desert.mjs   (CHROME=/path/to/chrome to override the browser)
 import http from "node:http";
@@ -144,6 +145,59 @@ try {
     r.hailAboveBed = +Math.max(...q.trout().map(f => f.dep - f.below)).toFixed(3); r.hail = CL.map(c => c.mode); const hailHid = hidden();
     window.__set({weather: "sun", ct: "clear", hailLv: 1}); q.sim(900, 1);
     return [placed && seen.has("walk") && r.sideways > .85 && !!r.scareOk && rainHid && r.outAgain > 0 && r.dawnRises > 0 && r.hailAboveBed < .3 && hailHid, r];
+  }));
+
+  /* 4b2. the procedural animals: ostriches (cock's head ~2.4 m, over a camel's hump; walk and graze by day, run from the eagle,
+     sit at night), desert tortoises (a 7 cm/s plod, into the shell in hail, a pallet dug in shade at noon), gerbils (in their
+     burrows by day, out from dusk, bolting home from a threat) and scorpions (under rocks by day, out at night, tail-arched
+     threat at a camel), each pressing its own kind of print */
+  check("ostriches, tortoises, gerbils, scorpions", ...await page.evaluate(() => {
+    const q = window.__desQA(), PA = q.PA, r = {os: PA.os.length, tt: PA.tt.length, gb: PA.gb.length, sc: PA.sc.length};
+    const kinds = () => { const c = q.PR.im.instanceColor.array, s = new Set(); for (let i = 0; i < q.PR.n; i++) s.add(Math.floor(c[i * 3] + .001)); return s; };
+    PA.noView = 1; window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day"); q.sim(5);
+    /* sizes: the cock's head against a standing camel's hump */
+    for (const o of PA.os) { o.mode = "stand"; o.t = 3; o.P.gr = 0; o.P.al = 0; } q.step(60, 1 / 30);
+    const os = q.os(); r.headY = os.map(o => +o.headY.toFixed(2));
+    const okSize = os.length === 2 && os[0].headY > 2.2 && os[0].headY < 2.6 && os[1].headY > 1.95 && os[1].headY < os[0].headY;
+    const om = new Set(), tm = new Set(), op = os.map(o => [o.x, o.z]);
+    for (let i = 0; i < 60; i++) { q.sim(3, .1); for (const o of PA.os) om.add(o.mode); for (const t of PA.tt) tm.add(t.mode); }
+    r.osModes = [...om].sort(); r.osMoved = +Math.max(...PA.os.map((o, i) => Math.hypot(o.x - op[i][0], o.z - op[i][1]))).toFixed(1);
+    r.ttModes = [...tm].sort(); r.ttMaxV = +Math.max(...PA.tt.map(t => t.v)).toFixed(3);
+    /* the eagle stooping on an ostrich: it runs */
+    const O = PA.os[0]; O.mode = "graze"; O.t = 9; const ox = O.x, oz = O.z; q.paThreat(O.x + 2, O.z + 2, 6, 1.5); let vmax = 0;
+    for (let i = 0; i < 40; i++) { q.step(3, 1 / 30); vmax = Math.max(vmax, O.v); } r.osFlee = +vmax.toFixed(2); r.osAway = +Math.hypot(O.x - ox, O.z - oz).toFixed(1); q.paThreat(0, 0, 0);
+    /* hail: tortoises pull in */
+    window.__set({weather: "hail", hailLv: 1}); q.sim(20, .1); r.ttHail = PA.tt.map(t => +t.P.wd.toFixed(2)); const shell = PA.tt.every(t => t.P.wd > .9);
+    window.__set({weather: "sun", ct: "clear", hailLv: 1}); q.sim(240, .5);
+    /* noon heat: a tortoise digs into shade */
+    const T0 = PA.tt[0], s = q.torShade(T0); q.torPlace(T0, s.x + .4, s.z + .3, 0); T0.mode = "graze"; T0.t = 0; T0.inShade = 0; let dug = false;
+    for (let i = 0; i < 40 && !dug; i++) { q.WX.heat = 1; q.sim(3, .1); dug = T0.mode === "dig" || T0.mode === "pallet"; } r.ttHeat = T0.mode;
+    /* day: gerbils below, scorpions under their rocks */
+    q.sim(30, .1); r.gbDay = PA.gb.map(g => g.mode); r.scDay = PA.sc.map(a => a.mode + (a.g.visible ? ":seen" : ""));
+    const dayOk = PA.gb.every(g => g.mode === "in") && PA.sc.every(a => a.mode === "hide" && !a.g.visible);
+    /* dusk into night: gerbils come out; the scorpions leave their rocks, glowing faintly */
+    q.tod("sunset"); const gm = new Set(); let gOut = 0;
+    for (let i = 0; i < 60; i++) { q.sim(2, .1); for (const g of PA.gb) { gm.add(g.mode); if (g.mode !== "in") gOut++; } }
+    q.tod("night"); const sm = new Set(); for (let i = 0; i < 60; i++) { q.sim(3, .1); for (const a of PA.sc) sm.add(a.mode); for (const g of PA.gb) gm.add(g.mode); }
+    r.gbModes = [...gm].sort(); r.scModes = [...sm].sort(); r.glow = +q.paU.uGlow.value.toFixed(2);
+    /* a gerbil that is out bolts for its hole and goes in */
+    let G = PA.gb.find(g => g.mode === "forage" || g.mode === "stand" || g.mode === "nibble");
+    if (!G) { G = PA.gb[0]; G.mode = "forage"; G.x = G.h.x + .5; G.z = G.h.z + .4; G.goal = null; G.t = 9; q.step(5, 1 / 30); }
+    q.paThreat(G.x + .6, G.z, 4, .2); const gs = new Set(); for (let i = 0; i < 60; i++) { q.step(2, 1 / 30); gs.add(G.mode); } r.gbBolt = [...gs];
+    const bolted = gs.has("bolt") && (G.mode === "in" || G.mode === "dive"); q.paThreat(0, 0, 0);
+    /* a scorpion that is out faces a camel coming up: tail arched, pincers open */
+    const S = PA.sc[0]; S.mode = "roam"; S.t = 99; S.x = S.rk.dx; S.z = S.rk.dz; S.goal = null; q.step(5, 1 / 30);
+    q.paThreat(S.x + .5, S.z + .2, 4, .1); q.step(45, 1 / 30); r.scThr = +S.P.thr.toFixed(2); r.scOpen = +S.P.open.toFixed(2); q.paThreat(0, 0, 0);
+    /* night: ostriches sit */
+    q.sim(40, .1); r.osNight = PA.os.map(o => o.mode + ":" + o.P.sit.toFixed(2));
+    const sat = PA.os.every(o => o.mode === "sit" && o.P.sit > .8);
+    /* morning: the ostriches get up off their night hollows */
+    q.tod("day"); window.__set({weather: "sun", ct: "clear", wind: .3}); q.sim(50, .25);
+    const K = kinds(); r.printKinds = [5, 6, 7, 8, 9, 10].filter(k => K.has(k));
+    window.__set({wind: .8}); PA.noView = 0; q.sim(30, .5);
+    return [r.os === 2 && r.tt === 2 && r.gb === 3 && r.sc === 2 && okSize && om.has("walk") && om.has("graze") && r.osMoved > 2 && r.osFlee > 3 &&
+      tm.has("walk") && r.ttMaxV < .1 && shell && dug && dayOk && gOut > 0 && sm.has("roam") && r.glow > .5 && bolted && r.scThr > .8 && r.scOpen > .8 && sat &&
+      [5, 6, 7, 8, 9, 10].every(k => K.has(k)), r];
   }));
 
   /* 5. rain darkens and pits the sand and rings the lake, and the sand dries again afterwards */

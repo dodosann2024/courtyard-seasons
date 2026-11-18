@@ -395,13 +395,18 @@ function sandMat(){
       .replace("diffuseColor.rgb=mix(sc,vec3(dot(sc",`if(uSnow+uMW>.003){vec3 nS=normalize(vSN);vec2 q=vSP.xz,d2=vec2(-uRipDir.y,uRipDir.x);float fwS=length(fwidth(q));
           float wd=dot(nS.xz,uRipDir),lee=smoothstep(.0,.2,wd),ww=max(smoothstep(.02,.18,-wd),vDn.x*smoothstep(.0,.07,-wd)),crs=vDn.x*smoothstep(.25,.7,vDn.y),nf=smoothstep(-.02,.2,dot(nS.xz,uNorth));
           float al=dot(q,uRipDir),ac=dot(q,d2),mp=al*2.3+1.6*sin(ac*.21+1.3)+.9*sin(ac*.53+al*.11);
-          float trM=mix(smoothstep(.35,-.7,sin(mp+.85*sin(mp))),.45,smoothstep(.1,.4,fwS*2.3)),trF=.45;
-          if(fwS<.3){vec2 RW=vec2(dfbm(q*.09)*4.,dfbm(q*.11+7.)*2.5);float h=ripH(q,RW,1.+.16*(dn2(q*.07+1.3)-.5),.5+.5*smoothstep(.28,.62,dn2(q*.21+11.)));
-            trF=mix(smoothstep(.3,-.6,h),.45,smoothstep(.07,.3,fwS));}
+          float trM=mix(smoothstep(.35,-.7,sin(mp+.85*sin(mp))),.45,smoothstep(.1,.4,fwS*2.3)),trF=.45,hn=0.;
+          if(fwS<.3){vec2 RW=vec2(dfbm(q*.09)*4.,dfbm(q*.11+7.)*2.5);float am=.5+.5*smoothstep(.28,.62,dn2(q*.21+11.));hn=ripH(q,RW,1.+.16*(dn2(q*.07+1.3)-.5),am)/am;
+            trF=mix(smoothstep(.3,-.6,hn*am),.45,smoothstep(.07,.3,fwS));}
           /* the stripes follow the fine ripples (a hand apart); on flat sand the coarse troughs hold more of them than the coarse ridges */
-          float kM=mix(.5,.3,vDn.x),kF=mix(.4,.18,vDn.x),tr=mix(kM*trM+(1.-kM)*.45,kF*trM+(1.-kF)*trF,1.-smoothstep(.07,.3,fwS)),nn=dn2(q*.7+3.1)*.6+dn2(q*2.3)*.4;
-          float B=.5*lee+.3*nf-1.1*ww-1.4*crs+(tr-.5)*1.6+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),ew=.13+fwS*.5;
+          float kM=mix(.5,.3,vDn.x),kF=mix(.4,.18,vDn.x),nrK=1.-smoothstep(.07,.3,fwS),tr=mix(kM*trM+(1.-kM)*.45,kF*trM+(1.-kF)*trF,nrK),nn=dn2(q*.7+3.1)*.6+dn2(q*2.3)*.4;
+          float B0=.5*lee+.3*nf-1.1*ww-1.4*crs+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),B=B0+(tr-.5)*1.6,ew=.13+fwS*.5;
           float lv=B+.38*uSnow-.31-wet*1.5-.3*(1.-smoothstep(.0,.25,uSnow));
+          /* close up the dusting is not a set of patches but a line in the bottom of each ripple trough: the slope, shade and coarse
+             troughs only set how much there is, which widens the lines until they merge; the edges fray into the sand grain by grain */
+          if(nrK>.001){float cv=smoothstep(-.65,.45,B0+(kF*trM+(1.-kF)*.45-.5)*1.6+.38*uSnow-.31-wet*1.5-.3*(1.-smoothstep(.0,.25,uSnow)));
+            float gr=dn2(q*61.)*.55+dn2(q*23.)*.45,fl=smoothstep(.18,-.18,hn+(gr-.5)*.36-mix(-.95,-.2,cv))*smoothstep(.0,.12,cv);
+            lv=mix(lv,(fl-.5)*2.*ew,nrK);}
           ${TRK?"lv-=1.4*smoothstep(.08,.4,trk.r+.5*trk.g);":""}
           /* melt water soaks into the sand where the snow lay: dark, slightly cool patches that dry back to the sand's own colour */
           if(uMW>.003){float wm=uMW*smoothstep(-ew-.06,ew,B+.38*uSnP-.27-.3*(1.-smoothstep(.0,.25,uSnP)))*(.7+.3*nn);sc*=mix(vec3(1.),vec3(.5,.45,.42),wm);}

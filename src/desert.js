@@ -1409,6 +1409,9 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           c=mix(c,base*1.12+uSheen*vFs*.7*(1.-.75*uNt),clamp(1.-bc,0.,1.)*.55);
           /* the dust it sheds is ochre, a shade deeper than the sheet, never the white of the cloud sea's mist */
           float dF=dust/(a+.001);c=mix(c,base*vec3(1.,.82,.6)*1.02+vec3(.03,.018,.006)*(1.-uNt),dF*.62);
+          /* low down the thin veil is seen against the bright cloud sea: the thinner it is the deeper its own ochre, so what reaches
+             the eye stays ochre until it is gone instead of turning a pale tan */
+          float lw=smoothstep(.3,.85,s)*(1.-clamp(a,0.,1.));c=mix(c,base*vec3(.94,.7,.42)*.86,lw*.85*(1.-.8*uNt));a=mix(a,a*(2.-a),smoothstep(.3,.8,s)*step(a,1.));
           /* a sheet seen edge-on piles up alpha into a hard line: keep the stream but thin it */
           vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.5,1.,smoothstep(.05,.45,abs(dot(N,normalize(cameraPosition-vW)))));
         }
@@ -1416,11 +1419,11 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         /* a stream only a pixel or two wide from afar is a faint soft thread, not a hard yellow line */
         /* the haze a fall sinks into is its own dust: fade it to an ochre as bright as the sky haze, never the haze's pale cream
            (which reads as water), and let the lower fall dissipate rather than turn pale */
-        float hL=dot(uFogC,vec3(.3,.59,.11)),bL=max(dot(base,vec3(.3,.59,.11)),.02);vec3 fO=mix(uFogC,base*(min(hL,bL*1.05)/bL)*vec3(1.03,.9,.72),.6+.35*smoothstep(.35,.9,s));
+        float hL=dot(uFogC,vec3(.3,.59,.11)),bL=max(dot(base,vec3(.3,.59,.11)),.02);vec3 fO=mix(uFogC,base*(min(hL,bL*1.05)/bL)*mix(vec3(1.03,.9,.72),vec3(.98,.78,.52),smoothstep(.35,.9,s)),.6+.35*smoothstep(.35,.9,s));
         float pxW=1./max(fwidth(x),1e-4),thin=1.-smoothstep(2.,12.,pxW);a*=1.-.8*thin;c=mix(c,mix(c,fO,.5)*.92+base*.08,thin*.6);
         if(a<.004)discard;
         /* far off the lower fall sinks into the haze by thinning out, not by turning pale */
-        float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*(.55-.35*smoothstep(.35,.9,s)));a*=1.-.75*fd*smoothstep(.3,.95,s);
+        float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*(.55-.35*smoothstep(.35,.9,s)));a*=1.-.3*fd*smoothstep(.3,.95,s);
         float ck=c.r+c.g+c.b+a;if(!(ck>-1.&&ck<1e3))discard;
         gl_FragColor=vec4(c,clamp(a,0.,1.));
         #include <tonemapping_fragment>

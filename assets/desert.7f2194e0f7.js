@@ -27,6 +27,8 @@ const warm=(o,rt,cam)=>{const rv=root.visible,prt=Cn.getRenderTarget();root.visi
   return Promise.race([p.catch(()=>0),new Promise(r=>setTimeout(r,MOB?9000:6000))])};
 /* models compiled but not yet drawn once: the load is not over until their first draws (which can wait on the link) are behind */
 let DPEND=0;
+/* debug: one first draw that never comes, to prove the loading pill still clears on the fallback */
+if(X.dbg&&/[?&]stalldraw=1/.test(location.search))DPEND++;
 const onDes=o=>{if(o===root||!o.visible){o.traverse(c=>{c.layers.mask=1|L3});return}
   DPEND++;o.traverse(c=>{c.layers.mask=0});const on=()=>{o.traverse(c=>{c.layers.mask|=1|L3});requestAnimationFrame(()=>requestAnimationFrame(()=>{DPEND--}))};
   /* without the extension a link cannot be waited on: the model is compiled now and drawn a few frames later */
@@ -405,7 +407,7 @@ function sandMat(){
           /* close up the dusting is not a set of patches but a line in the bottom of each ripple trough: the slope, shade and coarse
              troughs only set how much there is, which widens the lines until they merge; the edges fray into the sand grain by grain */
           if(nrK>.001){float cv=smoothstep(-.65,.45,B0+(kF*trM+(1.-kF)*.45-.5)*1.6+.38*uSnow-.31-wet*1.5-.3*(1.-smoothstep(.0,.25,uSnow)));
-            float gr=dn2(q*61.)*.55+dn2(q*23.)*.45,fl=smoothstep(.18,-.18,hn+(gr-.5)*.36-mix(-.95,-.2,cv))*smoothstep(.0,.12,cv);
+            float gr=dn2(q*61.)*.55+dn2(q*23.)*.45,fl=smoothstep(.18,-.18,hn+(gr-.5)*.36-mix(-.95,-.2,cv)-lee*smoothstep(.62,1.,cv))*smoothstep(.0,.12,cv);
             lv=mix(lv,(fl-.5)*2.*ew,nrK);}
           ${TRK?"lv-=1.4*smoothstep(.08,.4,trk.r+.5*trk.g);":""}
           /* melt water soaks into the sand where the snow lay: dark, slightly cool patches that dry back to the sand's own colour */

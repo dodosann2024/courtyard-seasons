@@ -4441,7 +4441,7 @@ function osGeo(male){const G=paGeo(),X=OS_IX,w=(a,b)=>[[X[a],.5],[X[b],.5]];
   return G}
 /* the poses the neck blends between, per joint (bend forward, radians) */
 const OS_NK={stand:[-.12,.06,.06,.02,-.06,.04],alert:[-.24,-.04,0,0,-.02,0],graze:[1.1,.8,.5,.12,.02,0],run:[.5,.2,.05,-.05,-.1,-.05],sit:[-.06,.05,.06,0,-.05,.05],doze:[.35,.45,.5,.4,.3,.2]};
-function osSpawn(male){const G=osGeo(male),R=paBones(OS_B),m=paMesh(G,R),g=new T.Group(),sc=male?1.07:.96;g.add(m);g.scale.setScalar(sc);W.add(g);onDes(g);
+function osSpawn(male){const G=osGeo(male),R=paBones(OS_B),m=paMesh(G,R),g=new T.Group(),sc=male?1.04:.94;g.add(m);g.scale.setScalar(sc);W.add(g);onDes(g);
   const A={g,m,B:R.B,male,sc,x:0,z:0,yaw:0,gy:0,v:0,yr:0,gph:0,mode:"stand",t:rr(3,6),path:null,pi:0,vmax:1,
     P:{cr:0,pit:0,gr:0,al:0,run:0,sit:0,doze:0,look:0,peck:0,wing:0,tail:0},lookT:0,lookA:0,peckT:rr(.5,1.5),scanT:rr(4,9),runT:rr(90,200),thr:null,sat:0,
     F:[paFoot(.14*sc,.09*sc,0),paFoot(-.14*sc,.09*sc,.5)]};

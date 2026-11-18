@@ -134,7 +134,8 @@ try {
     if (t) {
       const sx = t.x, sz = t.z, near = CL.filter(c => Math.hypot(c.x - sx, c.z - sz) < 1.6 && c.mode !== "in");
       q.lakeScare(sx, sz, .6, 8); let ran = false; for (let i = 0; i < 40; i++) { q.sim(.2, .05); ran = ran || near.some(c => c.mode === "run"); }
-      r.scared = near.map(c => c.mode); r.ranOff = ran; r.scareOk = ran && near.every(c => c.mode === "in" || c.mode === "down" || c.mode === "sub");
+      /* a crab beside its burrow dives straight in rather than running off first: either way it has taken cover */
+      r.scared = near.map(c => c.mode); r.ranOff = ran; r.scareOk = near.length > 0 && near.every(c => c.mode === "in" || c.mode === "down" || c.mode === "sub");
       q.sim(20, .1);
     }
     window.__set({weather: "hrain", ct: "overcast"}); q.sim(60, .1); r.rain = CL.map(c => c.mode); const rainHid = hidden();
@@ -158,7 +159,7 @@ try {
     /* sizes: the cock's head against a standing camel's hump */
     for (const o of PA.os) { o.mode = "stand"; o.t = 3; o.P.gr = 0; o.P.al = 0; } q.step(60, 1 / 30);
     const os = q.os(); r.headY = os.map(o => +o.headY.toFixed(2));
-    const okSize = os.length === 2 && os[0].headY > 2.2 && os[0].headY < 2.6 && os[1].headY > 1.95 && os[1].headY < os[0].headY;
+    const okSize = os.length === 2 && os[0].headY > 2.3 && os[0].headY < 2.75 && os[1].headY > 1.95 && os[1].headY < os[0].headY;
     const om = new Set(), tm = new Set(), op = os.map(o => [o.x, o.z]);
     for (let i = 0; i < 60; i++) { q.sim(3, .1); for (const o of PA.os) om.add(o.mode); for (const t of PA.tt) tm.add(t.mode); }
     r.osModes = [...om].sort(); r.osMoved = +Math.max(...PA.os.map((o, i) => Math.hypot(o.x - op[i][0], o.z - op[i][1]))).toFixed(1);

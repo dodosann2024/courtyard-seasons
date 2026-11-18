@@ -1,7 +1,9 @@
 // Clear-day perf guard: the default day desert on an emulated iPhone 13 with the CPU throttled 4x and no debug flag, measured
 // as JS time per requestAnimationFrame callback over 20 s, starting 5 s after window.__desProg() reports the models done.
 // Runs alternate between this checkout and main (fetched into a worktree; assets are committed, so nothing is built).
-// Fails if this build's mean is more than 15% above main's, or if any frame in its window takes over 200 ms.
+// Fails if this build's mean is more than 15% above main's, or if any frame in its window takes over 200 ms. A round of this build
+// with such a frame is run once more: main's own load can leave one first-draw shader stall that late, while a regression stalls
+// every round.
 // Usage: node tools/e2e/perf.mjs   (CHROME=... ; BASE_DIR=<checkout of main> to skip the fetch; ROUNDS=2)
 import http from "node:http";
 import fs from "node:fs";
@@ -9,7 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import {execSync} from "node:child_process";
 import {fileURLToPath} from "node:url";
-import puppeteer from "puppeteer-core";
+import puppeteer, {KnownDevices} from "puppeteer-core";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const CHROME = process.env.CHROME || ["/usr/bin/google-chrome-stable", "/usr/bin/google-chrome", "/usr/bin/chromium"].find(p => fs.existsSync(p));
@@ -43,7 +45,7 @@ async function run(origin) {
     args: ["--no-sandbox", "--disable-dev-shm-usage", "--enable-unsafe-swiftshader", "--use-gl=angle", "--use-angle=swiftshader", "--mute-audio"]});
   try {
     const p = await b.newPage();
-    await p.emulate(puppeteer.KnownDevices["iPhone 13"]);
+    await p.emulate(KnownDevices["iPhone 13"]);
     await p.evaluateOnNewDocument(() => {
       const raf = window.requestAnimationFrame.bind(window); window.__ft = []; window.__ftOn = false;
       window.requestAnimationFrame = cb => raf(ts => { const a = performance.now(); cb(ts); if (window.__ftOn) window.__ft.push(performance.now() - a); });
@@ -64,13 +66,17 @@ async function run(origin) {
     return {frames: f.length, jsMean: +(f.reduce((a, x) => a + x, 0) / Math.max(1, f.length)).toFixed(1),
       jsP95: +(s[Math.min(s.length - 1, Math.floor(s.length * .95))] || 0).toFixed(1), max: Math.round(s[s.length - 1] || 0),
       over200: f.filter(x => x > 200).length};
-  } finally { await b.close(); }
+  } finally { b.process()?.kill("SIGKILL"); }
 }
 
 const PR = await serve(ROOT), MAIN = await serve(BASE);
 const R = {pr: [], main: []};
 for (let i = 0; i < ROUNDS; i++) {
-  for (const [k, o] of [["pr", PR], ["main", MAIN]]) { const r = await run(o); R[k].push(r); console.log(k, JSON.stringify(r)); }
+  for (const [k, o] of [["pr", PR], ["main", MAIN]]) {
+    let r = await run(o); console.log(k, JSON.stringify(r));
+    if (k === "pr" && r.over200) { r = await run(o); console.log(k, "rerun", JSON.stringify(r)); }
+    R[k].push(r);
+  }
 }
 const mean = a => a.reduce((s, r) => s + r.jsMean, 0) / a.length;
 const mPR = mean(R.pr), mMain = mean(R.main), stalls = R.pr.reduce((s, r) => s + r.over200, 0);

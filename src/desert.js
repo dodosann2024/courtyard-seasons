@@ -2690,6 +2690,8 @@ function furUp(a){const bk=CAMEL_SLOTS[a.i]==="bact"?1:0,U={uKind:{value:bk},uFT
   for(let k=1;k<=FUR_N;k++){const s=new SK(body.geometry,furMat(body.material,k/FUR_N,U,bk));s.bind(body.skeleton,body.bindMatrix);
     s.position.copy(body.position);s.quaternion.copy(body.quaternion);s.scale.copy(body.scale);s.castShadow=false;s.receiveShadow=true;s.frustumCulled=false;s.visible=false;
     body.parent.add(s);sh.push(s)}
+  /* the Bactrian file's own hair cards lie over the shells as stiff dark strips; the shells carry its long hair instead */
+  if(bk)a.mdl.traverse(o=>{if(o.isMesh&&o.name==="Fur")o.visible=false});
   a.fur={U,sh,body}}
 function furTick(a){const F=a.fur;if(!F)return;const d=Math.hypot(_cl.x-a.x,_cl.y-(a.g.position.y+1.3*a.sc),_cl.z-a.z),n=root.visible?d<FUR_D*.45?FUR_N:d<FUR_D?Math.ceil(FUR_N/2):0:0;
   F.sh.forEach((s,k)=>{s.visible=n===FUR_N||n>0&&k%2===1});if(!n)return;
@@ -3767,6 +3769,44 @@ function iba(n,k){const a=new T.BA(new Float32Array(n*k),k);a.isInstancedBufferA
 const GLR=`mat3 rY(float a){float c=cos(a),s=sin(a);return mat3(c,0.,-s,0.,1.,0.,s,0.,c);}
 mat3 rZ(float a){float c=cos(a),s=sin(a);return mat3(c,s,0.,-s,c,0.,0.,0.,1.);}
 mat3 rX(float a){float c=cos(a),s=sin(a);return mat3(1.,0.,0.,0.,c,s,0.,-s,c);}`;
+/* ---------------- soft shadows under the small animals, and the little puffs of sand they kick up ----------------
+   BLOB: one instanced draw of soft dark ellipses multiplied into the sand (or the pond bed) under each small animal, drawn before
+   the water so a fish's shadow on the bed is seen through it; under water they are lifted to their apparent depth and wobbled
+   with the ripples exactly as the animals are. aB: strength, softness (0 hard .. 1 all falloff), shape (0 round, 1 a fish
+   tapering to the tail at -z). Filled afresh each frame with blobAdd. */
+const BL_N=MOB?48:80;
+const BLOB=(()=>{const g=new T.Plane(1,1);g.rotateX(-Math.PI/2);const A=iba(BL_N,3);g.setAttribute("aB",A);
+  const m=new T.SM({transparent:true,depthWrite:false,blending:5,blendSrc:200,blendDst:202,blendSrcAlpha:200,blendDstAlpha:201,
+    polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,uniforms:{uWy:UW.uWy,uT:UW.uT,uWob:UW.uWob},
+    vertexShader:`attribute vec3 aB;uniform float uWy,uT,uWob;varying vec2 vQ;varying vec3 vB;
+      void main(){vQ=position.xz*2.;vB=aB;vec4 p=modelMatrix*instanceMatrix*vec4(position,1.);float d=max(uWy-p.y,0.);p.y+=d*.25;
+        p.xz+=uWob*d*vec2(sin(uT*1.9+p.z*31.+p.x*17.),cos(uT*1.5+p.x*29.-p.z*13.));gl_Position=projectionMatrix*viewMatrix*p;}`,
+    fragmentShader:`varying vec2 vQ;varying vec3 vB;
+      void main(){vec2 q=vQ;if(vB.z>.5)q.x/=mix(1.,.35,smoothstep(.1,-1.,q.y))*mix(1.,.8,smoothstep(.4,1.,q.y));
+        float e=length(q),k=vB.x*smoothstep(1.,1.-max(vB.y,.05),e);if(k<.004)discard;gl_FragColor=vec4(vec3(1.-k),1.);}`});
+  const im=new T.IM(g,m,BL_N);im.count=0;im.frustumCulled=false;im.renderOrder=1;im.castShadow=im.receiveShadow=false;W.add(im);onDes(im);
+  return{im,A,n:0}})();
+const _bq=new T.Quat(),_bm=new T.M4(),_bs=new V3(),_bp=new V3();
+function blobAdd(x,y,z,yaw,w,l,str,soft,fish){const B=BLOB;if(B.n>=BL_N||str<.01)return;const i=B.n++;
+  _bq.setFromAxisAngle(_hUp,yaw);_bm.compose(_bp.set(x,y+.002,z),_bq,_bs.set(w,1,l));B.im.setMatrixAt(i,_bm);B.A.array[i*3]=str;B.A.array[i*3+1]=soft;B.A.array[i*3+2]=fish?1:0}
+function blobEnd(){const B=BLOB;B.im.count=B.n;B.im.visible=B.n>0;if(B.n){B.im.instanceMatrix.needsUpdate=true;B.A.needsUpdate=true}B.n=0}
+/* the sun's direction in island axes (toward the light), and how strongly it casts: none at night, under cloud or in dust */
+const _sl=new V3();
+function sunL(){const d=sandU.uLd.value,c=Math.cos(YAW),s=Math.sin(YAW);return _sl.set(d.x*c-d.z*s,d.y,d.x*s+d.z*c)}
+const sunCast=()=>(1-st.night)*WX.sunK*(1-.85*WX.rain);
+/* SPF: small sand puffs (a crab or gerbil digging or bolting into its hole, a tortoise scraping out its hollow) */
+const SPF=softPoints(MOB?70:140,"#dcc39b",.05,false);SPF.o.renderOrder=6;SPF.o.visible=false;W.add(SPF.o);
+const SPFP=Array.from({length:SPF.n},()=>({life:9,dur:1,x:0,y:0,z:0,vx:0,vy:0,vz:0}));SPF.k=0;
+/* n grains from (x,y,z), thrown toward (dx,dz) at about v m/s and up at vy, each sz across (island metres) */
+function spPuff(x,y,z,n,dx,dz,v,vy,sz){for(let j=0;j<n;j++){const i=SPF.k;SPF.k=(i+1)%SPF.n;const q=SPFP[i],a=Math.atan2(dx,dz)+rr(-.9,.9),u=v*rr(.4,1.2);
+    Object.assign(q,{x:x+rr(-.01,.01),y:y+.005,gy:y,z:z+rr(-.01,.01),vx:Math.sin(a)*u,vy:vy*rr(.5,1.3),vz:Math.cos(a)*u,life:-rr(0,.08),dur:rr(.5,1.1)});SPF.Z[i]=sz/.065*rr(.7,1.3)}
+  SPF.o.visible=true}
+function spTick(dt){if(!SPF.o.visible)return;let any=0;
+  for(let i=0;i<SPF.n;i++){const q=SPFP[i];if(q.life>=q.dur){SPF.A[i]=0;continue}q.life+=dt;const u=q.life/q.dur,o=i*3;any=1;
+    const dr=Math.exp(-4*dt);q.vx=q.vx*dr+WIND.x*st.wn*.5*dt;q.vz=q.vz*dr+WIND.z*st.wn*.5*dt;q.vy=q.vy*dr-.9*dt;
+    if(q.life>0){q.x+=q.vx*dt;q.y=Math.max(q.y+q.vy*dt,q.gy);q.z+=q.vz*dt}
+    SPF.P[o]=q.x;SPF.P[o+1]=q.y;SPF.P[o+2]=q.z;SPF.A[i]=q.life<0||u>=1?0:.7*ss(0,.06,u)*(1-ss(.3,1,u))*(1-.55*st.night)}
+  SPF.g.attributes.position.needsUpdate=SPF.g.attributes.a.needsUpdate=true;SPF.m.uniforms.uH.value=innerHeight;if(!any)SPF.o.visible=false}
 /* what frightens the lake animals: a camel at or near the water, the eagle low over it, the rattlesnake on the bank */
 const LKT=[];let LKdbg=null;
 function lakeThreats(){LKT.length=0;
@@ -3809,22 +3849,22 @@ function ttGeo(){const P=[],N=[],U=[],I=[];let n=0;
 /* body colour from the position along it (u, nose 0 .. fork 1) and round it (v, belly -1 .. back 1): olive back with fine black spots,
    silver flanks under a rose-pink band, white belly; spotted dorsal, adipose and tail fins, white-tipped pelvic and anal fins */
 const TT_COL=`{float u=vTU.x,v=vTU.y,id=vTU.z;vec3 tc;
-  vec2 sq=vec2(u*44.,v*(id>.5?4.:7.)),si=floor(sq);float sh=fract(sin(dot(si+id*7.,vec2(12.9898,78.233)))*43758.5453);
-  vec2 sf=fract(sq)-.5-(vec2(fract(sh*7.1),fract(sh*3.7))-.5)*.5;float spot=smoothstep(.22,.13,length(sf*vec2(1.,1.3)))*step(.3,sh);
+  vec2 sq=vec2(u*32.,v*(id>.5?3.:5.5)),si=floor(sq);float sh=fract(sin(dot(si+id*7.,vec2(12.9898,78.233)))*43758.5453);
+  vec2 sf=fract(sq)-.5-(vec2(fract(sh*7.1),fract(sh*3.7))-.5)*.5;float spot=smoothstep(.27,.16,length(sf*vec2(1.,1.3)))*step(.22,sh);
   if(id<.5){float back=smoothstep(-.05,.85,v),belly=smoothstep(-.25,-.8,v);
-    tc=mix(vec3(.6,.62,.58),vec3(.15,.19,.1),back);tc=mix(tc,vec3(.86,.86,.82),belly);
+    tc=mix(vec3(.6,.62,.58),vec3(.1,.13,.07),back);tc=mix(tc,vec3(.045,.06,.035),smoothstep(.7,.97,v));tc=mix(tc,vec3(.86,.86,.82),belly);
     float band=exp(-pow((v-.05)/.2,2.))*smoothstep(.06,.2,u)*smoothstep(.93,.7,u);tc=mix(tc,vec3(.72,.31,.34),band*.7);
     tc=mix(tc,vec3(.68,.3,.32),exp(-pow((u-.19)/.035,2.))*smoothstep(-.6,.1,v)*smoothstep(.8,.3,v)*.55);
     tc=mix(tc,vec3(.03,.035,.025),spot*smoothstep(-.3,.2,v)*smoothstep(.04,.1,u)*.9);
     float ed=length(vec2((u-.068)/.017,(v-.2)/.19));tc=mix(tc,vec3(.72,.6,.3),smoothstep(1.2,1.,ed));tc=mix(tc,vec3(.015),smoothstep(.75,.55,ed));}
-  else{tc=vec3(.3,.31,.22);if(id<2.5)tc=mix(tc,vec3(.03),spot*.85);else{tc=mix(tc,vec3(.75,.4,.38),.25);tc=mix(tc,vec3(.9,.88,.84),smoothstep(.55,.85,abs(v)));}
+  else{tc=id<2.5?vec3(.16,.17,.11):vec3(.3,.31,.22);if(id<2.5)tc=mix(tc,vec3(.02),spot*.9);else{tc=mix(tc,vec3(.75,.4,.38),.25);tc=mix(tc,vec3(.9,.88,.84),smoothstep(.55,.85,abs(v)));}
     diffuseColor.a=.88;}
   diffuseColor.rgb=tc;}`;
 /* swimming: a wave runs down the body, small at the head and growing to the tail; turning bends it. The fins ride the same wave. */
 const TT_ANIM={head:"attribute vec3 aTU;attribute vec4 aSw;varying vec3 vTU;float ttX(float u){return aSw.y*(.12+.88*pow(smoothstep(.1,1.,u),1.6))*sin(6.2832*u*.95-aSw.x)+aSw.z*(u-.25)*(u-.25)*step(.25,u);}",
   nrm:"float ttU=.42-position.z,ttF=-(ttX(ttU+.01)-ttX(ttU-.01))/.02;objectNormal.z-=ttF*objectNormal.x;objectNormal=normalize(objectNormal);",
   pos:"transformed.x+=ttX(ttU);vTU=aTU;",fh:"varying vec3 vTU;",col:TT_COL};
-function ttBuild(){const g=ttGeo(),m=new T.MSM({roughness:.36,metalness:.1});m.userData.U=TT.U;uwMat(m,"tt",".55",TT_ANIM);
+function ttBuild(){const g=ttGeo(),m=new T.MSM({roughness:.36,metalness:.1});m.userData.U=TT.U;uwMat(m,"tt",".2",TT_ANIM);
   const A=iba(TT_N,4);g.setAttribute("aSw",A);
   const im=new T.IM(g,m,TT_N);im.frustumCulled=false;im.renderOrder=3;W.add(im);onDes(im);TT.im=im;TT.A=A;
   const[cx,cz]=pondEdge(TT.sch.th,TT.sch.k);TT.sch.px=cx;TT.sch.pz=cz;
@@ -3867,11 +3907,16 @@ function ttUpdate(dt){const L=TT.list,S0=TT.sch,ny=st.night>.5,hail=WX.hcold>0||
     let nx=f.x+Math.sin(f.yaw)*f.v*dt,nz=f.z+Math.cos(f.yaw)*f.v*dt;if(pfDep(nx,nz)<.7){nx=f.x;nz=f.z;f.v*=.6}f.x=nx;f.z=nz;
     const vy=cl((ty-f.y)*.8,-.16,f.mode==="rise"&&!f.rs?.3:.12),lo=POND.wy-pfDep(f.x,f.z)+.07;f.y=Math.max(lo,Math.min(f.y+vy*dt,POND.wy-.05));
     f.pit+=(cl(-Math.atan2(vy,Math.max(f.v,.05)),-.6,.6)-f.pit)*ease(3,dt);
-    f.bend=cl(-f.yr*.1,-.07,.07);f.amp=.045+.09*cl(f.v/.4,0,1)+.03*Math.abs(f.yr);f.ph+=TAU*(1.1+2.4*f.v/f.L)*dt;
+    f.bend=cl(-f.yr*.1,-.07,.07);f.amp=.075+.09*cl(f.v/.4,0,1)+.03*Math.abs(f.yr);f.ph+=TAU*(1.3+2.4*f.v/f.L)*dt;
     if(f.r2>0){f.r2-=dt;if(f.r2<=0)hDecal(1,f.rx,POND.wy+.004,f.rz,rr(.6,.8))}}
   if(TT.vis>0){const A=TT.A.array;L.forEach((f,i)=>{qYXZ(_tq,f.pit,f.yaw,cl(f.yr*.12,-.3,.3));
     _tm.compose(_ts.set(f.x,f.y,f.z),_tq,_v.set(f.L,f.L,f.L));TT.im.setMatrixAt(i,_tm);A[i*4]=f.ph;A[i*4+1]=f.amp;A[i*4+2]=f.bend});
-    TT.im.instanceMatrix.needsUpdate=true;TT.A.needsUpdate=true}}
+    TT.im.instanceMatrix.needsUpdate=true;TT.A.needsUpdate=true;
+    /* each fish's shadow on the bed: cast along the sun bent down by the surface (sin in = 1.33 sin out), wider and fainter the
+       higher the fish swims over the bottom */
+    const sc=sunCast()*TT.vis;if(sc>.02){const L_=sunL(),h=Math.hypot(L_.x,L_.z)||1e-3,sw=Math.min(h,.999)/1.33,tw=sw/Math.sqrt(1-sw*sw);
+      for(const f of L){const bed=lkY(f.x,f.z),hb=Math.max(f.y-bed,0),o=hb*tw,bx=f.x-L_.x/h*o,bz=f.z-L_.z/h*o;
+        blobAdd(bx,lkY(bx,bz),bz,f.yaw,.2*f.L+.1*hb,1.05*f.L+.1*hb,sc*.8*Math.exp(-hb*.55),.5+.35*ss(0,.8,hb),1)}}}}
 
 /* ---------------- freshwater crabs (Potamon potamios), real size: a carapace 4–5.5 cm across, legs spanning about 11 cm.
    Each has a burrow in the damp bank just above the waterline. They pick over the wet margin and the shallows round it,
@@ -3919,22 +3964,22 @@ const CR_ANIM={head:"attribute float aK;attribute vec3 aH;attribute vec4 aG;"+GL
 mat3 crR(){float k=aK;if(k<.5||k>10.5)return mat3(1.);
   if(k<8.5){float i=k-1.,sd=i<3.5?1.:-1.,j=mod(i,4.),g=mod(j+step(sd,0.),2.),ph=aG.x+g*3.14159;
     return rY(.3*cos(ph)*aG.y*sd)*rZ(sd*.5*max(0.,sin(ph))*aG.y);}
-  float sd=k<9.5?1.:-1.,fd=k<9.5?max(aG.z,0.):max(-aG.z,0.);return rY(-sd*.5*fd)*rX(-.6*aG.w-.4*fd);}`,
+  float sd=k<9.5?1.:-1.,fd=k<9.5?max(aG.z,0.):max(-aG.z,0.);return rZ(sd*.55*aG.w)*rY(-sd*(.5*fd-.35*aG.w))*rX(-1.2*aG.w-.4*fd);}`,
   nrm:"mat3 cR=crR();objectNormal=cR*objectNormal;",pos:"transformed=aH+cR*(transformed-aH);"};
 /* the burrow: a dark hole in a low collar of damp sand, the dug-out pellets heaped to one side */
-function crBurrowGeo(){const P=[],N=[],C=[],I=[];let n=0;const sand=[.16,.115,.07],dark=[.012,.009,.006];
-  const R=[0,.012,.02,.028,.042,.06],Y=[-.006,-.004,.001,.006,.003,0],CC=[dark,dark,[.25,.19,.12],sand,sand,sand];
+function crBurrowGeo(){const P=[],N=[],C=[],I=[];let n=0;const sand=[.3,.19,.095],dark=[.012,.009,.006];
+  const R=[0,.012,.02,.026,.036,.046],Y=[-.006,-.004,.001,.005,.002,0],CC=[dark,dark,[.12,.075,.04],[.25,.16,.08],sand,[.33,.21,.105]];
   for(let i=0;i<R.length;i++)for(let j=0;j<16;j++){const a=j/16*TAU;P.push(Math.cos(a)*R[i],Y[i],Math.sin(a)*R[i]);N.push(0,1,0);C.push(...CC[i]);n++}
   for(let i=0;i<R.length-1;i++)for(let j=0;j<16;j++){const a=i*16+j,b=i*16+(j+1)%16;I.push(a,b,a+16,b,b+16,a+16)}
-  for(let p=0;p<9;p++){const a=rr(-.9,.9),d=rr(.045,.085),cx=Math.cos(a)*d,cz=Math.sin(a)*d,r=rr(.004,.007),b=n;
+  for(let p=0;p<9;p++){const a=rr(-.9,.9),d=rr(.04,.075),cx=Math.cos(a)*d,cz=Math.sin(a)*d,r=rr(.004,.007),b=n;
     for(let i=0;i<=4;i++)for(let j=0;j<=6;j++){const t=i/4*Math.PI*.5,ph=j/6*TAU,x=Math.cos(t)*Math.cos(ph),y=Math.sin(t),z=Math.cos(t)*Math.sin(ph);
-      P.push(cx+x*r,y*r*.8,cz+z*r);N.push(x,y,z);C.push(sand[0]*.92,sand[1]*.92,sand[2]*.92);n++}
+      P.push(cx+x*r,y*r*.8,cz+z*r);N.push(x,y,z);C.push(sand[0]*.7,sand[1]*.7,sand[2]*.7);n++}
     for(let i=0;i<4;i++)for(let j=0;j<6;j++){const a=b+i*7+j;I.push(a,a+7,a+1,a+1,a+7,a+8)}}
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(P),3));g.setAttribute("normal",new T.BA(new Float32Array(N),3));
   g.setAttribute("color",new T.BA(new Float32Array(C),3));g.setIndex(I);return g}
 /* a burrow site: damp bank 2–8 cm above the water, not too steep */
 function crSite(th){for(let k=.8;k<1.2;k+=.005){const[x,z]=pondEdge(th,k),d=pfDep(x,z);if(d<-.025&&d>-.08){const s=Math.abs(pfDep(x+.15,z)-pfDep(x-.15,z))+Math.abs(pfDep(x,z+.15)-pfDep(x,z-.15));if(s<.2)return[x,z]}}return null}
-function crBuild(){const g=crGeo(),m=new T.MSM({vertexColors:true,roughness:.42,metalness:0});m.userData.U=CR.U;uwMat(m,"cr",".9",CR_ANIM);
+function crBuild(){const g=crGeo(),m=new T.MSM({vertexColors:true,roughness:.2,metalness:0});m.userData.U=CR.U;uwMat(m,"cr",".9",CR_ANIM);
   const A=iba(CR_N,4);g.setAttribute("aG",A);
   const im=new T.IM(g,m,CR_N);im.frustumCulled=false;im.renderOrder=3;W.add(im);onDes(im);CR.im=im;CR.A=A;
   const bm=new T.IM(crBurrowGeo(),new T.MSM({vertexColors:true,roughness:.95,metalness:0,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2}),CR_N);
@@ -3955,29 +4000,42 @@ function crGo(c,x,z,v,mode,go){c.tx=x;c.tz=z;c.vt=v;c.mode=mode;c.go=go}
 function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||WX.scold>0;
   for(const c of CR.list){
     let near=null,nd=1e9;for(const h of LKT){const d=Math.hypot(c.x-h.x,c.z-h.z)-h.r;if(d<nd){nd=d;near=h}}
-    const fear=nd<1.2;c.up+=((c.mode==="run"?1:fear&&c.mode!=="in"?.6:0)-c.up)*ease(6,dt);
-    if(fear&&(c.mode==="out"||c.mode==="walk"||c.mode==="emerge")){
+    /* a viewer leaning in close: within about a metre it stops, turns its front to the lens and holds its claws up; much
+       closer and it runs like from anything else */
+    const dcx=_cl.x-c.x,dcz=_cl.z-c.z,dcm=Math.hypot(dcx,dcz),cam=_cl.y-c.y<1.2&&c.mode!=="in"&&c.mode!=="down";
+    if(cam&&dcm<.4&&nd>.4){nd=.4;near={x:_cl.x,z:_cl.z,r:0}}
+    const fear=nd<1.2;c.up+=((c.mode==="run"?1:c.mode==="face"?1:fear&&c.mode!=="in"?.6:0)-c.up)*ease(6,dt);
+    if(!fear&&cam&&dcm<1.05&&(c.mode==="out"||c.mode==="walk"||c.mode==="dig")){c.mode="face";c.v=0;c.t=rr(2,4)}
+    if(c.mode==="face"){c.yaw=wrapA(c.yaw+cl(wrapA(Math.atan2(dcx,dcz)-c.yaw),-4*dt,4*dt));c.t-=dt;if(!cam||dcm>1.3||c.t<0&&dcm>1.05){c.mode="out";c.t=rr(.5,2)}}
+    if(fear&&(c.mode==="out"||c.mode==="walk"||c.mode==="emerge"||c.mode==="face"||c.mode==="dig")){
       const db=Math.hypot(c.bx-c.x,c.bz-c.z),bt=Math.hypot(c.bx-near.x,c.bz-near.z)>Math.hypot(c.x-near.x,c.z-near.z)-.3,[wx,wz]=crWater(c),dw=Math.hypot(wx-c.x,wz-c.z);
       if(c.mode==="emerge"||db<.25||(bt&&db<dw*1.4))crGo(c,c.bx,c.bz,.42,"run","home");else crGo(c,wx,wz,.42,"run","water")}
-    else if(foul&&(c.mode==="out"||c.mode==="walk"))crGo(c,c.bx,c.bz,.2,"walk","home");
-    if(c.mode==="in"){c.sk=1;c.t-=dt;if(c.t<0&&!foul&&nd>2){c.mode="emerge";c.yaw=Math.atan2(POND.x-c.bx,POND.z-c.bz)+rr(-1,1)}else if(c.t<0)c.t=rr(2,5)}
+    else if(foul&&(c.mode==="out"||c.mode==="walk"||c.mode==="dig"))crGo(c,c.bx,c.bz,.2,"walk","home");
+    const ox=c.bx-POND.x,oz=c.bz-POND.z;
+    if(c.mode==="in"){c.sk=1;c.t-=dt;if(c.t<0&&!foul&&nd>2){c.mode="emerge";c.yaw=Math.atan2(POND.x-c.bx,POND.z-c.bz)+rr(-1,1);spPuff(c.bx,c.y,c.bz,3,ox,oz,.15,.25,.025)}else if(c.t<0)c.t=rr(2,5)}
     else if(c.mode==="emerge"){c.sk-=dt/1.4;if(c.sk<=0){c.sk=0;c.mode="out";c.t=rr(1.5,4)}}
     else if(c.mode==="down"){c.sk+=dt/.55;if(c.sk>=1){c.mode="in";c.t=rr(10,25)}}
     else if(c.mode==="sub"){c.t-=dt;if(c.t<0&&nd>2.5&&!foul){const[x,z]=crForage(c);crGo(c,x,z,.09,"walk",null)}else if(c.t<0)c.t=rr(4,8)}
-    else if(c.mode==="out"){c.t-=dt;if(c.t<0){const[x,z]=crForage(c);crGo(c,x,z,rr(.06,.14),"walk",null)}}
+    /* keeping the burrow open: at its mouth, facing out, it scoops wet sand up in its claws and flicks it away in little puffs */
+    else if(c.mode==="dig"){c.t-=dt;c.pT=(c.pT||0)-dt;if(c.pT<0){c.pT=rr(.35,.7);const fx=Math.sin(c.yaw),fz=Math.cos(c.yaw);
+        spPuff(c.x+fx*.04*c.s,c.y+.01,c.z+fz*.04*c.s,2+(rnd()*3|0),fx+rr(-.5,.5),fz+rr(-.5,.5),.3,.35,.022)}
+      if(c.t<0){c.mode="out";c.t=rr(1,3)}}
+    else if(c.mode==="out"){c.t-=dt;if(c.t<0){if(Math.hypot(c.x-c.bx,c.z-c.bz)<.3&&rnd()<.3){c.mode="dig";c.t=rr(2.5,4.5);c.yaw=Math.atan2(ox,oz)+rr(-.6,.6)}
+      else{const[x,z]=crForage(c);crGo(c,x,z,rr(.06,.14),"walk",null)}}}
     if(c.mode==="walk"||c.mode==="run"){const dx=c.tx-c.x,dz=c.tz-c.z,d=Math.hypot(dx,dz);
-      if(d<.02){c.v=0;if(c.go==="home"){c.x=c.bx;c.z=c.bz;c.mode="down"}else if(c.go==="water"){c.mode="sub";c.t=rr(12,30)}else{c.mode="out";c.t=rr(1,5)}}
+      if(d<.02){c.v=0;if(c.go==="home"){c.x=c.bx;c.z=c.bz;c.mode="down";spPuff(c.bx,c.y,c.bz,5,c.bx-POND.x,c.bz-POND.z,.3,.35,.03)}else if(c.go==="water"){c.mode="sub";c.t=rr(12,30)}else{c.mode="out";c.t=rr(1,5)}}
       else{const dir=Math.atan2(dx,dz),y1=dir-Math.PI/2,y2=dir+Math.PI/2,ty=Math.abs(wrapA(y1-c.yaw))<Math.abs(wrapA(y2-c.yaw))?y1:y2,dy=wrapA(ty-c.yaw);
         c.yaw=wrapA(c.yaw+cl(dy,-6*dt,6*dt));const vt=Math.abs(dy)<.5?c.vt:0;c.v+=(vt-c.v)*ease(c.mode==="run"?14:7,dt);
         const st_=Math.min(c.v*dt,d);c.x+=dx/d*st_;c.z+=dz/d*st_}}
     else c.v+=(0-c.v)*ease(10,dt);
     c.ph+=c.v*dt/.032*TAU;c.walk+=((c.v>.01?1:0)-c.walk)*ease(10,dt);
-    const feeding=c.mode==="out"||c.mode==="sub";c.fph+=dt*(feeding?4.2:0);c.feed+=((feeding?1:0)-c.feed)*ease(3,dt);
+    const feeding=c.mode==="out"||c.mode==="sub"||c.mode==="dig";c.fph+=dt*(feeding?c.mode==="dig"?7:4.2:0);c.feed+=((feeding?1:0)-c.feed)*ease(3,dt);
     c.y=lkY(c.x,c.z)}
   if(CR.vis>0){const A=CR.A.array;CR.list.forEach((c,i)=>{const fw=Math.sin(c.yaw),fz=Math.cos(c.yaw),e=.03,
       gp=(lkY(c.x+fw*e,c.z+fz*e)-lkY(c.x-fw*e,c.z-fz*e))/(2*e),gr=(lkY(c.x+fz*e,c.z-fw*e)-lkY(c.x-fz*e,c.z+fw*e))/(2*e);
       qYXZ(_tq,-Math.atan(gp),c.yaw,Math.atan(gr));const sc=c.mode==="in"?0:c.s;
-      _tm.compose(_ts.set(c.x,c.y-c.sk*.05*c.s+.0025*c.walk*Math.abs(Math.sin(c.ph)),c.z),_tq,_v.set(sc,sc,sc));CR.im.setMatrixAt(i,_tm);
+      _tm.compose(_ts.set(c.x,c.y-c.sk*.05*c.s+.0025*c.walk*Math.abs(Math.sin(c.ph))+.008*c.up*c.s,c.z),_tq,_v.set(sc,sc,sc));CR.im.setMatrixAt(i,_tm);
+      if(sc>0&&c.sk<.6)blobAdd(c.x,c.y,c.z,c.yaw,.085*c.s,.07*c.s,.42*(1-.6*st.night)*CR.vis*(1-c.sk),.75,0);
       A[i*4]=c.ph;A[i*4+1]=c.walk;A[i*4+2]=Math.sin(c.fph)*c.feed*(1-c.up);A[i*4+3]=c.up});
     CR.im.instanceMatrix.needsUpdate=true;CR.A.needsUpdate=true}}
 /* the lake animals are hidden once they are under a couple of pixels */
@@ -4171,6 +4229,7 @@ UPD.push((dt,t)=>{
   if(PF.list.length){pfVis();pfUpdate(d)}
   lakeThreats();lakeVis();ttUpdate(d);crUpdate(d);
   if(AG.list.length){agVis();agUpdate(d)}
+  blobEnd();spTick(d);
   devilUpdate(d,t);
   sound(d);
 });

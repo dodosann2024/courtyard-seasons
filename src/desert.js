@@ -1413,7 +1413,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float dF=dust/(a+.001);c=mix(c,base*vec3(1.,.82,.6)*1.02+vec3(.03,.018,.006)*(1.-uNt),dF*.62);
           /* low down the thin veil is seen against the bright cloud sea: the thinner it is the deeper its own ochre, so what reaches
              the eye stays ochre until it is gone instead of turning a pale tan */
-          float lw=smoothstep(.3,.85,s)*(1.-clamp(a,0.,1.));c=mix(c,base*vec3(.94,.7,.42)*.86,lw*.85*(1.-.8*uNt));a=mix(a,a*(2.-a),smoothstep(.3,.8,s)*step(a,1.));
+          float lw=smoothstep(.3,.85,s)*(1.-clamp(a,0.,1.));c=mix(c,base*vec3(.94,.7,.42)*.86,lw*.85*(1.-.8*uNt));
           /* a sheet seen edge-on piles up alpha into a hard line: keep the stream but thin it */
           vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.5,1.,smoothstep(.05,.45,abs(dot(N,normalize(cameraPosition-vW)))));
         }
@@ -1425,7 +1425,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         float pxW=1./max(fwidth(x),1e-4),thin=1.-smoothstep(2.,12.,pxW);a*=1.-.8*thin;c=mix(c,mix(c,fO,.5)*.92+base*.08,thin*.6);
         if(a<.004)discard;
         /* far off the lower fall sinks into the haze by thinning out, not by turning pale */
-        float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*(.55-.35*smoothstep(.35,.9,s)));a*=1.-.3*fd*smoothstep(.3,.95,s);
+        float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*(.55-.35*smoothstep(.35,.9,s)));a*=1.-.75*fd*smoothstep(.3,.95,s);
         float ck=c.r+c.g+c.b+a;if(!(ck>-1.&&ck<1e3))discard;
         gl_FragColor=vec4(c,clamp(a,0.,1.));
         #include <tonemapping_fragment>

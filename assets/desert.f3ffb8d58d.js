@@ -4441,7 +4441,7 @@ function osGeo(male){const G=paGeo(),X=OS_IX,w=(a,b)=>[[X[a],.5],[X[b],.5]];
   return G}
 /* the poses the neck blends between, per joint (bend forward, radians) */
 const OS_NK={stand:[-.12,.06,.06,.02,-.06,.04],alert:[-.24,-.04,0,0,-.02,0],graze:[1.1,.8,.5,.12,.02,0],run:[.5,.2,.05,-.05,-.1,-.05],sit:[-.06,.05,.06,0,-.05,.05],doze:[.35,.45,.5,.4,.3,.2]};
-function osSpawn(male){const G=osGeo(male),R=paBones(OS_B),m=paMesh(G,R),g=new T.Group(),sc=male?1:.9;g.add(m);g.scale.setScalar(sc);W.add(g);onDes(g);
+function osSpawn(male){const G=osGeo(male),R=paBones(OS_B),m=paMesh(G,R),g=new T.Group(),sc=male?1.07:.96;g.add(m);g.scale.setScalar(sc);W.add(g);onDes(g);
   const A={g,m,B:R.B,male,sc,x:0,z:0,yaw:0,gy:0,v:0,yr:0,gph:0,mode:"stand",t:rr(3,6),path:null,pi:0,vmax:1,
     P:{cr:0,pit:0,gr:0,al:0,run:0,sit:0,doze:0,look:0,peck:0,wing:0,tail:0},lookT:0,lookA:0,peckT:rr(.5,1.5),scanT:rr(4,9),runT:rr(90,200),thr:null,sat:0,
     F:[paFoot(.14*sc,.09*sc,0),paFoot(-.14*sc,.09*sc,.5)]};
@@ -4508,7 +4508,11 @@ function osUpdate(A,dt){const P=A.P,ny=st.night>.6||(st.night>.3&&st.phase==="ni
   /* away from the threat, swinging wider to either side when the rim or the water is in the way */
   const fleeFrom=(r)=>{const t=A.thr,a0=Math.atan2(A.x-t.x,A.z-t.z),g=navGrid("ostrich",.9,1.25,.8),D=r?9:4,d0=Math.hypot(A.x-t.x,A.z-t.z);
     for(const da of[0,.6,-.6,1.2,-1.2,1.8,-1.8]){const a=a0+da,p=randFree(g,A.x+Math.sin(a)*D,A.z+Math.cos(a)*D,r?5:2.5,(x,z)=>Math.hypot(x-t.x,z-t.z)>d0+2);
-      if(p&&osGo(A,p,r))return true}return false};
+      if(p&&osGo(A,p,r))return true}
+    /* boxed in (water, rim, camels): any open stretch that gains distance, in a straight line */
+    for(const D2 of[D*.6,2.2])for(let k=0;k<12;k++){const a=a0+k*TAU/12,x=A.x+Math.sin(a)*D2,z=A.z+Math.cos(a)*D2;
+      if(navFree(g,x,z)&&Math.hypot(x-t.x,z-t.z)>d0+.8){A.path=[{x:A.x,z:A.z},{x,z}];A.pi=1;A.mode=r?"run":"walk";A.vmax=r?rr(6,7.5):rr(.9,1.3);return true}}
+    return false};
   switch(A.mode){
     case"sit":A.v*=Math.exp(-dt*6);if(fear>.9&&P.sit>.8&&!hail){A.mode="stand";A.t=.5;break}
       if(!sitW&&A.t<0){A.mode="stand";A.t=rr(2,4)}P.doze+=((ny&&fear<.2?1:0)-P.doze)*ease(.3,dt);break;

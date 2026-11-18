@@ -1409,6 +1409,9 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           c=mix(c,base*1.12+uSheen*vFs*.7*(1.-.75*uNt),clamp(1.-bc,0.,1.)*.55);
           /* the dust it sheds is ochre, a shade deeper than the sheet, never the white of the cloud sea's mist */
           float dF=dust/(a+.001);c=mix(c,base*vec3(1.,.82,.6)*1.02+vec3(.03,.018,.006)*(1.-uNt),dF*.62);
+          /* low down the thin veil is seen against the bright cloud sea: the thinner it is the deeper its own ochre, so what reaches
+             the eye stays ochre until it is gone instead of turning a pale tan */
+          float lw=smoothstep(.3,.85,s)*(1.-clamp(a,0.,1.));c=mix(c,base*vec3(.94,.7,.42)*.86,lw*.85*(1.-.8*uNt));a=mix(a,a*(2.-a),smoothstep(.3,.8,s)*step(a,1.));
           /* a sheet seen edge-on piles up alpha into a hard line: keep the stream but thin it */
           vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.5,1.,smoothstep(.05,.45,abs(dot(N,normalize(cameraPosition-vW)))));
         }
@@ -1416,11 +1419,11 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         /* a stream only a pixel or two wide from afar is a faint soft thread, not a hard yellow line */
         /* the haze a fall sinks into is its own dust: fade it to an ochre as bright as the sky haze, never the haze's pale cream
            (which reads as water), and let the lower fall dissipate rather than turn pale */
-        float hL=dot(uFogC,vec3(.3,.59,.11)),bL=max(dot(base,vec3(.3,.59,.11)),.02);vec3 fO=mix(uFogC,base*(min(hL,bL*1.05)/bL)*vec3(1.03,.9,.72),.6+.35*smoothstep(.35,.9,s));
+        float hL=dot(uFogC,vec3(.3,.59,.11)),bL=max(dot(base,vec3(.3,.59,.11)),.02);vec3 fO=mix(uFogC,base*(min(hL,bL*1.05)/bL)*mix(vec3(1.03,.9,.72),vec3(.98,.78,.52),smoothstep(.35,.9,s)),.6+.35*smoothstep(.35,.9,s));
         float pxW=1./max(fwidth(x),1e-4),thin=1.-smoothstep(2.,12.,pxW);a*=1.-.8*thin;c=mix(c,mix(c,fO,.5)*.92+base*.08,thin*.6);
         if(a<.004)discard;
         /* far off the lower fall sinks into the haze by thinning out, not by turning pale */
-        float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*(.55-.35*smoothstep(.35,.9,s)));a*=1.-.75*fd*smoothstep(.3,.95,s);
+        float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*(.55-.35*smoothstep(.35,.9,s)));a*=1.-.3*fd*smoothstep(.3,.95,s);
         float ck=c.r+c.g+c.b+a;if(!(ck>-1.&&ck<1e3))discard;
         gl_FragColor=vec4(c,clamp(a,0.,1.));
         #include <tonemapping_fragment>
@@ -2177,26 +2180,30 @@ function hailStreaks(){const mk=(n,near)=>{const R=new Float32Array(n*16),C=new 
       const b=i*4;I.push(b,b+1,b+2,b+2,b+1,b+3)}
     const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("aR",new T.BA(R,4));g.setAttribute("aC",new T.BA(C,2));g.setIndex(I);
     const m=new T.SM({uniforms:Object.assign({uNear:{value:near?3.5:0}},HLU),transparent:true,depthWrite:false,side:2,
-      vertexShader:`attribute vec4 aR;attribute vec2 aC;uniform float uT,uRain,uWS,uNear;uniform vec2 uWD,uRes;uniform vec3 uCamL;varying float vA;varying vec2 vC;${GLSL_HM}${GLSL_CELL}
+      vertexShader:`attribute vec4 aR;attribute vec2 aC;uniform float uT,uRain,uWS,uNear;uniform vec2 uWD,uRes;uniform vec3 uCamL;varying float vA,vL,vS;varying vec2 vC;${GLSL_HM}${GLSL_CELL}
         void main(){float sp=9.+3.*aR.w,y,fall;vec2 p;
           if(uNear>0.){float B=2.*uNear;y=uCamL.y+mod(-uT*sp-aR.z*B-uCamL.y+uNear,B)-uNear;fall=(uCamL.y+uNear-y)/sp;
             p=uCamL.xz+mod(aR.xy*uNear+uWD*uWS*(fall-1.)-uCamL.xz+uNear,B)-uNear;}
           else{const float TOP=26.,HC=60.;y=TOP-mod(uT*sp+aR.z*HC,HC);fall=(TOP-y)/sp;p=aR.xy+uWD*uWS*(fall-1.);}
           float g=gH(p);vec3 H=vec3(p.x,y,p.y),dir=normalize(vec3(uWD.x*uWS,-sp,uWD.y*uWS));
-          float d=length(H-uCamL),len=mix(.09,.4,smoothstep(1.5,22.,d));
+          float d=length(H-uCamL),len=mix(.011*(.6+.6*aR.w),.06,smoothstep(6.,30.,d));
           vec4 h=projectionMatrix*modelViewMatrix*vec4(H,1.),t=projectionMatrix*modelViewMatrix*vec4(H-dir*len,1.);
           vC=aC;vA=step(g,y)*cellK(p)*step(aR.w*.9,uRain*1.5)*(.45+.55*smoothstep(260.,25.,d))*smoothstep(-36.,-20.,y)*step(.02,t.w)*step(.02,h.w);
           if(uNear>0.)vA*=smoothstep(uNear,uNear*.6,length(H-uCamL))*smoothstep(.15,.5,d);
           vec2 sd=h.xy/h.w-t.xy/t.w;sd*=uRes;vec2 nd=normalize(vec2(-sd.y,sd.x)+1e-5);
-          vec4 c=mix(t,h,aC.y);float px=.016*(.6+.6*aR.w)*${S.toFixed(3)}*projectionMatrix[1][1]*uRes.y*.5/max(c.w,.01),wp=max(px,1.5);
-          vA*=clamp(px/wp*1.8,.6,1.);c.xy+=nd*aC.x*wp/uRes*c.w;gl_Position=c;}`,
-      fragmentShader:`uniform vec3 uCol;varying float vA;varying vec2 vC;void main(){float a=vA*(1.-vC.x*vC.x*.7)*smoothstep(0.,.55,vC.y);
-        if(a<.004)discard;gl_FragColor=vec4(uCol*(1.05+.35*vC.y),a*.95);
+          vec4 c=mix(t,h,aC.y);float px=.019*(.6+.6*aR.w)*${S.toFixed(3)}*projectionMatrix[1][1]*uRes.y*.5/max(c.w,.01),wp=max(px,1.5);
+          vA*=clamp(px/wp*1.8,.6,1.);vL=length(sd)/wp;vS=fract(aR.z*7.31+aR.w*3.7)*6.2832;
+          c.xy+=(nd*aC.x+normalize(sd+1e-5)*(aC.y*2.-1.))*wp/uRes*c.w;gl_Position=c;}`,
+      /* a stone, not a dash: a lumpy round body a little smeared back along its fall, lit from above */
+      fragmentShader:`uniform vec3 uCol;varying float vA,vL,vS;varying vec2 vC;void main(){float u=mix(-1.,vL+1.,vC.y),dx=u-clamp(u,0.,vL),an=atan(vC.x,dx);
+        float r=.86+.1*sin(3.*an+vS)+.06*sin(5.*an+2.*vS),dd=length(vec2(vC.x,dx));
+        float a=vA*smoothstep(r,r-.35,dd)*mix(.55,1.,smoothstep(-1.,vL,u));
+        if(a<.004)discard;gl_FragColor=vec4(uCol*(1.1-.22*vC.x*vC.x+.12*clamp(dx,-1.,1.)),min(1.,a*1.1));
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
         }`});
     const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=8;o.visible=false;W.add(o);onDes(o);return o};
-  HLF=[mk(MOB?700:1800,0),mk(MOB?260:700,1)]}
+  HLF=[mk(MOB?700:1800,0),mk(MOB?380:1000,1)]}
 /* the tent's roof as a height grid in its own frame (0.2 m cells), read from the model, for stones landing on it */
 const TR={ok:0};
 function tentRoof(g){W.updateMatrixWorld(true);const Wi=new T.M4().copy(W.matrixWorld).invert(),M=new T.M4(),v=new V3(),ca=Math.cos(TENT.yaw),sa=Math.sin(TENT.yaw);
@@ -2252,6 +2259,35 @@ const HB=(()=>{const n=MOB?260:640,P=new Float32Array(n*3),C=new Float32Array(n*
       }`});
   for(let i=0;i<n;i++)Q.push({ty:"",x:0,y:0,z:0,vx:0,vy:0,vz:0,l:0,L:1,ph:0});
   const o=new T.Points(g,m);o.frustumCulled=false;o.renderOrder=9;o.visible=false;W.add(o);onDes(o);return{n,P,C,Z,Q,g,m,o,k:0}})();
+/* a stone on the pond throws a crown of white, air-filled water a hand or two across: its rim breaks into droplets, it falls back
+   and a jet rises from the middle. One sprite per strike, drawn like the rain's crowns but bigger, thicker and whiter. */
+const HCR=(()=>{const n=MOB?16:32,P=new Float32Array(n*3),K=new Float32Array(n*2).fill(-1);
+  const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("aK",new T.BA(K,2));
+  const m=new T.SM({uniforms:{uH:{value:innerHeight},uCol:HLU.uCol},transparent:true,depthWrite:false,
+    vertexShader:`attribute vec2 aK;uniform float uH;varying float vK,vA,vS;
+      void main(){vK=aK.x;vS=fract(aK.y);vA=step(0.,aK.x);float sz=.3*(.75+.5*vS)*${S.toFixed(3)};
+        vec4 mv=modelViewMatrix*vec4(position+vec3(0.,.38*sz,0.),1.);gl_Position=projectionMatrix*mv;
+        float px=sz*projectionMatrix[1][1]*uH*.5/max(.05,-mv.z);vA*=smoothstep(3.,8.,px);gl_PointSize=vA>0.?min(px,180.):0.;}`,
+    fragmentShader:`uniform vec3 uCol;varying float vK,vA,vS;void main(){vec2 q=gl_PointCoord-.5;q.y=-q.y;float a=0.,y=q.y+.38;
+      if(vK<.55){float k=vK/.55,rad=.07+.2*k+max(y,0.)*.4,ax=abs(q.x)/max(rad,.01),hg=.4*sin(k*3.1416)*(.8+.4*vS)*(1.+.12*k*sin(ax*9.+vS*5.+sign(q.x)*1.7));
+        /* the wall is a sheet of spray, brightest where it is seen edge-on at the sides and at its lip */
+        float wl=step(ax,1.)*step(0.,y)*smoothstep(hg,hg-.03,y);
+        a=wl*(.32+.45*smoothstep(.55,1.,ax)+.25*smoothstep(hg*.5,hg,y))+smoothstep(.06,.0,abs(abs(q.x)-rad))*step(0.,y)*step(y,hg)*.5;
+        float e=length(vec2(q.x/max(rad,.01),(y-hg)/(rad*.32+.01)));a=max(a,smoothstep(.25,.0,abs(e-1.))*.85*step(.02,hg));
+        a=max(a,smoothstep(1.15,.7,length(vec2(q.x/max(rad,.01),y/(rad*.3+.01))))*.45*(1.-k*.5));
+        for(int i=0;i<8;i++){float an=float(i)/8.*6.2832+vS*6.;vec2 d=vec2(cos(an)*rad*1.15,hg+.05+sin(an)*rad*.32+.1*k)-vec2(q.x,y);a=max(a,smoothstep(.05,.02,length(d))*step(.2,k));}
+        a=max(a,smoothstep(.06,.0,abs(length(vec2(q.x,y*3.))-rad))*.7);a*=1.-smoothstep(.75,1.,k);}
+      else{float k=(vK-.55)/.45,jh=.34*sin(k*3.1416);a=smoothstep(.045,.0,abs(q.x))*step(0.,y)*step(y,jh)*.85;
+        a=max(a,smoothstep(.065,.04,length(vec2(q.x,y-jh-.04)))*step(.15,k));}
+      a*=vA;if(a<.01)discard;gl_FragColor=vec4(uCol*1.7+.12,min(1.,a*.95));
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+      }`});
+  const o=new T.Points(g,m);o.frustumCulled=false;o.renderOrder=9;o.visible=false;W.add(o);onDes(o);return{n,P,K,g,m,o,k:0,live:0}})();
+function hCrown(x,z){const C=HCR,k=C.k;C.k=(k+1)%C.n;C.P[k*3]=x;C.P[k*3+1]=POND.wy+.004;C.P[k*3+2]=z;C.K[k*2]=0;C.K[k*2+1]=rnd();C.live=1;
+  C.g.attributes.position.needsUpdate=true}
+function hCrownStep(dt){const C=HCR;let any=0;for(let i=0;i<C.n;i++){const j=i*2;if(C.K[j]<0)continue;C.K[j]+=dt/.95;if(C.K[j]>=1)C.K[j]=-1;else any=1}
+  C.live=any;C.o.visible=any>0;C.g.attributes.aK.needsUpdate=true;C.m.uniforms.uH.value=innerHeight}
 const HBK={clump:[.93,.95,.98,.09],drop:[.9,.94,.98,.05],grain:[.78,.6,.4,.009],leaf:[.3,.36,.2,.06],chip:[.95,.97,1,.012]};
 function hBit(ty,x,y,z,vx,vy,vz,life){const B=HB,q=B.Q[B.k];B.k=(B.k+1)%B.n;B.live=1;q.ty=ty;q.x=x;q.y=y;q.z=z;q.vx=vx;q.vy=vy;q.vz=vz;q.l=q.L=life;q.ph=rnd()*TAU}
 /* a stone at rest on a ripple: the ripple's slow terms are frozen where it lands, so its height and slope are cheap to follow */
@@ -2298,7 +2334,7 @@ function hailSim(dt,t){const S0=HS,P=S0.P,hf=WX.hf,wn=st.wn;
       if(!s.cd&&s.y<s.gy+12.5)for(const c of CH){const dx=s.x-c.x,dz=s.z-c.z;if(dx*dx+dz*dz<c.r*c.r&&s.y<c.y&&s.y>c.y-.6){s.cd=1;s.vy=Math.abs(s.vy)*rr(.2,.35);s.vx+=dx/c.r*rr(.8,1.6);s.vz+=dz/c.r*rr(.8,1.6);
           c.tv+=c.k*rr(.6,1.4)*(rnd()<.5?-1:1);cn("cactus");hEv("cactus",s.x,s.y,s.z,1);break}}
       if(s.y<s.gy+.7){const inP=pN(s.x,s.z)<1;
-        if(inP&&s.y<POND.wy+s.r){s.m=4;s.y=POND.wy;s.t=0;s.life=rr(1.2,3.5);cn("pond");hEv("pond",s.x,s.y,s.z,1);hDecal(1,s.x,POND.wy+.004,s.z,rr(.5,.8));
+        if(inP&&s.y<POND.wy+s.r){s.m=4;s.y=POND.wy;s.t=0;s.life=rr(1.2,3.5);cn("pond");hEv("pond",s.x,s.y,s.z,1);hDecal(1,s.x,POND.wy+.004,s.z,rr(.5,.8));hCrown(s.x,s.z);
           const k=MOB?6:10,sp=rr(.45,.8);for(let j=0;j<k;j++){const a=j/k*TAU+rnd()*.3;hBit("drop",s.x,POND.wy+.01,s.z,Math.cos(a)*sp,rr(1.1,1.8),Math.sin(a)*sp,.6)}
           hBit("drop",s.x,POND.wy+.01,s.z,0,rr(1.9,2.5),0,.7)}
         else if(!inP){const h=hTop(s.x,s.z);if(s.y<h+s.r){s.y=h+s.r*.7;const nn=nTop(s.x,s.z),vn=s.vx*nn.x+s.vy*nn.y+s.vz*nn.z;
@@ -2324,6 +2360,7 @@ UPD.push((dt,t)=>{const on=WX.hf>.004,act=on||HS.act>0;
   _c1.copy(dc?dc.color:_c1.set("#999")).multiplyScalar(dc?dc.intensity*.5:.5).add(_c2.copy(pi?pi.color:_c1).multiplyScalar(.2*(pi?pi.intensity:1)));
   HLU.uCol.value.copy(_c1).multiplyScalar(1.25).lerp(_c2.set("#eef2f4"),.25*(1-st.night));
   if(act)hailSim(Math.min(dt,.05),t);
+  if(HCR.live)hCrownStep(Math.min(dt,.05));
   HD.im.visible=st.t-HD.last<26;if(HD.im.visible){HD.im.material.uniforms.uT.value=st.t;HD.im.material.uniforms.uCol.value.copy(HLU.uCol.value);HD.im.material.uniforms.uSand.value.copy(_c1).multiply(_c2.set("#f3d2a2")).multiplyScalar(1.5)}
   /* bits */
   let any=false;const B=HB;
@@ -3082,7 +3119,7 @@ function rsUpdate(s,dt){
   /* coiled: the clip pose, tongue now and then; leave at dusk or to reach shade */
   if(s.mode==="coil"){s.timer-=dt;
     if(s.timer<0){if(s.r.cur==="relaxed_coil"){play(s.r,"tongue_flick",.8,1);s.timer=rr(6,9)}else{play(s.r,"relaxed_coil",.9,1);s.timer=rr(9,15)}}
-    s.idle-=dt;if(s.idle<0&&(!day||!s.inShade)){s.mode="uncoil";s.next=null}}
+    s.idle-=dt;if(WX.hcold&&!s.inShade)s.idle=Math.min(s.idle,0);if(s.idle<0&&(!day||!s.inShade)){s.mode="uncoil";s.next=null}}
   if(s.mode==="uncoil"){rigTick(s.r,dt);rsFromClip(s);trInit(s);for(let i=0;i<RS_N*2;i++)b.Ls[i]=b.P[i];
     s.mode="rest";s.restT=.3;s.gait="serp";s.a=0;s.rk=s.caut>0?1:0;s.wT=0;s.wF=-.4;s.dtgt=null}
   /* travel */
@@ -3110,8 +3147,8 @@ function rsUpdate(s,dt){
   if(s.mode==="rest"&&s.gait==="side"&&s.a<.01){trInit(s);s.gait="serp"}
   if(day&&s.mode==="rest"&&!s.inShade&&!s.next)s.restT=Math.min(s.restT,.2);
   if(!day)s.inShade=0;
-  /* in snow, once coiled in its shady spot it slips down the burrow there until the sand warms again */
-  s.g.visible=!(WX.scold&&s.inShade&&s.mode==="coil");
+  /* in snow or hail, once coiled in its shady spot it slips down the burrow there until the sand warms again */
+  s.g.visible=!((WX.scold||WX.hcold)&&s.inShade&&s.mode==="coil");
   /* crawl weight: 1 travelling or resting stretched out, ramping to the clip pose when it coils */
   s.wT+=dt;const wf=s.wF||1;s.w=wf<0?ss(0,-wf,s.wT):1-ss(0,wf,s.wT);
   if(s.mode==="coiling"&&s.w<.002)s.mode="coil";
@@ -3463,8 +3500,9 @@ function pfStart(f,gx,gz,vt,T){f.gx=gx;f.gz=gz;f.vt=vt;f.t=T;f.mode="dart";
   if(f.r.cur!=="swim")play(f.r,"swim",.12)}
 function pfPause(f){const n=st.night>.5;f.mode="pause";f.vt=0;f.tg=null;f.t=n?rr(2,6):rr(.3,1.7);
   if(!n&&f.t>1.2&&rnd()<.4&&f.r.acts.idle_turn)play(f.r,"idle_turn",.3,rr(.8,1.3))}
-/* keep a goal over water of the right depth: pull it toward the pond centre when too shallow, out when too deep */
-function pfFit(f,x,z){const lo=f.ter>=0?.05:.08,hi=f.ter>=0?.3:.75;
+/* keep a goal over water of the right depth: pull it toward the pond centre when too shallow, out when too deep.
+   Under hail every fish keeps to the deep middle, out of reach of the strikes. */
+function pfFit(f,x,z){const hd=WX.hcold>0,lo=hd?.4:f.ter>=0?.05:.08,hi=hd?1.5:f.ter>=0?.3:.75;
   for(let k=0;k<8;k++){const d=pfDep(x,z);if(d<lo){x+=(POND.x-x)*.12;z+=(POND.z-z)*.12}else if(d>hi){x-=(POND.x-x)*.08;z-=(POND.z-z)*.08}else break}return[x,z]}
 function pfDart(f){
   let gx,gz;const ny=st.night>.5;

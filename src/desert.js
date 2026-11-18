@@ -25,8 +25,10 @@ let PAR=false;try{PAR=Cn.extensions.has("KHR_parallel_shader_compile")}catch(_){
 const warm=(o,rt,cam)=>{const rv=root.visible,prt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(rt===undefined?Ta.readBuffer||null:rt);let p;
   try{p=Cn.compileAsync(o,cam||De,Jt)}catch(_){p=Promise.resolve()}Cn.setRenderTarget(prt);root.visible=rv;
   return Promise.race([p.catch(()=>0),new Promise(r=>setTimeout(r,MOB?9000:6000))])};
+/* models compiled but not yet drawn once: the load is not over until their first draws (which can wait on the link) are behind */
+let DPEND=0;
 const onDes=o=>{if(o===root||!o.visible){o.traverse(c=>{c.layers.mask=1|L3});return}
-  o.traverse(c=>{c.layers.mask=0});const on=()=>o.traverse(c=>{c.layers.mask|=1|L3});
+  DPEND++;o.traverse(c=>{c.layers.mask=0});const on=()=>{o.traverse(c=>{c.layers.mask|=1|L3});requestAnimationFrame(()=>requestAnimationFrame(()=>{DPEND--}))};
   /* without the extension a link cannot be waited on: the model is compiled now and drawn a few frames later */
   if(PAR){warm(o).then(()=>requestAnimationFrame(on));return}
   const rv=root.visible,rt=Cn.getRenderTarget();root.visible=true;Cn.setRenderTarget(Ta.readBuffer||null);try{Cn.compile(o,De,Jt)}catch(_){}Cn.setRenderTarget(rt);root.visible=rv;
@@ -3778,7 +3780,11 @@ const QA={rq:()=>0,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TEN
 animalsReady.then(()=>{QA.ready=true});
 window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1","pupfish_male_v3","pupfish_female_v3","sinai_agama_v1b",RS_FILE])];
   let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],E=desPre()[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;
-    l+=.88*Math.min(sz,Math.max(P?P.l:0,E?E.l:0))+(P&&P.d?.12*sz:0);if(P)d+=P.d}return{p:t?l/t:1,done:d===ks.length}};
+    l+=.88*Math.min(sz,Math.max(P?P.l:0,E?E.l:0))+(P&&P.d?.12*sz:0);if(P)d+=P.d}
+  /* parsed: every file is in; done: and every model has been placed and drawn once (or half a minute has passed since) */
+  const parsed=d===ks.length;if(parsed&&!PRS)PRS=performance.now();
+  return{p:t?l/t:1,parsed,done:parsed&&(QA.ready&&DPEND<=0||performance.now()-PRS>3e4)}};
+let PRS=0;
 window.__desReady=true;
 }
 })();

@@ -93,9 +93,39 @@ async function session(label, mobile) {
   await browser.close();
 }
 
+/* the loading pill waits for the models' first draws, but never more than 30 s after the files are in: with one first draw held
+   back for good (debug only), the pill must still clear on that fallback, and not before it */
+async function stalled() {
+  const browser = await puppeteer.launch({executablePath: CHROME, headless: "new", protocolTimeout: 900000,
+    args: ["--no-sandbox", "--disable-dev-shm-usage", "--enable-unsafe-swiftshader", "--use-gl=angle", "--use-angle=swiftshader", "--mute-audio"]});
+  const page = await browser.newPage();
+  await page.setViewport({width: 1280, height: 720});
+  page.on("console", m => fail(`stalled draw: console ${m.type()}: ${m.text().slice(0, 200)}`));
+  page.on("pageerror", e => fail(`stalled draw: page error: ${String(e).slice(0, 200)}`));
+  await page.goto(ORIGIN + "/desert/?nosw=1&debug=1&stalldraw=1", {waitUntil: "domcontentloaded", timeout: 120000});
+  const t0 = Date.now();let tP = 0, tD = 0, tOff = 0, pillSeen = false;
+  while (Date.now() - t0 < SWITCH_MS && !tOff) {
+    const r = await page.evaluate(() => { const f = window.__desProg, p = f && f(), e = document.getElementById("tp");
+      return {parsed: !!(p && p.parsed), done: !!(p && p.done), pill: !!(e && e.classList.contains("on"))}; });
+    const now = Date.now();
+    if (r.pill) pillSeen = true;
+    if (r.parsed && !tP) tP = now;
+    if (r.done && !tD) tD = now;
+    if (tD && !r.pill) tOff = now;
+    await sleep(250);
+  }
+  const res = {pillSeen, parsedAt: tP ? +((tP - t0) / 1000).toFixed(1) : null, doneAfterParsed: tD && tP ? +((tD - tP) / 1000).toFixed(1) : null,
+    pillOffAfterDone: tOff && tD ? +((tOff - tD) / 1000).toFixed(1) : null};
+  const ok = pillSeen && tP && tD && tOff && res.doneAfterParsed >= 27 && res.doneAfterParsed <= 33 && res.pillOffAfterDone <= 3;
+  console.log("stalled draw: pill clears on the 30 s fallback", ok ? "ok" : "FAIL", JSON.stringify(res));
+  if (!ok) fail(`stalled draw: the pill did not clear on the 30 s fallback (${JSON.stringify(res)})`);
+  await browser.close();
+}
+
 try {
   await session("desktop", false);
   await session("iphone", true);
+  await stalled();
 } finally { server.close(); }
 if (failures.length) { console.log(`\n${failures.length} failure(s)`); process.exit(1); }
 console.log("\nall scene switches ok");

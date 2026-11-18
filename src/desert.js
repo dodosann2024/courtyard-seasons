@@ -27,6 +27,8 @@ const warm=(o,rt,cam)=>{const rv=root.visible,prt=Cn.getRenderTarget();root.visi
   return Promise.race([p.catch(()=>0),new Promise(r=>setTimeout(r,MOB?9000:6000))])};
 /* models compiled but not yet drawn once: the load is not over until their first draws (which can wait on the link) are behind */
 let DPEND=0;
+/* debug: one first draw that never comes, to prove the loading pill still clears on the fallback */
+if(X.dbg&&/[?&]stalldraw=1/.test(location.search))DPEND++;
 const onDes=o=>{if(o===root||!o.visible){o.traverse(c=>{c.layers.mask=1|L3});return}
   DPEND++;o.traverse(c=>{c.layers.mask=0});const on=()=>{o.traverse(c=>{c.layers.mask|=1|L3});requestAnimationFrame(()=>requestAnimationFrame(()=>{DPEND--}))};
   /* without the extension a link cannot be waited on: the model is compiled now and drawn a few frames later */

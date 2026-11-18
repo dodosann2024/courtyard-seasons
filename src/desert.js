@@ -1413,7 +1413,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float dF=dust/(a+.001);c=mix(c,base*vec3(1.,.82,.6)*1.02+vec3(.03,.018,.006)*(1.-uNt),dF*.62);
           /* low down the thin veil is seen against the bright cloud sea: the thinner it is the deeper its own ochre, so what reaches
              the eye stays ochre until it is gone instead of turning a pale tan */
-          float lw=smoothstep(.3,.85,s)*(1.-clamp(a,0.,1.));c=mix(c,base*vec3(.94,.7,.42)*.86,lw*.85*(1.-.8*uNt));
+          float lw=smoothstep(.3,.85,s)*(1.-clamp(a,0.,1.));c=mix(c,base*vec3(.94,.7,.42)*.86,lw*.85*(1.-.8*uNt));a=mix(a,a*(2.-a),smoothstep(.3,.8,s)*step(a,1.));
           /* a sheet seen edge-on piles up alpha into a hard line: keep the stream but thin it */
           vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.5,1.,smoothstep(.05,.45,abs(dot(N,normalize(cameraPosition-vW)))));
         }

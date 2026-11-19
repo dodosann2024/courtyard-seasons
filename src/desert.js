@@ -5048,7 +5048,7 @@ const QA={rq:()=>0,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,T
   trout:()=>TT.list.map(f=>({x:f.x,y:f.y,z:f.z,L:f.L,mode:f.mode,dep:pfDep(f.x,f.z),below:POND.wy-f.y})),TT,
   crabs:()=>CR.list.map(c=>({x:c.x,z:c.z,y:c.y,mode:c.mode,dep:pfDep(c.x,c.z),bx:c.bx,bz:c.bz,s:c.s,shown:c.mode!=="in"})),CR,
   /* procedural animals: PA registry; os() ostrich states (head height in island metres); paThreat(x,z,sec) puts a threat down */
-  PA,paU,osPlace,osGo,osSpot,torPlace,torGo,torShade,
+  PA,paU,osPlace,osGo,osSpot,osOpen:(x,z)=>navOpen(navGrid("ostrich",.9,1.25,.8),x,z,40),torPlace,torGo,torShade,
   gbHoles,scRocks,gb:()=>PA.gb.map(A=>({x:A.x,z:A.z,mode:A.mode,v:A.v,up:A.P.up,vis:A.g.visible,h:A.h})),sc:()=>PA.sc.map(A=>({x:A.x,z:A.z,mode:A.mode,thr:A.P.thr,vis:A.g.visible,rk:A.rk})),
   tor:()=>PA.tt.map(A=>({x:A.x,z:A.z,yaw:A.yaw,v:A.v,mode:A.mode,wd:A.P.wd,dig:A.P.dig,sink:A.sink,vis:A.g.visible})),
 paThreat:(x,z,sec,r)=>{PA.dbg={x,z,r:r||.4,k:"dbg",o:null,until:st.t+(sec||4)}},

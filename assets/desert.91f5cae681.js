@@ -1229,27 +1229,39 @@ let fireL=null;
     l.rotation.order="YZX";l.rotation.set(0,-a,tl*.88);l.castShadow=true;fireG.add(l)}
   const glow=new T.Mesh(new T.Plane(.7,.7),new T.SM({transparent:true,depthWrite:false,blending:2,uniforms:fireU,
     vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-    fragmentShader:`uniform float uT;varying vec2 vUv;void main(){float d=length(vUv-.5)*2.;float a=smoothstep(1.,0.,d);a*=a*(.75+.25*sin(uT*7.)*sin(uT*3.1));gl_FragColor=vec4(vec3(1.,.42,.12)*a*1.4,a);}`}));
+    fragmentShader:`uniform float uT,uNight;varying vec2 vUv;void main(){float d=length(vUv-.5)*2.;float a=smoothstep(1.,0.,d);a*=a*(.75+.25*sin(uT*7.)*sin(uT*3.1))*mix(.3,1.,uNight);gl_FragColor=vec4(vec3(1.,.42,.12)*a*1.4,a);}`}));
   glow.rotation.x=-Math.PI/2;glow.position.y=.02;glow.renderOrder=3;fireG.add(glow);
-  /* camera-facing flame quads: noise-eroded teardrops, additive */
-  const flM=new T.SM({transparent:true,depthWrite:false,blending:2,side:2,uniforms:fireU,
-    vertexShader:`attribute float aK;varying vec2 vUv;varying float vK;uniform float uT;
-      void main(){vUv=uv;vK=aK;vec3 c=vec3(0.,0.,0.);
+  /* a bundle of camera-facing tongues standing at different spots in the log cone, so they part and overlap as the view moves:
+     each licks up and sways on its own beat, its top tears into loose licks, and it runs from a pale core through yellow and
+     orange to dark red tips. Premultiplied "over" blending keeps the colour on bright daytime sand (additive washed it white);
+     at night the alpha drops so the same flames glow onto what is behind them. */
+  const flM=new T.SM({transparent:true,premultipliedAlpha:true,depthWrite:false,side:2,uniforms:fireU,
+    vertexShader:`attribute float aK,aH;varying vec2 vUv;varying float vK,vH;uniform float uT;
+      void main(){vUv=uv;vK=aK;vH=aH;
         vec3 rt=vec3(viewMatrix[0][0],viewMatrix[1][0],viewMatrix[2][0]);
-        vec4 w=modelMatrix*vec4(position.x*0.,position.y,0.,1.);
-        vec3 axX=normalize(vec3(modelMatrix[0][0],modelMatrix[0][1],modelMatrix[0][2]));float sc=length(vec3(modelMatrix[0][0],modelMatrix[0][1],modelMatrix[0][2]));
-        w.xyz+=rt*position.x*sc;w.xyz+=rt*sin(uT*3.+aK*7.+position.y*4.)*.05*sc*position.y;
+        float y=position.y,lk=1.+.17*sin(uT*(4.3+aK*2.)+aK*11.)+.09*sin(uT*9.7+aK*5.);
+        vec4 w=modelMatrix*vec4(0.,y*lk,0.,1.);
+        float sc=length(vec3(modelMatrix[0][0],modelMatrix[0][1],modelMatrix[0][2]));
+        w.xyz+=rt*sc*(position.x+(sin(uT*3.1+aK*7.+y*4.)*.09+sin(uT*1.7+aK*3.)*.06)*y*y);
         gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uT;varying vec2 vUv;varying float vK;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uNight;varying vec2 vUv;varying float vK,vH;${GLSL_NOISE}
       void main(){vec2 p=vUv-vec2(.5,0.);float h=vUv.y;
-        float w=.42*(1.-h)*(.6+.8*sqrt(h))*1.2;
-        float n=dn2(vec2(p.x*6.+vK*9.,h*4.-uT*3.2))*.6+dn2(vec2(p.x*13.,h*9.-uT*5.))*.4;
-        float a=smoothstep(w,w*.35,abs(p.x)+(n-.5)*.18*h)*smoothstep(1.,.45,h+n*.35)*smoothstep(0.,.08,h);
-        vec3 c=mix(vec3(1.,.95,.7),vec3(1.,.42,.08),smoothstep(.05,.6,h+abs(p.x)*1.2));c=mix(c,vec3(.8,.12,.02),smoothstep(.55,.95,h));
-        if(a<.02)discard;gl_FragColor=vec4(c*a*1.6,a);}`});
+        float n1=dn2(vec2(p.x*4.5+vK*9.,h*3.2-uT*2.8)),n2=dn2(vec2(p.x*10.-vK*4.,h*6.5-uT*4.6)),n=n1*.6+n2*.4;
+        float wd=.5*pow(1.-h,.9)*(.35+.9*sqrt(h));
+        float e=wd-abs(p.x+(n1-.5)*.14*h)-(n2-.5)*.16*h;
+        float a=smoothstep(0.,.028,e)*smoothstep(0.,.14,h)*smoothstep(h*.95-.12,h*.95+.12,n*1.15);
+        float tt=clamp((1.-max(h-.12,0.)*1.25-max(.12-h,0.)*2.5)*(1.-.85*abs(p.x)/max(wd,.01))+vH*.3+(n-.5)*.3,0.,1.);
+        vec3 c=mix(vec3(.5,.05,.01),vec3(1.,.3,.03),smoothstep(0.,.3,tt));
+        c=mix(c,vec3(1.,.62,.12),smoothstep(.34,.66,tt));c=mix(c,vec3(1.,.9,.6),smoothstep(.8,1.,tt));
+        a*=mix(.3,1.,smoothstep(0.,.4,tt));
+        if(a<.01)discard;gl_FragColor=vec4(c*a*mix(1.,1.12,uNight),a*mix(.92,.78,uNight));}`});
   const flames=[];
-  for(let i=0;i<3;i++){const geo=new T.Plane(1,1,1,4);geo.translate(0,.5,0);const n=geo.attributes.position.count;geo.setAttribute("aK",new T.BA(new Float32Array(n).fill(i*.37+.1),1));
-    const f=new T.Mesh(geo,flM);f.scale.set([.42,.32,.26][i],[.62,.48,.38][i],1);f.position.set([0,.08,-.07][i],.08,[0,.05,.06][i]);f.renderOrder=8;f.frustumCulled=false;fireG.add(f);flames.push(f)}
+  /* x, z, width, height, heat: one tall main flame, four mid tongues around it, two short side licks, two hot cores in front */
+  const TG=[[0,0,.46,.8,0],[.09,.05,.3,.6,.12],[-.1,.03,.28,.56,.08],[.02,-.1,.3,.62,.1],[-.04,.1,.26,.5,.15],
+    [.14,-.06,.2,.36,.25],[-.13,-.07,.2,.34,.25],[0,.02,.26,.36,.85],[.04,-.03,.18,.25,1]];
+  TG.forEach(([x,z,w,h,k],i)=>{const geo=new T.Plane(1,1,1,6);geo.translate(0,.5,0);const n=geo.attributes.position.count;
+    geo.setAttribute("aK",new T.BA(new Float32Array(n).fill(i*.37+.1),1));geo.setAttribute("aH",new T.BA(new Float32Array(n).fill(k),1));
+    const f=new T.Mesh(geo,flM);f.scale.set(w,h,1);f.position.set(x,.07,z);f.renderOrder=8+i*.01;f.frustumCulled=false;fireG.add(f);flames.push(f)});
   fireG.userData.flames=flames.map(f=>({f,s:f.scale.clone()}));
   /* the light hangs well above the coals: the logs and the ring a hand's width from the flames are no longer burnt out,
      and the glow on the sand falls off as the inverse square over several metres instead of stopping at an edge */
@@ -1663,11 +1675,17 @@ const FFP=[];for(let i=0;i<FF_N0;i++){const[a,b]=pondEdge(rnd()*TAU,rr(.8,i%3?1.
     FFP.push({x:v.x+Math.cos(a)*r,z:v.z+Math.sin(a)*r,y:rr(.15,.5)+v.h*rr(.5,1.3),ph:rnd()*TAU,sp:rr(.25,.6),bl:rr(.7,1.6),rw:rr(.25,.6),lo:.2});FF.Z[i]=rr(.9,1.25)}
   sd=sd0}
 /* campfire sparks: a few embers always lifting off the logs, and a burst with each pop of the wood */
-const SPK=softPoints(MOB?28:56,"#ffad55",.075,true);SPK.o.renderOrder=9;SPK.o.visible=false;W.add(SPK.o);
+const SPK=softPoints(MOB?44:96,"#ff5a12",.17,true);SPK.o.renderOrder=9;SPK.o.visible=false;W.add(SPK.o);
+/* an orange ember with a small yellow-hot heart, drawn "over" rather than added so a spark still shows against bright sand by day */
+SPK.m=SPK.o.material=new T.SM({transparent:true,premultipliedAlpha:true,depthWrite:false,uniforms:{uC:SPK.m.uniforms.uC,uS:SPK.m.uniforms.uS,uH:SPK.m.uniforms.uH,uNight:fireU.uNight},
+  vertexShader:SPK.m.vertexShader,
+  fragmentShader:`uniform vec3 uC;uniform float uNight;varying float vA;void main(){vec2 q=gl_PointCoord-.5;float d=dot(q,q)*4.;if(d>1.)discard;
+    float core=exp(-d*7.),halo=exp(-d*2.2)*(1.-d),a=min(1.,vA*(halo*.8+core*1.2));if(a<.004)discard;
+    vec3 c=mix(uC,vec3(1.,.82,.36),smoothstep(.35,.9,core));gl_FragColor=vec4(c*a*mix(1.,1.3,uNight),a*mix(.95,.7,uNight));}`});
 const SPKP=Array.from({length:SPK.n},()=>({life:1,dur:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,ph:0}));SPK.pop=rr(2,6);SPK.k=0;
 function sparkOut(n,hot){for(let i=0;i<SPK.n&&n>0;i++){const q=SPKP[(SPK.k+i)%SPK.n];if(q.life<1)continue;n--;
   const a=rnd()*TAU,r=rr(0,.14);q.x=FIRE.x+Math.cos(a)*r;q.z=FIRE.z+Math.sin(a)*r;q.y=fireG.position.y+rr(.1,.3);
-  const sp=hot?rr(.25,.8):rr(.05,.3);q.vx=Math.cos(a)*sp;q.vz=Math.sin(a)*sp;q.vy=hot?rr(2,3.6):rr(1,2.2);q.life=0;q.dur=rr(.7,hot?2.2:1.6);q.ph=rnd()*TAU}
+  const sp=hot?rr(.25,.8):rr(.05,.3);q.vx=Math.cos(a)*sp;q.vz=Math.sin(a)*sp;q.vy=hot?rr(2,3.6):rr(.6,1.6);q.life=0;q.dur=rr(.9,hot?2.4:2);q.ph=rnd()*TAU}
   SPK.k=(SPK.k+7)%SPK.n}
 /*@@ANIMALS@@*/
 
@@ -2106,9 +2124,9 @@ UPD.push((dt,t)=>{
   if(fireG.userData.flames)fireG.userData.flames.forEach(o=>o.f.scale.set(o.s.x*(.5+.5*fr),o.s.y*fr,1));
   smokeU.uStm.value=ss(.02,.3,WX.rain);
   if(fireG.userData.charM)fireG.userData.charM.emissiveIntensity=mix(.25,.9,nk)*(1+.2*Math.sin(t*5));
-  {const on=ss(.25,.7,nk)*(1-ss(.08,.4,WX.rain));SPK.o.visible=on>.01;
-   if(on>.01){if(rnd()<dt*5)sparkOut(1,false);
-     if(st.t>SPK.pop){SPK.pop=st.t+rr(1.5,7);sparkOut(Math.floor(rr(4,11)),true);shotS(pick(["dPop1","dPop2","dPop3"]),.55*on,_fiP.set(FIRE.x,fireG.position.y+.3,FIRE.z),5,rr(.9,1.12))}
+  {const on=mix(.75,1,ss(.25,.7,nk))*(1-ss(.08,.4,WX.rain));SPK.o.visible=on>.01;
+   if(on>.01){if(rnd()<dt*mix(7,10,nk))sparkOut(1,false);
+     if(st.t>SPK.pop){SPK.pop=st.t+rr(1.2,4.5);sparkOut(Math.floor(rr(6,15)),true);shotS(pick(["dPop1","dPop2","dPop3"]),.55*on,_fiP.set(FIRE.x,fireG.position.y+.3,FIRE.z),5,rr(.9,1.12))}
      const sw=.3+wn;for(let i=0;i<SPK.n;i++){const q=SPKP[i],o=i*3;if(q.life<1){q.life+=dt/q.dur;q.vy*=Math.exp(-dt*.7);q.ph+=dt*9;
        q.x+=(q.vx+WIND.x*sw*q.life*1.4+Math.sin(q.ph)*.12)*dt;q.z+=(q.vz+WIND.z*sw*q.life*1.4+Math.cos(q.ph*1.3)*.12)*dt;q.y+=q.vy*dt}
        SPK.P[o]=q.x;SPK.P[o+1]=q.y;SPK.P[o+2]=q.z;SPK.Z[i]=.7+.5*(1-q.life);
@@ -3775,7 +3793,7 @@ function sound(dt){if(!root.visible&&!AU.cap)return;
   loopS("devil","dSnd",DV.amp?.55*DV.amp:0,_dvP.set(DV.x,hTop(DV.x,DV.z)+1.5,DV.z),10,1.12);
   if(aOK()&&!AU.b.dSiz&&(AU.pre===2||WX.rain>.005))synB("dSiz");
   loopS("fsiz","dSiz",.42*ss(.02,.25,WX.rain)*(1-.4*ss(.6,1,WX.rain)),_fiP.set(FIRE.x,hTop(FIRE.x,FIRE.z)+.3,FIRE.z),5,1,WX.rain>.004?.08:.35);
-  loopS("fire","dFire",.5*ss(.35,.85,nk)*(1-.7*ss(.08,.55,WX.rain)),_fiP.set(FIRE.x,hTop(FIRE.x,FIRE.z)+.4,FIRE.z),5);
+  loopS("fire","dFire",.5*mix(.45,1,ss(.35,.85,nk))*(1-.7*ss(.08,.55,WX.rain)),_fiP.set(FIRE.x,hTop(FIRE.x,FIRE.z)+.4,FIRE.z),5);
   const rs=ANIM.rs&&ANIM.rs.bd?ANIM.rs:null,sv=rs?cl(rs.spd/.2,0,1):0;
   loopS("snake","dSnk",rs?.75*ss(.04,.4,sv):0,rs?_snP.set(rs.bd.P[20],hTop(rs.bd.P[20],rs.bd.P[21])+.05,rs.bd.P[21]):null,3,.8+.35*sv);
   if(rs)loopS("rattle","dRtl",rs.mode==="def"?.75*ss(3,4.5,rs.defT):0,_rtP.set(rs.x,hTop(rs.x,rs.z)+.15,rs.z),4,rr(.99,1.01));

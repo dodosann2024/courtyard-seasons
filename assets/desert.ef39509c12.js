@@ -4487,8 +4487,8 @@ function paMat(){if(PA_MAT)return PA_MAT;const m=new VT.THREE.MeshStandardMateri
       .replace("#include <color_fragment>","#include <color_fragment>\npaFray();paSurf(diffuseColor.rgb,paR);")
       .replace("#include <roughnessmap_fragment>","#include <roughnessmap_fragment>\nroughnessFactor=paR;")
       /* a scorpion's cuticle fluoresces a faint blue-green in the moonlight */
-      .replace("#include <emissivemap_fragment>","#include <emissivemap_fragment>\nif(vS>3.5&&vS<4.5)totalEmissiveRadiance+=vec3(.035,.2,.16)*uGlow*(.6+.4*dot(diffuseColor.rgb,vec3(.5)));")};
-  m.customProgramCacheKey=()=>"pa82";return PA_MAT=m}
+      .replace("#include <emissivemap_fragment>","#include <emissivemap_fragment>\nif(vS>3.5&&vS<4.5)totalEmissiveRadiance+=vec3(.06,.38,.3)*uGlow*(.6+.4*dot(diffuseColor.rgb,vec3(.5)));")};
+  m.customProgramCacheKey=()=>"pa83";return PA_MAT=m}
 function paMesh(G,R){const TH=VT.THREE,m=new TH.SkinnedMesh(G.build(),paMat());m.add(R.L[0]);m.updateMatrixWorld(true);m.bind(new TH.Skeleton(R.L));
   m.frustumCulled=false;m.castShadow=true;m.receiveShadow=true;return m}
 /* bone helpers in the model frame (bones rest with no rotation, so a bone's world rotation maps its rest offsets) */
@@ -4870,24 +4870,29 @@ function gbPose(A){const B=A.B,P=A.P,hp=A.hph,air=A.v>.05?Math.sin(Math.PI*hp):0
     qYXZ(B["f"+L].quaternion,.5*ex*kick+.3*up+.05*P.nib,0,0);
     qYXZ(B["a"+L].quaternion,-.9*ex*kick-.55*up-1.25*P.nib,0,s*(.1-.2*P.nib));qYXZ(B["p"+L].quaternion,-.4*up-.5*P.nib,0,0)}}
 function gbThreat(A){const th=nearMov(A,["snake","eagle","ost","camel","tort","view","dbg"]);if(!th)return 0;const k=th.m.k,d=th.d;
-  return k==="eagle"?ss(10,4,d):k==="camel"||k==="ost"?ss(3,1.2,d):k==="view"?ss(1.6,.6,d):k==="tort"?ss(.4,.15,d):ss(2.2,.8,d)}
-function gbUpdate(A,dt,cam){const P=A.P,h=A.h,act=(st.phase!=="day"||st.night>.25)&&WX.rain<.08&&WX.hf<.02&&!WX.hcold&&WX.dust<.4&&WX.sf<.1;
+  return k==="eagle"?ss(10,4,d):k==="camel"||k==="ost"?ss(3,1.2,d):k==="view"?ss(.6,.22,d):k==="tort"?ss(.4,.15,d):ss(2.2,.8,d)}
+function gbUpdate(A,dt,cam){const P=A.P,h=A.h,calm=WX.rain<.08&&WX.hf<.02&&!WX.hcold&&WX.dust<.4&&WX.sf<.1,act=(st.phase!=="day"||st.night>.25)&&calm;
+  const vw=nearMov(A,["view"]),watched=vw&&vw.d<1.6;
   A.t-=dt;const fear=A.mode==="in"?0:gbThreat(A);if(fear>.35&&A.mode!=="in"&&A.mode!=="bolt"&&A.mode!=="dive"){A.mode="bolt";A.t=3}
   const toH=()=>{const dx=h.x-A.x,dz=h.z-A.z;return{d:Math.hypot(dx,dz),a:Math.atan2(dx,dz)}};
   const go=(spd,tx,tz)=>{const dx=tx-A.x,dz=tz-A.z,d=Math.hypot(dx,dz),dy=wrapA(Math.atan2(dx,dz)-A.yaw);A.yaw=wrapA(A.yaw+cl(dy,-dt*9,dt*9));
     const vt=spd*cl(1-Math.abs(dy)/1.5,0,1)*cl(d/.08,.2,1);A.v+=(vt-A.v)*Math.min(1,dt*10);return d};
   switch(A.mode){
-    case"in":A.v=0;A.out=false;P.in=1;if(act&&A.t<0){A.mode="peek";A.t=rr(2,5);A.x=h.x;A.z=h.z;A.yaw=h.yaw+rr(-1,1);P.in=.6}break;
-    case"peek":A.out=true;A.v=0;P.in+=(.45-P.in)*ease(3,dt);if(!act||gbThreat(A)>.25){A.mode="in";A.t=rr(6,15);break}
+    case"in":A.v=0;A.out=false;P.in=1;if(act&&A.t<0){A.mode="peek";A.t=rr(2,5);A.x=h.x;A.z=h.z;A.yaw=h.yaw+rr(-1,1);P.in=.6;break}
+      /* by day it stays below, but every so often puts its head up out of the hole for a look round */
+      A.lt=(A.lt==null?rr(5,30):A.lt)-dt;if(!act&&calm&&A.lt<0&&A.t<0){A.mode="look";A.t=rr(3,6);A.x=h.x;A.z=h.z;A.yaw=h.yaw+rr(-1.2,1.2);P.in=.75}break;
+    case"look":A.out=true;A.v=0;P.in+=(.5-P.in)*ease(3,dt);if(act){A.mode="peek";A.t=rr(1,3);break}
+      if(A.t<0||!calm||gbThreat(A)>.15){A.mode="in";A.t=0;A.lt=rr(30,75)}break;
+    case"peek":A.out=true;A.v=0;P.in+=(.45-P.in)*ease(3,dt);if(!act||gbThreat(A)>.25){A.mode="in";A.t=rr(3,8);break}
       if(A.t<0){A.mode="forage";A.t=rr(8,20);A.goal=null}break;
     case"forage":{P.in*=Math.exp(-dt*8);if(!act){A.mode="bolt";break}
-      if(!A.goal||A.t<0&&A.v<.05){A.t=rr(.6,3);const r=rnd();if(r<.25){A.mode="stand";A.t=rr(1.2,3);break}if(r<.5){A.mode="nibble";A.t=rr(1.5,4);break}
+      if(!A.goal||A.t<0&&A.v<.05){A.t=rr(.6,3);const r=rnd();if(r<(watched?.6:.25)){A.mode="stand";A.t=rr(1.2,3);break}if(r<.5){A.mode="nibble";A.t=rr(1.5,4);break}
         const g=navGrid("gerb",.15,1.4,.8),p=randFree(g,h.x,h.z,2.6);A.goal=p;A.spd=rr(.5,1.4)}
       if(A.goal&&go(A.spd,A.goal.x,A.goal.z)<.05){A.goal=null;A.t=rr(.2,1.2)}if(A.goal===null)A.v*=Math.exp(-dt*12);
       if(Math.hypot(A.x-h.x,A.z-h.z)>3){A.goal={x:h.x,z:h.z}}break}
     case"stand":case"nibble":A.v*=Math.exp(-dt*14);if(A.t<0){A.mode="forage";A.t=0;A.goal=null}break;
     case"bolt":{const o=toH();if(go(2.2,h.x,h.z)<.06){A.mode="dive";A.t=.35;spPuff(h.x,hTop(h.x,h.z),h.z,8,-Math.sin(A.yaw),-Math.cos(A.yaw),.6,.5,.012)}break}
-    case"dive":A.v=0;P.in+=(1-P.in)*ease(9,dt);if(A.t<0){A.mode="in";A.t=rr(8,25);P.in=1;if(rnd()<.5)h.dig=1}break}
+    case"dive":A.v=0;P.in+=(1-P.in)*ease(9,dt);if(A.t<0){A.mode="in";A.t=rr(5,14);P.in=1;if(rnd()<.5)h.dig=1}break}
   /* sand thrown back out of the hole as it clears it */
   if(A.mode==="in"&&h.dig&&act){h.dg=(h.dg||0)-dt;if(h.dg<0){h.dg=rr(.25,.6);spPuff(h.x+Math.sin(h.yaw)*.03,hTop(h.x,h.z),h.z+Math.cos(h.yaw)*.03,3,Math.sin(h.yaw),Math.cos(h.yaw),.4,.5,.01)}if(rnd()<dt*.15)h.dig=0}
   h.t+=dt;if(h.t>70)gbStamp(h);
@@ -4895,10 +4900,37 @@ function gbUpdate(A,dt,cam){const P=A.P,h=A.h,act=(st.phase!=="day"||st.night>.2
   if(A.v>.05){const ph=A.hph+dt*(4+3*cl(A.v,0,1.5));if(ph>=1&&A.mode!=="dive")paPrint(PRK.gerb,A.x,A.z,A.yaw,0,.9,0,1);A.hph=ph%1}else A.hph=0;
   A.x+=Math.sin(A.yaw)*A.v*dt;A.z+=Math.cos(A.yaw)*A.v*dt;A.gy=hTop(A.x,A.z);
   P.up+=((A.mode==="stand"?1:0)-P.up)*ease(7,dt);P.nib+=((A.mode==="nibble"?1:0)-P.nib)*ease(6,dt);P.crouch+=((A.mode==="peek"||A.mode==="nibble"?1:0)-P.crouch)*ease(5,dt);
-  A.lookT-=dt;if(A.lookT<0){A.lookT=rr(.3,1.4);A.lookA=rr(-.9,.9)}P.look+=(A.lookA-P.look)*ease(10,dt);
+  A.lookT-=dt;if(A.lookT<0){A.lookT=rr(.3,1.4);A.lookA=watched&&A.mode==="stand"?cl(wrapA(Math.atan2(vw.m.x-A.x,vw.m.z-A.z)-A.yaw),-.9,.9):rr(-.9,.9)}P.look+=(A.lookA-P.look)*ease(10,dt);
   const D=Math.max(.05,cam.distanceTo(A.g.position));A.g.visible=A.mode!=="in"&&.12*PA.ppm/D>2.5;
   A.g.position.set(A.x,A.gy-(P.in>.01?.0:0),A.z);A.g.rotation.y=A.yaw;if(A.g.visible){gbPose(A);blobAdd(A.x,A.gy,A.z,A.yaw,.03,.05,.3+.2*sunCast(),.6,0)}}
-function gbLoad(){for(const h of gbHoles()){const A=gbSpawn(h);PA.gb.push(A)}}
+/* a burrow's earthwork: a low collar round the mouth and the fan of fresh spoil thrown out behind it (-z), darker and coarser
+   than the wind-sorted sand round it, with a few clods on top. Its edge is sunk just under the ground, so it grows out of the
+   sand; the mouth itself is left open over the hole the ground already shows. Seeded on its own so the island's layout stays. */
+function moundGeo(o){const P=[],N=[],C=[],I=[];let sd=o.seed;const hr=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  const W=o.fw*2.4+o.rh*1.5,Z0=-(o.fz+o.fl*2.2),Z1=o.rh*2.2,NX=22,NZ=26;
+  const mouth=(x,z)=>Math.hypot(x/o.ex,z)/o.rh,
+    hAt=(x,z)=>{const m=mouth(x,z),c=o.ch*Math.exp(-Math.pow((m-1.35)/.45,2)),f=o.fh*Math.exp(-Math.pow(x/(o.fw*(1+.5*Math.max(0,-z-o.fz)/o.fl)),2)-Math.pow((z+o.fz)/o.fl,2));
+      const lump=1+.25*Math.sin(x*97+z*41)*Math.sin(z*73-x*29);return Math.max(c,f*lump)};
+  const yAt=(x,z)=>{const h=hAt(x,z);return mouth(x,z)<.9?-.006:h-.005*(1-ss(0,.0025,h))};
+  for(let j=0;j<=NZ;j++)for(let i=0;i<=NX;i++){const x=-W+2*W*i/NX,z=Z0+(Z1-Z0)*j/NZ,y=yAt(x,z),e=.002;
+    const nx=yAt(x-e,z)-yAt(x+e,z),nz=yAt(x,z-e)-yAt(x,z+e),l=Math.hypot(nx,2*e,nz);P.push(x,y,z);N.push(nx/l,2*e/l,nz/l);
+    const h=hAt(x,z),m=mouth(x,z),k=ss(0,o.fh*.5,h),c=m<1.15?o.hole:[mix(o.sand[0],o.dug[0],k),mix(o.sand[1],o.dug[1],k),mix(o.sand[2],o.dug[2],k)],v=.92+.16*hr();
+    C.push(c[0]*v,c[1]*v,c[2]*v)}
+  for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const a=j*(NX+1)+i,b=a+NX+1;I.push(a,b,a+1,a+1,b,b+1)}
+  for(let k=0;k<o.peb;k++){const z=-(o.fz+o.fl*(hr()*1.6-.3)),x=(hr()-.5)*o.fw*2.2,r=o.pr*(.6+.8*hr()),y=yAt(x,z)+r*.3,b=P.length/3;
+    for(let a=0;a<=3;a++)for(let q=0;q<=5;q++){const t=a/3*Math.PI*.5,ph=q/5*TAU,cx=Math.cos(t)*Math.cos(ph),cy=Math.sin(t),cz=Math.cos(t)*Math.sin(ph);
+      P.push(x+cx*r,y+cy*r*.7,z+cz*r);N.push(cx,cy,cz);C.push(o.dug[0]*.8,o.dug[1]*.8,o.dug[2]*.8)}
+    for(let a=0;a<3;a++)for(let q=0;q<5;q++){const u=b+a*6+q;I.push(u,u+6,u+1,u+1,u+6,u+7)}}
+  const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(P),3));g.setAttribute("normal",new T.BA(new Float32Array(N),3));
+  g.setAttribute("color",new T.BA(new Float32Array(C),3));g.setIndex(I);return g}
+function moundAt(geo,x,z,yaw){const m=new T.Mesh(geo,MOUND_M());_tq.setFromUnitVectors(_hUp,nTop(x,z)).multiply(_tq2.setFromAxisAngle(_hUp,yaw));
+  m.position.set(x,hTop(x,z),z);m.quaternion.copy(_tq);m.receiveShadow=true;W.add(m);onDes(m);return m}
+let _moundM=null;const MOUND_M=()=>{if(_moundM)return _moundM;const m=_moundM=new T.MSM({vertexColors:true,roughness:.97,metalness:0,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
+  m.onBeforeCompile=sh=>{sh.uniforms.uNight=sandU.uNight;sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uNight;")
+    .replace("#include <color_fragment>","#include <color_fragment>\n  diffuseColor.rgb=mix(diffuseColor.rgb,vec3(dot(diffuseColor.rgb,vec3(.3,.59,.11)))*vec3(.74,.88,1.04),uNight*.7)*mix(1.,.44,uNight);")};
+  m.customProgramCacheKey=()=>"mound";return m};
+const GB_MOUND={rh:.026,ex:1,ch:.008,fh:.016,fw:.05,fz:.06,fl:.07,peb:7,pr:.006,seed:4111,hole:[.012,.008,.005],sand:[.53,.27,.07],dug:[.34,.15,.04]};
+function gbLoad(){const geo=moundGeo(GB_MOUND);for(const h of gbHoles()){const A=gbSpawn(h);PA.gb.push(A);h.mound=moundAt(geo,h.x,h.z,h.yaw)}}
 /* ---- scorpions: deathstalkers, 9 cm of straw-yellow cuticle, slender pincers, the five-segment tail carried curled over
    the back with the dark sting at its tip. By day each lies up under a rock; at dusk it waits at the rock's edge, and at night
    it wanders slowly over the sand with long still pauses, feeling ahead with its pincers. When the snake, a camel, an ostrich
@@ -4956,7 +4988,7 @@ function scUpdate(A,dt,cam){const P=A.P,rk=A.rk,dark=st.night>.55,dusk=st.phase=
   switch(A.mode){
     case"hide":A.v=0;A.x=rk.hx;A.z=rk.hz;if(A.t<0&&(dusk||dark)&&!bad){A.mode="door";A.t=rr(20,50)}break;
     case"door":if(go(.03,rk.dx,rk.dz)<.03)A.v*=Math.exp(-dt*8);if(fear>.85||bad||!dusk&&!dark){A.mode="home";break}
-      if(A.t<0&&dark){A.mode="roam";A.t=rr(6,14);A.goal=null}break;
+      if(A.t<0&&dark){A.mode="roam";A.t=rr(6,14);A.goal=null}else if(dark&&A.t>20)A.t=rr(4,12);break;
     case"roam":if(fear>.85||bad||!dark){A.mode="home";break}
       if(!A.goal){const g=navGrid("scorp",.05,1.3,.84),p=randFree(g,rk.dx,rk.dz,2.2);A.goal=p;A.pause=0}
       if(A.pause>0){A.pause-=dt;A.v*=Math.exp(-dt*10)}else if(A.goal&&go(.035,A.goal.x,A.goal.z)<.03){A.goal=null;A.pause=rr(2,7)}
@@ -4971,7 +5003,10 @@ function scUpdate(A,dt,cam){const P=A.P,rk=A.rk,dark=st.night>.55,dusk=st.phase=
   if(A.v>.004){A.gph=(A.gph+dt*(1.5+60*A.v))%1;A.trav+=A.v*dt;if(A.trav>.07){A.trav=0;paPrint(PRK.scorp,A.x,A.z,A.yaw,0,.7,0,1)}}
   const D=Math.max(.05,cam.distanceTo(A.g.position));A.g.visible=A.mode!=="hide"&&.09*PA.ppm/D>2.5;
   A.g.position.set(A.x,A.gy,A.z);A.g.rotation.y=A.yaw;if(A.g.visible){scPose(A);blobAdd(A.x,A.gy,A.z,A.yaw,.035,.05,.25+.2*sunCast(),.7,0)}}
-function scLoad(){for(const rk of scRocks()){const A=scSpawn(rk);A.gy=hTop(A.x,A.z);PA.sc.push(A)}}
+/* a scorpion's scrape: a flat dark slot dug in under the rock's shaded lip, its spoil fanned out on the sand in front */
+const SC_MOUND={rh:.028,ex:2.2,ch:.005,fh:.011,fw:.06,fz:.055,fl:.07,peb:6,pr:.005,seed:9133,hole:[.01,.007,.005],sand:[.52,.27,.07],dug:[.33,.15,.04]};
+function scLoad(){const geo=moundGeo(SC_MOUND);for(const rk of scRocks()){const A=scSpawn(rk);A.gy=hTop(A.x,A.z);PA.sc.push(A);
+  const ex=rk.x+SHADE.x*(rk.r+.02),ez=rk.z+SHADE.z*(rk.r+.02);rk.mound=moundAt(geo,ex,ez,Math.atan2(-SHADE.x,-SHADE.z))}}
 /* per frame: who is about, then each animal; an animal too small on screen to see is skipped (it stays where it was) */
 const _pac=new V3();
 function paUpdate(dt){movers();const c=_pac.copy(De.position);W.worldToLocal(c);PA.ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
@@ -5053,6 +5088,7 @@ const QA={rq:()=>0,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,T
   pf:()=>PF.list.map(f=>({x:f.x,y:f.y,z:f.z,yaw:f.yaw,v:f.v,mode:f.mode,male:f.male,ter:f.ter,clip:f.r.cur})),PF,pfDep,
   /* lake life: trout() and crabs() states; lakeScare(x,z,r,sec) puts a threat by the water */
   trout:()=>TT.list.map(f=>({x:f.x,y:f.y,z:f.z,L:f.L,mode:f.mode,dep:pfDep(f.x,f.z),below:POND.wy-f.y})),TT,
+  crK:CR_K,crLane:()=>{const M=new T.M4(),e=M.elements;let n=0;for(const im of VEG)for(let i=0;i<im.count;i++){im.getMatrixAt(i,M);if(e[0]*e[0]+e[1]*e[1]+e[2]*e[2]>1e-8&&CR.list.some(c=>Math.hypot(e[12]-c.bx,e[14]-c.bz)<.55))n++}return n},
   crabs:()=>CR.list.map(c=>({x:c.x,z:c.z,y:c.y,mode:c.mode,dep:pfDep(c.x,c.z),bx:c.bx,bz:c.bz,s:c.s,shown:c.mode!=="in"})),CR,
   /* procedural animals: PA registry; os() ostrich states (head height in island metres); paThreat(x,z,sec) puts a threat down */
   PA,paU,osPlace,osGo,osSpot,osOpen:(x,z)=>navOpen(navGrid("ostrich",.9,1.25,.8),x,z,40),torPlace,torGo,torShade,

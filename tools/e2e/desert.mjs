@@ -109,7 +109,7 @@ try {
     return [active && out.moved > .3 && perched && hidden, out];
   }));
 
-  /* 4b. lake life: freshwater crabs (4–6 cm across) on the damp bank and in the shallows round their burrows, walking sideways,
+  /* 4b. lake life: big old freshwater crabs (7–9 cm across) on the damp bank, the grass cleared round their doors and in the shallows round their burrows, walking sideways,
      bolting into a burrow or the water when something big comes close and going home in rain and hail; rainbow trout (26–38 cm)
      schooling under the surface over the deep cold middle, rising at dawn and going down to the bed in hail */
   check("lake: crabs on the bank, trout in the deep, both take cover", ...await page.evaluate(() => {
@@ -124,6 +124,7 @@ try {
     const C = q.crabs(), F = q.trout();
     r.crabModes = [...seen].sort(); r.sideways = +(side.reduce((a, b) => a + b, 0) / Math.max(1, side.length)).toFixed(3); r.walkSamples = side.length;
     r.crabDepth = [Math.min(...C.map(c => c.dep)), Math.max(...C.map(c => c.dep))].map(v => +v.toFixed(3)); r.crabScale = [Math.min(...C.map(c => c.s)), Math.max(...C.map(c => c.s))].map(v => +v.toFixed(2));
+    r.crK = q.crK; r.crLane = q.crLane();
     r.troutLen = [Math.min(...F.map(f => f.L)), Math.max(...F.map(f => f.L))].map(v => +v.toFixed(3));
     r.troutWater = +Math.min(...F.map(f => f.dep)).toFixed(3); r.troutBelow = [Math.min(...F.map(f => f.below)), Math.max(...F.map(f => f.below))].map(v => +v.toFixed(3));
     const placed = C.length >= 5 && C.every(c => c.dep > -.12 && c.dep < .45 && c.s > .8 && c.s < 1.2) && F.length >= 3 &&
@@ -145,7 +146,7 @@ try {
     q.tod("day"); window.__set({weather: "hail", hailLv: 1}); q.sim(30, .1);
     r.hailAboveBed = +Math.max(...q.trout().map(f => f.dep - f.below)).toFixed(3); r.hail = CL.map(c => c.mode); const hailHid = hidden();
     window.__set({weather: "sun", ct: "clear", hailLv: 1}); q.sim(900, 1);
-    return [placed && seen.has("walk") && r.sideways > .85 && !!r.scareOk && rainHid && r.outAgain > 0 && r.dawnRises > 0 && r.hailAboveBed < .3 && hailHid, r];
+    return [placed && r.crK >= 1.5 && r.crLane === 0 && seen.has("walk") && r.sideways > .85 && !!r.scareOk && rainHid && r.outAgain > 0 && r.dawnRises > 0 && r.hailAboveBed < .3 && hailHid, r];
   }));
 
   /* 4b2. the procedural animals: ostriches (cock's head ~2.4 m, over a camel's hump; walk and graze by day, run from the eagle,
@@ -178,21 +179,32 @@ try {
     const T0 = PA.tt[0], s = q.torShade(T0); q.torPlace(T0, s.x + .4, s.z + .3, 0); T0.mode = "graze"; T0.t = 0; T0.inShade = 0; let dug = false;
     for (let i = 0; i < 40 && !dug; i++) { q.WX.heat = 1; q.sim(3, .1); dug = T0.mode === "dig" || T0.mode === "pallet"; } r.ttHeat = T0.mode;
     /* day: gerbils below, scorpions under their rocks */
-    q.sim(30, .1); r.gbDay = PA.gb.map(g => g.mode); r.scDay = PA.sc.map(a => a.mode + (a.g.visible ? ":seen" : ""));
-    const dayOk = PA.gb.every(g => g.mode === "in") && PA.sc.every(a => a.mode === "hide" && !a.g.visible);
+    /* ...though now and then one puts its head up out of the hole for a look round (and ducks if something comes by); each burrow
+       and scrape has its spoil heap */
+    const dm = new Set(); for (let i = 0; i < 60; i++) { q.sim(1.5, .1); for (const g of PA.gb) dm.add(g.mode); }
+    r.gbDay = PA.gb.map(g => g.mode); r.gbDayModes = [...dm].sort(); r.scDay = PA.sc.map(a => a.mode + (a.g.visible ? ":seen" : ""));
+    const dayOk = [...dm].every(m => ["in", "look", "bolt", "dive"].includes(m)) && dm.has("look") && PA.sc.every(a => a.mode === "hide" && !a.g.visible);
+    const marks = PA.gb.every(g => g.h.mound && g.h.mound.visible) && PA.sc.every(a => a.rk.mound && a.rk.mound.visible);
     /* dusk into night: gerbils come out; the scorpions leave their rocks, glowing faintly */
-    q.tod("sunset"); const gm = new Set(); let gOut = 0;
-    for (let i = 0; i < 60; i++) { q.sim(2, .1); for (const g of PA.gb) { gm.add(g.mode); if (g.mode !== "in") gOut++; } }
-    q.tod("night"); const sm = new Set(); for (let i = 0; i < 60; i++) { q.sim(3, .1); for (const a of PA.sc) sm.add(a.mode); for (const g of PA.gb) gm.add(g.mode); }
+    /* a gerbil that bolted from a passing camel or ostrich stays down 5–14 s and then peeks, so the next 16 s of it are left out:
+       what is measured is whether they come out when nothing has just scared them */
+    q.tod("sunset"); const gm = new Set(); let gOut = 0, gN = 0; const scared = PA.gb.map(() => -1);
+    for (let i = 0; i < 60; i++) { q.sim(2, .1); PA.gb.forEach((g, j) => { gm.add(g.mode); if (g.mode === "bolt" || g.mode === "dive") scared[j] = i + 8;
+      if (g.mode !== "in") gOut++; if (g.mode !== "in" || i > scared[j]) gN++; }); }
+    q.tod("night"); const sm = new Set(); let scOut = 0;
+    for (let i = 0; i < 60; i++) { q.sim(3, .1); for (const a of PA.sc) { sm.add(a.mode); if (a.mode === "roam") scOut++; } for (const g of PA.gb) gm.add(g.mode); }
     r.gbModes = [...gm].sort(); r.scModes = [...sm].sort(); r.glow = +q.paU.uGlow.value.toFixed(2);
+    r.gbOut = +(gOut / Math.max(1, gN)).toFixed(2); r.scRoam = +(scOut / (60 * PA.sc.length)).toFixed(2);
     /* a gerbil that is out bolts for its hole and goes in */
     let G = PA.gb.find(g => g.mode === "forage" || g.mode === "stand" || g.mode === "nibble");
     if (!G) { G = PA.gb[0]; G.mode = "forage"; G.x = G.h.x + .5; G.z = G.h.z + .4; G.goal = null; G.t = 9; q.step(5, 1 / 30); }
     q.paThreat(G.x + .6, G.z, 4, .2); const gs = new Set(); for (let i = 0; i < 60; i++) { q.step(2, 1 / 30); gs.add(G.mode); } r.gbBolt = [...gs];
     /* one already at its hole mouth goes straight down without a dash first */
     const bolted = (gs.has("bolt") || gs.has("dive")) && (G.mode === "in" || G.mode === "dive"); q.paThreat(0, 0, 0);
-    /* a scorpion that is out faces a camel coming up: tail arched, pincers open */
-    const S = PA.sc[0]; S.mode = "roam"; S.t = 99; S.x = S.rk.dx; S.z = S.rk.dz; S.goal = null; q.step(5, 1 / 30);
+    /* a scorpion that is out faces a camel coming up: tail arched, pincers open. The one farthest from the big animals is used,
+       since an ostrich bedded down beside a rock for the night keeps that scorpion at home */
+    const big = [...PA.os, ...PA.tt, ...q.ANIM.camels], room = a => Math.min(...big.map(b => Math.hypot(b.x - a.rk.dx, b.z - a.rk.dz)));
+    const S = PA.sc.reduce((b, a) => room(a) > room(b) ? a : b); S.mode = "roam"; S.t = 99; S.x = S.rk.dx; S.z = S.rk.dz; S.goal = null; q.step(5, 1 / 30);
     q.paThreat(S.x + .5, S.z + .2, 4, .1); q.step(45, 1 / 30); r.scThr = +S.P.thr.toFixed(2); r.scOpen = +S.P.open.toFixed(2); q.paThreat(0, 0, 0);
     /* night: ostriches sit */
     q.sim(40, .1); r.osNight = PA.os.map(o => o.mode + ":" + o.P.sit.toFixed(2));
@@ -202,7 +214,7 @@ try {
     const K = kinds(); r.printKinds = [5, 6, 7, 8, 9, 10].filter(k => K.has(k));
     window.__set({wind: .8}); PA.noView = 0; q.sim(30, .5);
     return [r.os === 2 && r.tt === 2 && r.gb === 3 && r.sc === 2 && okSize && om.has("walk") && om.has("graze") && r.osMoved > 2 && r.osFlee > 3 &&
-      tm.has("walk") && r.ttMaxV < .1 && shell && dug && dayOk && gOut > 0 && sm.has("roam") && r.glow > .5 && bolted && r.scThr > .8 && r.scOpen > .8 && sat &&
+      tm.has("walk") && r.ttMaxV < .1 && shell && dug && dayOk && marks && r.gbOut > .5 && r.scRoam > .3 && sm.has("roam") && r.glow > .5 && bolted && r.scThr > .8 && r.scOpen > .8 && sat &&
       [5, 6, 7, 8, 9, 10].every(k => K.has(k)), r];
   }));
 

@@ -4428,10 +4428,10 @@ function paGeo(){const P=[],N=[],C=[],S=[],SI=[],SW=[],I=[],U=[];let n=0;const G
       for(let j=0;j<na;j++){const a=b+e*(na+1)+j;sg<0?I.push(c,a+1,a):I.push(c,a,a+1)}}G.uv=null}};
   /* one loose plume: a flat blade from b along d, sagging under its own weight, widest a third of the way out; up is the side
      that faces away from the body; col(t) runs root to tip */
-  G.plume=(b,d,len,wd,col,bw,droop,up,s)=>{const R=[],dl=_n3(d);
+  G.plume=(b,d,len,wd,col,bw,droop,up,s,nk)=>{const R=[],dl=_n3(d);
     for(let i=0;i<=5;i++){const t=i/5,w=wd*Math.max(.12,Math.sin(Math.PI*Math.pow(t,.55)))*(i===5?.35:1);
       R.push({c:[b[0]+dl[0]*len*t,b[1]+dl[1]*len*t-droop*t*t,b[2]+dl[2]*len*t],rx:w,ry:w*.28,col:_fv(col,t),bw})}
-    G.nOv=_n3(up);G.nK=.82;G.pl=1;G.loft(R,s==null?PSK.plume:s,6,true,up);G.nOv=null;G.pl=0};
+    G.nOv=_n3(up);G.nK=nk==null?.82:nk;G.pl=1;G.loft(R,s==null?PSK.plume:s,6,true,up);G.nOv=null;G.pl=0};
   G.build=()=>{const TH=VT.THREE,g=new TH.BufferGeometry();g.setAttribute("position",new TH.BufferAttribute(new Float32Array(P),3));
     g.setAttribute("normal",new TH.BufferAttribute(new Float32Array(N),3));g.setAttribute("color",new TH.BufferAttribute(new Float32Array(C),3));
     g.setAttribute("aS",new TH.BufferAttribute(new Float32Array(S),1));g.setAttribute("aU",new TH.BufferAttribute(new Float32Array(U),2));g.setAttribute("skinIndex",new TH.BufferAttribute(new Uint16Array(SI),4));
@@ -4465,7 +4465,10 @@ void paSurf(inout vec3 c,out float r){float s=vS,fa;r=.75;vec3 p=vBP;
     vec2 q=vec2(p.x*700.+p.y*300.,p.z*160.);fa=1.-smoothstep(.4,1.2,length(fwidth(q)));c*=.84+.32*mix(.5,dn2(q),fa)+.08*(dn2(p.xz*60.)-.5);r=.86;}
   else if(s<2.5){/* loose plumes: long soft barbs hanging down and back, with dark gaps between them */
     vec2 q=vec2(p.x*34.+p.z*9.,p.y*7.+p.z*11.);fa=1.-smoothstep(.4,1.4,length(fwidth(q)));
-    float b=dn2(q),b2=dn2(q*vec2(3.1,1.4)+5.);c*=.72+.42*mix(.5,b*.65+b2*.35,fa);r=.9;}
+    float b=dn2(q),b2=dn2(q*vec2(3.1,1.4)+5.);c*=.72+.42*mix(.5,b*.65+b2*.35,fa);r=.9;
+    /* on a plume itself: a pale shaft, barbs slanting out from it toward the tip, and the root in the shade of the plume over it */
+    if(vU.y>=0.){float u=abs(vU.x),v=vU.y,bq=v*30.-u*7.,bf=1.-smoothstep(.35,1.,fwidth(bq)*1.4),bb=fract(bq);
+      c*=mix(1.,.8+.32*smoothstep(.15,.5,bb)*smoothstep(.95,.6,bb),bf);c=mix(c,c*1.45+.012,smoothstep(.16,.04,u)*(1.-.7*v)*bf);c*=mix(.6,1.,smoothstep(0.,.4,v));}}
   else if(s<3.5){c=pShell(p,c);r=.66;}
   else if(s<4.5){r=.32;c*=.9+.2*dn2(p.xz*400.);}
   else if(s<5.5){/* scales: rounded plates with dark seams */
@@ -4488,7 +4491,7 @@ function paMat(){if(PA_MAT)return PA_MAT;const m=new VT.THREE.MeshStandardMateri
       .replace("#include <roughnessmap_fragment>","#include <roughnessmap_fragment>\nroughnessFactor=paR;")
       /* a scorpion's cuticle fluoresces a faint blue-green in the moonlight */
       .replace("#include <emissivemap_fragment>","#include <emissivemap_fragment>\nif(vS>3.5&&vS<4.5)totalEmissiveRadiance+=vec3(.06,.38,.3)*uGlow*(.6+.4*dot(diffuseColor.rgb,vec3(.5)));")};
-  m.customProgramCacheKey=()=>"pa83";return PA_MAT=m}
+  m.customProgramCacheKey=()=>"pa84";return PA_MAT=m}
 function paMesh(G,R){const TH=VT.THREE,m=new TH.SkinnedMesh(G.build(),paMat());m.add(R.L[0]);m.updateMatrixWorld(true);m.bind(new TH.Skeleton(R.L));
   m.frustumCulled=false;m.castShadow=true;m.receiveShadow=true;return m}
 /* bone helpers in the model frame (bones rest with no rotation, so a bone's world rotation maps its rest offsets) */
@@ -4568,8 +4571,13 @@ function osGeo(male){const G=paGeo(),X=OS_IX,w=(a,b)=>[[X[a],.5],[X[b],.5]];
     return{p:[rx*ca*.97,yc+ry*sa*.97,z],n:_n3([ca/rx,sa/ry,0])}};
   const pc=(t,lo)=>male?[mix(.08,.17,t),mix(.075,.15,t),mix(.07,.13,t)]:lo?[mix(.62,.76,t),mix(.58,.72,t),mix(.5,.66,t)]:[mix(.52,.7,t),mix(.47,.65,t),mix(.4,.58,t)];
   let sd=7;const h1=()=>(sd=(sd*16807)%2147483647)/2147483647;
-  for(let zi=0;zi<10;zi++){const z=.4-zi*.11;for(let j=0;j<12;j++){const a=-1.15+j/11*(Math.PI+2.3)+(zi%2)*.12,s=bAt(z,a),lo=Math.sin(a)<0;
-    const d=[s.n[0]*.35,-.25-(lo?.5:.1),-.9];G.plume(s.p,d,(lo?.2:.15)+.06*h1(),.075+.02*h1(),t=>pc(t,lo),X.body,lo?.07:.035,s.n)}}
+  /* shingled: each row overlaps the one behind it, every plume a little different in length, lie and tone, and each keeps
+     some of its own facing so the coat breaks into separate layered plumes in the light instead of one smooth block */
+  for(let zi=0;zi<13;zi++){const z=.44-zi*.085;for(let j=0;j<16;j++){const a=-1.15+(j+.5*(zi%2)+.3*(h1()-.5))/15.5*(Math.PI+2.3),s=bAt(z,a),lo=Math.sin(a)<0,tn=.8+.4*h1();
+    const d=[s.n[0]*.35+.15*(h1()-.5),-.25-(lo?.5:.1),-.9];G.plume(s.p,d,(lo?.21:.16)+.07*h1(),.07+.025*h1(),t=>{const c=pc(t,lo);return[c[0]*tn,c[1]*tn,c[2]*tn]},X.body,lo?.07:.035,s.n,null,.5)}}
+  /* over the back and shoulders a second, shorter layer of curled coverts standing a little off the coat */
+  for(let zi=0;zi<8;zi++){const z=.36-zi*.11;for(let j=0;j<11;j++){const a=.15+(j+.5*(zi%2))/11*(Math.PI-.3),s=bAt(z,a),tn=.85+.35*h1(),o=.018+.01*h1();
+    G.plume([s.p[0]+s.n[0]*o,s.p[1]+s.n[1]*o,s.p[2]+s.n[2]*o],[s.n[0]*.5,-.05,-.9],.1+.04*h1(),.06+.02*h1(),t=>{const c=pc(.3+.7*t,false);return[c[0]*tn,c[1]*tn,c[2]*tn]},X.body,-.012,s.n,null,.45)}}
   /* wings: folded flat on the flanks, black coverts over a fringe of long white plumes drooping from the lower and rear edge */
   for(const s of[-1,1]){const wb=s>0?X.wL:X.wR;
     G.ell([s*.285,1.2,-.03],[.05,.17,.3],(p,x,y,z)=>male?blk:[.5,.45,.38],PSK.plume,wb,12,8,(x,y,z)=>[x,y-.3*Math.max(0,-z)*Math.max(0,-z),z]);

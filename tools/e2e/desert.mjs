@@ -206,6 +206,8 @@ try {
   /* 4c. the rugs on the drying rack swing out in a gust, hang in soft folds, and the hem rocks on for a moment after the gust drops */
   check("rack rugs: gust swing, folds, after-swing", ...await page.evaluate(() => {
     const q = window.__desQA(), c = q.RACK.cloths[0], u = c.userData, r = {}, P = c.geometry.attributes.position, nx = u.u0.length;
+    /* the wind square onto the rugs: the swing back after a gust depends on how squarely the wind took them */
+    q.windPin(q.RACK.yaw - Math.PI / 2);
     window.__set({weather: "sun", ct: "clear", wind: .04}); q.sim(40, .1); r.calm = Math.abs(u.th);
     const hem = []; for (let i = P.count - nx; i < P.count; i++) hem.push(P.getZ(i)); const m = hem.reduce((a, b) => a + b) / nx;
     r.folds = Math.sqrt(hem.reduce((a, b) => a + (b - m) ** 2, 0) / nx);
@@ -216,7 +218,7 @@ try {
     for (let i = 0; i < 360; i++) { q.step(1, 1 / 30); th.push(u.th * sg); fi.push(u.fi); }
     const end = th[th.length - 1]; r.overshoot = Math.max(...th.map(v => end - v));
     let x = 0; for (let i = 91; i < 300; i++) if (fi[i] * fi[i - 1] < 0) x++; r.hemSwings = x; r.hemAmp = Math.max(...fi.slice(90, 240).map(Math.abs));
-    window.__set({wind: .35}); q.sim(20, .1);
+    q.windPin(null); window.__set({wind: .35}); q.sim(20, .1);
     for (const k in r) if (typeof r[k] === "number") r[k] = +r[k].toFixed(4);
     return [r.calm < .12 && r.folds > .008 && r.gust > .3 && r.overshoot > .02 && r.hemSwings >= 2 && r.hemAmp > .004, r];
   }));

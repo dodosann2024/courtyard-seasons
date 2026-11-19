@@ -4643,7 +4643,7 @@ function osTrack(A,f){const c=Math.sin(f.fy),d=Math.cos(f.fy),r=A.P.run>.5;
   if(r||A.v>2)spPuff(f.P.x,f.P.y,f.P.z,r?5:2,-c,-d,r?1.2:.5,.8,.04)}
 /* somewhere open to walk to: clear of the camels, the tent, the fire circle and the water's edge, and not a pocket walled in */
 function osSpot(A,near,r){const g=navGrid("ostrich",.9,1.25,.8);
-  return randFree(g,near?A.x:0,near?A.z:0,r||14,(x,z)=>navOpen(g,x,z,40)&&Math.hypot(x-FIRE.x,z-FIRE.z)>5&&ANIM.camels.every(c=>Math.hypot(c.x-x,c.z-z)>5)&&Math.hypot(x-TENT.x,z-TENT.z)>4.5&&PA.os.every(o=>o===A||Math.hypot(o.x-x,o.z-z)>2.5))}
+  return randFree(g,near?A.x:0,near?A.z:0,r||14,(x,z)=>navOpen(g,x,z,40)&&Math.hypot(x-FIRE.x,z-FIRE.z)>5.5&&ANIM.camels.every(c=>Math.hypot(c.x-x,c.z-z)>5)&&Math.hypot(x-TENT.x,z-TENT.z)>4.5&&PA.os.every(o=>o===A||Math.hypot(o.x-x,o.z-z)>2.5))}
 function osGo(A,p,run){const g=navGrid("ostrich",.9,1.25,.8),blk=ANIM.camels.map(c=>({x:c.x,z:c.z,r:3}));
   const path=navPath(g,A.x,A.z,p.x,p.z,blk)||navPath(g,A.x,A.z,p.x,p.z);if(!path)return false;A.path=path;A.pi=1;A.mode=run?"run":"walk";A.vmax=run?rr(6,7.5):rr(.9,1.3);return true}
 function osFollow(A,dt){const p=A.path[A.pi],dx=p.x-A.x,dz=p.z-A.z,d=Math.hypot(dx,dz);

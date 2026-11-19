@@ -1674,6 +1674,8 @@ function sandFallsUpdate(dt,t,wn,nk){
    shrubs, each keeping close to its plant (the second lot from its own seed, so the island's layout does not shift) */
 const FF_N0=MOB?30:60,FF_N1=MOB?40:96,FF_N2=MOB?36:110;
 const FF=softPoints(FF_N0+FF_N1+FF_N2,"#d8ff8a",.12,true);FF.o.renderOrder=9;W.add(FF.o);
+/* up close the shared 48 px cap turns a firefly into a speck; let the sprite grow so the hot core and halo still read */
+FF.m.vertexShader=FF.m.vertexShader.replace(",1.,48.",",1.,160.");
 /* a small hot yellow-green light in a soft green halo, so one drifting past the camera stays a point of light, not a fuzzy ball */
 FF.m.fragmentShader=`uniform vec3 uC;varying float vA;void main(){vec2 q=gl_PointCoord-.5;float d=dot(q,q)*4.;if(d>1.)discard;
   float core=exp(-d*22.),a=vA*(exp(-d*4.)*(1.-d)*.55+core*1.3);if(a<.004)discard;gl_FragColor=vec4(mix(uC,vec3(.96,1.,.72),min(1.,core*1.5)),a);
@@ -1682,7 +1684,7 @@ FF.m.fragmentShader=`uniform vec3 uC;varying float vA;void main(){vec2 q=gl_Poin
   }`;
 /* their glints on the still water: the night reflection pass is off, so each one over the pond gets a dim mirror image, placed where
    the line of sight to its reflection meets the surface (sitting on the water, the water mesh cannot hide it) */
-const FFR=softPoints(FF.n,"#c8f27a",.1,true);FFR.o.renderOrder=8;FFR.o.visible=false;W.add(FFR.o);FFR.m.fragmentShader=FF.m.fragmentShader;
+const FFR=softPoints(FF.n,"#c8f27a",.1,true);FFR.o.renderOrder=8;FFR.o.visible=false;W.add(FFR.o);FFR.m.fragmentShader=FF.m.fragmentShader;FFR.m.vertexShader=FF.m.vertexShader;
 const FFP=[];for(let i=0;i<FF_N0;i++){const[a,b]=pondEdge(rnd()*TAU,rr(.8,i%3?1.9:2.8));FFP.push({x:a,z:b,y:rr(.4,2.6),ph:rnd()*TAU,sp:rr(.3,.7),bl:rr(.6,1.4),rw:1.2});FF.Z[i]=rr(.8,1.2)}
 {const sd0=sd;sd=50917;let wt=0;for(const v of VEGP)wt+=v.w;
   for(let i=FF_N0;i<FF.n;i++){let u=rnd()*wt,v=VEGP[0];for(const q of VEGP){u-=q.w;if(u<=0){v=q;break}}const a=rnd()*TAU,r=rr(.1,.7);
@@ -2947,6 +2949,11 @@ function camelPlan(a){
   /* in hail they turn their backs to the wind and stand it out */
   if(WX.hcold){camelBrace(a);return}
   if(camHold()){a.mode="job";a.job="idle";a.timer=rr(12,24);play(a.r,"idle",1,1);return}
+  /* the snow has stopped falling but it still lies: a few steps to a nearby kneel never makes a stride.
+     Send them across the open snow so the walk is several strides long. */
+  if(WX.sc>.08){const g=navGrid("camel",1.05,1.12,.84);
+    for(let t=0;t<50;t++){const th=rnd()*TAU,d=rr(8,16),x=a.x+Math.sin(th)*d,z=a.z+Math.cos(th)*d;
+      if(navFree(g,x,z)&&sN(x,z)<.9&&roomy(a,x,z)&&camelGo(a,{x,z},"graze"))return}}
   const busy=j=>ANIM.camels.some(o=>o!==a&&o.job===j),near=(p,r)=>ANIM.camels.some(o=>o!==a&&(Math.hypot(o.x-p.x,o.z-p.z)<r||(o.goal&&Math.hypot(o.goal.x-p.x,o.goal.z-p.z)<r)));
   const opts=[["drink",.3],["graze",.32],["kneel",.2],["idle",.18]].filter(([j])=>j==="idle"||!busy(j)&&(j!=="drink"||!near(DRINK,4.5)));
   let r=rnd()*opts.reduce((s,o)=>s+o[1],0),job="idle";for(const[j,w]of opts){if((r-=w)<0){job=j;break}}
@@ -2966,6 +2973,12 @@ function camelUpdate(a,dt){
   else if(camHold()&&a.mode==="walk"){a.mode="job";a.job="idle";a.path=null;a.timer=rr(12,24);play(a.r,"idle",1,1)}
   let dy=0,vT=0,ym=.75;
   if(a.mode==="walk"){
+    /* still on lying snow: don't end the walk a stride from the goal, or a resumed crossing crunches once */
+    if(WX.sc>.08&&!camHold()&&!night&&(a.job==="graze"||a.job==="idle")){const lastP=a.path[a.path.length-1];
+      if(lastP&&Math.hypot(lastP.x-a.x,lastP.z-a.z)<4){const g=navGrid("camel",1.05,1.12,.84),blk=ANIM.camels.filter(o=>o!==a&&o.spd<.05).map(o=>({x:o.x,z:o.z,r:2.6}));
+        for(let t=0;t<24;t++){const th=rnd()*TAU,d=rr(8,14),x=a.x+Math.sin(th)*d,z=a.z+Math.cos(th)*d;
+          if(!navFree(g,x,z)||!roomy(a,x,z))continue;const pth=navPath(g,a.x,a.z,x,z,blk)||navPath(g,a.x,a.z,x,z);
+          if(pth){a.path=pth;a.pi=1;a.face=null;a.job="graze";a.goal={x,z};break}}}}
     let wp=a.path[a.pi],last=a.pi===a.path.length-1;
     if(!last&&Math.hypot(wp.x-a.x,wp.z-a.z)<1.1){a.pi++;wp=a.path[a.pi];last=a.pi===a.path.length-1}
     const dx=wp.x-a.x,dz=wp.z-a.z,d=Math.hypot(dx,dz);dy=wrapA(Math.atan2(dx,dz)-a.yaw);
@@ -4197,7 +4210,7 @@ function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
       for(let j=0;j<sd;j++){const an=j/sd*TAU,ca=Math.cos(an),sa=Math.sin(an),nr=[a[0]*ca+bb[0]*sa,a[1]*ca+bb[1]*sa,a[2]*ca+bb[2]*sa];
         vtx([p[0]+nr[0]*rad[i],p[1]+nr[1]*rad[i],p[2]+nr[2]*rad[i]],nr,cols[i],k,h)}}
     for(let i=0;i<M-1;i++)for(let j=0;j<sd;j++){const a=b+i*sd+j,c=b+i*sd+(j+1)%sd;I.push(a,a+sd,c,c,a+sd,c+sd)}};
-  const shell=[.34,.13,.05],shellD=[.18,.07,.03],leg=[.5,.2,.08],legD=[.32,.12,.05],tip=[.09,.05,.03],cream=[.86,.74,.56],claw=[.66,.17,.05];
+  const shell=[.34,.13,.05],shellD=[.18,.07,.03],leg=[.5,.2,.08],legD=[.32,.12,.05],tip=[.09,.05,.03],cream=[.86,.74,.56],claw=[.84,.22,.06];
   /* carapace: broad, a little squared at the front, domed over the gills, flatter underneath */
   ell(0,.029,0,.025,.0135,.021,shell,0,[0,0,0],22,12,(x,y,z)=>{const zf=z>0?z*(1-.18*Math.abs(x)):z,xf=x*(1-.08*Math.max(0,z));
     const dark=1-.28*Math.max(0,y)*(1-Math.abs(x))+.08*Math.max(0,-y);return[xf,y-.12*Math.abs(xf)*Math.max(0,y),zf,dark]});
@@ -4208,7 +4221,8 @@ function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
       m=1+.08*(i===1||i===2),P1=[h[0]+dx*.016*m,h[1]+.01,h[2]+dz*.016*m],P2=[P1[0]+dx*.0135*m,P1[1]-.009,P1[2]+dz*.0135*m],P3=[P2[0]+dx*.007*m,.0012,P2[2]+dz*.007*m];
     tube([h,P1,P2,P3],[.0042,.0039,.003,.0008],[leg,leg,legD,tip],k,h,7)}
   /* claws: arm, carpus, a swollen palm and two pale-tipped fingers; the right one larger */
-  for(const s of[1,-1]){const k=s>0?9:10,c=s>0?1.2:1.6,h=[s*.015,.025,.016],Q1=[h[0]+s*.012,h[1]+.006,h[2]+.01],Q2=[Q1[0]-s*.002,Q1[1]+.002,Q1[2]+.012],Q3=[Q2[0]-s*.004,Q2[1],Q2[2]+.011*c];
+  /* the claws read from a few metres: a larger palm and fingers, the right one still the bigger */
+  for(const s of[1,-1]){const k=s>0?9:10,c=s>0?1.55:2.05,h=[s*.015,.025,.016],Q1=[h[0]+s*.012,h[1]+.006,h[2]+.01],Q2=[Q1[0]-s*.002,Q1[1]+.002,Q1[2]+.012],Q3=[Q2[0]-s*.004,Q2[1],Q2[2]+.011*c];
     tube([h,Q1,Q2],[.0034,.0034,.004],[leg,leg,shell],k,h,6);
     ell(Q3[0],Q3[1],Q3[2],.0062*c,.0047*c,.0105*c,claw,k,h,10,7);
     tube([[Q3[0]-s*.002,Q3[1]-.002,Q3[2]+.008*c],[Q3[0]-s*.004,Q3[1]-.003,Q3[2]+.016*c],[Q3[0]-s*.005,Q3[1]-.0032,Q3[2]+.022*c]],[.003*c,.0019*c,.0005],[legD,tip,cream],k,h,5);
@@ -5293,6 +5307,19 @@ paThreat:(x,z,sec,r)=>{PA.dbg={x,z,r:r||.4,k:"dbg",o:null,until:st.t+(sec||4)}},
   duneAdv(sec){const wk=.5+st.wn*1.4;duneEvolve(sec*.8*wk);sandU.uRipPh.value+=sec*.08*wk;
     sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk)},
   dune:{DP,DUNE0,DCLK,GUST,crestXZ,dMask,gustAt},salt:()=>SALT,
+  /* firefly positions (island metres) for close proof shots; debug only */
+  ff:()=>{const o=[];for(let i=0;i<FF.n;i++){if(FF.A[i]<.12)continue;o.push({x:FF.P[i*3],y:FF.P[i*3+1],z:FF.P[i*3+2],a:+FF.A[i].toFixed(3),wat:FFP[i].wat||0})}return o},
+  ffShow(on){FF.o.visible=!!on;FFR.o.visible=!!on},
+  fireShow(on){fireG.visible=!!on},
+  /* a procedural stand-in beside the rigged animal, so a proof can show both. Not used by the scene itself. */
+  procBeside(k){const A=k==="os"?PA.os[0]:k==="tt"?PA.tt[0]:k==="gb"?PA.gb[0]:PA.sc[0];if(!A)return null;
+    const x=A.x+ (k==="os"?2.2:k==="tt"?.55:.4),z=A.z,yaw=A.yaw;
+    let P;if(k==="os"){P=osSpawn(true,null);osPlace(P,x,z,yaw);P.mode="stand";P.t=99;PA.os.push(P)}
+    else if(k==="tt"){P=torSpawn(null);torPlace(P,x,z,yaw);P.mode="walk";P.t=99;PA.tt.push(P)}
+    else if(k==="gb"){P=gbSpawn({x,z,yaw,t:0},null);P.mode="stand";P.out=true;P.P.in=0;P.t=99;PA.gb.push(P)}
+    else{P=scSpawn({x,z,r:.2,hx:x,hz:z,hy:yaw,dx:x,dz:z},null,null);P.mode="door";P.t=99;PA.sc.push(P)}
+    P._p=1;P.g.visible=true;return{x,z,y:hTop(x,z)}},
+  hideProc(){for(const k of["os","tt","gb","sc"])for(const A of PA[k])if(A._p)A.g.visible=false},
   /* sound capture for the recorded videos: every voice's level/pan/low-pass per step, mixed offline */
   audCap(on){if(on){AU.cap={t0:st.t,ev:[]};return 0}const c=AU.cap;AU.cap=null;return c?c.ev:[]},AU,OAS,oasisNear,
   /* the made sounds, for the offline mix: k in SYN, at R samples per second */

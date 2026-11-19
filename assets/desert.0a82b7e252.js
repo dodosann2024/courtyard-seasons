@@ -3448,7 +3448,9 @@ function rsUpdate(s,dt){
       s.hg=s.hunt?(rnd()<.6?"side":"serp"):null;
       if(!to){if(day&&WX.hcold){to=rsCover(s);if(!to)rsBurrow(s)}else if(day){const sp=snakeShadeSpot();to={x:sp.x,z:sp.z,shade:1}}else if(s.hunt&&(to=rsHuntSpot(s))){to.hunt=1}else{const g=navGrid("snake",.32,1.3,.82);to=randFree(g,SNK_HOME.x,SNK_HOME.z,9,(x,z)=>Math.hypot(x-b.P[0],z-b.P[1])>2.5)}}
       if(to&&rsGoTo(s,to)){s.mode="crawl";s.a=0;const want=s.lock||rsGaitAt(s,b.P[0],b.P[1]);
-        if(want==="side"){s.gait="side";swInit(s,s.path[1])}else{s.gait=want;s.rk=want==="rect"?1:0}}else s.restT=1}}
+        if(want==="side"){s.gait="side";swInit(s,s.path[1])}else{s.gait=want;s.rk=want==="rect"?1:0}}
+      /* cover it has no way through to: in hail or snow it shuffles down into the sand where it lies rather than waiting out in the open */
+      else if(day&&WX.hcold)rsBurrow(s);else s.restT=1}}
   if(s.mode==="crawl"&&WX.hcold&&!s.goal.near){const P=b.P,cv=rsCover(s);s.goal.near=1;
     if(!cv){s.goal={x:P[0],z:P[1],shade:1,near:1,sand:1};s.path=[s.goal,s.goal];s.pi=1}
     else if(Math.hypot(cv.x-P[0],cv.z-P[1])<Math.hypot(s.goal.x-P[0],s.goal.z-P[1])-1)rsGoTo(s,cv)}

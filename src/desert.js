@@ -4142,7 +4142,8 @@ function ttUpdate(dt){const L=TT.list,S0=TT.sch,ny=st.night>.5,hail=WX.hcold>0||
     f.pit+=(cl(-Math.atan2(vy,Math.max(f.v,.05)),-.6,.6)-f.pit)*ease(3,dt);
     f.bend=cl(-f.yr*.1,-.07,.07);f.amp=.075+.09*cl(f.v/.4,0,1)+.03*Math.abs(f.yr);f.ph+=TAU*(1.3+2.4*f.v/f.L)*dt;
     if(f.r2>0){f.r2-=dt;if(f.r2<=0)hDecal(1,f.rx,POND.wy+.004,f.rz,rr(.6,.8))}}
-  if(TT.glb){for(const f of L){f.g.visible=TT.vis>0;f.dartT=(f.dartT||0)-dt;if(!f.g.visible)continue;
+  if(TT.glb&&!TT.hi&&L[0].g.visible)for(const f of L)f.g.visible=false;
+  if(TT.hi){for(const f of L){f.g.visible=TT.vis>0;f.dartT=(f.dartT||0)-dt;if(!f.g.visible)continue;
       f.g.position.set(f.x,f.y,f.z);f.g.rotation.set(f.pit,f.yaw,cl(f.yr*.12,-.3,.3));
       if(f.dartT>0)play(f.r,"dart",.08,1);else if(f.v<.075)play(f.r,"idle_hover",.5,cl(.6+f.v*6,.6,1.1));
       else play(f.r,"swim",.4,cl((1.3+2.4*f.v/f.L)*.7,.5,3));
@@ -4157,7 +4158,8 @@ function ttUpdate(dt){const L=TT.list,S0=TT.sch,ny=st.night>.5,hail=WX.hcold>0||
       for(const f of L){const bed=lkY(f.x,f.z),hb=Math.max(f.y-bed,0),o=hb*tw,bx=f.x-L_.x/h*o,bz=f.z-L_.z/h*o;
         blobAdd(bx,lkY(bx,bz),bz,f.yaw,.2*f.L+.1*hb,1.05*f.L+.1*hb,sc*.8*Math.exp(-hb*.55),.5+.35*ss(0,.8,hb),1)}}}}
 /* Godot's rigged trout (17 bones; swim, idle_hover, dart), 0.398 m long and scaled to each fish. Once it has loaded every fish is a
-   skinned clone under the same underwater shading and the instanced fish above is hidden; turns bend the spine on top of the clip */
+   skinned clone under the same underwater shading, used once a fish is over ~20 px long; smaller than that the instanced fish above
+   stands in (one draw, no rigs to update). Turns bend the spine on top of the clip */
 const TR_FILE="trout_v2",TR_LEN=.398,TRM=new Map();
 function trMats(s){matsOf(s,(m,c)=>{c.castShadow=false;c.receiveShadow=true;c.renderOrder=3;c.frustumCulled=false;let n=TRM.get(m.uuid);
   if(!n){const fin=m.transparent;n=m.clone();TRM.set(m.uuid,n);if(n.map)n.map.anisotropy=MOB?2:4;if(n.emissive)n.emissive.setRGB(0,0,0);
@@ -4170,7 +4172,7 @@ function trLoad(){return glb(TR_FILE).then(src=>{const up=new V3(),q=new T.Quat(
     play(f.r,"swim",.01,1);if(f.r.acts.swim)f.r.acts.swim.time=f.ph/TAU*.7;
     g.updateMatrixWorld(true);f.sp=[];s.traverse(b=>{if(b.isBone&&/^spine0[1-6]$/.test(b.name)){b.getWorldQuaternion(q).invert();
       g.getWorldQuaternion(_tq2);f.sp.push({b,ax:up.set(0,1,0).applyQuaternion(_tq2).applyQuaternion(q).normalize().clone()})}});g.visible=false}
-  TT.glb=1;TT.im.visible=false})}
+  TT.glb=1})}
 
 /* ---------------- freshwater crabs (Potamon potamios), big old males: a carapace 7–9 cm across, legs spanning about 18 cm,
    a rusty brown shell over orange-red claws, so they read against the sand from a few metres off.
@@ -4302,8 +4304,8 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
 /* the lake animals are hidden once they are under a couple of pixels */
 function lakeVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
   const D=Math.max(.5,Math.hypot((c.x-POND.x),(c.z-POND.z),c.y-POND.wy)-Math.max(POND.rx,POND.rz)*.6),ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
-  TT.vis=1-ss(.32*ppm/3*.6,.32*ppm/3,D);CR.vis=1-ss(.1*CR_K*ppm/2.5*.6,.1*CR_K*ppm/2.5,D);
-  TT.U.uVis.value=TT.vis;CR.U.uVis.value=CR.vis;TT.im.visible=TT.vis>0&&!TT.glb;CR.im.visible=CR.vis>0;CR.bm.visible=CR.vis>0;
+  TT.vis=1-ss(.32*ppm/3*.6,.32*ppm/3,D);const px=.32*ppm/D;TT.hi=!!TT.glb&&px>(TT.hi?15:20);CR.vis=1-ss(.1*CR_K*ppm/2.5*.6,.1*CR_K*ppm/2.5,D);
+  TT.U.uVis.value=TT.vis;CR.U.uVis.value=CR.vis;TT.im.visible=TT.vis>0&&!TT.hi;CR.im.visible=CR.vis>0;CR.bm.visible=CR.vis>0;
   UW.uWy.value=W.position.y+POND.wy*W.scale.y;UW.uWob.value=.012+.03*st.wn+.05*WX.rain}
 
 /* ---------------- Sinai agama (Pseudotrapelus sinaitus), real size (25 cm, 62 % of it tail) ----------------

@@ -186,20 +186,25 @@ try {
     const dayOk = [...dm].every(m => ["in", "look", "bolt", "dive"].includes(m)) && dm.has("look") && PA.sc.every(a => a.mode === "hide" && !a.g.visible);
     const marks = PA.gb.every(g => g.h.mound && g.h.mound.visible) && PA.sc.every(a => a.rk.mound && a.rk.mound.visible);
     /* dusk into night: gerbils come out; the scorpions leave their rocks, glowing faintly */
-    q.tod("sunset"); const gm = new Set(); let gOut = 0;
-    for (let i = 0; i < 60; i++) { q.sim(2, .1); for (const g of PA.gb) { gm.add(g.mode); if (g.mode !== "in") gOut++; } }
+    /* a gerbil that bolted from a passing camel or ostrich stays down 5–14 s and then peeks, so the next 16 s of it are left out:
+       what is measured is whether they come out when nothing has just scared them */
+    q.tod("sunset"); const gm = new Set(); let gOut = 0, gN = 0; const scared = PA.gb.map(() => -1);
+    for (let i = 0; i < 60; i++) { q.sim(2, .1); PA.gb.forEach((g, j) => { gm.add(g.mode); if (g.mode === "bolt" || g.mode === "dive") scared[j] = i + 8;
+      if (g.mode !== "in") gOut++; if (g.mode !== "in" || i > scared[j]) gN++; }); }
     q.tod("night"); const sm = new Set(); let scOut = 0;
     for (let i = 0; i < 60; i++) { q.sim(3, .1); for (const a of PA.sc) { sm.add(a.mode); if (a.mode === "roam") scOut++; } for (const g of PA.gb) gm.add(g.mode); }
     r.gbModes = [...gm].sort(); r.scModes = [...sm].sort(); r.glow = +q.paU.uGlow.value.toFixed(2);
-    r.gbOut = +(gOut / (60 * PA.gb.length)).toFixed(2); r.scRoam = +(scOut / (60 * PA.sc.length)).toFixed(2);
+    r.gbOut = +(gOut / Math.max(1, gN)).toFixed(2); r.scRoam = +(scOut / (60 * PA.sc.length)).toFixed(2);
     /* a gerbil that is out bolts for its hole and goes in */
     let G = PA.gb.find(g => g.mode === "forage" || g.mode === "stand" || g.mode === "nibble");
     if (!G) { G = PA.gb[0]; G.mode = "forage"; G.x = G.h.x + .5; G.z = G.h.z + .4; G.goal = null; G.t = 9; q.step(5, 1 / 30); }
     q.paThreat(G.x + .6, G.z, 4, .2); const gs = new Set(); for (let i = 0; i < 60; i++) { q.step(2, 1 / 30); gs.add(G.mode); } r.gbBolt = [...gs];
     /* one already at its hole mouth goes straight down without a dash first */
     const bolted = (gs.has("bolt") || gs.has("dive")) && (G.mode === "in" || G.mode === "dive"); q.paThreat(0, 0, 0);
-    /* a scorpion that is out faces a camel coming up: tail arched, pincers open */
-    const S = PA.sc[0]; S.mode = "roam"; S.t = 99; S.x = S.rk.dx; S.z = S.rk.dz; S.goal = null; q.step(5, 1 / 30);
+    /* a scorpion that is out faces a camel coming up: tail arched, pincers open. The one farthest from the big animals is used,
+       since an ostrich bedded down beside a rock for the night keeps that scorpion at home */
+    const big = [...PA.os, ...PA.tt, ...q.ANIM.camels], room = a => Math.min(...big.map(b => Math.hypot(b.x - a.rk.dx, b.z - a.rk.dz)));
+    const S = PA.sc.reduce((b, a) => room(a) > room(b) ? a : b); S.mode = "roam"; S.t = 99; S.x = S.rk.dx; S.z = S.rk.dz; S.goal = null; q.step(5, 1 / 30);
     q.paThreat(S.x + .5, S.z + .2, 4, .1); q.step(45, 1 / 30); r.scThr = +S.P.thr.toFixed(2); r.scOpen = +S.P.open.toFixed(2); q.paThreat(0, 0, 0);
     /* night: ostriches sit */
     q.sim(40, .1); r.osNight = PA.os.map(o => o.mode + ":" + o.P.sit.toFixed(2));

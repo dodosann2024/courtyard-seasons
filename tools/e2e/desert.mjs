@@ -164,8 +164,10 @@ try {
     for (let i = 0; i < 60; i++) { q.sim(3, .1); for (const o of PA.os) om.add(o.mode); for (const t of PA.tt) tm.add(t.mode); }
     r.osModes = [...om].sort(); r.osMoved = +Math.max(...PA.os.map((o, i) => Math.hypot(o.x - op[i][0], o.z - op[i][1]))).toFixed(1);
     r.ttModes = [...tm].sort(); r.ttMaxV = +Math.max(...PA.tt.map(t => t.v)).toFixed(3);
-    /* the eagle stooping on an ostrich: it runs */
-    const O = PA.os[0], s0 = q.osSpot(O, false, 7); if (s0) q.osPlace(O, s0.x, s0.z, 0); O.path = null; O.mode = "graze"; O.t = 9; O.P.sit = 0;
+    /* the eagle stooping on an ostrich out on the open sand, well away from the camp and the fire circle: it runs */
+    const O = PA.os[0]; let s0 = null;
+    for (let k = 0; k < 60 && !s0; k++) { const p = q.osSpot(O, false, 10); if (p && Math.hypot(p.x - q.FIRE.x, p.z - q.FIRE.z) > 8) s0 = p; }
+    if (s0) q.osPlace(O, s0.x, s0.z, 0); O.path = null; O.mode = "graze"; O.t = 9; O.P.sit = 0;
     const ox = O.x, oz = O.z, ol = Math.hypot(ox, oz) || 1; q.paThreat(ox + ox / ol * 2, oz + oz / ol * 2, 6, 1.5); let vmax = 0;
     for (let i = 0; i < 75; i++) { q.step(3, 1 / 30); vmax = Math.max(vmax, O.v); } r.osFlee = +vmax.toFixed(2); r.osAway = +Math.hypot(O.x - ox, O.z - oz).toFixed(1); q.paThreat(0, 0, 0);
     /* hail: tortoises pull in */

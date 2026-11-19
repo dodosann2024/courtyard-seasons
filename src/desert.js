@@ -4102,12 +4102,13 @@ function ttUpdate(dt){const L=TT.list,S0=TT.sch,ny=st.night>.5,hail=WX.hcold>0||
       for(const f of L){const bed=lkY(f.x,f.z),hb=Math.max(f.y-bed,0),o=hb*tw,bx=f.x-L_.x/h*o,bz=f.z-L_.z/h*o;
         blobAdd(bx,lkY(bx,bz),bz,f.yaw,.2*f.L+.1*hb,1.05*f.L+.1*hb,sc*.8*Math.exp(-hb*.55),.5+.35*ss(0,.8,hb),1)}}}}
 
-/* ---------------- freshwater crabs (Potamon potamios), real size: a carapace 4–5.5 cm across, legs spanning about 11 cm.
+/* ---------------- freshwater crabs (Potamon potamios), big old males: a carapace 7–9 cm across, legs spanning about 18 cm,
+   a rusty brown shell over orange-red claws, so they read against the sand from a few metres off.
    Each has a burrow in the damp bank just above the waterline. They pick over the wet margin and the shallows round it,
    walking sideways in short runs and feeding claw to mouth in the pauses. A camel coming to the water, the rattlesnake on the
    bank or the eagle low over it sends them scuttling, claws up, down the nearest burrow or into deeper water; rain, hail and
    snow send them home. Procedural, one instanced draw; the legs and claws move in the vertex shader. ---------------- */
-const CR_N=MOB?5:8,CR={list:[],im:null,A:null,bm:null,vis:0,U:{uVis:{value:0}}};
+const CR_N=MOB?5:8,CR_K=1.6,CR={list:[],im:null,A:null,bm:null,vis:0,U:{uVis:{value:0}}};
 function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
   const vtx=(p,nr,c,k,h)=>{P.push(p[0],p[1],p[2]);N.push(nr[0],nr[1],nr[2]);C.push(c[0],c[1],c[2]);K.push(k);H.push(h[0],h[1],h[2]);return n++};
   const ell=(cx,cy,cz,rx,ry,rz,c,k,h,nu,nv,sh)=>{const b=n;for(let i=0;i<=nv;i++){const t=i/nv*Math.PI;for(let j=0;j<=nu;j++){const p=j/nu*TAU;
@@ -4122,7 +4123,7 @@ function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
       for(let j=0;j<sd;j++){const an=j/sd*TAU,ca=Math.cos(an),sa=Math.sin(an),nr=[a[0]*ca+bb[0]*sa,a[1]*ca+bb[1]*sa,a[2]*ca+bb[2]*sa];
         vtx([p[0]+nr[0]*rad[i],p[1]+nr[1]*rad[i],p[2]+nr[2]*rad[i]],nr,cols[i],k,h)}}
     for(let i=0;i<M-1;i++)for(let j=0;j<sd;j++){const a=b+i*sd+j,c=b+i*sd+(j+1)%sd;I.push(a,a+sd,c,c,a+sd,c+sd)}};
-  const shell=[.21,.12,.055],shellD=[.13,.075,.035],leg=[.3,.18,.085],legD=[.2,.12,.055],tip=[.07,.045,.03],cream=[.62,.5,.34];
+  const shell=[.34,.13,.05],shellD=[.18,.07,.03],leg=[.5,.2,.08],legD=[.32,.12,.05],tip=[.09,.05,.03],cream=[.86,.74,.56],claw=[.66,.17,.05];
   /* carapace: broad, a little squared at the front, domed over the gills, flatter underneath */
   ell(0,.029,0,.025,.0135,.021,shell,0,[0,0,0],22,12,(x,y,z)=>{const zf=z>0?z*(1-.18*Math.abs(x)):z,xf=x*(1-.08*Math.max(0,z));
     const dark=1-.28*Math.max(0,y)*(1-Math.abs(x))+.08*Math.max(0,-y);return[xf,y-.12*Math.abs(xf)*Math.max(0,y),zf,dark]});
@@ -4135,7 +4136,7 @@ function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
   /* claws: arm, carpus, a swollen palm and two pale-tipped fingers; the right one larger */
   for(const s of[1,-1]){const k=s>0?9:10,c=s>0?1.2:1.6,h=[s*.015,.025,.016],Q1=[h[0]+s*.012,h[1]+.006,h[2]+.01],Q2=[Q1[0]-s*.002,Q1[1]+.002,Q1[2]+.012],Q3=[Q2[0]-s*.004,Q2[1],Q2[2]+.011*c];
     tube([h,Q1,Q2],[.0034,.0034,.004],[leg,leg,shell],k,h,6);
-    ell(Q3[0],Q3[1],Q3[2],.0062*c,.0047*c,.0105*c,shell,k,h,10,7);
+    ell(Q3[0],Q3[1],Q3[2],.0062*c,.0047*c,.0105*c,claw,k,h,10,7);
     tube([[Q3[0]-s*.002,Q3[1]-.002,Q3[2]+.008*c],[Q3[0]-s*.004,Q3[1]-.003,Q3[2]+.016*c],[Q3[0]-s*.005,Q3[1]-.0032,Q3[2]+.022*c]],[.003*c,.0019*c,.0005],[legD,tip,cream],k,h,5);
     tube([[Q3[0]+s*.0005,Q3[1]+.0025,Q3[2]+.008*c],[Q3[0]-s*.002,Q3[1]+.0028,Q3[2]+.016*c],[Q3[0]-s*.004,Q3[1]+.0018,Q3[2]+.021*c]],[.0026*c,.0017*c,.0005],[legD,tip,cream],k,h,5)}
   /* eyes on short stalks */
@@ -4148,7 +4149,7 @@ const CR_ANIM={head:"attribute float aK;attribute vec3 aH;attribute vec4 aG;"+GL
 mat3 crR(){float k=aK;if(k<.5||k>10.5)return mat3(1.);
   if(k<8.5){float i=k-1.,sd=i<3.5?1.:-1.,j=mod(i,4.),g=mod(j+step(sd,0.),2.),ph=aG.x+g*3.14159;
     return rY(.3*cos(ph)*aG.y*sd)*rZ(sd*.5*max(0.,sin(ph))*aG.y);}
-  float sd=k<9.5?1.:-1.,fd=k<9.5?max(aG.z,0.):max(-aG.z,0.);return rZ(sd*.55*aG.w)*rY(-sd*(.5*fd-.35*aG.w))*rX(-1.2*aG.w-.4*fd);}`,
+  float sd=k<9.5?1.:-1.,fd=k<9.5?max(aG.z,0.):max(-aG.z,0.);return rZ(sd*.7*aG.w)*rY(-sd*(.5*fd-.45*aG.w))*rX(-1.5*aG.w-.4*fd);}`,
   nrm:"mat3 cR=crR();objectNormal=cR*objectNormal;",pos:"transformed=aH+cR*(transformed-aH);"};
 /* the burrow: a dark hole in a low collar of damp sand, the dug-out pellets heaped to one side */
 function crBurrowGeo(){const P=[],N=[],C=[],I=[];let n=0;const sand=[.3,.19,.095],dark=[.012,.009,.006];
@@ -4171,9 +4172,15 @@ function crBuild(){const g=crGeo(),m=new T.MSM({vertexColors:true,roughness:.2,m
   let th=rr(0,TAU);for(let i=0;i<CR_N;i++){let s=null;for(let t=0;t<40&&!s;t++){th+=TAU/CR_N*rr(.6,1.1);s=crSite(th);
       if(s&&CR.list.some(c=>Math.hypot(c.bx-s[0],c.bz-s[1])<1.6))s=null}
     if(!s)continue;const[bx,bz]=s,y=lkY(bx,bz),yaw=Math.atan2(POND.x-bx,POND.z-bz);
-    _tq.setFromUnitVectors(_hUp,nTop(bx,bz)).multiply(_tq2.setFromAxisAngle(_hUp,-yaw+rr(-.5,.5)));_tm.compose(_ts.set(bx,y+.002,bz),_tq,_v.set(1,1,1));bm.setMatrixAt(CR.list.length,_tm);
+    _tq.setFromUnitVectors(_hUp,nTop(bx,bz)).multiply(_tq2.setFromAxisAngle(_hUp,-yaw+rr(-.5,.5)));_tm.compose(_ts.set(bx,y+.002,bz),_tq,_v.set(CR_K,CR_K,CR_K));bm.setMatrixAt(CR.list.length,_tm);
     CR.list.push({bx,bz,x:bx,z:bz,y,yaw,mode:"in",t:rr(1,12),tx:bx,tz:bz,v:0,ph:0,walk:0,fph:rr(0,6),feed:0,up:0,sk:1,s:rr(.85,1.15),go:null})}
-  bm.count=CR.list.length;im.count=CR.list.length;bm.instanceMatrix.needsUpdate=true}
+  bm.count=CR.list.length;im.count=CR.list.length;bm.instanceMatrix.needsUpdate=true;
+  /* the bank round each burrow is kept clear of grass and reeds, with a short lane up the bank behind it, so a crab out at its
+     door is never lost in the tufts when seen from the land */
+  {const M=new T.M4(),Z=new T.M4().makeScale(0,0,0),e=M.elements;for(const im of VEG){let ch=0;for(let i=0;i<im.count;i++){im.getMatrixAt(i,M);
+    if(CR.list.some(c=>crClear(c,e[12],e[14]))){im.setMatrixAt(i,Z);ch=1}}if(ch)im.instanceMatrix.needsUpdate=true}}}
+function crClear(c,x,z){const dx=x-c.bx,dz=z-c.bz,d=Math.hypot(dx,dz);if(d<.6)return true;if(d>1.6)return false;
+  const ox=c.bx-POND.x,oz=c.bz-POND.z,ol=Math.hypot(ox,oz)||1;return(dx*ox+dz*oz)/(d*ol)>Math.cos(.45)}
 crBuild();
 /* somewhere to forage: the wet margin and the first few centimetres of water within a metre or so of home */
 function crForage(c){for(let t=0;t<14;t++){const a=rr(0,TAU),d=rr(.15,1.2),x=c.bx+Math.cos(a)*d,z=c.bz+Math.sin(a)*d,dp=pfDep(x,z);if(dp>-.09&&dp<.045)return[x,z]}return[c.bx,c.bz]}
@@ -4212,20 +4219,20 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
         c.yaw=wrapA(c.yaw+cl(dy,-6*dt,6*dt));const vt=Math.abs(dy)<.5?c.vt:0;c.v+=(vt-c.v)*ease(c.mode==="run"?14:7,dt);
         const st_=Math.min(c.v*dt,d);c.x+=dx/d*st_;c.z+=dz/d*st_}}
     else c.v+=(0-c.v)*ease(10,dt);
-    c.ph+=c.v*dt/.032*TAU;c.walk+=((c.v>.01?1:0)-c.walk)*ease(10,dt);
+    c.ph+=c.v*dt/(.032*CR_K)*TAU;c.walk+=((c.v>.01?1:0)-c.walk)*ease(10,dt);
     const feeding=c.mode==="out"||c.mode==="sub"||c.mode==="dig";c.fph+=dt*(feeding?c.mode==="dig"?7:4.2:0);c.feed+=((feeding?1:0)-c.feed)*ease(3,dt);
     c.y=lkY(c.x,c.z)}
   if(CR.vis>0){const A=CR.A.array;CR.list.forEach((c,i)=>{const fw=Math.sin(c.yaw),fz=Math.cos(c.yaw),e=.03,
       gp=(lkY(c.x+fw*e,c.z+fz*e)-lkY(c.x-fw*e,c.z-fz*e))/(2*e),gr=(lkY(c.x+fz*e,c.z-fw*e)-lkY(c.x-fz*e,c.z+fw*e))/(2*e);
-      qYXZ(_tq,-Math.atan(gp),c.yaw,Math.atan(gr));const sc=c.mode==="in"?0:c.s;
-      _tm.compose(_ts.set(c.x,c.y-c.sk*.05*c.s+.0025*c.walk*Math.abs(Math.sin(c.ph))+.008*c.up*c.s,c.z),_tq,_v.set(sc,sc,sc));CR.im.setMatrixAt(i,_tm);
-      if(sc>0&&c.sk<.6)blobAdd(c.x,c.y,c.z,c.yaw,.085*c.s,.07*c.s,.42*(1-.6*st.night)*CR.vis*(1-c.sk),.75,0);
+      qYXZ(_tq,-Math.atan(gp),c.yaw,Math.atan(gr));const k=c.s*CR_K,sc=c.mode==="in"?0:k;
+      _tm.compose(_ts.set(c.x,c.y-c.sk*.05*k+.0025*CR_K*c.walk*Math.abs(Math.sin(c.ph))+.008*c.up*k,c.z),_tq,_v.set(sc,sc,sc));CR.im.setMatrixAt(i,_tm);
+      if(sc>0&&c.sk<.6)blobAdd(c.x,c.y,c.z,c.yaw,.085*k,.07*k,.42*(1-.6*st.night)*CR.vis*(1-c.sk),.75,0);
       A[i*4]=c.ph;A[i*4+1]=c.walk;A[i*4+2]=Math.sin(c.fph)*c.feed*(1-c.up);A[i*4+3]=c.up});
     CR.im.instanceMatrix.needsUpdate=true;CR.A.needsUpdate=true}}
 /* the lake animals are hidden once they are under a couple of pixels */
 function lakeVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
   const D=Math.max(.5,Math.hypot((c.x-POND.x),(c.z-POND.z),c.y-POND.wy)-Math.max(POND.rx,POND.rz)*.6),ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
-  TT.vis=1-ss(.32*ppm/3*.6,.32*ppm/3,D);CR.vis=1-ss(.1*ppm/2.5*.6,.1*ppm/2.5,D);
+  TT.vis=1-ss(.32*ppm/3*.6,.32*ppm/3,D);CR.vis=1-ss(.1*CR_K*ppm/2.5*.6,.1*CR_K*ppm/2.5,D);
   TT.U.uVis.value=TT.vis;CR.U.uVis.value=CR.vis;TT.im.visible=TT.vis>0;CR.im.visible=CR.vis>0;CR.bm.visible=CR.vis>0;
   UW.uWy.value=W.position.y+POND.wy*W.scale.y;UW.uWob.value=.012+.03*st.wn+.05*WX.rain}
 

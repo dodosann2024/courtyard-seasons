@@ -210,6 +210,8 @@ try {
     const hem = []; for (let i = P.count - nx; i < P.count; i++) hem.push(P.getZ(i)); const m = hem.reduce((a, b) => a + b) / nx;
     r.folds = Math.sqrt(hem.reduce((a, b) => a + (b - m) ** 2, 0) / nx);
     window.__set({wind: 1}); let mx = 0; for (let i = 0; i < 240; i++) { q.step(1, 1 / 30); mx = Math.max(mx, Math.abs(u.th)); } r.gust = mx;
+    /* drop the wind while the rug is swung out, not in a lull between gusts */
+    for (let i = 0; i < 300 && Math.abs(u.th) < .7 * mx; i++) q.step(1, 1 / 30);
     const sg = Math.sign(u.th) || 1; window.__set({wind: .04}); const th = [], fi = [];
     for (let i = 0; i < 360; i++) { q.step(1, 1 / 30); th.push(u.th * sg); fi.push(u.fi); }
     const end = th[th.length - 1]; r.overshoot = Math.max(...th.map(v => end - v));

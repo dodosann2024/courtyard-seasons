@@ -188,7 +188,8 @@ try {
     let G = PA.gb.find(g => g.mode === "forage" || g.mode === "stand" || g.mode === "nibble");
     if (!G) { G = PA.gb[0]; G.mode = "forage"; G.x = G.h.x + .5; G.z = G.h.z + .4; G.goal = null; G.t = 9; q.step(5, 1 / 30); }
     q.paThreat(G.x + .6, G.z, 4, .2); const gs = new Set(); for (let i = 0; i < 60; i++) { q.step(2, 1 / 30); gs.add(G.mode); } r.gbBolt = [...gs];
-    const bolted = gs.has("bolt") && (G.mode === "in" || G.mode === "dive"); q.paThreat(0, 0, 0);
+    /* one already at its hole mouth goes straight down without a dash first */
+    const bolted = (gs.has("bolt") || gs.has("dive")) && (G.mode === "in" || G.mode === "dive"); q.paThreat(0, 0, 0);
     /* a scorpion that is out faces a camel coming up: tail arched, pincers open */
     const S = PA.sc[0]; S.mode = "roam"; S.t = 99; S.x = S.rk.dx; S.z = S.rk.dz; S.goal = null; q.step(5, 1 / 30);
     q.paThreat(S.x + .5, S.z + .2, 4, .1); q.step(45, 1 / 30); r.scThr = +S.P.thr.toFixed(2); r.scOpen = +S.P.open.toFixed(2); q.paThreat(0, 0, 0);

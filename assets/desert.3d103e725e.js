@@ -4463,9 +4463,12 @@ function agSmooth(a,dt){const p=a.g.position,q=a.g.quaternion;
 const _agc=new V3();
 function agVis(){const c=_agc.copy(De.position);W.worldToLocal(c);const ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
   let v=0;for(const a of AG.list){const D=c.distanceTo(a.g.position),on=.25*ppm/Math.max(D,.05)>1.5;a.g.children[0].visible=on;if(on)v=1}AG.vis=v}
-function agLoad(){return glb("sinai_agama_v1b").then(({scene,animations})=>{agSpots();
+/* Godot's v1c (same 64-bone rig and clips) replaces it by packing it, writing its blue twin's base colour with
+   tools/glbpack/albedo.mjs, and changing this name */
+const AG_FILE="sinai_agama_v1b";
+function agLoad(){return glb(AG_FILE).then(({scene,animations})=>{agSpots();
   const M=agSpawn(scene,animations,true),F=agSpawn(VT.cloneSkinned(scene),animations,false);
-  new VT.THREE.TextureLoader().load(ROOT()+"assets/models/sinai_agama_v1b_blue.webp",t=>{t.flipY=false;t.colorSpace="srgb";t.anisotropy=MOB?4:8;
+  new VT.THREE.TextureLoader().load(ROOT()+"assets/models/"+AG_FILE+"_blue.webp",t=>{t.flipY=false;t.colorSpace="srgb";t.anisotropy=MOB?4:8;
     const m=M.U.uBlue.value;if(m){t.wrapS=m.wrapS;t.wrapT=m.wrapT}t.needsUpdate=true;M.U.uBlue.value=t;AG.blue=t});
   [M,F].forEach((a,i)=>{const sp=AG.spots[i%AG.spots.length];a.x=sp.x+(i?.6:0);a.z=sp.z+(i?-.5:0);a.spot=sp;a.ry=i?-99:sp.y;agDecide(a);agPose(a);AG.list.push(a)})})}
 /* ---------------- procedural animals: ostriches, desert tortoises, gerbils, scorpions ----------------
@@ -5297,7 +5300,7 @@ paThreat:(x,z,sec,r)=>{PA.dbg={x,z,r:r||.4,k:"dbg",o:null,until:st.t+(sec||4)}},
   synth:(k,R)=>Array.from(SYN[k](R||48000)),tentU,propU,flakes:()=>SNF,
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,play,rsBout}};
 animalsReady.then(()=>{QA.ready=true});
-window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1",...PF_FILES,TR_FILE,"sinai_agama_v1b",...Object.values(PG),RS_FILE])];
+window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1",...PF_FILES,TR_FILE,AG_FILE,...Object.values(PG),RS_FILE])];
   let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],E=desPre()[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;
     l+=.88*Math.min(sz,Math.max(P?P.l:0,E?E.l:0))+(P&&P.d?.12*sz:0);if(P)d+=P.d}
   /* parsed: every file is in; done: and every model has been placed and drawn once (or half a minute has passed since) */

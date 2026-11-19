@@ -2604,6 +2604,16 @@ function navGrid(key,pad,pondK,rimS){if(NAV.G[key])return NAV.G[key];
     let ok=sN(x,z)<rimS&&pN(x,z)>pondK&&clearOf(x,z,pad);if(ok&&nTop(x,z).y<.9)ok=false;g[j*NAV.nx+i]=ok?1:0}
   return NAV.G[key]=g}
 function navFree(g,x,z){const i=Math.round(x-NAV.x0),j=Math.round(z-NAV.z0);return i>=0&&j>=0&&i<NAV.nx&&j<NAV.nz&&g[j*NAV.nx+i]===1}
+/* connected stretches of a grid; a free cell walled in by plants, rocks and the camp with a handful of others leads nowhere */
+function navComp(g){if(g.comp)return g.comp;const nx=NAV.nx,nz=NAV.nz,N=g.length,c=new Int32Array(N).fill(-1),sz=[],stk=[];
+  for(let s=0;s<N;s++){if(!g[s]||c[s]>=0)continue;const id=sz.length;let n=0;c[s]=id;stk.push(s);
+    while(stk.length){const k=stk.pop(),x=k%nx,z=(k-x)/nx;n++;
+      for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){const i=x+di,j=z+dj;if((!di&&!dj)||i<0||j<0||i>=nx||j>=nz)continue;
+        if(di&&dj&&(!g[z*nx+i]||!g[j*nx+x]))continue;const m=j*nx+i;if(g[m]&&c[m]<0){c[m]=id;stk.push(m)}}}
+    sz.push(n)}
+  return g.comp={c,sz}}
+function navCompAt(g,x,z){const i=Math.round(x-NAV.x0),j=Math.round(z-NAV.z0);return i>=0&&j>=0&&i<NAV.nx&&j<NAV.nz?navComp(g).c[j*NAV.nx+i]:-1}
+function navOpen(g,x,z,n){const k=navCompAt(g,x,z);return k>=0&&navComp(g).sz[k]>=n}
 function losFree(g,a,b){const d=Math.hypot(b.x-a.x,b.z-a.z),n=Math.ceil(d/.35);for(let k=1;k<n;k++){const t=k/n;if(!navFree(g,mix(a.x,b.x,t),mix(a.z,b.z,t)))return false}return true}
 function navPath(g,ax,az,bx,bz,blk){
   const nx=NAV.nx,nz=NAV.nz,id=(i,j)=>j*nx+i,ci=v=>cl(Math.round(v),0,1e9);
@@ -4631,9 +4641,9 @@ function osPose(A,dt){const B=A.B,P=A.P,gp=A.gph*TAU,wk=cl(A.v/1.2,0,1)*(1-P.run
 function osTrack(A,f){const c=Math.sin(f.fy),d=Math.cos(f.fy),r=A.P.run>.5;
   prAdd(PRK.ost,f.P.x+c*.05*A.sc,f.P.z+d*.05*A.sc,f.fy+(f.nx>0?.06:-.06),0,r?1.35:1,f.nx<0,A.sc);
   if(r||A.v>2)spPuff(f.P.x,f.P.y,f.P.z,r?5:2,-c,-d,r?1.2:.5,.8,.04)}
-/* somewhere open to walk to: clear of the camels, the tent and the water's edge */
+/* somewhere open to walk to: clear of the camels, the tent, the fire circle and the water's edge, and not a pocket walled in */
 function osSpot(A,near,r){const g=navGrid("ostrich",.9,1.25,.8);
-  return randFree(g,near?A.x:0,near?A.z:0,r||14,(x,z)=>ANIM.camels.every(c=>Math.hypot(c.x-x,c.z-z)>5)&&Math.hypot(x-TENT.x,z-TENT.z)>4.5&&PA.os.every(o=>o===A||Math.hypot(o.x-x,o.z-z)>2.5))}
+  return randFree(g,near?A.x:0,near?A.z:0,r||14,(x,z)=>navOpen(g,x,z,40)&&Math.hypot(x-FIRE.x,z-FIRE.z)>5&&ANIM.camels.every(c=>Math.hypot(c.x-x,c.z-z)>5)&&Math.hypot(x-TENT.x,z-TENT.z)>4.5&&PA.os.every(o=>o===A||Math.hypot(o.x-x,o.z-z)>2.5))}
 function osGo(A,p,run){const g=navGrid("ostrich",.9,1.25,.8),blk=ANIM.camels.map(c=>({x:c.x,z:c.z,r:3}));
   const path=navPath(g,A.x,A.z,p.x,p.z,blk)||navPath(g,A.x,A.z,p.x,p.z);if(!path)return false;A.path=path;A.pi=1;A.mode=run?"run":"walk";A.vmax=run?rr(6,7.5):rr(.9,1.3);return true}
 function osFollow(A,dt){const p=A.path[A.pi],dx=p.x-A.x,dz=p.z-A.z,d=Math.hypot(dx,dz);
@@ -4652,8 +4662,9 @@ function osUpdate(A,dt){const P=A.P,ny=st.night>.6||(st.night>.3&&st.phase==="ni
   if(!wantSit&&A.sat&&P.sit<.4){prAdd(PRK.pal,A.x-Math.sin(A.yaw)*.05,A.z-Math.cos(A.yaw)*.05,A.yaw,0,.85,0,2.3*A.sc);A.sat=0}
   if(wantSit&&P.sit>.9)A.sat=1;
   /* away from the threat, swinging wider to either side when the rim or the water is in the way */
-  const fleeFrom=(r)=>{const t=A.thr,a0=Math.atan2(A.x-t.x,A.z-t.z),g=navGrid("ostrich",.9,1.25,.8),D=r?9:4,d0=Math.hypot(A.x-t.x,A.z-t.z);
-    for(const da of[0,.6,-.6,1.2,-1.2,1.8,-1.8]){const a=a0+da,p=randFree(g,A.x+Math.sin(a)*D,A.z+Math.cos(a)*D,r?5:2.5,(x,z)=>Math.hypot(x-t.x,z-t.z)>d0+2);
+  const fleeFrom=(r)=>{const t=A.thr,a0=Math.atan2(A.x-t.x,A.z-t.z),g=navGrid("ostrich",.9,1.25,.8),D=r?9:4,d0=Math.hypot(A.x-t.x,A.z-t.z),ck=navCompAt(g,A.x,A.z);
+    for(const far of[D*.65,0])for(const da of[0,.6,-.6,1.2,-1.2,1.8,-1.8]){const a=a0+da,p=randFree(g,A.x+Math.sin(a)*D,A.z+Math.cos(a)*D,r?5:2.5,
+      (x,z)=>Math.hypot(x-t.x,z-t.z)>d0+2&&Math.hypot(x-A.x,z-A.z)>far&&(ck<0||navCompAt(g,x,z)===ck));
       if(p&&osGo(A,p,r))return true}
     /* boxed in (water, rim, camels): any open stretch that gains distance, in a straight line */
     for(const D2 of[D,D*.6,2.2])for(let k=0;k<12;k++){const a=a0+(k&1?-1:1)*Math.ceil(k/2)*TAU/12,x=A.x+Math.sin(a)*D2,z=A.z+Math.cos(a)*D2;

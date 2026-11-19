@@ -1249,12 +1249,16 @@ let fireL=null;
         float n1=dn2(vec2(p.x*4.5+vK*9.,h*3.2-uT*2.8)),n2=dn2(vec2(p.x*10.-vK*4.,h*6.5-uT*4.6)),n=n1*.6+n2*.4;
         float wd=.5*pow(1.-h,.9)*(.35+.9*sqrt(h));
         float e=wd-abs(p.x+(n1-.5)*.14*h)-(n2-.5)*.16*h;
-        float a=smoothstep(0.,.028,e)*smoothstep(0.,.14,h)*smoothstep(h*.95-.12,h*.95+.12,n*1.15);
-        float tt=clamp((1.-max(h-.12,0.)*1.25-max(.12-h,0.)*2.5)*(1.-.85*abs(p.x)/max(wd,.01))+vH*.3+(n-.5)*.3,0.,1.);
-        vec3 c=mix(vec3(.5,.05,.01),vec3(1.,.3,.03),smoothstep(0.,.3,tt));
-        c=mix(c,vec3(1.,.62,.12),smoothstep(.34,.66,tt));c=mix(c,vec3(1.,.9,.6),smoothstep(.8,1.,tt));
-        a*=mix(.3,1.,smoothstep(0.,.4,tt));
-        if(a<.01)discard;gl_FragColor=vec4(c*a*mix(1.,1.12,uNight),a*mix(.92,.78,uNight));}`});
+        float dy=1.-uNight;
+        float a=smoothstep(0.,mix(.016,.028,uNight),e)*smoothstep(0.,.14,h)*smoothstep(h*.95-.12,h*.95+.12,n*1.15);
+        /* by day: licks of hotter and cooler gas streaking up each tongue, and a dark red rim round it, so it reads against lit sand */
+        float sk=dn2(vec2(p.x*16.+vK*5.,h*2.2-uT*3.4))-.5;
+        float tt=clamp((1.-max(h-.12,0.)*1.25-max(.12-h,0.)*2.5)*(1.-.85*abs(p.x)/max(wd,.01))+vH*.3+(n-.5)*.3+sk*.32*dy,0.,1.);
+        vec3 c=mix(mix(vec3(.5,.05,.01),vec3(.62,.05,.01),dy),mix(vec3(1.,.3,.03),vec3(1.,.24,.02),dy),smoothstep(0.,.3,tt));
+        c=mix(c,mix(vec3(1.,.62,.12),vec3(1.,.5,.05),dy),smoothstep(.34,.66,tt));c=mix(c,mix(vec3(1.,.9,.6),vec3(1.,.74,.22),dy),smoothstep(.8,1.,tt));
+        c*=mix(1.,.6,dy*(1.-smoothstep(.02,.07,e)));
+        a*=mix(.3,1.,smoothstep(0.,mix(.25,.4,uNight),tt));
+        if(a<.01)discard;gl_FragColor=vec4(c*a*mix(1.,1.12,uNight),a*mix(1.,.78,uNight));}`});
   const flames=[];
   /* x, z, width, height, heat: one tall main flame, four mid tongues around it, two short side licks, two hot cores in front */
   const TG=[[0,0,.46,.8,0],[.09,.05,.3,.6,.12],[-.1,.03,.28,.56,.08],[.02,-.1,.3,.62,.1],[-.04,.1,.26,.5,.15],
@@ -1326,7 +1330,8 @@ let fireL=null;
       {vec2 p=(vA-.5)*4.4;float r=length(p),n=dn2(p*3.1),n2=dn2(p*9.+4.);
         float ash=smoothstep(.75,.35,r+(n-.5)*.35),crumbs=step(.83,n2)*smoothstep(1.1,.5,r);
         float scuff=smoothstep(2.05,1.25,r+(dn2(p*.9+2.)-.5)*.6)*smoothstep(.9,1.4,r)*(.45+.55*dn2(p*2.3+7.));
-        vec3 c=mix(vec3(.035,.03,.027),vec3(.3,.28,.26),smoothstep(.2,.7,n)*ash);float a=max(ash*.85,crumbs*.8);
+        /* sooty grey, a shade under the sand's own albedo: lighter ash would out-shine the sand in full sun and read as a bleached floor */
+        vec3 c=mix(vec3(.035,.03,.027),vec3(.12,.11,.1),smoothstep(.3,.75,n)*ash);float a=max(ash*.85,crumbs*.8);
         c=mix(diffuseColor.rgb*vec3(.62,.58,.55),c,step(.01,a));a=max(a,scuff*.35);diffuseColor=vec4(c,a);}`)};
   ashM.customProgramCacheKey=()=>"desFireAsh";
   const ash=new T.Mesh(new T.Plane(4.4,4.4),ashM);ash.receiveShadow=true;ash.rotation.x=-Math.PI/2;ash.position.set(FIRE.x,hTop(FIRE.x,FIRE.z)+.012,FIRE.z);ash.renderOrder=1;W.add(ash);
@@ -1667,12 +1672,26 @@ function sandFallsUpdate(dt,t,wn,nk){
 /* night fireflies over the oasis */
 /* two lots: a loose swarm over the water's edge, and a denser one hanging low in and just over the reeds, grass clumps and
    shrubs, each keeping close to its plant (the second lot from its own seed, so the island's layout does not shift) */
-const FF_N0=MOB?30:60,FF_N1=MOB?40:96;
-const FF=softPoints(FF_N0+FF_N1,"#d8ff8a",.12,true);FF.o.renderOrder=9;W.add(FF.o);
+const FF_N0=MOB?30:60,FF_N1=MOB?40:96,FF_N2=MOB?36:110;
+const FF=softPoints(FF_N0+FF_N1+FF_N2,"#d8ff8a",.12,true);FF.o.renderOrder=9;W.add(FF.o);
+/* a small hot yellow-green light in a soft green halo, so one drifting past the camera stays a point of light, not a fuzzy ball */
+FF.m.fragmentShader=`uniform vec3 uC;varying float vA;void main(){vec2 q=gl_PointCoord-.5;float d=dot(q,q)*4.;if(d>1.)discard;
+  float core=exp(-d*22.),a=vA*(exp(-d*4.)*(1.-d)*.55+core*1.3);if(a<.004)discard;gl_FragColor=vec4(mix(uC,vec3(.96,1.,.72),min(1.,core*1.5)),a);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+  }`;
+/* their glints on the still water: the night reflection pass is off, so each one over the pond gets a dim mirror image, placed where
+   the line of sight to its reflection meets the surface (sitting on the water, the water mesh cannot hide it) */
+const FFR=softPoints(FF.n,"#c8f27a",.1,true);FFR.o.renderOrder=8;FFR.o.visible=false;W.add(FFR.o);FFR.m.fragmentShader=FF.m.fragmentShader;
 const FFP=[];for(let i=0;i<FF_N0;i++){const[a,b]=pondEdge(rnd()*TAU,rr(.8,i%3?1.9:2.8));FFP.push({x:a,z:b,y:rr(.4,2.6),ph:rnd()*TAU,sp:rr(.3,.7),bl:rr(.6,1.4),rw:1.2});FF.Z[i]=rr(.8,1.2)}
 {const sd0=sd;sd=50917;let wt=0;for(const v of VEGP)wt+=v.w;
   for(let i=FF_N0;i<FF.n;i++){let u=rnd()*wt,v=VEGP[0];for(const q of VEGP){u-=q.w;if(u<=0){v=q;break}}const a=rnd()*TAU,r=rr(.1,.7);
     FFP.push({x:v.x+Math.cos(a)*r,z:v.z+Math.sin(a)*r,y:rr(.15,.5)+v.h*rr(.5,1.3),ph:rnd()*TAU,sp:rr(.25,.6),bl:rr(.7,1.6),rw:rr(.25,.6),lo:.2});FF.Z[i]=rr(.9,1.25)}
+  /* a third lot skims low over the water just off the shore plants, between the reeds and open water */
+  sd=50923;let SH=VEGP.filter(v=>{const k=pN(v.x,v.z);return k>.85&&k<1.35});if(!SH.length)SH=VEGP;let ws=0;for(const v of SH)ws+=v.w;
+  for(let i=FF_N0+FF_N1;i<FF.n;i++){let u=rnd()*ws,v=SH[0];for(const q of SH){u-=q.w;if(u<=0){v=q;break}}
+    const dx=POND.x-v.x,dz=POND.z-v.z,l=Math.hypot(dx,dz)||1,o=rr(.1,.9),s=rr(-.45,.45);
+    FFP.push({x:v.x+dx/l*o-dz/l*s,z:v.z+dz/l*o+dx/l*s,y:rr(.1,.7),ph:rnd()*TAU,sp:rr(.25,.55),bl:rr(.7,1.5),rw:rr(.2,.5),lo:.25,wat:1});FF.Z[i]=rr(.85,1.15)}
   sd=sd0}
 /* campfire sparks: a few embers always lifting off the logs, and a burst with each pop of the wood */
 const SPK=softPoints(MOB?44:96,"#ff5a12",.17,true);SPK.o.renderOrder=9;SPK.o.visible=false;W.add(SPK.o);
@@ -1681,7 +1700,7 @@ SPK.m=SPK.o.material=new T.SM({transparent:true,premultipliedAlpha:true,depthWri
   vertexShader:SPK.m.vertexShader,
   fragmentShader:`uniform vec3 uC;uniform float uNight;varying float vA;void main(){vec2 q=gl_PointCoord-.5;float d=dot(q,q)*4.;if(d>1.)discard;
     float core=exp(-d*7.),halo=exp(-d*2.2)*(1.-d),a=min(1.,vA*(halo*.8+core*1.2));if(a<.004)discard;
-    vec3 c=mix(uC,vec3(1.,.82,.36),smoothstep(.35,.9,core));gl_FragColor=vec4(c*a*mix(1.,1.3,uNight),a*mix(.95,.7,uNight));}`});
+    vec3 c=mix(uC,vec3(1.,.82,.36),smoothstep(.35,.9,core));c*=mix(1.,.5,(1.-uNight)*smoothstep(.35,.85,d));gl_FragColor=vec4(c*a*mix(1.,1.3,uNight),a*mix(.95,.7,uNight));}`});
 const SPKP=Array.from({length:SPK.n},()=>({life:1,dur:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,ph:0}));SPK.pop=rr(2,6);SPK.k=0;
 function sparkOut(n,hot){for(let i=0;i<SPK.n&&n>0;i++){const q=SPKP[(SPK.k+i)%SPK.n];if(q.life<1)continue;n--;
   const a=rnd()*TAU,r=rr(0,.14);q.x=FIRE.x+Math.cos(a)*r;q.z=FIRE.z+Math.sin(a)*r;q.y=fireG.position.y+rr(.1,.3);
@@ -2129,7 +2148,7 @@ UPD.push((dt,t)=>{
      if(st.t>SPK.pop){SPK.pop=st.t+rr(1.2,4.5);sparkOut(Math.floor(rr(6,15)),true);shotS(pick(["dPop1","dPop2","dPop3"]),.55*on,_fiP.set(FIRE.x,fireG.position.y+.3,FIRE.z),5,rr(.9,1.12))}
      const sw=.3+wn;for(let i=0;i<SPK.n;i++){const q=SPKP[i],o=i*3;if(q.life<1){q.life+=dt/q.dur;q.vy*=Math.exp(-dt*.7);q.ph+=dt*9;
        q.x+=(q.vx+WIND.x*sw*q.life*1.4+Math.sin(q.ph)*.12)*dt;q.z+=(q.vz+WIND.z*sw*q.life*1.4+Math.cos(q.ph*1.3)*.12)*dt;q.y+=q.vy*dt}
-       SPK.P[o]=q.x;SPK.P[o+1]=q.y;SPK.P[o+2]=q.z;SPK.Z[i]=.7+.5*(1-q.life);
+       SPK.P[o]=q.x;SPK.P[o+1]=q.y;SPK.P[o+2]=q.z;SPK.Z[i]=(.7+.5*(1-q.life))*mix(1.3,1,nk);
        SPK.A[i]=q.life<1?on*Math.pow(1-q.life,1.6)*(.55+.45*Math.sin(q.ph*2.3))*2.2:0}
      SPK.g.attributes.position.needsUpdate=SPK.g.attributes.a.needsUpdate=SPK.g.attributes.z.needsUpdate=true;SPK.m.uniforms.uH.value=innerHeight}}
   if(RACK.cloths){const gR=gustAt(RACK.x,RACK.z),F=wn*(.35+1.1*gR),wN=WIND.x*Math.sin(RACK.yaw)+WIND.z*Math.cos(RACK.yaw),push=(wN<0?-1:1)*(.3+.7*Math.abs(wN));
@@ -2148,11 +2167,17 @@ UPD.push((dt,t)=>{
   /* fireflies */
   const ffK=Math.max(0,1-WX.rain*3)*Math.max(0,1-WX.dust*3)*Math.max(0,1-WX.hf*3)*(1-ss(.1,.6,Math.max(WX.sf,WX.sc)));
   FF.o.visible=nk>.3&&ffK>.01;
-  if(FF.o.visible){for(let i=0;i<FF.n;i++){const f=FFP[i],o=i*3;f.ph+=dt*f.sp;
-    FF.P[o]=f.x+Math.sin(f.ph*1.3)*f.rw;if(f.gy==null)f.gy=hTop(f.x,f.z);FF.P[o+1]=f.gy+f.y+Math.sin(f.ph*2.1)*.35*Math.min(1,f.rw*1.5);FF.P[o+2]=f.z+Math.cos(f.ph)*f.rw;
+  FFR.o.visible=FF.o.visible;
+  if(FF.o.visible){const wy=POND.wy,cy=_cl.y;for(let i=0;i<FF.n;i++){const f=FFP[i],o=i*3;f.ph+=dt*f.sp;
+    const x=f.x+Math.sin(f.ph*1.3)*f.rw,z=f.z+Math.cos(f.ph)*f.rw;if(f.gy==null)f.gy=Math.max(hTop(f.x,f.z),pN(f.x,f.z)<1?wy:-99);
+    const y=f.gy+f.y+Math.sin(f.ph*2.1)*.35*Math.min(1,f.rw*1.5);FF.P[o]=x;FF.P[o+1]=y;FF.P[o+2]=z;
     /* the ones down in the plants also glow faintly between flashes */
-    FF.A[i]=ss(.3,.8,nk)*ffK*((f.lo||0)+(1-(f.lo||0))*Math.pow(Math.max(0,Math.sin(t*f.bl+f.ph*3)),3))*.9}
-    FF.g.attributes.position.needsUpdate=FF.g.attributes.a.needsUpdate=true;FF.m.uniforms.uH.value=innerHeight}
+    const a=FF.A[i]=ss(.3,.8,nk)*ffK*((f.lo||0)+(1-(f.lo||0))*Math.pow(Math.max(0,Math.sin(t*f.bl+f.ph*3)),3))*.9;
+    let ra=0;if(cy>wy+.02&&y>wy){const my=2*wy-y,k=(cy-wy)/(cy-my),rx=_cl.x+(x-_cl.x)*k,rz=_cl.z+(z-_cl.z)*k;
+      if(pN(rx,rz)<.97){ra=a*.45*(.8+.2*Math.sin(t*7+i));FFR.P[o]=rx;FFR.P[o+1]=wy+.004;FFR.P[o+2]=rz;FFR.Z[i]=FF.Z[i]*k}}
+    FFR.A[i]=ra}
+    FF.g.attributes.position.needsUpdate=FF.g.attributes.a.needsUpdate=true;FF.m.uniforms.uH.value=innerHeight;
+    FFR.g.attributes.position.needsUpdate=FFR.g.attributes.a.needsUpdate=FFR.g.attributes.z.needsUpdate=true;FFR.m.uniforms.uH.value=innerHeight}
   renderPondReflection();
 });
 /* ---------------- weather in the air: rain, splashes, blowing dust ----------------

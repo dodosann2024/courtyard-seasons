@@ -164,8 +164,11 @@ try {
     for (let i = 0; i < 60; i++) { q.sim(3, .1); for (const o of PA.os) om.add(o.mode); for (const t of PA.tt) tm.add(t.mode); }
     r.osModes = [...om].sort(); r.osMoved = +Math.max(...PA.os.map((o, i) => Math.hypot(o.x - op[i][0], o.z - op[i][1]))).toFixed(1);
     r.ttModes = [...tm].sort(); r.ttMaxV = +Math.max(...PA.tt.map(t => t.v)).toFixed(3);
-    /* the eagle stooping on an ostrich: it runs */
-    const O = PA.os[0], s0 = q.osSpot(O, false, 7); if (s0) q.osPlace(O, s0.x, s0.z, 0); O.path = null; O.mode = "graze"; O.t = 9; O.P.sit = 0;
+    /* the eagle stooping on an ostrich out on the open sand north-west of the camp, well clear of the fire, the tent and the lake:
+       it runs. A fixed spot keeps the check repeatable; the random open-spot search is only the fallback. */
+    const O = PA.os[0]; let s0 = q.osOpen(-5.5, -5) ? {x: -5.5, z: -5} : null;
+    for (let k = 0; k < 60 && !s0; k++) { const p = q.osSpot(O, false, 10); if (p && Math.hypot(p.x - q.FIRE.x, p.z - q.FIRE.z) > 8 && Math.hypot(p.x, p.z) > 4) s0 = p; }
+    if (s0) q.osPlace(O, s0.x, s0.z, 0); O.path = null; O.mode = "graze"; O.t = 9; O.P.sit = 0;
     const ox = O.x, oz = O.z, ol = Math.hypot(ox, oz) || 1; q.paThreat(ox + ox / ol * 2, oz + oz / ol * 2, 6, 1.5); let vmax = 0;
     for (let i = 0; i < 75; i++) { q.step(3, 1 / 30); vmax = Math.max(vmax, O.v); } r.osFlee = +vmax.toFixed(2); r.osAway = +Math.hypot(O.x - ox, O.z - oz).toFixed(1); q.paThreat(0, 0, 0);
     /* hail: tortoises pull in */
@@ -186,7 +189,8 @@ try {
     let G = PA.gb.find(g => g.mode === "forage" || g.mode === "stand" || g.mode === "nibble");
     if (!G) { G = PA.gb[0]; G.mode = "forage"; G.x = G.h.x + .5; G.z = G.h.z + .4; G.goal = null; G.t = 9; q.step(5, 1 / 30); }
     q.paThreat(G.x + .6, G.z, 4, .2); const gs = new Set(); for (let i = 0; i < 60; i++) { q.step(2, 1 / 30); gs.add(G.mode); } r.gbBolt = [...gs];
-    const bolted = gs.has("bolt") && (G.mode === "in" || G.mode === "dive"); q.paThreat(0, 0, 0);
+    /* one already at its hole mouth goes straight down without a dash first */
+    const bolted = (gs.has("bolt") || gs.has("dive")) && (G.mode === "in" || G.mode === "dive"); q.paThreat(0, 0, 0);
     /* a scorpion that is out faces a camel coming up: tail arched, pincers open */
     const S = PA.sc[0]; S.mode = "roam"; S.t = 99; S.x = S.rk.dx; S.z = S.rk.dz; S.goal = null; q.step(5, 1 / 30);
     q.paThreat(S.x + .5, S.z + .2, 4, .1); q.step(45, 1 / 30); r.scThr = +S.P.thr.toFixed(2); r.scOpen = +S.P.open.toFixed(2); q.paThreat(0, 0, 0);
@@ -501,9 +505,9 @@ try {
   /* 17. sand covers the whole rim: the fine sand over the lip runs all the way round the island. The rim is rendered from four
      sides with and without the sand veneer; along the top of the wall just under the lip (facing the camera) the picture must
      change nearly everywhere, in every quarter. The sand falls are hidden for these shots: where one pours in front of the
-     rim it hides the veneer in both renders alike. */
+     rim it hides the veneer in both renders alike, and so does the thin sand fringe spilling over the lip. */
   await page.evaluate(() => { document.body.classList.add("col", "snc"); const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .35}); q.tod("day"); q.sim(5); window.__C().Ce.enabled = false;
-    const m = q.sfMesh && q.sfMesh(); if (m) m.visible = false; });
+    const m = q.sfMesh && q.sfMesh(); if (m) m.visible = false; const rf = q.sfRim && q.sfRim(); if (rf) rf.visible = false; });
   const fr = n => page.evaluate(n => new Promise(r => { let k = 0; const f = () => (++k >= n ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
   const AZS = [.4, 2, 3.6, 5.2], rimShots = {};
   const aimRim = a => page.evaluate(a => { const q = window.__desQA(), C = window.__C(), [ex, ez] = q.edgeXZ(a, 1), h = q.hTop(ex * .97, ez * .97);
@@ -535,7 +539,7 @@ try {
       }
       r.quarters.push({az: a, n, covered: +(cov / Math.max(1, n)).toFixed(3)});
     }
-    q.rockU.uVen.value = 1; C.Ce.enabled = true; const sm = q.sfMesh && q.sfMesh(); if (sm) sm.visible = true;
+    q.rockU.uVen.value = 1; C.Ce.enabled = true; const sm = q.sfMesh && q.sfMesh(); if (sm) sm.visible = true; const rf = q.sfRim && q.sfRim(); if (rf) rf.visible = true;
     return [r.quarters.every(Q => Q.n >= 8 && Q.covered >= .9), r];
   }, rimShots, AZS));
 } finally { await browser.close(); server.close(); }

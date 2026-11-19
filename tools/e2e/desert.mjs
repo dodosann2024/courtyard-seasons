@@ -179,10 +179,11 @@ try {
     const T0 = PA.tt[0], s = q.torShade(T0); q.torPlace(T0, s.x + .4, s.z + .3, 0); T0.mode = "graze"; T0.t = 0; T0.inShade = 0; let dug = false;
     for (let i = 0; i < 40 && !dug; i++) { q.WX.heat = 1; q.sim(3, .1); dug = T0.mode === "dig" || T0.mode === "pallet"; } r.ttHeat = T0.mode;
     /* day: gerbils below, scorpions under their rocks */
-    /* ...though now and then one puts its head up out of the hole for a look round; each burrow and scrape has its spoil heap */
+    /* ...though now and then one puts its head up out of the hole for a look round (and ducks if something comes by); each burrow
+       and scrape has its spoil heap */
     const dm = new Set(); for (let i = 0; i < 60; i++) { q.sim(1.5, .1); for (const g of PA.gb) dm.add(g.mode); }
     r.gbDay = PA.gb.map(g => g.mode); r.gbDayModes = [...dm].sort(); r.scDay = PA.sc.map(a => a.mode + (a.g.visible ? ":seen" : ""));
-    const dayOk = [...dm].every(m => m === "in" || m === "look") && dm.has("look") && PA.sc.every(a => a.mode === "hide" && !a.g.visible);
+    const dayOk = [...dm].every(m => ["in", "look", "bolt", "dive"].includes(m)) && dm.has("look") && PA.sc.every(a => a.mode === "hide" && !a.g.visible);
     const marks = PA.gb.every(g => g.h.mound && g.h.mound.visible) && PA.sc.every(a => a.rk.mound && a.rk.mound.visible);
     /* dusk into night: gerbils come out; the scorpions leave their rocks, glowing faintly */
     q.tod("sunset"); const gm = new Set(); let gOut = 0;

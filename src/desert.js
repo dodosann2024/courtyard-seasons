@@ -3960,8 +3960,8 @@ function pfVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
   const D=Math.max(.5,Math.hypot((c.x-POND.x),(c.z-POND.z),c.y-POND.wy)-Math.max(POND.rx,POND.rz)*.6),ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360)),Dm=.06*ppm/1.5;
   const v=1-ss(Dm*.6,Dm,D);PF.vis=v;PF.U.uVis.value=v;PF.U.uWy.value=W.position.y+POND.wy*W.scale.y;PF.U.uWob.value=(.012+.03*st.wn+.05*WX.rain);
   for(const f of PF.list)f.g.visible=v>0}
-/* Godot's v3b (same 23-bone rig and clips) replaces these by packing it and changing the two names */
-const PF_FILES=["pupfish_male_v3","pupfish_female_v3"];
+/* Godot's v3b: same 23-bone rig, swim 0.8 s, idle_turn 4.0 s */
+const PF_FILES=["pupfish_male_v3b","pupfish_female_v3b"];
 function pfLoad(){return Promise.all(PF_FILES.map(glb)).then(([M,F])=>{
   const ter=PF_TH.map(th=>{const k=pfK(th,.13),[x,z]=pondEdge(th,k);return{th,x,z,f:null}});PF.ter=ter;
   for(let i=0;i<PF_N;i++){const male=i<ter.length||i%2===0,src=male?M:F,f=pfSpawn(src,male,src.animations);
@@ -4159,10 +4159,10 @@ function ttUpdate(dt){const L=TT.list,S0=TT.sch,ny=st.night>.5,hail=WX.hcold>0||
     const sc=sunCast()*TT.vis;if(sc>.02){const L_=sunL(),h=Math.hypot(L_.x,L_.z)||1e-3,sw=Math.min(h,.999)/1.33,tw=sw/Math.sqrt(1-sw*sw);
       for(const f of L){const bed=lkY(f.x,f.z),hb=Math.max(f.y-bed,0),o=hb*tw,bx=f.x-L_.x/h*o,bz=f.z-L_.z/h*o;
         blobAdd(bx,lkY(bx,bz),bz,f.yaw,.2*f.L+.1*hb,1.05*f.L+.1*hb,sc*.8*Math.exp(-hb*.55),.5+.35*ss(0,.8,hb),1)}}}}
-/* Godot's rigged trout (17 bones; swim, idle_hover, dart), 0.398 m long and scaled to each fish. Once it has loaded every fish is a
+/* Godot's rigged trout (trout_v3; 17 bones; swim, idle_hover, dart), 0.398 m long and scaled to each fish. Once it has loaded every fish is a
    skinned clone under the same underwater shading, used once a fish is over ~20 px long; smaller than that the instanced fish above
    stands in (one draw, no rigs to update). Turns bend the spine on top of the clip */
-const TR_FILE="trout_v2",TR_LEN=.398,TRM=new Map();
+const TR_FILE="trout_v3",TR_LEN=.398,TRM=new Map();
 function trMats(s){matsOf(s,(m,c)=>{c.castShadow=false;c.receiveShadow=true;c.renderOrder=3;c.frustumCulled=false;let n=TRM.get(m.uuid);
   if(!n){const fin=m.transparent;n=m.clone();TRM.set(m.uuid,n);if(n.map)n.map.anisotropy=MOB?2:4;if(n.emissive)n.emissive.setRGB(0,0,0);
     n.metalness=0;n.metalnessMap=null;n.aoMapIntensity=.5;
@@ -4314,9 +4314,10 @@ function lakeVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
    Two of them, a male and a female, living round the grove. They sprint in short bursts and pause, bask flat on a rock
    in the sun, head-bob, climb the date palms (along the trunk's own lean and sway) to sit in the crown's shade when hot,
    climb up under the crown when it rains, and hide by a rock at night. Body temperature follows sun, shade and rain;
-   the male turns blue as he warms (sandy and blue base colours blended per pixel) and fades back when he cools.
-   sinai_agama_v1b clips: idle, bask, head_bob, run (.236 m/s), climb (.0349 m/s on the plane z=0, head +y, back +z). */
-const AG={list:[],vis:1,spots:[],blue:null};
+   the male is the blue file and fades back toward the sandy file's colour as he cools.
+   sinai_agama_v1c clips (same on the blue twin): idle, bask, head_bob, run (.236 m/s), climb (.0349 m/s on the plane z=0, head +y, back +z). */
+const AG={list:[],vis:1,spots:[]};
+const AG_FILES=["sinai_agama_v1c","sinai_agama_v1c_blue"];
 const AG_RUN=.236,AG_CLIMB=.0349,AG_V=1.05,AG_VC=.16;
 const _ap=new V3(),_an=new V3(),_ax=new V3(),_ay=new V3(),_az=new V3(),_am=new T.M4(),_aq=new T.Quat(),_aq2=new T.Quat();
 /* the palm trunk's wind sway, the same as palmSway() in the trunk shader */
@@ -4345,14 +4346,15 @@ function agSpots(){const L=[];
     let ok=true;for(let k=0;k<4;k++){const a=k*TAU/4,yy=rockTop(o.x+Math.cos(a)*.12,o.z+Math.sin(a)*.12);if(Math.abs(yy-y)>.05)ok=false}
     if(ok)L.push({x:o.x,z:o.z,y,r:o.r,ta:0})}
   if(!L.length)L.push({x:GROVE.x+3,z:GROVE.z+3,y:-99,r:.3,ta:0});AG.spots=L}
-function agSpawn(scene,anims,male){const g=new T.Group();g.add(scene);W.add(g);
+function agSpawn(scene,anims,male,sandMap){const g=new T.Group();g.add(scene);W.add(g);
   scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}});
   animalMats(scene,false);
-  const U={uWarm:{value:0},uBlue:{value:null}};
-  if(male)matsOf(scene,(m,o)=>{const c=m.clone();o.material=c;if(!ANIM_MATS.includes(c))ANIM_MATS.push(c);U.uBlue.value=c.map;
-    c.onBeforeCompile=sh=>{Object.assign(sh.uniforms,U);sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform sampler2D uBlue;uniform float uWarm;")
+  const U={uWarm:{value:0},uSand:{value:sandMap||null}};
+  /* the male mesh is the blue GLB; its own colour shows as he warms, the sandy file's colour as he cools */
+  if(male&&sandMap)matsOf(scene,(m,o)=>{const c=m.clone();o.material=c;if(!ANIM_MATS.includes(c))ANIM_MATS.push(c);
+    c.onBeforeCompile=sh=>{Object.assign(sh.uniforms,U);sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform sampler2D uSand;uniform float uWarm;")
       .replace("#include <map_fragment>",`#ifdef USE_MAP
-        vec4 sampledDiffuseColor=texture2D(map,vMapUv);sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,texture2D(uBlue,vMapUv).rgb,uWarm);diffuseColor*=sampledDiffuseColor;
+        vec4 sampledDiffuseColor=texture2D(map,vMapUv);sampledDiffuseColor.rgb=mix(texture2D(uSand,vMapUv).rgb,sampledDiffuseColor.rgb,uWarm);diffuseColor*=sampledDiffuseColor;
         #endif`)};c.customProgramCacheKey=()=>"agBlue"});
   onDes(g);
   const a={g,r:rigUp(scene,anims),male,U,x:0,z:0,ry:-99,yaw:rr(-3,3),mode:"idle",timer:rr(1,3),Tb:male?.8:.6,warm:male?.6:0,
@@ -4463,10 +4465,10 @@ function agSmooth(a,dt){const p=a.g.position,q=a.g.quaternion;
 const _agc=new V3();
 function agVis(){const c=_agc.copy(De.position);W.worldToLocal(c);const ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
   let v=0;for(const a of AG.list){const D=c.distanceTo(a.g.position),on=.25*ppm/Math.max(D,.05)>1.5;a.g.children[0].visible=on;if(on)v=1}AG.vis=v}
-function agLoad(){return glb("sinai_agama_v1b").then(({scene,animations})=>{agSpots();
-  const M=agSpawn(scene,animations,true),F=agSpawn(VT.cloneSkinned(scene),animations,false);
-  new VT.THREE.TextureLoader().load(ROOT()+"assets/models/sinai_agama_v1b_blue.webp",t=>{t.flipY=false;t.colorSpace="srgb";t.anisotropy=MOB?4:8;
-    const m=M.U.uBlue.value;if(m){t.wrapS=m.wrapS;t.wrapT=m.wrapT}t.needsUpdate=true;M.U.uBlue.value=t;AG.blue=t});
+function agLoad(){return Promise.all(AG_FILES.map(glb)).then(([sand,blue])=>{agSpots();
+  let sandMap=null;sand.scene.traverse(o=>{if(!sandMap&&o.isMesh&&o.material&&o.material.map)sandMap=o.material.map});
+  if(sandMap){sandMap.colorSpace="srgb";sandMap.anisotropy=MOB?4:8;sandMap.needsUpdate=true}
+  const M=agSpawn(blue.scene,blue.animations,true,sandMap),F=agSpawn(VT.cloneSkinned(sand.scene),sand.animations,false);
   [M,F].forEach((a,i)=>{const sp=AG.spots[i%AG.spots.length];a.x=sp.x+(i?.6:0);a.z=sp.z+(i?-.5:0);a.spot=sp;a.ry=i?-99:sp.y;agDecide(a);agPose(a);AG.list.push(a)})})}
 /* ---------------- procedural animals: ostriches, desert tortoises, gerbils, scorpions ----------------
    The behaviour of all four lives here. Their bodies are Godot's rigged models (see "the rigged models" below); what follows
@@ -5297,7 +5299,7 @@ paThreat:(x,z,sec,r)=>{PA.dbg={x,z,r:r||.4,k:"dbg",o:null,until:st.t+(sec||4)}},
   synth:(k,R)=>Array.from(SYN[k](R||48000)),tentU,propU,flakes:()=>SNF,
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,play,rsBout}};
 animalsReady.then(()=>{QA.ready=true});
-window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1",...PF_FILES,TR_FILE,"sinai_agama_v1b",...Object.values(PG),RS_FILE])];
+window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1",...PF_FILES,TR_FILE,...AG_FILES,...Object.values(PG),RS_FILE])];
   let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],E=desPre()[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;
     l+=.88*Math.min(sz,Math.max(P?P.l:0,E?E.l:0))+(P&&P.d?.12*sz:0);if(P)d+=P.d}
   /* parsed: every file is in; done: and every model has been placed and drawn once (or half a minute has passed since) */

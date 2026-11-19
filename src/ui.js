@@ -117,7 +117,7 @@ window.__turnFrame=async(t,dir=1)=>{if(!G||!G.last)return;setTex(G.last[0],G.las
 
 /* ---------- yard switching ---------- */
 const tp=()=>$("#tp");
-function pill(on,y){const p=tp();if(!p)return;clearTimeout(desT);cancelAnimationFrame(desRaf);p.classList.remove("pr");if(on)p.querySelector("span").textContent="前往 · "+C.names[y];p.classList.toggle("on",!!on)}
+function pill(on,y){const p=tp();if(!p)return;clearTimeout(desT);cancelAnimationFrame(desRaf);clearInterval(desI);p.classList.remove("pr");if(on)p.querySelector("span").textContent="前往 · "+C.names[y];p.classList.toggle("on",!!on)}
 /* the desert's models stream in after the page turn (tens of MB on a cold visit), so keep the pill up with their real download progress */
 let desT=0,desWant=false;
 const desBusy=()=>!window.__desProg||!window.__desProg().done;
@@ -137,11 +137,15 @@ function desPre(warm){if(window.__desPre)return;const ms=C.ms||{},mob=/Mobi|iPho
 const desPreProg=()=>{const P=window.__desPre;if(!P)return null;let l=0,t=0;for(const k in P){l+=Math.min(P[k].l,P[k].t);t+=P[k].t}return t?{p:.88*l/t,done:false}:null};
 /* the number and the bar are drawn from one eased value each frame, so they never disagree and a burst of bytes that
    arrived while the main thread was busy glides in rather than jumping */
-let desShow=0,desRaf=0;
-function desLoad(){const p=tp();clearTimeout(desT);cancelAnimationFrame(desRaf);if(!p)return;
+let desShow=0,desRaf=0,desI=0;
+function desLoad(){const p=tp();clearTimeout(desT);cancelAnimationFrame(desRaf);clearInterval(desI);if(!p)return;
   const sp=p.querySelector("span");let last=performance.now(),txt="";
+  const end=s=>{if(!(!desWant&&cur!=="desert"||s&&s.done||window.__desErr))return false;
+    clearInterval(desI);cancelAnimationFrame(desRaf);p.classList.remove("on");desShow=0;desT=setTimeout(()=>p.classList.remove("pr"),250);return true};
+  /* a frame can take seconds while the last models are compiled and first drawn, so the end is also looked for between frames */
+  desI=setInterval(()=>{const f=window.__desProg;end(f?f():desPreProg())},250);
   const tick=now=>{const f=window.__desProg,s=f?f():desPreProg(),dt=Math.min(.25,Math.max(0,(now-last)/1000));last=now;
-    if(!desWant&&cur!=="desert"||s&&s.done||window.__desErr){p.classList.remove("on");desShow=0;desT=setTimeout(()=>p.classList.remove("pr"),250);return}
+    if(end(s))return;
     if(s){desShow=Math.max(desShow,desShow+(s.p-desShow)*(1-Math.exp(-dt*7)));const n=Math.min(99,Math.floor(desShow*100)),t="载入沙漠 · "+n+"%";
       if(t!==txt){sp.textContent=txt=t;p.style.setProperty("--p",(3+97*n/100).toFixed(1)+"%")}p.classList.add("pr")}
     else{if(txt!=="go"){sp.textContent="前往 · "+C.names.desert;txt="go"}p.classList.remove("pr")}

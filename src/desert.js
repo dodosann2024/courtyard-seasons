@@ -3976,7 +3976,11 @@ function uwMat(m,key,kA,A){m.transparent=true;m.depthWrite=true;if(!ANIM_MATS.in
     sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uWy,uT,uWob;varying vec3 vUW;\n"+A.head)
       .replace("#include <beginnormal_vertex>","#include <beginnormal_vertex>\n"+A.nrm)
       .replace("#include <begin_vertex>","#include <begin_vertex>\n"+A.pos)
-      .replace("#include <project_vertex>",`vec4 uwP=modelMatrix*instanceMatrix*vec4(transformed,1.);vUW=uwP.xyz;float uwD=max(uWy-uwP.y,0.);
+      .replace("#include <project_vertex>",`vec4 uwP=vec4(transformed,1.);
+        #ifdef USE_INSTANCING
+        uwP=instanceMatrix*uwP;
+        #endif
+        uwP=modelMatrix*uwP;vUW=uwP.xyz;float uwD=max(uWy-uwP.y,0.);
         uwP.y+=uwD*.25;uwP.xz+=uWob*uwD*vec2(sin(uT*1.9+uwP.z*31.+uwP.x*17.),cos(uT*1.5+uwP.x*29.-uwP.z*13.));
         vec4 mvPosition=viewMatrix*uwP;gl_Position=projectionMatrix*mvPosition;`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
@@ -4048,7 +4052,7 @@ const lkY=(x,z)=>POND.wy-pfDep(x,z);
 
 /* ---------------- rainbow trout (Oncorhynchus mykiss), real size (26–38 cm). A few cold-water fish keep to the deep middle of the
    pond, cruising slowly together in mid-water. At dawn and dusk one now and then rises to sip at the surface and leaves rings;
-   in hail, and when a camel drinks or the eagle comes low, they sink to the bottom. Procedural, one instanced draw. ---------------- */
+   in hail, and when a camel drinks or the eagle comes low, they sink to the bottom. Drawn with Godot's rigged model (trLoad below); this procedural instanced fish is the fallback. ---------------- */
 const TT_N=MOB?3:5,TT={list:[],im:null,A:null,sch:{th:rr(0,TAU),dir:1,turn:rr(25,50),k:.2,px:0,pz:0,hd:0},rise:rr(3,9),rises:0,vis:0,U:{uVis:{value:0}}};
 function ttGeo(){const P=[],N=[],U=[],I=[];let n=0;
   const hh=u=>u<.3?.115*Math.sqrt(Math.max(0,1-(1-u/.3)**2)):mix(.115,.042,ss(.3,.86,u)),hw=u=>hh(u)*mix(.62,.42,ss(.2,.86,u)),
@@ -4113,11 +4117,11 @@ function ttUpdate(dt){const L=TT.list,S0=TT.sch,ny=st.night>.5,hail=WX.hcold>0||
   else if(TT.rise<0){TT.rise=rr(9,26);const f=L[(rnd()*L.length)|0];if(f.mode==="cruise"){f.mode="rise";f.t=6;f.rs=0;dec("dDp1")}}
   for(const f of L){const dep=pfDep(f.x,f.z),bed=POND.wy-dep;let tx,tz,ty,vt,tr=.9;
     let near=null,nd=1e9;for(const h of LKT){const d=Math.hypot(f.x-h.x,f.z-h.z)-h.r;if(d<nd){nd=d;near=h}}
-    const scared=nd<2.5;
+    const scared=nd<2.5;if(scared&&!f.scd)f.dartT=.5;f.scd=scared;
     if(f.mode==="rise"){f.t-=dt;tx=f.x+Math.sin(f.yaw)*.6;tz=f.z+Math.cos(f.yaw)*.6;
       if(!f.rs){ty=POND.wy-.05;vt=.24;
-        const hy=f.y-Math.sin(f.pit)*.42*f.L;
-        if(hy>POND.wy-.035||f.t<0){f.rs=1;f.t=2.5;const hx=f.x+Math.sin(f.yaw)*.4*f.L,hz=f.z+Math.cos(f.yaw)*.4*f.L;TT.rises++;
+        const hn=TT.glb?.5:.42,hy=f.y-Math.sin(f.pit)*hn*f.L;
+        if(hy>POND.wy-.035||f.t<0){f.rs=1;f.t=2.5;const hx=f.x+Math.sin(f.yaw)*hn*f.L,hz=f.z+Math.cos(f.yaw)*hn*f.L;TT.rises++;
           hDecal(1,hx,POND.wy+.004,hz,rr(.32,.42));f.r2=.28;f.rx=hx;f.rz=hz;
           for(let k=0;k<4;k++)hBit("drop",hx,POND.wy+.01,hz,rr(-.35,.35),rr(.5,1),rr(-.35,.35),rr(.4,.7));
           _ts.set(hx,POND.wy,hz);shotS("dDp1",.5,_ts,6,rr(.5,.62),1)}}
@@ -4138,14 +4142,35 @@ function ttUpdate(dt){const L=TT.list,S0=TT.sch,ny=st.night>.5,hail=WX.hcold>0||
     f.pit+=(cl(-Math.atan2(vy,Math.max(f.v,.05)),-.6,.6)-f.pit)*ease(3,dt);
     f.bend=cl(-f.yr*.1,-.07,.07);f.amp=.075+.09*cl(f.v/.4,0,1)+.03*Math.abs(f.yr);f.ph+=TAU*(1.3+2.4*f.v/f.L)*dt;
     if(f.r2>0){f.r2-=dt;if(f.r2<=0)hDecal(1,f.rx,POND.wy+.004,f.rz,rr(.6,.8))}}
-  if(TT.vis>0){const A=TT.A.array;L.forEach((f,i)=>{qYXZ(_tq,f.pit,f.yaw,cl(f.yr*.12,-.3,.3));
+  if(TT.glb){for(const f of L){f.g.visible=TT.vis>0;f.dartT=(f.dartT||0)-dt;if(!f.g.visible)continue;
+      f.g.position.set(f.x,f.y,f.z);f.g.rotation.set(f.pit,f.yaw,cl(f.yr*.12,-.3,.3));
+      if(f.dartT>0)play(f.r,"dart",.08,1);else if(f.v<.075)play(f.r,"idle_hover",.5,cl(.6+f.v*6,.6,1.1));
+      else play(f.r,"swim",.4,cl((1.3+2.4*f.v/f.L)*.7,.5,3));
+      rigTick(f.r,dt);for(const s of f.sp)pgTurn(s.b,s.ax,-f.bend*.6)}}
+  else if(TT.vis>0){const A=TT.A.array;L.forEach((f,i)=>{qYXZ(_tq,f.pit,f.yaw,cl(f.yr*.12,-.3,.3));
     _tm.compose(_ts.set(f.x,f.y,f.z),_tq,_v.set(f.L,f.L,f.L));TT.im.setMatrixAt(i,_tm);A[i*4]=f.ph;A[i*4+1]=f.amp;A[i*4+2]=f.bend});
-    TT.im.instanceMatrix.needsUpdate=true;TT.A.needsUpdate=true;
+    TT.im.instanceMatrix.needsUpdate=true;TT.A.needsUpdate=true}
+  if(TT.vis>0){
     /* each fish's shadow on the bed: cast along the sun bent down by the surface (sin in = 1.33 sin out), wider and fainter the
        higher the fish swims over the bottom */
     const sc=sunCast()*TT.vis;if(sc>.02){const L_=sunL(),h=Math.hypot(L_.x,L_.z)||1e-3,sw=Math.min(h,.999)/1.33,tw=sw/Math.sqrt(1-sw*sw);
       for(const f of L){const bed=lkY(f.x,f.z),hb=Math.max(f.y-bed,0),o=hb*tw,bx=f.x-L_.x/h*o,bz=f.z-L_.z/h*o;
         blobAdd(bx,lkY(bx,bz),bz,f.yaw,.2*f.L+.1*hb,1.05*f.L+.1*hb,sc*.8*Math.exp(-hb*.55),.5+.35*ss(0,.8,hb),1)}}}}
+/* Godot's rigged trout (17 bones; swim, idle_hover, dart), 0.398 m long and scaled to each fish. Once it has loaded every fish is a
+   skinned clone under the same underwater shading and the instanced fish above is hidden; turns bend the spine on top of the clip */
+const TR_FILE="trout_v2",TR_LEN=.398,TRM=new Map();
+function trMats(s){matsOf(s,(m,c)=>{c.castShadow=false;c.receiveShadow=true;c.renderOrder=3;c.frustumCulled=false;let n=TRM.get(m.uuid);
+  if(!n){const fin=m.transparent;n=m.clone();TRM.set(m.uuid,n);if(n.map)n.map.anisotropy=MOB?2:4;if(n.emissive)n.emissive.setRGB(0,0,0);
+    n.metalness=0;n.metalnessMap=null;n.aoMapIntensity=.5;
+    n.userData.U=TT.U;uwMat(n,"tg"+(fin?"f":""),fin?".35":".2",{head:"",nrm:"",pos:""});if(fin)n.depthWrite=false}
+  c.material=n})}
+function trLoad(){return glb(TR_FILE).then(src=>{const up=new V3(),q=new T.Quat();
+  for(const f of TT.list){const s=VT.cloneSkinned(src.scene),g=new T.Group();g.rotation.order="YXZ";g.add(s);g.scale.setScalar(f.L/TR_LEN);W.add(g);onDes(g);trMats(s);
+    f.g=g;f.r=rigUp(s,src.animations);const d=f.r.acts.dart;if(d){d.setLoop(VT.THREE.LoopOnce,1);d.clampWhenFinished=true}
+    play(f.r,"swim",.01,1);if(f.r.acts.swim)f.r.acts.swim.time=f.ph/TAU*.7;
+    g.updateMatrixWorld(true);f.sp=[];s.traverse(b=>{if(b.isBone&&/^spine0[1-6]$/.test(b.name)){b.getWorldQuaternion(q).invert();
+      g.getWorldQuaternion(_tq2);f.sp.push({b,ax:up.set(0,1,0).applyQuaternion(_tq2).applyQuaternion(q).normalize().clone()})}});g.visible=false}
+  TT.glb=1;TT.im.visible=false})}
 
 /* ---------------- freshwater crabs (Potamon potamios), big old males: a carapace 7–9 cm across, legs spanning about 18 cm,
    a rusty brown shell over orange-red claws, so they read against the sand from a few metres off.
@@ -4278,7 +4303,7 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
 function lakeVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
   const D=Math.max(.5,Math.hypot((c.x-POND.x),(c.z-POND.z),c.y-POND.wy)-Math.max(POND.rx,POND.rz)*.6),ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
   TT.vis=1-ss(.32*ppm/3*.6,.32*ppm/3,D);CR.vis=1-ss(.1*CR_K*ppm/2.5*.6,.1*CR_K*ppm/2.5,D);
-  TT.U.uVis.value=TT.vis;CR.U.uVis.value=CR.vis;TT.im.visible=TT.vis>0;CR.im.visible=CR.vis>0;CR.bm.visible=CR.vis>0;
+  TT.U.uVis.value=TT.vis;CR.U.uVis.value=CR.vis;TT.im.visible=TT.vis>0&&!TT.glb;CR.im.visible=CR.vis>0;CR.bm.visible=CR.vis>0;
   UW.uWy.value=W.position.y+POND.wy*W.scale.y;UW.uWob.value=.012+.03*st.wn+.05*WX.rain}
 
 /* ---------------- Sinai agama (Pseudotrapelus sinaitus), real size (25 cm, 62 % of it tail) ----------------
@@ -5173,7 +5198,7 @@ const animalsReady=propsReady.then(()=>{const big=[
   ];
   /* the snake's file is the largest and the snake starts hidden in shade: on a slow link it must not hold up the rest */
   const after=Promise.all(big).then(()=>{AU.big=1});
-  return Promise.all(big.concat(after.then(pfLoad).catch(()=>{}),after.then(agLoad).catch(()=>{}),after.then(osLoad).catch(()=>{}),after.then(torLoad).catch(()=>{}),after.then(gbLoad).catch(()=>{}),after.then(scLoad).catch(()=>{}),after.then(()=>glb(RS_FILE)).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
+  return Promise.all(big.concat(after.then(pfLoad).catch(()=>{}),after.then(trLoad).catch(()=>{}),after.then(agLoad).catch(()=>{}),after.then(osLoad).catch(()=>{}),after.then(torLoad).catch(()=>{}),after.then(gbLoad).catch(()=>{}),after.then(scLoad).catch(()=>{}),after.then(()=>glb(RS_FILE)).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
     const day=st.phase==="day",sp=day?snakeShadeSpot():randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;
     Object.assign(s,{x:sp.x,z:sp.z,yaw:sp.yaw!=null?sp.yaw:-.8,inShade:day?1:0});s.gy=hTop(s.x,s.z);s.g.position.set(s.x,s.gy,s.z);s.g.rotation.set(0,s.yaw,0);
     play(s.r,"relaxed_coil",.01,1)}).catch(()=>{})))});
@@ -5268,7 +5293,7 @@ paThreat:(x,z,sec,r)=>{PA.dbg={x,z,r:r||.4,k:"dbg",o:null,until:st.t+(sec||4)}},
   synth:(k,R)=>Array.from(SYN[k](R||48000)),tentU,propU,flakes:()=>SNF,
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,play,rsBout}};
 animalsReady.then(()=>{QA.ready=true});
-window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1","pupfish_male_v3","pupfish_female_v3","sinai_agama_v1b",...Object.values(PG),RS_FILE])];
+window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1","pupfish_male_v3","pupfish_female_v3",TR_FILE,"sinai_agama_v1b",...Object.values(PG),RS_FILE])];
   let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],E=desPre()[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;
     l+=.88*Math.min(sz,Math.max(P?P.l:0,E?E.l:0))+(P&&P.d?.12*sz:0);if(P)d+=P.d}
   /* parsed: every file is in; done: and every model has been placed and drawn once (or half a minute has passed since) */

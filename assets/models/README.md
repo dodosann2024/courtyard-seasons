@@ -15,6 +15,7 @@ The palms are built procedurally in `desert.js`; there is no palm model.
 | `tortoise_v2g.glb` | desert tortoise, used at file scale. Withdraws into the shell in hail, heat and when threatened, then plays `head_out`; neck and head are turned on top of the clips for grazing, drinking and looking | `idle`, `slow_crawl`, `head_withdraw`, `head_out` (both played once and held) |
 | `gerbil_v4d.glb` | gerbil, scaled x1.25; whiskers are an alpha-BLEND material drawn without depth writes | `idle`, `stand_lookout` (stand-scan, peek), `dig` (nibbling at the burrow), `hop_run` (scaled with speed) |
 | `scorpion_v2b.glb` + `scorpion_uv_v2b.glb` | desert scorpion. The day file gives the mesh, rig and PBR maps; only the emissive map of the UV file is used, as the night glow under the moon (blue-green, scaled with the scene's glow uniform) | `idle`, `walk`, `threat` |
+| `trout_v2.glb` | rainbow trout, 0.398 m in the file, scaled to each fish (26–38 cm); 5 in the deep middle of the pond (3 on phones), shaded under water like the pupfish. Turns bend `spine01..06` on top of the clip. `TR_FILE` in `src/desert.js` names the file; `trout_v3` (same rig and clips) replaces it by packing it and changing that name | `swim` (played faster with speed), `idle_hover` (slow cruising at night and in hail), `dart` (when something scares the school) |
 | `saguaro_v3.glb` | saguaros at real height: nodes `s3` (3 m), `s7f` (7 m, flowering), `s12` (12 m, five welded arms) and their LOD1 meshes `s3_lod1`, `s7_lod1`, `s12_lod1`, which take over once single spines no longer resolve on screen | — |
 | `barrel_cactus_v3.glb` | fishhook barrel cactus: squat body 0.74 m tall × 0.59 m (24 ribs), ~2,000 spine cards with red-brown hooked centrals, ring of flowers on the crown. Drawn instanced (one draw per material for all barrels), in small groups on the gravel patches, leaning toward the south-west sun | — |
 | `cholla_v2.glb` | teddy-bear cholla, 1.6 m | — |
@@ -26,9 +27,10 @@ The two camels are configured in `CAMEL_KIND` in `src/desert.js` (file, scale, w
 The v4 files and `bald_eagle_v1` are Godot's Tripo + Blender builds with their embedded textures re-encoded by `tools/glbtex.py`
 (1024 px JPEG; both camels' base colour kept at 2048 px, the Bactrian's fur cards at 256 px); geometry and clips are untouched.
 
-The ostrich, tortoise, gerbil and scorpion files are Godot's rigged handover files (release `desert-models-2026-11-16`),
+The ostrich, tortoise, gerbil, scorpion and trout files are Godot's rigged handover files (release `desert-models-2026-11-16`),
 packed by `tools/glbpack/pack.mjs` and `ktx.mjs` below with per-file texture caps (base colour 1024 px, other maps 512 px;
-the ostrich keeps its base colour at full size for the plume layering). If one fails to load, the procedural animal in
+the ostrich keeps its base colour at full size for the plume layering; the trout's body and fin atlas go from 2048 to 1024 px).
+If one fails to load, the procedural animal in
 `src/desert.js` is used instead, with the same behaviour.
 
 The cactus files are packed from the model handover by `tools/modelpack.py`: the saguaro variants are

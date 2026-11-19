@@ -24,6 +24,10 @@ const TEX={
   ...Object.fromEntries(['tortoise_v2g','gerbil_v4d','scorpion_v2b','scorpion_uv_v2b'].map(k=>[k,[
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/baseColor/}),
     textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,resize:[512,512],slots:/^(?!baseColor)/})]])),
+  /* a 40 cm trout seen through a metre of water: body colour and fin atlas 1024 px (from 2048), normal/ORM 512 px */
+  ...Object.fromEntries(['trout_v2','trout_v3'].map(k=>[k,[
+    textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/baseColor/}),
+    textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,resize:[512,512],slots:/^(?!baseColor)/})]])),
 };
 await MeshoptEncoder.ready;await MeshoptDecoder.ready;
 const io=new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.encoder':MeshoptEncoder,'meshopt.decoder':MeshoptDecoder});

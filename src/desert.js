@@ -410,14 +410,14 @@ function sandMat(){
             trF=mix(smoothstep(.3,-.6,hn*am),.45,smoothstep(.07,.3,fwS));}
           /* the stripes follow the fine ripples (a hand apart); on flat sand the coarse troughs hold more of them than the coarse ridges */
           float kM=mix(.5,.3,vDn.x),kF=mix(.4,.18,vDn.x),nrK=1.-smoothstep(.07,.3,fwS),tr=mix(kM*trM+(1.-kM)*.45,kF*trM+(1.-kF)*trF,nrK),nn=dn2(q*.7+3.1)*.6+dn2(q*2.3)*.4;
-          float B0=.5*lee+.3*nf-1.1*ww-1.4*crs+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),B=B0+(tr-.5)*1.95,ew=.13+fwS*.5;
+          float B0=.95*lee+.3*nf-1.1*ww-1.4*crs+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),B=B0+(tr-.5)*1.95,ew=.13+fwS*.5;
           float lv=B+.38*uSnow-.31-wet*1.5-.3*(1.-smoothstep(.0,.25,uSnow));
           /* close up the dusting is not a set of patches but a thin line of grains in the bottom of each ripple trough: the slope,
              shade and coarse troughs only set how much there is, which widens the lines until they merge on the lee face. Up close
              the line breaks into single grains a few millimetres across, packed in its middle and scattered at its edges. */
           float gK=0.,gB=1.;
           if(nrK>.001){float cv=smoothstep(-.65,.45,B0+(kF*trM+(1.-kF)*.45-.5)*1.6+.38*uSnow-.31-wet*1.5-.3*(1.-smoothstep(.0,.25,uSnow)));
-            float gr=dn2(q*61.)*.55+dn2(q*23.)*.45,fl=smoothstep(.2,-.32,hn+(gr-.5)*.3+(dn2(q*9.)-.5)*.24-mix(-.96,-.55,cv)-1.2*lee*smoothstep(.62,1.,cv))*smoothstep(.0,.12,cv);
+            float gr=dn2(q*61.)*.55+dn2(q*23.)*.45,fl=smoothstep(.2,-.32,hn+(gr-.5)*.3+(dn2(q*9.)-.5)*.24-mix(-.96,-.55,cv)-2.4*lee*smoothstep(.4,1.,cv))*smoothstep(.0,.12,cv);
             /* three sizes of grain on turned grids (5 mm grains, 9 mm and 2 cm clumps), each faded to its mean once it is under a pixel */
             float gs=1.,gm=0.;
             for(int o=0;o<3;o++){float fo=float(o),ce=o==0?.0049:o==1?.0088:.018,an=fo*.71+.2,ga=smoothstep(.45*ce,1.4*ce,fwS);
@@ -428,7 +428,7 @@ function sandMat(){
               if(dt*(1.-ga)>gm){gm=dt*(1.-ga);gB=.8+.36*fract(hh.z*7.3);}
               gs*=1.-m;}
             /* once even the clumps are under a pixel it is the line as a whole that shows, as wide as it lies */
-            float flM=smoothstep(.3,-.24,hn+(gr-.5)*.42+(dn2(q*9.)-.5)*.3-mix(-.95,-.2,cv)-lee*smoothstep(.62,1.,cv))*smoothstep(.0,.12,cv),gF=smoothstep(.006,.02,fwS);
+            float flM=smoothstep(.3,-.24,hn+(gr-.5)*.42+(dn2(q*9.)-.5)*.3-mix(-.95,-.2,cv)-2.1*lee*smoothstep(.4,1.,cv))*smoothstep(.0,.12,cv),gF=smoothstep(.006,.02,fwS);
             float g=1.-gs;gK=smoothstep(.0,.6,gm)*nrK*(1.-gF);
             /* the grain line is only for a true close view. From a few metres the dusting is the whole trough, so ridges stay bare and troughs read white */
             lv=mix(lv,(mix(g,flM,gF)-.5)*2.*ew,nrK*(1.-smoothstep(.007,.02,fwS)));}

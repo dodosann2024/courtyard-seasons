@@ -1674,6 +1674,8 @@ function sandFallsUpdate(dt,t,wn,nk){
    shrubs, each keeping close to its plant (the second lot from its own seed, so the island's layout does not shift) */
 const FF_N0=MOB?30:60,FF_N1=MOB?40:96,FF_N2=MOB?36:110;
 const FF=softPoints(FF_N0+FF_N1+FF_N2,"#d8ff8a",.12,true);FF.o.renderOrder=9;W.add(FF.o);
+/* up close the shared 48 px cap turns a firefly into a speck; let the sprite grow so the hot core and halo still read */
+FF.m.vertexShader=FF.m.vertexShader.replace(",1.,48.",",1.,160.");
 /* a small hot yellow-green light in a soft green halo, so one drifting past the camera stays a point of light, not a fuzzy ball */
 FF.m.fragmentShader=`uniform vec3 uC;varying float vA;void main(){vec2 q=gl_PointCoord-.5;float d=dot(q,q)*4.;if(d>1.)discard;
   float core=exp(-d*22.),a=vA*(exp(-d*4.)*(1.-d)*.55+core*1.3);if(a<.004)discard;gl_FragColor=vec4(mix(uC,vec3(.96,1.,.72),min(1.,core*1.5)),a);
@@ -1682,7 +1684,7 @@ FF.m.fragmentShader=`uniform vec3 uC;varying float vA;void main(){vec2 q=gl_Poin
   }`;
 /* their glints on the still water: the night reflection pass is off, so each one over the pond gets a dim mirror image, placed where
    the line of sight to its reflection meets the surface (sitting on the water, the water mesh cannot hide it) */
-const FFR=softPoints(FF.n,"#c8f27a",.1,true);FFR.o.renderOrder=8;FFR.o.visible=false;W.add(FFR.o);FFR.m.fragmentShader=FF.m.fragmentShader;
+const FFR=softPoints(FF.n,"#c8f27a",.1,true);FFR.o.renderOrder=8;FFR.o.visible=false;W.add(FFR.o);FFR.m.fragmentShader=FF.m.fragmentShader;FFR.m.vertexShader=FF.m.vertexShader;
 const FFP=[];for(let i=0;i<FF_N0;i++){const[a,b]=pondEdge(rnd()*TAU,rr(.8,i%3?1.9:2.8));FFP.push({x:a,z:b,y:rr(.4,2.6),ph:rnd()*TAU,sp:rr(.3,.7),bl:rr(.6,1.4),rw:1.2});FF.Z[i]=rr(.8,1.2)}
 {const sd0=sd;sd=50917;let wt=0;for(const v of VEGP)wt+=v.w;
   for(let i=FF_N0;i<FF.n;i++){let u=rnd()*wt,v=VEGP[0];for(const q of VEGP){u-=q.w;if(u<=0){v=q;break}}const a=rnd()*TAU,r=rr(.1,.7);
@@ -2947,6 +2949,11 @@ function camelPlan(a){
   /* in hail they turn their backs to the wind and stand it out */
   if(WX.hcold){camelBrace(a);return}
   if(camHold()){a.mode="job";a.job="idle";a.timer=rr(12,24);play(a.r,"idle",1,1);return}
+  /* the snow has stopped falling but it still lies: a few steps to a nearby kneel never makes a stride.
+     Send them across the open snow so the walk is several strides long. */
+  if(WX.sc>.08){const g=navGrid("camel",1.05,1.12,.84);
+    for(let t=0;t<50;t++){const th=rnd()*TAU,d=rr(8,16),x=a.x+Math.sin(th)*d,z=a.z+Math.cos(th)*d;
+      if(navFree(g,x,z)&&sN(x,z)<.9&&roomy(a,x,z)&&camelGo(a,{x,z},"graze"))return}}
   const busy=j=>ANIM.camels.some(o=>o!==a&&o.job===j),near=(p,r)=>ANIM.camels.some(o=>o!==a&&(Math.hypot(o.x-p.x,o.z-p.z)<r||(o.goal&&Math.hypot(o.goal.x-p.x,o.goal.z-p.z)<r)));
   const opts=[["drink",.3],["graze",.32],["kneel",.2],["idle",.18]].filter(([j])=>j==="idle"||!busy(j)&&(j!=="drink"||!near(DRINK,4.5)));
   let r=rnd()*opts.reduce((s,o)=>s+o[1],0),job="idle";for(const[j,w]of opts){if((r-=w)<0){job=j;break}}
@@ -2966,6 +2973,12 @@ function camelUpdate(a,dt){
   else if(camHold()&&a.mode==="walk"){a.mode="job";a.job="idle";a.path=null;a.timer=rr(12,24);play(a.r,"idle",1,1)}
   let dy=0,vT=0,ym=.75;
   if(a.mode==="walk"){
+    /* still on lying snow: don't end the walk a stride from the goal, or a resumed crossing crunches once */
+    if(WX.sc>.08&&!camHold()&&!night&&(a.job==="graze"||a.job==="idle")){const lastP=a.path[a.path.length-1];
+      if(lastP&&Math.hypot(lastP.x-a.x,lastP.z-a.z)<4){const g=navGrid("camel",1.05,1.12,.84),blk=ANIM.camels.filter(o=>o!==a&&o.spd<.05).map(o=>({x:o.x,z:o.z,r:2.6}));
+        for(let t=0;t<24;t++){const th=rnd()*TAU,d=rr(8,14),x=a.x+Math.sin(th)*d,z=a.z+Math.cos(th)*d;
+          if(!navFree(g,x,z)||!roomy(a,x,z))continue;const pth=navPath(g,a.x,a.z,x,z,blk)||navPath(g,a.x,a.z,x,z);
+          if(pth){a.path=pth;a.pi=1;a.face=null;a.job="graze";a.goal={x,z};break}}}}
     let wp=a.path[a.pi],last=a.pi===a.path.length-1;
     if(!last&&Math.hypot(wp.x-a.x,wp.z-a.z)<1.1){a.pi++;wp=a.path[a.pi];last=a.pi===a.path.length-1}
     const dx=wp.x-a.x,dz=wp.z-a.z,d=Math.hypot(dx,dz);dy=wrapA(Math.atan2(dx,dz)-a.yaw);
@@ -3960,8 +3973,8 @@ function pfVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
   const D=Math.max(.5,Math.hypot((c.x-POND.x),(c.z-POND.z),c.y-POND.wy)-Math.max(POND.rx,POND.rz)*.6),ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360)),Dm=.06*ppm/1.5;
   const v=1-ss(Dm*.6,Dm,D);PF.vis=v;PF.U.uVis.value=v;PF.U.uWy.value=W.position.y+POND.wy*W.scale.y;PF.U.uWob.value=(.012+.03*st.wn+.05*WX.rain);
   for(const f of PF.list)f.g.visible=v>0}
-/* Godot's v3b (same 23-bone rig and clips) replaces these by packing it and changing the two names */
-const PF_FILES=["pupfish_male_v3","pupfish_female_v3"];
+/* Godot's v3b: same 23-bone rig, swim 0.8 s, idle_turn 4.0 s */
+const PF_FILES=["pupfish_male_v3b","pupfish_female_v3b"];
 function pfLoad(){return Promise.all(PF_FILES.map(glb)).then(([M,F])=>{
   const ter=PF_TH.map(th=>{const k=pfK(th,.13),[x,z]=pondEdge(th,k);return{th,x,z,f:null}});PF.ter=ter;
   for(let i=0;i<PF_N;i++){const male=i<ter.length||i%2===0,src=male?M:F,f=pfSpawn(src,male,src.animations);
@@ -4159,10 +4172,10 @@ function ttUpdate(dt){const L=TT.list,S0=TT.sch,ny=st.night>.5,hail=WX.hcold>0||
     const sc=sunCast()*TT.vis;if(sc>.02){const L_=sunL(),h=Math.hypot(L_.x,L_.z)||1e-3,sw=Math.min(h,.999)/1.33,tw=sw/Math.sqrt(1-sw*sw);
       for(const f of L){const bed=lkY(f.x,f.z),hb=Math.max(f.y-bed,0),o=hb*tw,bx=f.x-L_.x/h*o,bz=f.z-L_.z/h*o;
         blobAdd(bx,lkY(bx,bz),bz,f.yaw,.2*f.L+.1*hb,1.05*f.L+.1*hb,sc*.8*Math.exp(-hb*.55),.5+.35*ss(0,.8,hb),1)}}}}
-/* Godot's rigged trout (17 bones; swim, idle_hover, dart), 0.398 m long and scaled to each fish. Once it has loaded every fish is a
+/* Godot's rigged trout (trout_v3; 17 bones; swim, idle_hover, dart), 0.398 m long and scaled to each fish. Once it has loaded every fish is a
    skinned clone under the same underwater shading, used once a fish is over ~20 px long; smaller than that the instanced fish above
    stands in (one draw, no rigs to update). Turns bend the spine on top of the clip */
-const TR_FILE="trout_v2",TR_LEN=.398,TRM=new Map();
+const TR_FILE="trout_v3",TR_LEN=.398,TRM=new Map();
 function trMats(s){matsOf(s,(m,c)=>{c.castShadow=false;c.receiveShadow=true;c.renderOrder=3;c.frustumCulled=false;let n=TRM.get(m.uuid);
   if(!n){const fin=m.transparent;n=m.clone();TRM.set(m.uuid,n);if(n.map)n.map.anisotropy=MOB?2:4;if(n.emissive)n.emissive.setRGB(0,0,0);
     n.metalness=0;n.metalnessMap=null;n.aoMapIntensity=.5;
@@ -4197,7 +4210,7 @@ function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
       for(let j=0;j<sd;j++){const an=j/sd*TAU,ca=Math.cos(an),sa=Math.sin(an),nr=[a[0]*ca+bb[0]*sa,a[1]*ca+bb[1]*sa,a[2]*ca+bb[2]*sa];
         vtx([p[0]+nr[0]*rad[i],p[1]+nr[1]*rad[i],p[2]+nr[2]*rad[i]],nr,cols[i],k,h)}}
     for(let i=0;i<M-1;i++)for(let j=0;j<sd;j++){const a=b+i*sd+j,c=b+i*sd+(j+1)%sd;I.push(a,a+sd,c,c,a+sd,c+sd)}};
-  const shell=[.34,.13,.05],shellD=[.18,.07,.03],leg=[.5,.2,.08],legD=[.32,.12,.05],tip=[.09,.05,.03],cream=[.86,.74,.56],claw=[.66,.17,.05];
+  const shell=[.34,.13,.05],shellD=[.18,.07,.03],leg=[.5,.2,.08],legD=[.32,.12,.05],tip=[.09,.05,.03],cream=[.86,.74,.56],claw=[.84,.22,.06];
   /* carapace: broad, a little squared at the front, domed over the gills, flatter underneath */
   ell(0,.029,0,.025,.0135,.021,shell,0,[0,0,0],22,12,(x,y,z)=>{const zf=z>0?z*(1-.18*Math.abs(x)):z,xf=x*(1-.08*Math.max(0,z));
     const dark=1-.28*Math.max(0,y)*(1-Math.abs(x))+.08*Math.max(0,-y);return[xf,y-.12*Math.abs(xf)*Math.max(0,y),zf,dark]});
@@ -4208,7 +4221,8 @@ function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
       m=1+.08*(i===1||i===2),P1=[h[0]+dx*.016*m,h[1]+.01,h[2]+dz*.016*m],P2=[P1[0]+dx*.0135*m,P1[1]-.009,P1[2]+dz*.0135*m],P3=[P2[0]+dx*.007*m,.0012,P2[2]+dz*.007*m];
     tube([h,P1,P2,P3],[.0042,.0039,.003,.0008],[leg,leg,legD,tip],k,h,7)}
   /* claws: arm, carpus, a swollen palm and two pale-tipped fingers; the right one larger */
-  for(const s of[1,-1]){const k=s>0?9:10,c=s>0?1.2:1.6,h=[s*.015,.025,.016],Q1=[h[0]+s*.012,h[1]+.006,h[2]+.01],Q2=[Q1[0]-s*.002,Q1[1]+.002,Q1[2]+.012],Q3=[Q2[0]-s*.004,Q2[1],Q2[2]+.011*c];
+  /* the claws read from a few metres: a larger palm and fingers, the right one still the bigger */
+  for(const s of[1,-1]){const k=s>0?9:10,c=s>0?1.55:2.05,h=[s*.015,.025,.016],Q1=[h[0]+s*.012,h[1]+.006,h[2]+.01],Q2=[Q1[0]-s*.002,Q1[1]+.002,Q1[2]+.012],Q3=[Q2[0]-s*.004,Q2[1],Q2[2]+.011*c];
     tube([h,Q1,Q2],[.0034,.0034,.004],[leg,leg,shell],k,h,6);
     ell(Q3[0],Q3[1],Q3[2],.0062*c,.0047*c,.0105*c,claw,k,h,10,7);
     tube([[Q3[0]-s*.002,Q3[1]-.002,Q3[2]+.008*c],[Q3[0]-s*.004,Q3[1]-.003,Q3[2]+.016*c],[Q3[0]-s*.005,Q3[1]-.0032,Q3[2]+.022*c]],[.003*c,.0019*c,.0005],[legD,tip,cream],k,h,5);
@@ -4314,9 +4328,10 @@ function lakeVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
    Two of them, a male and a female, living round the grove. They sprint in short bursts and pause, bask flat on a rock
    in the sun, head-bob, climb the date palms (along the trunk's own lean and sway) to sit in the crown's shade when hot,
    climb up under the crown when it rains, and hide by a rock at night. Body temperature follows sun, shade and rain;
-   the male turns blue as he warms (sandy and blue base colours blended per pixel) and fades back when he cools.
-   sinai_agama_v1b clips: idle, bask, head_bob, run (.236 m/s), climb (.0349 m/s on the plane z=0, head +y, back +z). */
-const AG={list:[],vis:1,spots:[],blue:null};
+   the male is the blue file and fades back toward the sandy file's colour as he cools.
+   sinai_agama_v1c clips (same on the blue twin): idle, bask, head_bob, run (.236 m/s), climb (.0349 m/s on the plane z=0, head +y, back +z). */
+const AG={list:[],vis:1,spots:[]};
+const AG_FILES=["sinai_agama_v1c","sinai_agama_v1c_blue"];
 const AG_RUN=.236,AG_CLIMB=.0349,AG_V=1.05,AG_VC=.16;
 const _ap=new V3(),_an=new V3(),_ax=new V3(),_ay=new V3(),_az=new V3(),_am=new T.M4(),_aq=new T.Quat(),_aq2=new T.Quat();
 /* the palm trunk's wind sway, the same as palmSway() in the trunk shader */
@@ -4345,14 +4360,15 @@ function agSpots(){const L=[];
     let ok=true;for(let k=0;k<4;k++){const a=k*TAU/4,yy=rockTop(o.x+Math.cos(a)*.12,o.z+Math.sin(a)*.12);if(Math.abs(yy-y)>.05)ok=false}
     if(ok)L.push({x:o.x,z:o.z,y,r:o.r,ta:0})}
   if(!L.length)L.push({x:GROVE.x+3,z:GROVE.z+3,y:-99,r:.3,ta:0});AG.spots=L}
-function agSpawn(scene,anims,male){const g=new T.Group();g.add(scene);W.add(g);
+function agSpawn(scene,anims,male,sandMap){const g=new T.Group();g.add(scene);W.add(g);
   scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}});
   animalMats(scene,false);
-  const U={uWarm:{value:0},uBlue:{value:null}};
-  if(male)matsOf(scene,(m,o)=>{const c=m.clone();o.material=c;if(!ANIM_MATS.includes(c))ANIM_MATS.push(c);U.uBlue.value=c.map;
-    c.onBeforeCompile=sh=>{Object.assign(sh.uniforms,U);sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform sampler2D uBlue;uniform float uWarm;")
+  const U={uWarm:{value:0},uSand:{value:sandMap||null}};
+  /* the male mesh is the blue GLB; its own colour shows as he warms, the sandy file's colour as he cools */
+  if(male&&sandMap)matsOf(scene,(m,o)=>{const c=m.clone();o.material=c;if(!ANIM_MATS.includes(c))ANIM_MATS.push(c);
+    c.onBeforeCompile=sh=>{Object.assign(sh.uniforms,U);sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform sampler2D uSand;uniform float uWarm;")
       .replace("#include <map_fragment>",`#ifdef USE_MAP
-        vec4 sampledDiffuseColor=texture2D(map,vMapUv);sampledDiffuseColor.rgb=mix(sampledDiffuseColor.rgb,texture2D(uBlue,vMapUv).rgb,uWarm);diffuseColor*=sampledDiffuseColor;
+        vec4 sampledDiffuseColor=texture2D(map,vMapUv);sampledDiffuseColor.rgb=mix(texture2D(uSand,vMapUv).rgb,sampledDiffuseColor.rgb,uWarm);diffuseColor*=sampledDiffuseColor;
         #endif`)};c.customProgramCacheKey=()=>"agBlue"});
   onDes(g);
   const a={g,r:rigUp(scene,anims),male,U,x:0,z:0,ry:-99,yaw:rr(-3,3),mode:"idle",timer:rr(1,3),Tb:male?.8:.6,warm:male?.6:0,
@@ -4463,10 +4479,10 @@ function agSmooth(a,dt){const p=a.g.position,q=a.g.quaternion;
 const _agc=new V3();
 function agVis(){const c=_agc.copy(De.position);W.worldToLocal(c);const ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
   let v=0;for(const a of AG.list){const D=c.distanceTo(a.g.position),on=.25*ppm/Math.max(D,.05)>1.5;a.g.children[0].visible=on;if(on)v=1}AG.vis=v}
-function agLoad(){return glb("sinai_agama_v1b").then(({scene,animations})=>{agSpots();
-  const M=agSpawn(scene,animations,true),F=agSpawn(VT.cloneSkinned(scene),animations,false);
-  new VT.THREE.TextureLoader().load(ROOT()+"assets/models/sinai_agama_v1b_blue.webp",t=>{t.flipY=false;t.colorSpace="srgb";t.anisotropy=MOB?4:8;
-    const m=M.U.uBlue.value;if(m){t.wrapS=m.wrapS;t.wrapT=m.wrapT}t.needsUpdate=true;M.U.uBlue.value=t;AG.blue=t});
+function agLoad(){return Promise.all(AG_FILES.map(glb)).then(([sand,blue])=>{agSpots();
+  let sandMap=null;sand.scene.traverse(o=>{if(!sandMap&&o.isMesh&&o.material&&o.material.map)sandMap=o.material.map});
+  if(sandMap){sandMap.colorSpace="srgb";sandMap.anisotropy=MOB?4:8;sandMap.needsUpdate=true}
+  const M=agSpawn(blue.scene,blue.animations,true,sandMap),F=agSpawn(VT.cloneSkinned(sand.scene),sand.animations,false);
   [M,F].forEach((a,i)=>{const sp=AG.spots[i%AG.spots.length];a.x=sp.x+(i?.6:0);a.z=sp.z+(i?-.5:0);a.spot=sp;a.ry=i?-99:sp.y;agDecide(a);agPose(a);AG.list.push(a)})})}
 /* ---------------- procedural animals: ostriches, desert tortoises, gerbils, scorpions ----------------
    The behaviour of all four lives here. Their bodies are Godot's rigged models (see "the rigged models" below); what follows
@@ -4688,7 +4704,7 @@ function osGeo(male){const G=paGeo(),X=OS_IX,w=(a,b)=>[[X[a],.5],[X[b],.5]];
 /* the poses the neck blends between, per joint (bend forward, radians) */
 const OS_NK={stand:[-.12,.06,.06,.02,-.06,.04],alert:[-.24,-.04,0,0,-.02,0],graze:[1.1,.8,.5,.12,.02,0],run:[.5,.2,.05,-.05,-.1,-.05],sit:[-.06,.05,.06,0,-.05,.05],doze:[.35,.45,.5,.4,.3,.2]};
 function osSpawn(male,src){let g,m=null,B,q=null,sc;
-  if(src){sc=male?1:.92;q=pgModel(src,"os",sc,{shadow:1,hen:!male});g=q.g;B={head:q.bn.head}}
+  if(src){sc=male?1:.92;q=pgModel(src,"os",sc,{shadow:1,hen:!male,once:["sit"]});g=q.g;B={head:q.bn.head}}
   else{const G=osGeo(male),R=paBones(OS_B);m=paMesh(G,R);g=new T.Group();sc=male?1.04:.94;g.add(m);g.scale.setScalar(sc);W.add(g);onDes(g);B=R.B}
   const A={g,m,B,male,sc,x:0,z:0,yaw:0,gy:0,v:0,yr:0,gph:0,mode:"stand",t:rr(3,6),path:null,pi:0,vmax:1,
     P:{cr:0,pit:0,gr:0,al:0,run:0,sit:0,doze:0,look:0,peck:0,wing:0,tail:0},lookT:0,lookA:0,peckT:rr(.5,1.5),scanT:rr(4,9),runT:rr(90,200),thr:null,sat:0,
@@ -5104,12 +5120,13 @@ function scLoad(){return Promise.all([pgGet("sc"),pgGet("scUV")]).then(([src,uv]
   if(src&&uv)matsOf(uv.scene,m=>{if(m.emissiveMap&&!glow)glow=m.emissiveMap});
   const geo=moundGeo(SC_MOUND);for(const rk of scRocks()){const A=scSpawn(rk,src,glow);A.gy=hTop(A.x,A.z);PA.sc.push(A);
   const ex=rk.x+SHADE.x*(rk.r+.02),ez=rk.z+SHADE.z*(rk.r+.02);rk.mound=moundAt(geo,ex,ez,Math.atan2(-SHADE.x,-SHADE.z))}})}
-/* ---- the rigged models: Godot's ostrich_v2c, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
+/* ---- the rigged models: Godot's ostrich_v2d, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
    UV-fluorescence twin scorpion_uv_v2b lends its emissive map for the glow under the moon. Each takes the place of the
    procedural mesh above with the same behaviour, schedules, prints and sounds: its pose is the model's own clips, chosen and
-   timed from the same state, plus a few bones turned on top (where it looks, and the ostrich folding its legs to sit, which
-   has no clip). If a file can't be had the procedural animal is built instead. Bones run along their local y (Blender's); three drops the dots from their names. ---- */
-const PG={os:"ostrich_v2c",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
+   timed from the same state, plus a few bones turned on top (where it looks). Night and hail play the ostrich's sit clip.
+   ostrich_v2c.glb stays on disk and is not loaded. If a file can't be had the procedural animal is built instead.
+   Bones run along their local y (Blender's); three drops the dots from their names. ---- */
+const PG={os:"ostrich_v2d",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
 const pgGet=k=>glb(PG[k]).catch(()=>null);
 const PGM=new Map();let PG_GLOW=null;
 /* wet plumage and fur go darker in rain; the hen is the cock's model in her dull grey-brown (black -> earth, white -> buff) */
@@ -5136,25 +5153,31 @@ function pgTurn(b,ax,a){if(b&&a)b.quaternion.multiply(_pgq.setFromAxisAngle(ax,a
 /* turn bone b (world matrices current) so the world point p it carries swings onto the line toward t */
 function pgAim(b,p,t){b.getWorldPosition(_pgv);_pgq.setFromUnitVectors(_pgv2.copy(p).sub(_pgv).normalize(),_pgv3.copy(t).sub(_pgv).normalize());
   b.getWorldQuaternion(_pgq2).premultiply(_pgq);b.parent.getWorldQuaternion(_pgq).invert();b.quaternion.copy(_pgq.multiply(_pgq2));b.updateMatrixWorld(true)}
-/* ostrich: idle, slow_walk (1.0 m/s), fast_run (4.86 m/s) and peck, timed to the ground speed so the feet stay planted */
+/* ostrich: idle, slow_walk (1.0 m/s), fast_run (4.86 m/s), peck, and sit (3.5 s: settle 0–1 s, then a seated hold).
+   Night and hail play sit once from idle and then loop the hold from 1 s; standing up blends back to idle. There is no stand-up clip.
+   The leg fold below is only for a file that has no sit clip. */
 const OS_VW=1,OS_VR=4.86;
 const _ow=[new V3(),new V3(),new V3(),new V3(),new V3(),new V3()];
-function osAnim(A,dt){const P=A.P,v=A.v,R=A.rig;let c="idle",ts=1;
-  if(P.sit<.05){if(A.mode==="run"||v>2.6){c="fast_run";ts=cl(v/OS_VR,.6,1.6)}else if(v>.1){c="slow_walk";ts=cl(v/OS_VW,.3,1.8)}else if(A.mode==="graze")c="peck"}
-  play(R,c,c==="fast_run"||R.cur==="fast_run"?.3:.45,ts);rigTick(R,dt);
-  /* the look: a twist spread up the neck */
-  const lk=P.look*(1-P.run)*(1-.7*P.sit);for(let i=3;i<=7;i++)pgTurn(A.bn["neck0"+i],_pgY,lk*.17);pgTurn(A.bn.head,_pgY,lk*.12);
-  /* sitting: the body goes down onto the folded legs, each shank laid along the sand from the heel forward to the toes */
-  const s=ss(0,1,P.sit);A.mdl.position.y=-.74*s;A.g.updateMatrixWorld(true);
-  if(s>.002){const o=A.g.getWorldPosition(A.sw0),dU=A.g.localToWorld(A.sw1.set(0,.74*s,0)).sub(o),fw=A.g.localToWorld(A.sw2.set(0,.4,1)).sub(o).normalize();
-    for(const sd of[1,-1]){const L=sd>0?"L":"R",th=A.bn["thigh"+L],sh=A.bn["shank"+L],ta=A.bn["tarsometatarsus"+L],ft=A.bn["foot"+L],to=A.bn["toe_main"+L];
-      const hip=th.getWorldPosition(_ow[0]),kn=sh.getWorldPosition(_ow[1]),an=ta.getWorldPosition(_ow[2]),L1=hip.distanceTo(kn),L2=kn.distanceTo(an);
-      const aT=_ow[4].copy(an).add(dU).lerp(A.g.localToWorld(_ow[3].set(sd*.17,.06,-.22)),s),kT=ik2(hip,aT,L1,L2,fw,_ow[5]);
-      pgAim(th,kn,kT);pgAim(sh,ta.getWorldPosition(_ow[1]),aT);
-      const fp=ft.getWorldPosition(_ow[2]),fT=_ow[3].copy(fp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.2,.07,.33)),s);pgAim(ta,fp,fT);
-      const tp=to.getWorldPosition(_ow[2]),tT=_ow[3].copy(tp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.22,.04,.48)),s);pgAim(ft,tp,tT)}}
+function osAnim(A,dt){const P=A.P,v=A.v,R=A.rig,sitC=R.acts.sit;let c="idle",ts=1;
+  if(A.mode==="sit"&&sitC)c="sit";
+  else if(P.sit<.05){if(A.mode==="run"||v>2.6){c="fast_run";ts=cl(v/OS_VR,.6,1.6)}else if(v>.1){c="slow_walk";ts=cl(v/OS_VW,.3,1.8)}else if(A.mode==="graze")c="peck"}
+  play(R,c,c==="fast_run"||R.cur==="fast_run"||c==="sit"||R.cur==="sit"?.4:.45,ts);
+  /* the seated hold breathes from 1 s to 3.5 s; wrapping there keeps the bird down instead of replaying the settle */
+  if(c==="sit"&&(sitC.paused||sitC.time>=3.4)){sitC.paused=false;if(sitC.time>=3.4)sitC.time=1+((sitC.time-1)%2.4)}
+  rigTick(R,dt);
+  if(sitC){A.mdl.position.y=0;if(c!=="sit"){const lk=P.look*(1-P.run);for(let i=3;i<=7;i++)pgTurn(A.bn["neck0"+i],_pgY,lk*.17);pgTurn(A.bn.head,_pgY,lk*.12)}}
+  else{const lk=P.look*(1-P.run)*(1-.7*P.sit);for(let i=3;i<=7;i++)pgTurn(A.bn["neck0"+i],_pgY,lk*.17);pgTurn(A.bn.head,_pgY,lk*.12);
+    /* no sit clip: the body goes down onto the folded legs, each shank laid along the sand */
+    const s=ss(0,1,P.sit);A.mdl.position.y=-.74*s;A.g.updateMatrixWorld(true);
+    if(s>.002){const o=A.g.getWorldPosition(A.sw0),dU=A.g.localToWorld(A.sw1.set(0,.74*s,0)).sub(o),fw=A.g.localToWorld(A.sw2.set(0,.4,1)).sub(o).normalize();
+      for(const sd of[1,-1]){const L=sd>0?"L":"R",th=A.bn["thigh"+L],sh=A.bn["shank"+L],ta=A.bn["tarsometatarsus"+L],ft=A.bn["foot"+L],to=A.bn["toe_main"+L];
+        const hip=th.getWorldPosition(_ow[0]),kn=sh.getWorldPosition(_ow[1]),an=ta.getWorldPosition(_ow[2]),L1=hip.distanceTo(kn),L2=kn.distanceTo(an);
+        const aT=_ow[4].copy(an).add(dU).lerp(A.g.localToWorld(_ow[3].set(sd*.17,.06,-.22)),s),kT=ik2(hip,aT,L1,L2,fw,_ow[5]);
+        pgAim(th,kn,kT);pgAim(sh,ta.getWorldPosition(_ow[1]),aT);
+        const fp=ft.getWorldPosition(_ow[2]),fT=_ow[3].copy(fp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.2,.07,.33)),s);pgAim(ta,fp,fT);
+        const tp=to.getWorldPosition(_ow[2]),tT=_ow[3].copy(tp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.22,.04,.48)),s);pgAim(ft,tp,tT)}}}
   /* prints where a toe actually comes down */
-  if(P.sit<.3&&v>.1)for(let i=0;i<2;i++){const to=A.bn[i?"toe_mainR":"toe_mainL"],p=to.getWorldPosition(_ow[0]);W.worldToLocal(p);
+  if(P.sit<.3&&v>.1)for(let i=0;i<2;i++){const to=A.bn[i?"toe_mainR":"toe_mainL"];if(!to)continue;const p=to.getWorldPosition(_ow[0]);W.worldToLocal(p);
     const h=p.y-hTop(p.x,p.z),f=A.pf[i];if(h>.14)f.up=1;else if(h<.09&&f.up){f.up=0;f.P.set(p.x,0,p.z);f.P.y=hTop(p.x,p.z);f.fy=A.yaw;osTrack(A,f)}}}
 /* tortoise: idle, slow_crawl (~.058 m/s), head_withdraw and head_out (each with the withdraw morph), turned to the state */
 const TOR_V=.058;
@@ -5291,13 +5314,26 @@ paThreat:(x,z,sec,r)=>{PA.dbg={x,z,r:r||.4,k:"dbg",o:null,until:st.t+(sec||4)}},
   duneAdv(sec){const wk=.5+st.wn*1.4;duneEvolve(sec*.8*wk);sandU.uRipPh.value+=sec*.08*wk;
     sandU.uDA.value.set(DP.x,DP.z,DP.H,DP.w);sandU.uDB.value.set(DP.Lw,DP.Ll,DP.cv,DP.sk)},
   dune:{DP,DUNE0,DCLK,GUST,crestXZ,dMask,gustAt},salt:()=>SALT,
+  /* firefly positions (island metres) for close proof shots; debug only */
+  ff:()=>{const o=[];for(let i=0;i<FF.n;i++){if(FF.A[i]<.12)continue;o.push({x:FF.P[i*3],y:FF.P[i*3+1],z:FF.P[i*3+2],a:+FF.A[i].toFixed(3),wat:FFP[i].wat||0})}return o},
+  ffShow(on){FF.o.visible=!!on;FFR.o.visible=!!on},
+  fireShow(on){fireG.visible=!!on},
+  /* a procedural stand-in beside the rigged animal, so a proof can show both. Not used by the scene itself. */
+  procBeside(k){const A=k==="os"?PA.os[0]:k==="tt"?PA.tt[0]:k==="gb"?PA.gb[0]:PA.sc[0];if(!A)return null;
+    const x=A.x+ (k==="os"?2.2:k==="tt"?.55:.4),z=A.z,yaw=A.yaw;
+    let P;if(k==="os"){P=osSpawn(true,null);osPlace(P,x,z,yaw);P.mode="stand";P.t=99;PA.os.push(P)}
+    else if(k==="tt"){P=torSpawn(null);torPlace(P,x,z,yaw);P.mode="walk";P.t=99;PA.tt.push(P)}
+    else if(k==="gb"){P=gbSpawn({x,z,yaw,t:0},null);P.mode="stand";P.out=true;P.P.in=0;P.t=99;PA.gb.push(P)}
+    else{P=scSpawn({x,z,r:.2,hx:x,hz:z,hy:yaw,dx:x,dz:z},null,null);P.mode="door";P.t=99;PA.sc.push(P)}
+    P._p=1;P.g.visible=true;return{x,z,y:hTop(x,z)}},
+  hideProc(){for(const k of["os","tt","gb","sc"])for(const A of PA[k])if(A._p)A.g.visible=false},
   /* sound capture for the recorded videos: every voice's level/pan/low-pass per step, mixed offline */
   audCap(on){if(on){AU.cap={t0:st.t,ev:[]};return 0}const c=AU.cap;AU.cap=null;return c?c.ev:[]},AU,OAS,oasisNear,
   /* the made sounds, for the offline mix: k in SYN, at R samples per second */
   synth:(k,R)=>Array.from(SYN[k](R||48000)),tentU,propU,flakes:()=>SNF,
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,play,rsBout}};
 animalsReady.then(()=>{QA.ready=true});
-window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1",...PF_FILES,TR_FILE,"sinai_agama_v1b",...Object.values(PG),RS_FILE])];
+window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1",...PF_FILES,TR_FILE,...AG_FILES,...Object.values(PG),RS_FILE])];
   let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],E=desPre()[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;
     l+=.88*Math.min(sz,Math.max(P?P.l:0,E?E.l:0))+(P&&P.d?.12*sz:0);if(P)d+=P.d}
   /* parsed: every file is in; done: and every model has been placed and drawn once (or half a minute has passed since) */

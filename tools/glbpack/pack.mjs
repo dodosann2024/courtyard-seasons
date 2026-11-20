@@ -14,12 +14,15 @@ const key=path.basename(inp,'.glb');
 const TEX={
   rattlesnake_v1i_mobile:[],
   rattlesnake_v1i:[textureCompress({encoder:sharp,targetFormat:'webp',quality:85,effort:5,resize:[1260,2456],pattern:/tex_body/})],
-  /* a 25 cm lizard: 1024 px colour and 512 px normal/ORM still give ~4 px per mm of animal */
-  sinai_agama_v1b:[textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/baseColor/}),
-    textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,resize:[512,512],slots:/^(?!baseColor)/})],
-  /* a 2.45 m bird seen from a metre or two: plumage colour stays 2048 px */
-  ostrich_v2c:[textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/^(?!baseColor)/}),
-    textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,slots:/baseColor/})],
+  /* a 25 cm lizard: 1024 px colour and 512 px normal/ORM still give ~4 px per mm of animal.
+     v1c and its blue twin share this cap (colour arrives at 2048). */
+  ...Object.fromEntries(['sinai_agama_v1b','sinai_agama_v1c','sinai_agama_v1c_blue'].map(k=>[k,[
+    textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/baseColor/}),
+    textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,resize:[512,512],slots:/^(?!baseColor)/})]])),
+  /* a 2.45 m bird seen from a metre or two: plumage colour stays 2048 px. v2d is v2c plus the sit clip. */
+  ...Object.fromEntries(['ostrich_v2c','ostrich_v2d'].map(k=>[k,[
+    textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/^(?!baseColor)/}),
+    textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,slots:/baseColor/})]])),
   /* 38, 14 and 13 cm animals: 1024 px colour, 512 px normal/ORM; the gerbil's 256 px whisker card is left alone */
   ...Object.fromEntries(['tortoise_v2g','gerbil_v4d','scorpion_v2b','scorpion_uv_v2b'].map(k=>[k,[
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/baseColor/}),

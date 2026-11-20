@@ -4704,7 +4704,7 @@ function osGeo(male){const G=paGeo(),X=OS_IX,w=(a,b)=>[[X[a],.5],[X[b],.5]];
 /* the poses the neck blends between, per joint (bend forward, radians) */
 const OS_NK={stand:[-.12,.06,.06,.02,-.06,.04],alert:[-.24,-.04,0,0,-.02,0],graze:[1.1,.8,.5,.12,.02,0],run:[.5,.2,.05,-.05,-.1,-.05],sit:[-.06,.05,.06,0,-.05,.05],doze:[.35,.45,.5,.4,.3,.2]};
 function osSpawn(male,src){let g,m=null,B,q=null,sc;
-  if(src){sc=male?1:.92;q=pgModel(src,"os",sc,{shadow:1,hen:!male});g=q.g;B={head:q.bn.head}}
+  if(src){sc=male?1:.92;q=pgModel(src,"os",sc,{shadow:1,hen:!male,once:["sit"]});g=q.g;B={head:q.bn.head}}
   else{const G=osGeo(male),R=paBones(OS_B);m=paMesh(G,R);g=new T.Group();sc=male?1.04:.94;g.add(m);g.scale.setScalar(sc);W.add(g);onDes(g);B=R.B}
   const A={g,m,B,male,sc,x:0,z:0,yaw:0,gy:0,v:0,yr:0,gph:0,mode:"stand",t:rr(3,6),path:null,pi:0,vmax:1,
     P:{cr:0,pit:0,gr:0,al:0,run:0,sit:0,doze:0,look:0,peck:0,wing:0,tail:0},lookT:0,lookA:0,peckT:rr(.5,1.5),scanT:rr(4,9),runT:rr(90,200),thr:null,sat:0,
@@ -5120,12 +5120,13 @@ function scLoad(){return Promise.all([pgGet("sc"),pgGet("scUV")]).then(([src,uv]
   if(src&&uv)matsOf(uv.scene,m=>{if(m.emissiveMap&&!glow)glow=m.emissiveMap});
   const geo=moundGeo(SC_MOUND);for(const rk of scRocks()){const A=scSpawn(rk,src,glow);A.gy=hTop(A.x,A.z);PA.sc.push(A);
   const ex=rk.x+SHADE.x*(rk.r+.02),ez=rk.z+SHADE.z*(rk.r+.02);rk.mound=moundAt(geo,ex,ez,Math.atan2(-SHADE.x,-SHADE.z))}})}
-/* ---- the rigged models: Godot's ostrich_v2c, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
+/* ---- the rigged models: Godot's ostrich_v2d, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
    UV-fluorescence twin scorpion_uv_v2b lends its emissive map for the glow under the moon. Each takes the place of the
    procedural mesh above with the same behaviour, schedules, prints and sounds: its pose is the model's own clips, chosen and
-   timed from the same state, plus a few bones turned on top (where it looks, and the ostrich folding its legs to sit, which
-   has no clip). If a file can't be had the procedural animal is built instead. Bones run along their local y (Blender's); three drops the dots from their names. ---- */
-const PG={os:"ostrich_v2c",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
+   timed from the same state, plus a few bones turned on top (where it looks). Night and hail play the ostrich's sit clip.
+   ostrich_v2c.glb stays on disk and is not loaded. If a file can't be had the procedural animal is built instead.
+   Bones run along their local y (Blender's); three drops the dots from their names. ---- */
+const PG={os:"ostrich_v2d",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
 const pgGet=k=>glb(PG[k]).catch(()=>null);
 const PGM=new Map();let PG_GLOW=null;
 /* wet plumage and fur go darker in rain; the hen is the cock's model in her dull grey-brown (black -> earth, white -> buff) */
@@ -5152,25 +5153,31 @@ function pgTurn(b,ax,a){if(b&&a)b.quaternion.multiply(_pgq.setFromAxisAngle(ax,a
 /* turn bone b (world matrices current) so the world point p it carries swings onto the line toward t */
 function pgAim(b,p,t){b.getWorldPosition(_pgv);_pgq.setFromUnitVectors(_pgv2.copy(p).sub(_pgv).normalize(),_pgv3.copy(t).sub(_pgv).normalize());
   b.getWorldQuaternion(_pgq2).premultiply(_pgq);b.parent.getWorldQuaternion(_pgq).invert();b.quaternion.copy(_pgq.multiply(_pgq2));b.updateMatrixWorld(true)}
-/* ostrich: idle, slow_walk (1.0 m/s), fast_run (4.86 m/s) and peck, timed to the ground speed so the feet stay planted */
+/* ostrich: idle, slow_walk (1.0 m/s), fast_run (4.86 m/s), peck, and sit (3.5 s: settle 0–1 s, then a seated hold).
+   Night and hail play sit once from idle and then loop the hold from 1 s; standing up blends back to idle. There is no stand-up clip.
+   The leg fold below is only for a file that has no sit clip. */
 const OS_VW=1,OS_VR=4.86;
 const _ow=[new V3(),new V3(),new V3(),new V3(),new V3(),new V3()];
-function osAnim(A,dt){const P=A.P,v=A.v,R=A.rig;let c="idle",ts=1;
-  if(P.sit<.05){if(A.mode==="run"||v>2.6){c="fast_run";ts=cl(v/OS_VR,.6,1.6)}else if(v>.1){c="slow_walk";ts=cl(v/OS_VW,.3,1.8)}else if(A.mode==="graze")c="peck"}
-  play(R,c,c==="fast_run"||R.cur==="fast_run"?.3:.45,ts);rigTick(R,dt);
-  /* the look: a twist spread up the neck */
-  const lk=P.look*(1-P.run)*(1-.7*P.sit);for(let i=3;i<=7;i++)pgTurn(A.bn["neck0"+i],_pgY,lk*.17);pgTurn(A.bn.head,_pgY,lk*.12);
-  /* sitting: the body goes down onto the folded legs, each shank laid along the sand from the heel forward to the toes */
-  const s=ss(0,1,P.sit);A.mdl.position.y=-.74*s;A.g.updateMatrixWorld(true);
-  if(s>.002){const o=A.g.getWorldPosition(A.sw0),dU=A.g.localToWorld(A.sw1.set(0,.74*s,0)).sub(o),fw=A.g.localToWorld(A.sw2.set(0,.4,1)).sub(o).normalize();
-    for(const sd of[1,-1]){const L=sd>0?"L":"R",th=A.bn["thigh"+L],sh=A.bn["shank"+L],ta=A.bn["tarsometatarsus"+L],ft=A.bn["foot"+L],to=A.bn["toe_main"+L];
-      const hip=th.getWorldPosition(_ow[0]),kn=sh.getWorldPosition(_ow[1]),an=ta.getWorldPosition(_ow[2]),L1=hip.distanceTo(kn),L2=kn.distanceTo(an);
-      const aT=_ow[4].copy(an).add(dU).lerp(A.g.localToWorld(_ow[3].set(sd*.17,.06,-.22)),s),kT=ik2(hip,aT,L1,L2,fw,_ow[5]);
-      pgAim(th,kn,kT);pgAim(sh,ta.getWorldPosition(_ow[1]),aT);
-      const fp=ft.getWorldPosition(_ow[2]),fT=_ow[3].copy(fp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.2,.07,.33)),s);pgAim(ta,fp,fT);
-      const tp=to.getWorldPosition(_ow[2]),tT=_ow[3].copy(tp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.22,.04,.48)),s);pgAim(ft,tp,tT)}}
+function osAnim(A,dt){const P=A.P,v=A.v,R=A.rig,sitC=R.acts.sit;let c="idle",ts=1;
+  if(A.mode==="sit"&&sitC)c="sit";
+  else if(P.sit<.05){if(A.mode==="run"||v>2.6){c="fast_run";ts=cl(v/OS_VR,.6,1.6)}else if(v>.1){c="slow_walk";ts=cl(v/OS_VW,.3,1.8)}else if(A.mode==="graze")c="peck"}
+  play(R,c,c==="fast_run"||R.cur==="fast_run"||c==="sit"||R.cur==="sit"?.4:.45,ts);
+  /* the seated hold breathes from 1 s to 3.5 s; wrapping there keeps the bird down instead of replaying the settle */
+  if(c==="sit"&&(sitC.paused||sitC.time>=3.4)){sitC.paused=false;if(sitC.time>=3.4)sitC.time=1+((sitC.time-1)%2.4)}
+  rigTick(R,dt);
+  if(sitC){A.mdl.position.y=0;if(c!=="sit"){const lk=P.look*(1-P.run);for(let i=3;i<=7;i++)pgTurn(A.bn["neck0"+i],_pgY,lk*.17);pgTurn(A.bn.head,_pgY,lk*.12)}}
+  else{const lk=P.look*(1-P.run)*(1-.7*P.sit);for(let i=3;i<=7;i++)pgTurn(A.bn["neck0"+i],_pgY,lk*.17);pgTurn(A.bn.head,_pgY,lk*.12);
+    /* no sit clip: the body goes down onto the folded legs, each shank laid along the sand */
+    const s=ss(0,1,P.sit);A.mdl.position.y=-.74*s;A.g.updateMatrixWorld(true);
+    if(s>.002){const o=A.g.getWorldPosition(A.sw0),dU=A.g.localToWorld(A.sw1.set(0,.74*s,0)).sub(o),fw=A.g.localToWorld(A.sw2.set(0,.4,1)).sub(o).normalize();
+      for(const sd of[1,-1]){const L=sd>0?"L":"R",th=A.bn["thigh"+L],sh=A.bn["shank"+L],ta=A.bn["tarsometatarsus"+L],ft=A.bn["foot"+L],to=A.bn["toe_main"+L];
+        const hip=th.getWorldPosition(_ow[0]),kn=sh.getWorldPosition(_ow[1]),an=ta.getWorldPosition(_ow[2]),L1=hip.distanceTo(kn),L2=kn.distanceTo(an);
+        const aT=_ow[4].copy(an).add(dU).lerp(A.g.localToWorld(_ow[3].set(sd*.17,.06,-.22)),s),kT=ik2(hip,aT,L1,L2,fw,_ow[5]);
+        pgAim(th,kn,kT);pgAim(sh,ta.getWorldPosition(_ow[1]),aT);
+        const fp=ft.getWorldPosition(_ow[2]),fT=_ow[3].copy(fp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.2,.07,.33)),s);pgAim(ta,fp,fT);
+        const tp=to.getWorldPosition(_ow[2]),tT=_ow[3].copy(tp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.22,.04,.48)),s);pgAim(ft,tp,tT)}}}
   /* prints where a toe actually comes down */
-  if(P.sit<.3&&v>.1)for(let i=0;i<2;i++){const to=A.bn[i?"toe_mainR":"toe_mainL"],p=to.getWorldPosition(_ow[0]);W.worldToLocal(p);
+  if(P.sit<.3&&v>.1)for(let i=0;i<2;i++){const to=A.bn[i?"toe_mainR":"toe_mainL"];if(!to)continue;const p=to.getWorldPosition(_ow[0]);W.worldToLocal(p);
     const h=p.y-hTop(p.x,p.z),f=A.pf[i];if(h>.14)f.up=1;else if(h<.09&&f.up){f.up=0;f.P.set(p.x,0,p.z);f.P.y=hTop(p.x,p.z);f.fy=A.yaw;osTrack(A,f)}}}
 /* tortoise: idle, slow_crawl (~.058 m/s), head_withdraw and head_out (each with the withdraw morph), turned to the state */
 const TOR_V=.058;

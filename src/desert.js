@@ -5168,10 +5168,10 @@ function osAnim(A,dt){const P=A.P,v=A.v,R=A.rig,sitC=R.acts.sit;let c="idle",ts=
   if(c==="sit"&&(sitC.paused||sitC.time>=3.4)){sitC.paused=false;if(sitC.time>=3.4)sitC.time=1+((sitC.time-1)%2.4)}
   rigTick(R,dt);
   /* the sit clip folds the legs and lowers the pelvis, but the plumage still hangs clear of the sand (body mesh about 0.13 m up
-     at the hold). Drop the torso, wings and tail by 0.14 m on top of the clip. The thighs stay on the clip, so the feet stay
+     at the hold). Drop the torso, wings and tail by 0.24 m on top of the clip. The thighs stay on the clip, so the feet stay
      planted. The offset is in island metres (W is scaled). The GLB has no lower pose than this hold. */
   if(c==="sit"&&sitC&&A.bn.body){const u=ss(.2,1,sitC.time)*sitC.getEffectiveWeight(),b=A.bn.body,p=b.parent;
-    if(u>.002&&p){p.updateWorldMatrix(true,false);const w0=p.getWorldPosition(_pgv2),w1=_pgv3.copy(w0);w1.y-=.14*u*W.scale.y;
+    if(u>.002&&p){p.updateWorldMatrix(true,false);const w0=p.getWorldPosition(_pgv2),w1=_pgv3.copy(w0);w1.y-=.24*u*W.scale.y;
       p.worldToLocal(w1);p.worldToLocal(w0);b.position.add(w1.sub(w0))}}
   if(sitC){A.mdl.position.y=0;if(c!=="sit"){const lk=P.look*(1-P.run);for(let i=3;i<=7;i++)pgTurn(A.bn["neck0"+i],_pgY,lk*.17);pgTurn(A.bn.head,_pgY,lk*.12)}}
   else{const lk=P.look*(1-P.run)*(1-.7*P.sit);for(let i=3;i<=7;i++)pgTurn(A.bn["neck0"+i],_pgY,lk*.17);pgTurn(A.bn.head,_pgY,lk*.12);

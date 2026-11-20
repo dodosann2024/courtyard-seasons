@@ -334,9 +334,7 @@ try {
     for (const [x, z] of CR) if (ok(x, z) && q.dune.dMask(x, z) > .3) crest.push([x - R.x * .12, z - R.y * .12, "crest"]);
     await read("top", flat); await read("lee", lee); await read("wind", [...ww, ...crest]);
     const st = {}; for (const k in S) { const L = S[k]; st[k] = {n: L.length, covered: L.length ? +(L.filter(g => g > .06).length / L.length).toFixed(3) : null, gain: L.length ? +(L.reduce((s, g) => s + g, 0) / L.length).toFixed(3) : null}; }
-    /* the covered fraction swings by about 0.05 with ripple phase and which pixels the camera keeps, so a 0.20 gap
-       (trough ~0.26, ridge ~0.07) fails a run that still shows troughs clearly whiter than ridges. 0.12 keeps that gap. */
-    const pass = Object.values(st).every(s => s.n >= 20) && st.lee.covered > .4 && st.windward.covered < .12 && st.crest.covered < .2 && st.trough.covered > st.ridge.covered + .12 && st.lee.covered > st.windward.covered + .3;
+    const pass = Object.values(st).every(s => s.n >= 20) && st.lee.covered > .4 && st.windward.covered < .12 && st.crest.covered < .2 && st.trough.covered > st.ridge.covered + .2 && st.lee.covered > st.windward.covered + .3;
     return [pass, st];
   }, shots, views));
   await page.evaluate(() => { const C = window.__C(); C.Ce.enabled = true; Object.assign(window.__desQA().WX, {sc: 0, sp: 0}); });

@@ -410,7 +410,7 @@ function sandMat(){
             trF=mix(smoothstep(.3,-.6,hn*am),.45,smoothstep(.07,.3,fwS));}
           /* the stripes follow the fine ripples (a hand apart); on flat sand the coarse troughs hold more of them than the coarse ridges */
           float kM=mix(.5,.3,vDn.x),kF=mix(.4,.18,vDn.x),nrK=1.-smoothstep(.07,.3,fwS),tr=mix(kM*trM+(1.-kM)*.45,kF*trM+(1.-kF)*trF,nrK),nn=dn2(q*.7+3.1)*.6+dn2(q*2.3)*.4;
-          float B0=.95*lee+.3*nf-1.1*ww-1.4*crs+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),B=B0+(tr-.5)*1.95,ew=.13+fwS*.5;
+          float B0=.95*lee+.3*nf-1.1*ww-2.4*crs+(nn-.5)*.32-.5*smoothstep(1.35,1.,pn),B=B0+(tr-.5)*1.95,ew=.13+fwS*.5;
           float lv=B+.38*uSnow-.31-wet*1.5-.3*(1.-smoothstep(.0,.25,uSnow));
           /* close up the dusting is not a set of patches but a thin line of grains in the bottom of each ripple trough: the slope,
              shade and coarse troughs only set how much there is, which widens the lines until they merge on the lee face. Up close

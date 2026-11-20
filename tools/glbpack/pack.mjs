@@ -19,8 +19,8 @@ const TEX={
   ...Object.fromEntries(['sinai_agama_v1b','sinai_agama_v1c','sinai_agama_v1c_blue'].map(k=>[k,[
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/baseColor/}),
     textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,resize:[512,512],slots:/^(?!baseColor)/})]])),
-  /* a 2.45 m bird seen from a metre or two: plumage colour stays 2048 px. v2d is v2c plus the sit clip. */
-  ...Object.fromEntries(['ostrich_v2c','ostrich_v2d'].map(k=>[k,[
+  /* a 2.45 m bird seen from a metre or two: plumage colour stays 2048 px. v2e is v2d with a deeper sit. */
+  ...Object.fromEntries(['ostrich_v2c','ostrich_v2d','ostrich_v2e'].map(k=>[k,[
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/^(?!baseColor)/}),
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,slots:/baseColor/})]])),
   /* 38, 14 and 13 cm animals: 1024 px colour, 512 px normal/ORM; the gerbil's 256 px whisker card is left alone */

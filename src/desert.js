@@ -5122,13 +5122,13 @@ function scLoad(){return Promise.all([pgGet("sc"),pgGet("scUV")]).then(([src,uv]
   if(src&&uv)matsOf(uv.scene,m=>{if(m.emissiveMap&&!glow)glow=m.emissiveMap});
   const geo=moundGeo(SC_MOUND);for(const rk of scRocks()){const A=scSpawn(rk,src,glow);A.gy=hTop(A.x,A.z);PA.sc.push(A);
   const ex=rk.x+SHADE.x*(rk.r+.02),ez=rk.z+SHADE.z*(rk.r+.02);rk.mound=moundAt(geo,ex,ez,Math.atan2(-SHADE.x,-SHADE.z))}})}
-/* ---- the rigged models: Godot's ostrich_v2d, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
+/* ---- the rigged models: Godot's ostrich_v2e, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
    UV-fluorescence twin scorpion_uv_v2b lends its emissive map for the glow under the moon. Each takes the place of the
    procedural mesh above with the same behaviour, schedules, prints and sounds: its pose is the model's own clips, chosen and
    timed from the same state, plus a few bones turned on top (where it looks). Night and hail play the ostrich's sit clip.
-   ostrich_v2c.glb stays on disk and is not loaded. If a file can't be had the procedural animal is built instead.
+   ostrich_v2c.glb and ostrich_v2d.glb stay on disk and are not loaded. If a file can't be had the procedural animal is built instead.
    Bones run along their local y (Blender's); three drops the dots from their names. ---- */
-const PG={os:"ostrich_v2d",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
+const PG={os:"ostrich_v2e",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
 const pgGet=k=>glb(PG[k]).catch(()=>null);
 const PGM=new Map();let PG_GLOW=null;
 /* wet plumage and fur go darker in rain; the hen is the cock's model in her dull grey-brown (black -> earth, white -> buff) */
@@ -5167,12 +5167,6 @@ function osAnim(A,dt){const P=A.P,v=A.v,R=A.rig,sitC=R.acts.sit;let c="idle",ts=
   /* the seated hold breathes from 1 s to 3.5 s; wrapping there keeps the bird down instead of replaying the settle */
   if(c==="sit"&&(sitC.paused||sitC.time>=3.4)){sitC.paused=false;if(sitC.time>=3.4)sitC.time=1+((sitC.time-1)%2.4)}
   rigTick(R,dt);
-  /* the sit clip folds the legs and lowers the pelvis, but the plumage still hangs clear of the sand (body mesh about 0.13 m up
-     at the hold). Drop the torso, wings and tail by 0.24 m on top of the clip. The thighs stay on the clip, so the feet stay
-     planted. The offset is in island metres (W is scaled). The GLB has no lower pose than this hold. */
-  if(c==="sit"&&sitC&&A.bn.body){const u=ss(.2,1,sitC.time)*sitC.getEffectiveWeight(),b=A.bn.body,p=b.parent;
-    if(u>.002&&p){p.updateWorldMatrix(true,false);const w0=p.getWorldPosition(_pgv2),w1=_pgv3.copy(w0);w1.y-=.24*u*W.scale.y;
-      p.worldToLocal(w1);p.worldToLocal(w0);b.position.add(w1.sub(w0))}}
   if(sitC){A.mdl.position.y=0;if(c!=="sit"){const lk=P.look*(1-P.run);for(let i=3;i<=7;i++)pgTurn(A.bn["neck0"+i],_pgY,lk*.17);pgTurn(A.bn.head,_pgY,lk*.12)}}
   else{const lk=P.look*(1-P.run)*(1-.7*P.sit);for(let i=3;i<=7;i++)pgTurn(A.bn["neck0"+i],_pgY,lk*.17);pgTurn(A.bn.head,_pgY,lk*.12);
     /* no sit clip: the body goes down onto the folded legs, each shank laid along the sand */

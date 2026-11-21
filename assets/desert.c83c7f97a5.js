@@ -5217,13 +5217,13 @@ function scLoad(){return Promise.all([pgGet("sc"),pgGet("scUV")]).then(([src,uv]
   if(src&&uv)matsOf(uv.scene,m=>{if(m.emissiveMap&&!glow)glow=m.emissiveMap});
   const geo=moundGeo(SC_MOUND);for(const rk of scRocks()){const A=scSpawn(rk,src,glow);A.gy=hTop(A.x,A.z);PA.sc.push(A);
   const ex=rk.x+SHADE.x*(rk.r+.02),ez=rk.z+SHADE.z*(rk.r+.02);rk.mound=moundAt(geo,ex,ez,Math.atan2(-SHADE.x,-SHADE.z))}})}
-/* ---- the rigged models: Godot's ostrich_v2ag, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
+/* ---- the rigged models: Godot's ostrich_v2ag, tortoise_v2g (with its withdraw morph), gerbil_v5 (with its lookout_fix morph) and scorpion_v2b, whose
    UV-fluorescence twin scorpion_uv_v2b lends its emissive map for the glow under the moon. Each takes the place of the
    procedural mesh above with the same behaviour, schedules, prints and sounds: its pose is the model's own clips, chosen and
    timed from the same state, plus a few bones turned on top (where it looks). Night and hail play the ostrich's sit clip.
-   ostrich_v2c.glb through ostrich_v2af.glb stay on disk and are not loaded. If a file can't be had the procedural animal is built instead.
+   ostrich_v2c.glb through ostrich_v2af.glb and gerbil_v4d.glb stay on disk and are not loaded. If a file can't be had the procedural animal is built instead.
    Bones run along their local y (Blender's); three drops the dots from their names. ---- */
-const PG={os:"ostrich_v2ag",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
+const PG={os:"ostrich_v2ag",tt:"tortoise_v2g",gb:"gerbil_v5",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
 const pgGet=k=>glb(PG[k]).catch(()=>null);
 const PGM=new Map();let PG_GLOW=null;
 /* wet plumage and fur go darker in rain; the hen is the cock's model in her dull grey-brown (black -> earth, white -> buff) */
@@ -5240,8 +5240,10 @@ function pgMats(s,k,o){animalMats(s,false);matsOf(s,(m,c)=>{const key=m.uuid+k+(
     n.customProgramCacheKey=()=>"pg"+k+(o.hen?"h":"")+(o.glow?"g":"")}
   c.material=n})}
 function pgModel(src,k,sc,o){const s=VT.cloneSkinned(src.scene),g=new T.Group();g.add(s);g.scale.setScalar(sc);W.add(g);onDes(g);
-  /* alpha-blended cards would cast solid quads (the shadow pass reads alpha only with alphaTest), so they cast none */
-  s.traverse(c=>{if(c.isMesh){c.castShadow=!!o.shadow&&!c.material.transparent;c.receiveShadow=true;c.frustumCulled=false}});pgMats(s,k,o);
+  s.traverse(c=>{if(c.isMesh){c.castShadow=!!o.shadow;c.receiveShadow=true;c.frustumCulled=false}});pgMats(s,k,o);
+  /* after animalMats (which turns every mesh's shadow on): alpha-blended cards would cast solid quads, since the shadow pass
+     reads alpha only with alphaTest, so they cast none */
+  s.traverse(c=>{if(c.isMesh&&c.material.transparent)c.castShadow=false});
   /* every primitive comes with its own Skeleton over the same bones, and each one is recomputed and its bone texture uploaded
      every frame (16 per ostrich). Primitives whose bones and inverses match share the first one. */
   const sks=[];s.traverse(c=>{if(!c.isSkinnedMesh)return;const a=c.skeleton,m=sks.find(b=>b.bones.length===a.bones.length&&b.bones.every((x,i)=>x===a.bones[i])&&b.boneInverses.every((x,i)=>x.equals(a.boneInverses[i])));
@@ -5299,8 +5301,10 @@ function torAnim(A,dt){const P=A.P,R=A.rig,inS=A.mode==="shell"||A.mode==="sleep
   /* cropping, drinking and looking about, on top of the clip */
   const ho=c==="idle"||c==="slow_crawl"?1:0;pgTurn(A.bn.neck1,_pgX,ho*(.3*P.gr+.45*P.dr));pgTurn(A.bn.head,_pgX,ho*(.25*P.gr+.3*P.dr+.15*P.bite));
   pgTurn(A.bn.neck2,_pgY,ho*P.look*.5)}
-/* gerbil: idle, stand_lookout (the upright hind-foot stand; played as authored), dig and hop_run (.36 m/s per 0.3 s hop).
-   Extra bone pitch on top of stand_lookout tore the skin and tipped the nose down, so the clip is left alone. */
+/* gerbil v5 (v4d's 39 bones and clips on the Tripo fur): idle, stand_lookout (the upright hind-foot stand; played as authored),
+   dig and hop_run (.36 m/s per 0.3 s hop). Every clip carries a lookout_fix weight track (1 in stand_lookout, 0 in the rest),
+   so the chest corrective fades in and out with the crossfade. Extra bone pitch on top of stand_lookout tore the skin and
+   tipped the nose down, so the clip is left alone. The body is v4d's length; the tail is 45 mm (x1.25 in the scene) longer. */
 const GB_SC=1.25,GB_VH=.36;
 function gbAnim(A,dt){const P=A.P,R=A.rig;let c="idle",ts=1;
   if(A.v>.05){c="hop_run";ts=cl(A.v/(GB_VH*GB_SC),.8,2.4)}

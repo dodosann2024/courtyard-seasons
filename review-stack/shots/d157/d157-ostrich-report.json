@@ -1,0 +1,97 @@
+{
+  "live": {
+    "desert": "assets/desert.9dc1b7ad41.js",
+    "os": 2777816
+  },
+  "ostrich": {
+    "file": "ostrich_v2ag",
+    "glb": true,
+    "clips": [
+      "fast_run",
+      "idle",
+      "peck",
+      "sit",
+      "slow_walk",
+      "stand_up"
+    ]
+  },
+  "sitSpot": {
+    "x": -5.300000000000004,
+    "z": -6.100000000000001,
+    "dh": 0.035,
+    "score": 1.93
+  },
+  "sitMetrics": {
+    "settle": {
+      "cur": "sit",
+      "sitT": 0.3,
+      "upT": 1.65,
+      "limbScaleMaxOff": 0.0005,
+      "mdlY": 0,
+      "morph": {
+        "soft_mound": 0.945,
+        "sit_skirt": 1.653
+      }
+    },
+    "hold": {
+      "cur": "sit",
+      "sitT": 1.6,
+      "upT": 0,
+      "limbScaleMaxOff": 0,
+      "mdlY": 0,
+      "morph": {
+        "soft_mound": 1,
+        "sit_skirt": 1.75
+      }
+    },
+    "standup": {
+      "cur": "stand_up",
+      "sitT": 0,
+      "upT": 1.033,
+      "limbScaleMaxOff": 0,
+      "mdlY": 0,
+      "morph": {
+        "soft_mound": 1,
+        "sit_skirt": 1.75
+      }
+    }
+  },
+  "sitHeights": {
+    "yStand": 2.102,
+    "yHold": 1.904
+  },
+  "sitCycle": {
+    "fps": 30,
+    "frames": 180,
+    "marks": {
+      "stand": 3,
+      "settle": 15,
+      "hold": 68,
+      "up": 138,
+      "done": 168
+    }
+  },
+  "run": {
+    "info": {
+      "best": {
+        "x0": 7.099999999999994,
+        "z0": -11.200000000000003,
+        "yaw": 4.71238898038469,
+        "dx": -1,
+        "dz": -1.8369701987210297e-16,
+        "len": 16.1
+      },
+      "plants": 20,
+      "cur": "fast_run"
+    },
+    "summary": {
+      "n": 89,
+      "wraps": 5,
+      "modes": [
+        "run/fast_run"
+      ],
+      "minPN": 3.46,
+      "cap": false
+    }
+  }
+}

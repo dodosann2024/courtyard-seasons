@@ -132,11 +132,11 @@ const report = {};
 
 try {
   await boot(page, "desert");
-  const live = await page.evaluate(() => ({desert: window.CY && window.CY.desert, os: window.CY && window.CY.ms && window.CY.ms.ostrich_v2af}));
+  const live = await page.evaluate(() => ({desert: window.CY && window.CY.desert, os: window.CY && window.CY.ms && window.CY.ms.ostrich_v2ag}));
   console.log("live", JSON.stringify(live));
   report.live = live;
   if (!live.desert || !/desert\.[0-9a-f]+\.js$/.test(live.desert)) fails.push("desert bundle missing");
-  if (!live.os) fails.push("ostrich_v2af not in the live manifest");
+  if (!live.os) fails.push("ostrich_v2ag not in the live manifest");
   let sea = null;
   const seaPage = async () => {
     if (sea) return sea;
@@ -314,6 +314,215 @@ try {
     await ffmpeg(["-framerate", "24", "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", path.join(OUT, "crab-claw-open-close.mp4")]);
     fs.rmSync(dir, {recursive: true, force: true});
     console.log("encoded crab", N);
+  }
+  /* ostrich_v2ag in the scene: the engine plays sit and stand_up as authored (no bone offsets, no caption). The cock alone,
+     on level sand south of the palms facing east, so the side camera sits due south. */
+  const OSN = "ostrich_v2ag";
+  if (want("sit") || want("sitstill") || want("run")) {
+    const live = await page.evaluate(() => { const q = window.__desQA(), A = q.PA.os.find(o => o.male) || q.PA.os[0];
+      return {glb: !!(A && A.rig), clips: A && A.rig ? Object.keys(A.rig.acts) : []}; });
+    console.log("ostrich", OSN, JSON.stringify(live));
+    report.ostrich = {file: OSN, ...live};
+    if (!live.glb) fails.push("ostrich rig not loaded");
+  }
+  if (want("sit") || want("sitstill")) {
+    const spot = await page.evaluate(() => {
+      const q = window.__desQA();
+      window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day");
+      q.PA.noView = true;
+      if (q.ANIM.eagle && q.ANIM.eagle.pos) q.ANIM.eagle.pos.set(40, 22, 40);
+      q.ANIM.camels.forEach((c, i) => { c.x = -22; c.z = -18 - i * 4; c.g.position.set(c.x, q.hTop(c.x, c.z), c.z); });
+      const yaw = Math.PI / 2, pondOut = (x, z) => Math.hypot((x - q.POND.x) / q.POND.rx, (z - q.POND.z) / q.POND.rz);
+      let best = null;
+      for (let z = -8.2; z <= -5.2; z += .35) for (let x = -9.5; x <= -3.2; x += .35) {
+        if (q.pN(x, z) < 1.55 || !q.osOpen(x, z) || pondOut(x, z) < 1.15) continue;
+        let near = 99;
+        for (const p of q.PALMS) near = Math.min(near, Math.hypot(x - p.x, z - p.z));
+        near = Math.min(near, Math.hypot(x - q.TENT.x, z - q.TENT.z), Math.hypot(x - q.FIRE.x, z - q.FIRE.z));
+        if (near < 2.4) continue;
+        let cam = 99;
+        for (const a of [0, Math.PI, Math.PI / 2, -Math.PI / 2]) for (let d = 1.4; d <= 7.4; d += 1) {
+          const px = x + Math.sin(yaw + a) * d, pz = z + Math.cos(yaw + a) * d;
+          for (const p of q.PALMS) cam = Math.min(cam, Math.hypot(px - p.x, pz - p.z));
+        }
+        if (cam < 1.25) continue;
+        let dh = 0;
+        for (const [dx, dz] of [[.7, 0], [-.7, 0], [0, .7], [0, -.7]]) dh = Math.max(dh, Math.abs(q.hTop(x + dx, z + dz) - q.hTop(x, z)));
+        const score = cam + near * .2 - dh * 20;
+        if (!best || score > best.score) best = {x, z, dh: +dh.toFixed(4), score: +score.toFixed(2)};
+      }
+      const A = q.PA.os.find(o => o.male) || q.PA.os[0];
+      window.__sit = {x: best.x, z: best.z, yaw};
+      q.osPlace(A, best.x, best.z, yaw);
+      for (const o of q.PA.os) if (o !== A) { o.mode = "sit"; o.t = 999; o.g.visible = false; o.x = best.x + 14; o.z = best.z + 14; }
+      for (let i = 0; i < 20; i++) { A.mode = "stand"; A.t = 999; A.v = 0; A.thr = null; A.path = null; A.g.visible = true; A.x = best.x; A.z = best.z; A.yaw = yaw; q.step(1, 1 / 30); }
+      return best;
+    });
+    console.log("sit spot", JSON.stringify(spot));
+    report.sitSpot = spot;
+    /* bone scales, morph weights and how far the body's lowest skinned vertex sits from the sand */
+    const metrics = () => page.evaluate(() => {
+      const q = window.__desQA(), A = q.PA.os.find(o => o.male) || q.PA.os[0];
+      A.g.updateMatrixWorld(true);
+      let scaleOff = 0;
+      /* limbs only: the clips' own scale tracks fold the wings and tuck the tail */
+      A.mdl.traverse(b => { if (b.isBone && /thigh|shank|tarso|foot|toe/i.test(b.name)) scaleOff = Math.max(scaleOff, Math.abs(b.scale.x - 1), Math.abs(b.scale.y - 1), Math.abs(b.scale.z - 1)); });
+      const morph = {};
+      A.mdl.traverse(m => { if (m.isMesh && m.morphTargetInfluences && m.morphTargetDictionary) for (const [n, i] of Object.entries(m.morphTargetDictionary)) morph[n] = Math.max(morph[n] || 0, +m.morphTargetInfluences[i].toFixed(3)); });
+      const sit = A.rig.acts.sit, up = A.rig.acts.stand_up;
+      return {cur: A.rig.cur, sitT: +sit.time.toFixed(3), upT: +up.time.toFixed(3), limbScaleMaxOff: +scaleOff.toFixed(4), mdlY: +A.mdl.position.y.toFixed(4), morph};
+    });
+    const drive = async (mode, pred, cap) => {
+      let last = null;
+      for (let i = 0; i < cap; i++) {
+        last = await page.evaluate(mode => {
+          const q = window.__desQA(), A = q.PA.os.find(o => o.male) || q.PA.os[0], s = window.__sit;
+          A.mode = mode; A.t = 999; A.v = 0; A.yr = 0; A.x = s.x; A.z = s.z; A.yaw = s.yaw; A.thr = null; A.path = null; A.g.visible = true;
+          q.step(1, 1 / 30);
+          A.x = s.x; A.z = s.z; A.yaw = s.yaw;
+          const sit = A.rig.acts.sit, up = A.rig.acts.stand_up;
+          A.g.updateMatrixWorld(true);
+          return {cur: A.rig.cur, sitT: sit.time, upT: up.time, w: sit.getEffectiveWeight(), wu: up.getEffectiveWeight(), by: A.bn.body.getWorldPosition(new A.g.position.constructor()).y};
+        }, mode);
+        if (pred(last)) return last;
+      }
+      return last;
+    };
+    const cam = kind => page.evaluate(kind => {
+      const q = window.__desQA(), C = window.__C(), s = window.__sit, yaw = s.yaw, gy = q.hTop(s.x, s.z);
+      const at = (px, pz, y, ly, fov) => { q.lookAt(px, gy + y, pz, s.x, gy + ly, s.z); C.De.fov = fov; C.De.near = .04; C.De.updateProjectionMatrix(); };
+      const side = (d, y, ly, fov) => at(s.x + Math.sin(yaw + Math.PI / 2) * d, s.z + Math.cos(yaw + Math.PI / 2) * d, y, ly, fov);
+      const face = (sg, d, y, ly, fov) => at(s.x + Math.sin(yaw) * d * sg, s.z + Math.cos(yaw) * d * sg, y, ly, fov);
+      ({side: () => side(7.2, 1.15, .95, 28), front: () => face(1, 7.4, 1.15, .95, 28), back: () => face(-1, 7.4, 1.2, .9, 28), low: () => side(7.6, .42, .85, 30),
+        mside: () => side(5, .95, .72, 30), mfront: () => face(1, 5.2, .95, .72, 30), mback: () => face(-1, 5.2, 1, .7, 30)})[kind]();
+    }, kind);
+    const M = report.sitMetrics = {};
+    /* "mid" is where the body bone is halfway between its standing and its seated height */
+    const yStand = (await drive("stand", s => s.cur === "idle" && s.wu < .01, 120)).by;
+    const yHold = (await drive("sit", s => s.cur === "sit" && s.sitT >= 1.6, 120)).by;
+    const yMid = (yStand + yHold) / 2;
+    report.sitHeights = {yStand: +yStand.toFixed(3), yHold: +yHold.toFixed(3)};
+    await drive("stand", s => s.cur === "idle" && s.wu < .01, 120);
+    console.log("settle", JSON.stringify(await drive("sit", s => s.cur === "sit" && s.w > .9 && s.by <= yMid, 80)));
+    M.settle = await metrics();
+    for (const k of ["side", "front", "back"]) { await cam("m" + k); await shot(page, `${OSN}_settle_${k}.png`); }
+    console.log("hold", JSON.stringify(await drive("sit", s => s.cur === "sit" && s.sitT >= 1.6 && s.sitT <= 3.1, 120)));
+    M.hold = await metrics();
+    for (const k of ["side", "front", "back", "low"]) { await cam(k); await shot(page, `${OSN}_hold_${k}.png`); }
+    console.log("standup", JSON.stringify(await drive("stand", s => s.cur === "stand_up" && s.wu > .9 && s.by >= yMid, 90)));
+    M.standup = await metrics();
+    for (const k of ["side", "front", "back"]) { await cam("m" + k); await shot(page, `${OSN}_standup_${k}.png`); }
+    console.log("sit metrics", JSON.stringify(M));
+    for (const k in M) if (M[k].limbScaleMaxOff > .001 || M[k].mdlY !== 0) fails.push(`ostrich ${k}: limb scale or body offset`);
+    if (!(M.hold.morph.sit_skirt > 1 && M.hold.morph.soft_mound > .5)) fails.push("ostrich hold: sit_skirt/soft_mound not driven by the clip");
+
+    /* stand -> sit -> hold -> stand_up -> stand, fixed side camera, one 1/30 s step per frame, 30 fps */
+    if (want("sit")) {
+    await page.evaluate(() => {
+      const q = window.__desQA(), A = q.PA.os.find(o => o.male) || q.PA.os[0], s = window.__sit;
+      for (let i = 0; i < 40; i++) { A.mode = "stand"; A.t = 999; A.v = 0; A.x = s.x; A.z = s.z; A.yaw = s.yaw; A.thr = null; A.path = null; q.step(1, 1 / 30); }
+    });
+    await cam("side");
+    const dir = path.join(OUT, "sit-frames");
+    fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir);
+    const marks = {}, N = 30 * 6;
+    for (let i = 0; i < N; i++) {
+      const s = await page.evaluate(i => {
+        const q = window.__desQA(), A = q.PA.os.find(o => o.male) || q.PA.os[0], s = window.__sit, t = i / 30;
+        const mode = t >= .3 && t < 3.6 ? "sit" : "stand";
+        A.mode = mode; A.t = 999; A.v = 0; A.yr = 0; A.x = s.x; A.z = s.z; A.yaw = s.yaw; A.thr = null; A.path = null; A.g.visible = true;
+        q.step(1, 1 / 30);
+        A.x = s.x; A.z = s.z; A.yaw = s.yaw;
+        A.g.updateMatrixWorld(true);
+        return {cur: A.rig.cur, sitT: +A.rig.acts.sit.time.toFixed(3), upT: +A.rig.acts.stand_up.time.toFixed(3), by: A.bn.body.getWorldPosition(new A.g.position.constructor()).y};
+      }, i);
+      if (marks.stand == null && i >= 3) marks.stand = i;
+      if (marks.settle == null && s.cur === "sit" && s.by <= yMid) marks.settle = i;
+      if (marks.hold == null && s.cur === "sit" && s.sitT >= 2) marks.hold = i;
+      if (marks.up == null && marks.hold != null && s.cur === "stand_up" && s.by >= yMid) marks.up = i;
+      if (marks.up != null && marks.done == null && s.cur !== "stand_up" && s.cur !== "sit") marks.done = Math.min(N - 1, i + 12);
+      await frames(page, 1);
+      await page.screenshot({path: path.join(dir, String(i).padStart(4, "0") + ".png")});
+    }
+    console.log("sit cycle marks", JSON.stringify(marks));
+    report.sitCycle = {fps: 30, frames: N, marks};
+    await ffmpeg(["-framerate", "30", "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", path.join(OUT, `${OSN}_sit_cycle_side.mp4`)]);
+    const pick = [marks.stand, marks.settle, marks.hold, marks.up, marks.done ?? N - 1].filter(n => n != null);
+    await ffmpeg([...pick.flatMap(n => ["-i", path.join(dir, String(n).padStart(4, "0") + ".png")]), "-filter_complex",
+      pick.map((_, j) => `[${j}:v]scale=640:360[s${j}]`).join(";") + ";" + pick.map((_, j) => `[s${j}]`).join("") + `hstack=inputs=${pick.length}`,
+      path.join(OUT, `${OSN}_stand_sit_standup_strip.png`)]);
+    fs.rmSync(dir, {recursive: true, force: true});
+    console.log("encoded sit cycle", pick.join(","));
+    }
+  }
+  if (want("run")) {
+    const info = await page.evaluate(() => {
+      const q = window.__desQA();
+      window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day");
+      q.PA.noView = true;
+      if (q.ANIM.eagle && q.ANIM.eagle.pos) q.ANIM.eagle.pos.set(40, 22, 40);
+      q.ANIM.camels.forEach((c, i) => { c.x = -22; c.z = 16 - i * 4; c.g.position.set(c.x, q.hTop(c.x, c.z), c.z); });
+      if (q.rsPut) q.rsPut(18, 14, 0);
+      const slope = (x, z) => { let dh = 0; for (const [dx, dz] of [[.6, 0], [-.6, 0], [0, .6], [0, -.6]]) dh = Math.max(dh, Math.abs(q.hTop(x + dx, z + dz) - q.hTop(x, z))); return dh; };
+      /* cacti and shrubs kept 2.5 m off the path, so the bird never reads as passing over one */
+      const plants = q.OBST.filter(o => o.k === "cactus" || o.k === "sag" || o.k === "shrub");
+      const clear = (x, z) => plants.every(o => Math.hypot(x - o.x, z - o.z) > o.r + 2.5);
+      const ok = (x, z) => q.sN(x, z) < .74 && q.pN(x, z) >= 3.45 && q.osOpen(x, z) && q.dune.dMask(x, z) < .18 && slope(x, z) < .16 && clear(x, z)
+        && Math.hypot(x - q.FIRE.x, z - q.FIRE.z) > 6 && Math.hypot(x - q.TENT.x, z - q.TENT.z) > 5;
+      let best = null;
+      for (let a = 0; a < 16; a++) {
+        const yaw = a * Math.PI / 8, dx = Math.sin(yaw), dz = Math.cos(yaw);
+        for (let z0 = -14; z0 <= 10; z0 += .7) for (let x0 = -16; x0 <= 16; x0 += .7) {
+          if (!ok(x0, z0)) continue;
+          let len = 0;
+          for (; len < 36; len += .35) if (!ok(x0 + dx * len, z0 + dz * len)) break;
+          if (!best || len > best.len) best = {x0, z0, yaw, dx, dz, len: +len.toFixed(2)};
+        }
+      }
+      if (!best || best.len < 14) return {best, fail: "no clear sand run"};
+      const A = q.PA.os.find(o => o.male) || q.PA.os[0];
+      const travel = Math.min(best.len - 1.2, 22), x1 = best.x0 + best.dx * travel, z1 = best.z0 + best.dz * travel;
+      q.osPlace(A, best.x0, best.z0, best.yaw);
+      A.path = [{x: best.x0, z: best.z0}, {x: x1, z: z1}, {x: best.x0 + best.dx * (travel + 8), z: best.z0 + best.dz * (travel + 8)}];
+      A.pi = 1; A.mode = "run"; A.vmax = 4.9; A.v = 4.6; A.t = 999; A.runT = 999; A.then = null; A.thr = null; A.P.sit = 0; A.g.visible = true;
+      for (const o of q.PA.os) if (o !== A) { o.mode = "sit"; o.t = 999; o.g.visible = false; }
+      window.__run = {yaw: best.yaw, plants: plants.length};
+      window.__runCam = () => { const C = window.__C(), y = window.__run.yaw, d = 8.2;
+        q.lookAt(A.x + Math.cos(y) * d, A.gy + 1.25, A.z - Math.sin(y) * d, A.x, A.gy + 1.05, A.z); C.De.fov = 30; C.De.near = .05; C.De.updateProjectionMatrix();
+        for (const o of q.PA.os) if (o !== A) o.g.visible = false; };
+      for (let i = 0; i < 28; i++) { A.mode = "run"; A.t = 999; A.vmax = 4.9; q.step(1, 1 / 24); window.__runCam(); }
+      return {best, plants: plants.length, cur: A.rig && A.rig.cur};
+    });
+    console.log("run path", JSON.stringify(info));
+    report.run = {info};
+    if (!info || info.fail) fails.push(info && info.fail || "run path failed");
+    else {
+      const dir = path.join(OUT, "run-frames");
+      fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir);
+      const samples = [];
+      let wraps = 0, prev = null;
+      for (let i = 0; i < 24 * 4; i++) {
+        const s = await page.evaluate(() => {
+          const q = window.__desQA(), A = q.PA.os.find(o => o.male) || q.PA.os[0];
+          q.step(1, 1 / 24); window.__runCam();
+          const act = A.rig.acts.fast_run, txt = document.body.innerText || "";
+          return {mode: A.mode, cur: A.rig.cur, pN: +q.pN(A.x, A.z).toFixed(2), clip: +act.time.toFixed(3), cap: /跑/.test(txt) && [...document.querySelectorAll("body *")].some(n => n.offsetParent && /跑/.test(n.textContent) && !n.children.length)};
+        });
+        if (i > 6 && (s.mode !== "run" || s.cur !== "fast_run")) break;
+        if (prev != null && s.clip < prev - .04) wraps++;
+        prev = s.clip; samples.push(s);
+        await frames(page, 1);
+        await page.screenshot({path: path.join(dir, String(samples.length - 1).padStart(4, "0") + ".png")});
+      }
+      const sum = report.run.summary = {n: samples.length, wraps, modes: [...new Set(samples.map(s => s.mode + "/" + s.cur))], minPN: Math.min(...samples.map(s => s.pN)), cap: samples.some(s => s.cap)};
+      console.log("run", JSON.stringify(sum));
+      if (sum.wraps < 3) fails.push("run has fewer than 3 gait cycles");
+      if (!sum.modes.every(m => m === "run/fast_run")) fails.push("run left fast_run");
+      if (sum.cap) fails.push("run has a 跑 caption");
+      await ffmpeg(["-framerate", "24", "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", path.join(OUT, `${OSN}-run-side.mp4`)]);
+      fs.rmSync(dir, {recursive: true, force: true});
+      console.log("encoded run");
+    }
   }
 } catch (e) {
   console.log("PROOF ERROR", String(e && e.stack || e).slice(0, 1500));

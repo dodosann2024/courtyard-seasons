@@ -5240,7 +5240,8 @@ function pgMats(s,k,o){animalMats(s,false);matsOf(s,(m,c)=>{const key=m.uuid+k+(
     n.customProgramCacheKey=()=>"pg"+k+(o.hen?"h":"")+(o.glow?"g":"")}
   c.material=n})}
 function pgModel(src,k,sc,o){const s=VT.cloneSkinned(src.scene),g=new T.Group();g.add(s);g.scale.setScalar(sc);W.add(g);onDes(g);
-  s.traverse(c=>{if(c.isMesh){c.castShadow=!!o.shadow;c.receiveShadow=true;c.frustumCulled=false}});pgMats(s,k,o);
+  /* alpha-blended cards would cast solid quads (the shadow pass reads alpha only with alphaTest), so they cast none */
+  s.traverse(c=>{if(c.isMesh){c.castShadow=!!o.shadow&&!c.material.transparent;c.receiveShadow=true;c.frustumCulled=false}});pgMats(s,k,o);
   /* every primitive comes with its own Skeleton over the same bones, and each one is recomputed and its bone texture uploaded
      every frame (16 per ostrich). Primitives whose bones and inverses match share the first one. */
   const sks=[];s.traverse(c=>{if(!c.isSkinnedMesh)return;const a=c.skeleton,m=sks.find(b=>b.bones.length===a.bones.length&&b.bones.every((x,i)=>x===a.bones[i])&&b.boneInverses.every((x,i)=>x.equals(a.boneInverses[i])));

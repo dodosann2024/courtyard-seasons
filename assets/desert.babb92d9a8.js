@@ -1471,7 +1471,12 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
     /* a gap in the rim rocks and props, away from the pond, where the cliff does not bulge out under the lip; a fall with no room is tried narrower */
     for(let tries=0;tries<4&&!best;tries++,hw*=.72)for(let c=0;c<12;c++){const th=k*sl+.4+prr(-.42,.42)*sl,[ix,iz]=edgeXZ(th,.93);if(pN(ix,iz)<1.4||!clearOf(ix,iz,hw+.28))continue;
       const E=frame(th),P=probe(E,hw);if(P.lipY<-50||P.bulge>1.35)continue;const sc=P.bulge+.06*c;if(!best||sc<best.sc)best={th,E,P,sc}}
-    if(!best)continue;hw/=.72;
+    if(best)hw/=.72;else{
+      /* a slot the search skipped would open a seam. Hang a sheet there without touching the seed, so the falls already placed stay put. */
+      const th=(k+.5)*sl,E=frame(th),P=probe(E,3.6);if(P.lipY<-50)continue;
+      pick.push({ty,hw:ty?3.4:4.2,E,P,k:.001,sd:k*3.1,v0:.09});continue}
+    /* upwind sheets (the far view's thin side) overlap their neighbours. Downwind widths stay as placed. */
+    if(-(best.E.nx*WIND.x+best.E.nz*WIND.z)>.2)hw=Math.max(hw,ty?3.45:4.4);
     pick.push({ty,hw,E:best.E,P:best.P,k:prr(K[2],K[3]),sd:pr()*50,v0:prr(.06,.14)})}
   const pos=[],aU=[],aK=[],aN=[],aT=[],idx=[],nG=MOB?4:6,nv=MOB?24:34;
   for(const f of pick){const{E,P,hw}=f,nu=hw<.3?3:MOB?7:10,o=pos.length/3,rows=[];
@@ -1496,11 +1501,11 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   g.setAttribute("aK",new T.BA(new Float32Array(aK),4));g.setAttribute("aN",new T.BA(new Float32Array(aN),3));g.setAttribute("aT",new T.BA(new Float32Array(aT),2));g.setIndex(idx);
   const m=new T.SM({uniforms:sfU,transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-.6,polygonOffsetUnits:-6,
     vertexShader:`attribute vec2 aU,aT;attribute vec4 aK;attribute vec3 aN;uniform float uT,uFR,uWet;uniform vec2 uWV;uniform vec3 uLd;${GLSL_GUST}
-      varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG;
+      varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG,vUp;
       void main(){vU=aU;vK=aK;vec2 n=aN.xy;vG=gustF(position.xz);
-        /* the downwind rim pours first; as the wind veers, falls on the rim it now blows across start and others ease off */
-        /* downwind pours a little harder; the upwind rim stays in the curtain instead of opening a gap */
-        float wl=length(uWV),k=aK.x+.14*(.5-.5*dot(n,uWV/max(wl,1e-4))),s=aU.y,vis=smoothstep(k,k+.28,uFR);vVis=vis;vec3 p=position;
+        /* downwind pours as before. The upwind rim (left of the far island shot) stays a full sheet instead of opening seams. */
+        float wl=length(uWV),wd=dot(n,uWV)/max(wl,1e-4);vUp=smoothstep(.25,-.45,wd);
+        float k=aK.x+.05*(.5-.5*wd),s=aU.y,vis=smoothstep(k,k+.28,uFR);vVis=vis;vec3 p=position;
         p.xz-=aT*(1.-(.45+.55*vis)*(1.+.25*clamp(uFR-1.,0.,1.)));
         if(s>0.){float f=pow(smoothstep(.45,1.,s),1.5);
           /* the column hangs plumb; only its dissolving foot is carried off downwind and sways; it may lean in toward the cliff only as far as the clearance allows */
@@ -1512,7 +1517,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         vLam=.5+.5*max(dot(Nw,uLd),0.);
         vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);
         gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uT,uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG,vUp;${GLSL_NOISE}
       /* noise carried down with the falling sand at a size that stays even on screen as the sand speeds up (the drop grows as s*s):
          two copies scrolled half a cycle apart and cross-faded, so the pattern never stretches out over time */
       float fallN(vec2 q,float s,float f0,float f1){float T=uFT*${(1/SF.Tf/.5).toFixed(4)},p1=fract(T),p2=fract(T+.5),f=f0+f1*s;
@@ -1543,10 +1548,12 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float cm=1.,sgU=1.,fr=0.,ly=vK.w,dkB=min(1.,max(dk*1.8,(.36+.25*ly)*smoothstep(.25,.6,hw)*smoothstep(.04,.3,s)));
           if(dkB>.01){cm=fallN(vec2(Xw*.9+11.,sd),s,5.,24.)*.55+fallN(vec2(Xw*2.6+4.,sd*2.),s,12.,55.)*.45;sgU=fallN(vec2(Xw*.12+sd*.7,sd),s,1.5,6.);}
           if(dk>.01){fr=fallN(vec2(x*13.+sd,0.),s,10.,40.);str=mix(str,fallN(vec2(Xw*.7,9.),s,3.,14.)*.6+fallN(vec2(Xw*1.8+5.,2.),s,7.,30.)*.4,dk);}
-          /* sides stay in the sheet. The old peel opened dark splits between neighbouring falls. */
-          float edge=smoothstep(0.,.05+.1*s,ed-(.03+.14*s)*ew*(1.+1.1*max(dk,dkB*.6))-.04*(1.-n2)*s-.07*dk*fr);
-          /* a dense sheet off the lip that still tears lower down, so it does not become a wall in front of the dune */
+          /* sides stay in the sheet. The old peel opened dark splits between neighbouring falls.
+             Upwind (vUp) peels even less, so the far shot's left side reads as one sheet. Downwind is unchanged, and still tears lower down. */
+          float peel=(.03+.14*s)*ew*(1.+1.1*max(dk,dkB*.6))+.04*(1.-n2)*s+.07*dk*fr;peel*=mix(1.,.18,vUp);
+          float edge=smoothstep(0.,.05+.1*s,ed-peel);
           float hv=smoothstep(.9,1.7,hw),tear=mix(mix(smoothstep(.3+.16*s,.46+.2*s,str),.55,ab),1.,hv*(1.-smoothstep(.3,.75,s))*.7);
+          tear=mix(tear,max(tear,.86),vUp);
           float body=(.98-(.22-.1*hv)*smoothstep(.2,.72,s))*edge*mix(1.,tear,max(smoothstep(.22,.62,s)*(.4+.35*min(uFR,1.)),dkB*.7))*mix(1.,(.04+1.3*smoothstep(.42,.58,cm))*(.2+1.*smoothstep(.25,.75,sgU)),dkB)*mix(1.,smoothstep(.25,.55,str),wet*.45)*(.82+.18*speck);
           /* trickles come in spurts */
           if(hw<.3)body*=smoothstep(.42,.7,fallN(vec2(sd,3.),s,1.2,5.))*(.75-.35*smoothstep(.1,.3,s));
@@ -1554,6 +1561,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           body*=mix(.5,1.,smoothstep(.28,.62,fallN(vec2(sd*.31+1.,sd),s,.7,2.2)));
           float gb=smoothstep(.62,.92,vG)*smoothstep(.12,.45,s)*(1.-.6*wet);if(gb>.01)body*=1.-gb*(1.-smoothstep(.3,.62,fallN(vec2(Xw*.4+sd,sd+3.),s,3.,12.)));
           body*=(1.-.22*ly)*(1.-.16*hv*smoothstep(.6,.95,s));
+          body=mix(body,max(body,.58*edge),vUp);
           float endS=mix(.3,.62,smoothstep(.2,.7,hw))+.12*hv-.1*ly+mix(.16,.3,smoothstep(.4,.75,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
           /* grains, streaked by their speed; more of them shed at the sides and the foot */
           vec2 dq=vec2(x*Nt*2.2+sd,u*70.),dc=floor(dq);float dh=dh2(dc);vec2 df=fract(dq)-.5-(vec2(dh2(dc+3.1),dh2(dc+7.7))-.5)*.6;df.y*=mix(1.,.35,smoothstep(.1,.7,s));
@@ -1623,14 +1631,15 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
     fragmentShader:`uniform float uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vF;varying vec3 vW;varying float vLam,vFs,vWd,vG;${GLSL_NOISE}
       void main(){float P=vF.x,s=vF.y;
         /* how much sand reaches this stretch of lip: the downwind rim and the gusts feed it, some stretches get little */
-        /* every stretch of lip sheds. Downwind is thicker; the quiet side does not open a hole in the ring. */
-        float feed=.72+.28*(dn2(vec2(P*.07,3.1))*.65+dn2(vec2(P*.23,7.7))*.35),rate=uFR*(.78+.22*vWd)*(.85+.35*vG)*(1.+1.1*uDust)*(1.-.55*uWet);
+        /* every stretch of lip sheds. Downwind is as before; the upwind rim (quiet) is filled so it does not open a hole. */
+        float quiet=smoothstep(.55,.12,vWd);
+        float feed=.72+.28*(dn2(vec2(P*.07,3.1))*.65+dn2(vec2(P*.23,7.7))*.35),rate=uFR*mix(.78+.22*vWd,1.18,quiet)*(.85+.35*vG)*(1.+1.1*uDust)*(1.-.55*uWet);
         float k=clamp(rate*(.9+.35*feed),0.,1.9);if(k<.03)discard;
         float u=s-uFT*.42*(.8+.4*feed),X=P*2.4+.6*(dn2(vec2(P*.4,u*1.5))-.5);
         float n1=dn2(vec2(X*.6,u*1.7)),n2=dn2(vec2(X*1.5+5.,u*4.2)),n3=dn2(vec2(X*3.3+9.,u*9.)),str=n1*.5+n2*.32+n3*.18;
         /* strands far smaller than a pixel are drawn as their mean, so the fringe never shimmers from afar */
         float aa=clamp(fwidth(X)*1.2-.3,0.,1.);
-        float tear=mix(smoothstep(.28+.1*s,.46+.16*s,str),.62,aa);
+        float tear=mix(smoothstep(.28+.1*s,.46+.16*s,str),.62,aa);tear=mix(tear,max(tear,.8),quiet);
         float endS=(.78+.4*feed)*min(1.,.8+.45*k)+.04*dn2(vec2(X*.9,7.)),cut=1.-smoothstep(endS-.12,endS+.05,s);
         vec2 gq=vec2(X*4.,u*60.),gc=floor(gq),gf=fract(gq)-.5;float gw=clamp(max(fwidth(gq.x),fwidth(gq.y))*1.3-.3,0.,1.);
         float grain=mix(step(.86,dh2(gc))*exp(-dot(gf,gf)*24.),.07,gw)*smoothstep(.0,.06,s)*(1.-smoothstep(endS,endS+.3,s));
@@ -4247,7 +4256,8 @@ function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
     tube([f0,f1,f2],[.0034*c,.0025*c,.0012*c],[palmC,legD,cream],k,h,6);
     const jn=[palm[0],palm[1]+.005*c,palm[2]+.005*c];
     ell(jn[0],jn[1],jn[2],.0034*c,.003*c,.0032*c,[.5,.14,.04],k,h,8,6);
-    const d1=[jn[0]-s*.003*c,jn[1]+.003*c,jn[2]+.012*c],d2=[jn[0]-s*.004*c,jn[1]+.0002*c,jn[2]+.019*c];
+    /* rest pose is the bite: the movable finger lies on the fixed finger, teeth meeting, no daylight between them */
+    const d1=[jn[0]-s*.004*c,jn[1]-.0088*c,jn[2]+.011*c],d2=[jn[0]-s*.005*c,jn[1]-.0064*c,jn[2]+.0175*c];
     /* the dactyl and its teeth hinge at the joint; the fixed finger stays with the palm */
     gapK=s>0?12:13;gapJ=jn;
     tube([jn,d1,d2],[.003*c,.0022*c,.0011*c],[palmC,legD,cream],k,h,6);
@@ -4264,13 +4274,14 @@ function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
   g.setAttribute("aJ",new T.BA(new Float32Array(J),3));g.setIndex(I);return g}
 /* legs: alternating tetrapod gait (L1 R2 L3 R4 against the rest), each lifting and swinging at its hip; claws: raised in a threat,
    drawn in to the mouth in turn while feeding */
-/* aOpen 0 closes the dactyl onto the fixed finger, 1 lifts it. The palm and the fixed finger keep the old claw swing. */
+/* aOpen 0 is the authored bite (movable finger on the fixed finger). 1 lifts the finger clear.
+   The palm and the fixed finger keep the old claw swing. */
 const CR_ANIM={head:"attribute float aK;attribute float aOpen;attribute vec3 aH;attribute vec3 aJ;attribute vec4 aG;"+GLR+`
 mat3 crBase(float k){if(k<.5||k>10.5)return mat3(1.);
   if(k<8.5){float i=k-1.,sd=i<3.5?1.:-1.,j=mod(i,4.),g=mod(j+step(sd,0.),2.),ph=aG.x+g*3.14159;
     return rY(.3*cos(ph)*aG.y*sd)*rZ(sd*.5*max(0.,sin(ph))*aG.y);}
   float sd=k<9.5?1.:-1.,fd=k<9.5?max(aG.z,0.):max(-aG.z,0.);return rZ(sd*.7*aG.w)*rY(-sd*(.5*fd-.45*aG.w))*rX(-1.5*aG.w-.4*fd);}
-float crAng(){return mix(0.,.4,clamp(aOpen,0.,1.));}`,
+float crAng(){return mix(0.,-1.05,clamp(aOpen,0.,1.));}`,
   nrm:"mat3 crNL=crBase(aK>11.5?aK-3.:aK);mat3 crNH=aK>11.5?rX(crAng()):mat3(1.);objectNormal=crNL*crNH*objectNormal;",
   pos:"mat3 crPL=crBase(aK>11.5?aK-3.:aK);vec3 crP=transformed;if(aK>11.5)crP=aJ+rX(crAng())*(crP-aJ);transformed=aH+crPL*(crP-aH);"};
 /* the burrow: a dark hole in a low collar of damp sand, the dug-out pellets heaped to one side */

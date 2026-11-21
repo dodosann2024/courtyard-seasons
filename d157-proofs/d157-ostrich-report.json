@@ -1,7 +1,8 @@
 {
   "live": {
-    "desert": "assets/desert.9dc1b7ad41.js",
-    "os": 2777816
+    "desert": "assets/desert.c83c7f97a5.js",
+    "os": 2777816,
+    "gb": 2165244
   },
   "ostrich": {
     "file": "ostrich_v2ag",
@@ -83,15 +84,6 @@
       },
       "plants": 20,
       "cur": "fast_run"
-    },
-    "summary": {
-      "n": 89,
-      "wraps": 5,
-      "modes": [
-        "run/fast_run"
-      ],
-      "minPN": 3.46,
-      "cap": false
     }
   }
 }

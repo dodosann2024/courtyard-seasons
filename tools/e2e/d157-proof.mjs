@@ -132,11 +132,13 @@ const report = {};
 
 try {
   await boot(page, "desert");
-  const live = await page.evaluate(() => ({desert: window.CY && window.CY.desert, os: window.CY && window.CY.ms && window.CY.ms.ostrich_v2ag}));
+  const live = await page.evaluate(() => ({desert: window.CY && window.CY.desert, os: window.CY && window.CY.ms && window.CY.ms.ostrich_v2ag,
+    gb: window.CY && window.CY.ms && window.CY.ms.gerbil_v5}));
   console.log("live", JSON.stringify(live));
   report.live = live;
   if (!live.desert || !/desert\.[0-9a-f]+\.js$/.test(live.desert)) fails.push("desert bundle missing");
   if (!live.os) fails.push("ostrich_v2ag not in the live manifest");
+  if (!live.gb) fails.push("gerbil_v5 not in the live manifest");
   let sea = null;
   const seaPage = async () => {
     if (sea) return sea;
@@ -522,6 +524,121 @@ try {
       await ffmpeg(["-framerate", "24", "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", path.join(OUT, `${OSN}-run-side.mp4`)]);
       fs.rmSync(dir, {recursive: true, force: true});
       console.log("encoded run");
+    }
+  }
+  /* gerbil_v5 in the scene: one gerbil out on level open sand by day, the others below; clips chosen by the engine from the mode
+     (stand -> stand_lookout, nibble -> dig, a mode it has no case for -> idle, moving -> hop_run) */
+  const GBN = "gerbil_v5";
+  if (want("gerbil") || want("gbdig") || want("gbhop")) {
+    const spot = await page.evaluate(() => {
+      const q = window.__desQA();
+      window.__set({weather: "sun", ct: "clear", wind: .25}); q.tod("day");
+      q.PA.noView = true;
+      if (q.ANIM.eagle && q.ANIM.eagle.pos) q.ANIM.eagle.pos.set(40, 22, 40);
+      q.ANIM.camels.forEach((c, i) => { c.x = -22; c.z = -18 - i * 4; c.g.position.set(c.x, q.hTop(c.x, c.z), c.z); });
+      if (q.rsPut) q.rsPut(18, 14, 0);
+      for (const o of q.PA.os) { o.mode = "sit"; o.t = 999; o.x = 24; o.z = -20; o.g.visible = false; }
+      for (const t of q.PA.tt) { t.x = -20; t.z = -16; t.g.visible = false; }
+      for (const s of q.PA.sc) { s.mode = "hide"; s.g.visible = false; }
+      const A = q.PA.gb[0];
+      for (const g of q.PA.gb) if (g !== A) { g.mode = "in"; g.t = 999; g.g.visible = false; }
+      const slope = (x, z) => { let dh = 0; for (const [dx, dz] of [[.3, 0], [-.3, 0], [0, .3], [0, -.3]]) dh = Math.max(dh, Math.abs(q.hTop(x + dx, z + dz) - q.hTop(x, z))); return dh; };
+      const clearOf = (x, z, m) => q.OBST.every(o => Math.hypot(x - o.x, z - o.z) > o.r + m);
+      /* a little way out from its own burrow, on level sand, nothing within a metre of it or of the side and front cameras */
+      let best = null;
+      for (const h of q.PA.gb.map(g => g.h)) for (let r = .5; r <= 2.4; r += .15) for (let a = 0; a < 24; a++) {
+        const x = h.x + Math.sin(a / 24 * Math.PI * 2) * r, z = h.z + Math.cos(a / 24 * Math.PI * 2) * r, yaw = Math.atan2(x - h.x, z - h.z);
+        if (q.pN(x, z) < 1.3 || !clearOf(x, z, 1)) continue;
+        const sx = x + Math.sin(yaw + Math.PI / 2) * .6, sz = z + Math.cos(yaw + Math.PI / 2) * .6, fx = x + Math.sin(yaw) * .6, fz = z + Math.cos(yaw) * .6;
+        if (!clearOf(sx, sz, .6) || !clearOf(fx, fz, .6)) continue;
+        const dh = slope(x, z), score = -dh * 40 - r * .2;
+        if (!best || score > best.score) best = {x: +x.toFixed(3), z: +z.toFixed(3), yaw: +yaw.toFixed(3), dh: +dh.toFixed(4), r: +r.toFixed(2), score: +score.toFixed(3), h: q.PA.gb.findIndex(g => g.h === h)};
+      }
+      window.__gb = best;
+      return best;
+    });
+    console.log("gerbil spot", JSON.stringify(spot));
+    report.gerbilSpot = spot;
+    const gbStep = (mode, n, dt) => page.evaluate((mode, n, dt) => {
+      const q = window.__desQA(), A = q.PA.gb[0], s = window.__gb, gy0 = q.hTop(s.x, s.z);
+      /* a gerbil too small on screen is skipped (its rig not ticked), so the camera comes in close first */
+      q.lookAt(s.x + Math.sin(s.yaw + Math.PI / 2) * .62, gy0 + .085, s.z + Math.cos(s.yaw + Math.PI / 2) * .62, s.x, gy0 + .06, s.z);
+      for (let i = 0; i < n; i++) {
+        A.mode = mode; A.t = 99; A.v = 0; A.goal = null; A.out = true; A.P.in = 0; A.x = s.x; A.z = s.z; A.yaw = s.yaw; A.gy = q.hTop(s.x, s.z);
+        q.step(1, dt); A.g.visible = true;
+      }
+      A.g.updateMatrixWorld(true);
+      const morph = {};
+      A.g.traverse(m => { if (m.isMesh && m.morphTargetInfluences && m.morphTargetDictionary) for (const [k, j] of Object.entries(m.morphTargetDictionary)) morph[k] = Math.max(morph[k] || 0, +m.morphTargetInfluences[j].toFixed(3)); });
+      let scaleOff = 0, cast = [], fur = null;
+      A.g.traverse(b => { if (b.isBone) scaleOff = Math.max(scaleOff, Math.abs(b.scale.x - 1), Math.abs(b.scale.y - 1), Math.abs(b.scale.z - 1));
+        if (b.isMesh) { cast.push(b.material.name + ":" + b.castShadow); if (!b.material.transparent && b.material.map) fur = b.material.map.image && b.material.map.image.width; } });
+      const head = A.bn.head.getWorldPosition(new A.g.position.constructor()); q.W.worldToLocal(head);
+      return {cur: A.rig && A.rig.cur, morph, boneScaleMaxOff: +scaleOff.toFixed(4), cast, furPx: fur, headY: +(head.y - A.gy).toFixed(4), sc: +A.g.scale.x.toFixed(3)};
+    }, mode, n, dt);
+    const gbCam = kind => page.evaluate(kind => {
+      const q = window.__desQA(), C = window.__C(), A = q.PA.gb[0], s = window.__gb, gy = q.hTop(s.x, s.z), yaw = s.yaw;
+      const head = A.bn.head.getWorldPosition(new A.g.position.constructor()); q.W.worldToLocal(head);
+      const at = (a, d, y, tx, ty, tz, fov) => { q.lookAt(s.x + Math.sin(yaw + a) * d, gy + y, s.z + Math.cos(yaw + a) * d, tx, ty, tz); C.De.fov = fov; C.De.near = .01; C.De.updateProjectionMatrix(); };
+      ({side: () => at(Math.PI / 2, .62, .085, s.x, gy + .06, s.z, 28), front: () => at(0, .56, .09, s.x, gy + .065, s.z, 28),
+        face: () => { const hx = head.x + Math.sin(yaw) * .012, hz = head.z + Math.cos(yaw) * .012; q.lookAt(hx + Math.sin(yaw + .5) * .2, head.y + .02, hz + Math.cos(yaw + .5) * .2, hx, head.y + .004, hz); C.De.fov = 26; C.De.near = .01; C.De.updateProjectionMatrix(); },
+        hop: () => at(Math.PI / 2, .9, .1, A.x, gy + .04, A.z, 30)})[kind]();
+    }, kind);
+    const G = report.gerbil = {file: GBN};
+    if (want("gerbil")) {
+      G.stand = await gbStep("stand", 90, 1 / 30);
+      for (const k of ["side", "front", "face"]) { await gbCam(k); await shot(page, `${GBN}_stand_lookout_${k}.png`); }
+      G.idle = await gbStep("hold", 90, 1 / 30);
+      await gbCam("side"); await shot(page, `${GBN}_idle_side.png`);
+      G.dig = await gbStep("nibble", 45, 1 / 30);
+      console.log("gerbil metrics", JSON.stringify(G));
+      if (G.stand.cur !== "stand_lookout" || !(G.stand.morph.lookout_fix > .99)) fails.push("gerbil lookout: lookout_fix not 1 in stand_lookout");
+      if (G.idle.cur !== "idle" || G.idle.morph.lookout_fix > .01) fails.push("gerbil idle: lookout_fix not 0");
+      if (G.dig.cur !== "dig" || G.dig.morph.lookout_fix > .01) fails.push("gerbil dig: lookout_fix not 0");
+      for (const k of ["stand", "idle", "dig"]) if (G[k].boneScaleMaxOff > .001) fails.push(`gerbil ${k}: bone scale off 1`);
+      if (G.stand.cast.some(c => /hair/.test(c) && /true/.test(c))) fails.push("gerbil hair cards cast shadows");
+      if (G.stand.furPx !== 2048) fails.push("gerbil fur colour not 2048 px in the scene");
+    }
+    if (want("gbdig")) {
+      await gbStep("hold", 30, 1 / 30);
+      await gbCam("side");
+      const dir = path.join(OUT, "gbdig-frames");
+      fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir);
+      const N = 24 * 3;
+      for (let i = 0; i < N; i++) {
+        await gbStep(i < 6 ? "hold" : "nibble", 1, 1 / 24);
+        await frames(page, 1);
+        await page.screenshot({path: path.join(dir, String(i).padStart(4, "0") + ".png")});
+      }
+      await ffmpeg(["-framerate", "24", "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", path.join(OUT, `${GBN}_dig_side.mp4`)]);
+      fs.rmSync(dir, {recursive: true, force: true});
+      console.log("encoded gerbil dig", N);
+    }
+    if (want("gbhop")) {
+      /* a short dash across level sand past the spot, the camera tracking from the side */
+      const dir = path.join(OUT, "gbhop-frames");
+      fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir);
+      await page.evaluate(() => { const q = window.__desQA(), A = q.PA.gb[0], s = window.__gb;
+        A.x = s.x - Math.sin(s.yaw) * .5; A.z = s.z - Math.cos(s.yaw) * .5; A.yaw = s.yaw; A.mode = "forage"; A.t = 99; A.spd = .8;
+        A.goal = {x: s.x + Math.sin(s.yaw) * 2.5, z: s.z + Math.cos(s.yaw) * 2.5}; });
+      const hs = [];
+      for (let i = 0; i < 24 * 2; i++) {
+        const r = await page.evaluate(() => { const q = window.__desQA(), C = window.__C(), A = q.PA.gb[0], s = window.__gb;
+          A.mode = "forage"; A.t = 99; A.spd = .8; A.out = true; A.P.in = 0; A.goal = {x: s.x + Math.sin(s.yaw) * 2.5, z: s.z + Math.cos(s.yaw) * 2.5};
+          q.step(1, 1 / 24); A.g.visible = true;
+          const gy = q.hTop(A.x, A.z), y = s.yaw;
+          q.lookAt(A.x + Math.sin(y + Math.PI / 2) * .9, gy + .1, A.z + Math.cos(y + Math.PI / 2) * .9, A.x, gy + .04, A.z); C.De.fov = 30; C.De.near = .01; C.De.updateProjectionMatrix();
+          return {cur: A.rig && A.rig.cur, v: +A.v.toFixed(3)}; });
+        hs.push(r);
+        await frames(page, 1);
+        await page.screenshot({path: path.join(dir, String(i).padStart(4, "0") + ".png")});
+      }
+      G.hop = {clips: [...new Set(hs.map(h => h.cur))], vmax: Math.max(...hs.map(h => h.v))};
+      console.log("gerbil hop", JSON.stringify(G.hop));
+      if (!G.hop.clips.includes("hop_run")) fails.push("gerbil dash never played hop_run");
+      await ffmpeg(["-framerate", "24", "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", path.join(OUT, `${GBN}_hop_run_side.mp4`)]);
+      fs.rmSync(dir, {recursive: true, force: true});
+      console.log("encoded gerbil hop");
     }
   }
 } catch (e) {

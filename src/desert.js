@@ -1456,7 +1456,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   let ps=5281;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^ps>>>15,1|ps);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},prr=(a,b)=>a+(b-a)*pr();
   /* [half width min, max, rate threshold min, max] for heavy falls, thinner falls, trickles */
   /* heavy sheets and medium falls alternate all round the lip, with only a few trickles, so from off the island the pour reads as a curtain rather than scattered plumes */
-  const kinds=[[3.8,5.6,0,.005],[2.15,3.15,0,.012],[.75,1.2,.008,.04]],pat=[0,1,0,1,0,1,0,1,0,1],nF=MOB?28:44,sl=TAU/nF;
+  /* wider sheets, overlapping, so the ring reads as one curtain. Trickles stay rare. */
+  const kinds=[[4.3,6.1,0,.004],[2.6,3.7,0,.01],[.9,1.3,.01,.04]],pat=[0,1,0,1,0,1,0,1,0,1],nF=MOB?30:46,sl=TAU/nF;
   const rp=rockMesh.geometry.attributes.position.array,nV=rp.length/3,LIPV=3*NT;
   const frame=th=>{const[x,z]=edgeXZ(th,1),[x1,z1]=edgeXZ(th+.02,1),[x0,z0]=edgeXZ(th-.02,1),l=Math.hypot(x1-x0,z1-z0),tx=(x1-x0)/l,tz=(z1-z0)/l;return{x,z,tx,tz,nx:tz,nz:-tx}};
   /* the cliff under a fall: the furthest-out rock at each 0.5 m of depth below the lip crest, and the lip's crest height and offset */
@@ -1468,9 +1469,9 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   const pick=[];
   for(let k=0;k<nF;k++){const ty=pat[k%pat.length],K=kinds[ty];let hw=prr(K[0],K[1]),best=null;
     /* a gap in the rim rocks and props, away from the pond, where the cliff does not bulge out under the lip; a fall with no room is tried narrower */
-    for(let tries=0;tries<3&&!best;tries++,hw*=.65)for(let c=0;c<9;c++){const th=k*sl+.4+prr(-.36,.36)*sl,[ix,iz]=edgeXZ(th,.93);if(pN(ix,iz)<1.4||!clearOf(ix,iz,hw+.35))continue;
-      const E=frame(th),P=probe(E,hw);if(P.lipY<-50||P.bulge>1)continue;const sc=P.bulge+.08*c;if(!best||sc<best.sc)best={th,E,P,sc}}
-    if(!best)continue;hw/=.65;
+    for(let tries=0;tries<4&&!best;tries++,hw*=.72)for(let c=0;c<12;c++){const th=k*sl+.4+prr(-.42,.42)*sl,[ix,iz]=edgeXZ(th,.93);if(pN(ix,iz)<1.4||!clearOf(ix,iz,hw+.28))continue;
+      const E=frame(th),P=probe(E,hw);if(P.lipY<-50||P.bulge>1.35)continue;const sc=P.bulge+.06*c;if(!best||sc<best.sc)best={th,E,P,sc}}
+    if(!best)continue;hw/=.72;
     pick.push({ty,hw,E:best.E,P:best.P,k:prr(K[2],K[3]),sd:pr()*50,v0:prr(.06,.14)})}
   const pos=[],aU=[],aK=[],aN=[],aT=[],idx=[],nG=MOB?4:6,nv=MOB?24:34;
   for(const f of pick){const{E,P,hw}=f,nu=hw<.3?3:MOB?7:10,o=pos.length/3,rows=[];
@@ -1498,7 +1499,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
       varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG;
       void main(){vU=aU;vK=aK;vec2 n=aN.xy;vG=gustF(position.xz);
         /* the downwind rim pours first; as the wind veers, falls on the rim it now blows across start and others ease off */
-        float wl=length(uWV),k=aK.x+.22*(.5-.5*dot(n,uWV/max(wl,1e-4))),s=aU.y,vis=smoothstep(k,k+.3,uFR);vVis=vis;vec3 p=position;
+        /* downwind pours a little harder; the upwind rim stays in the curtain instead of opening a gap */
+        float wl=length(uWV),k=aK.x+.14*(.5-.5*dot(n,uWV/max(wl,1e-4))),s=aU.y,vis=smoothstep(k,k+.28,uFR);vVis=vis;vec3 p=position;
         p.xz-=aT*(1.-(.45+.55*vis)*(1.+.25*clamp(uFR-1.,0.,1.)));
         if(s>0.){float f=pow(smoothstep(.45,1.,s),1.5);
           /* the column hangs plumb; only its dissolving foot is carried off downwind and sways; it may lean in toward the cliff only as far as the clearance allows */
@@ -1541,16 +1543,17 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float cm=1.,sgU=1.,fr=0.,ly=vK.w,dkB=min(1.,max(dk*1.8,(.36+.25*ly)*smoothstep(.25,.6,hw)*smoothstep(.04,.3,s)));
           if(dkB>.01){cm=fallN(vec2(Xw*.9+11.,sd),s,5.,24.)*.55+fallN(vec2(Xw*2.6+4.,sd*2.),s,12.,55.)*.45;sgU=fallN(vec2(Xw*.12+sd*.7,sd),s,1.5,6.);}
           if(dk>.01){fr=fallN(vec2(x*13.+sd,0.),s,10.,40.);str=mix(str,fallN(vec2(Xw*.7,9.),s,3.,14.)*.6+fallN(vec2(Xw*1.8+5.,2.),s,7.,30.)*.4,dk);}
-          float edge=smoothstep(0.,.05+.12*s,ed-(.04+.2*s)*ew*(1.+1.6*max(dk,dkB*.7))-.05*(1.-n2)*s-.1*dk*fr);
-          /* a dense sheet off the lip that tears into strands lower down; each strand gives out at its own height, trickles soonest */
-          float hv=smoothstep(.9,1.7,hw),tear=mix(mix(smoothstep(.36+.2*s,.5+.24*s,str),.45,ab),1.,hv*(1.-smoothstep(.25,.7,s))*.6);
+          /* sides stay in the sheet. The old peel opened dark splits between neighbouring falls. */
+          float edge=smoothstep(0.,.05+.1*s,ed-(.03+.14*s)*ew*(1.+1.1*max(dk,dkB*.6))-.04*(1.-n2)*s-.07*dk*fr);
+          /* a dense sheet off the lip that still tears lower down, so it does not become a wall in front of the dune */
+          float hv=smoothstep(.9,1.7,hw),tear=mix(mix(smoothstep(.3+.16*s,.46+.2*s,str),.55,ab),1.,hv*(1.-smoothstep(.3,.75,s))*.7);
           float body=(.98-(.22-.1*hv)*smoothstep(.2,.72,s))*edge*mix(1.,tear,max(smoothstep(.22,.62,s)*(.4+.35*min(uFR,1.)),dkB*.7))*mix(1.,(.04+1.3*smoothstep(.42,.58,cm))*(.2+1.*smoothstep(.25,.75,sgU)),dkB)*mix(1.,smoothstep(.25,.55,str),wet*.45)*(.82+.18*speck);
           /* trickles come in spurts */
           if(hw<.3)body*=smoothstep(.42,.7,fallN(vec2(sd,3.),s,1.2,5.))*(.75-.35*smoothstep(.1,.3,s));
           /* the feed is never steady: thicker and thinner pulses ride down with the sand, and a strong gust tears the lower stream into clots */
           body*=mix(.5,1.,smoothstep(.28,.62,fallN(vec2(sd*.31+1.,sd),s,.7,2.2)));
           float gb=smoothstep(.62,.92,vG)*smoothstep(.12,.45,s)*(1.-.6*wet);if(gb>.01)body*=1.-gb*(1.-smoothstep(.3,.62,fallN(vec2(Xw*.4+sd,sd+3.),s,3.,12.)));
-          body*=(1.-.28*ly)*(1.-.22*hv*smoothstep(.55,.95,s));
+          body*=(1.-.22*ly)*(1.-.16*hv*smoothstep(.6,.95,s));
           float endS=mix(.3,.62,smoothstep(.2,.7,hw))+.12*hv-.1*ly+mix(.16,.3,smoothstep(.4,.75,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
           /* grains, streaked by their speed; more of them shed at the sides and the foot */
           vec2 dq=vec2(x*Nt*2.2+sd,u*70.),dc=floor(dq);float dh=dh2(dc);vec2 df=fract(dq)-.5-(vec2(dh2(dc+3.1),dh2(dc+7.7))-.5)*.6;df.y*=mix(1.,.35,smoothstep(.1,.7,s));
@@ -1575,6 +1578,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.5,1.,smoothstep(.05,.45,abs(dot(N,normalize(cameraPosition-vW)))));
         }
         a*=vis*(1.08+.32*min(uFR,1.));
+        /* a close camera looking back at the dune (the lee snow check) must see the slip face; the far island shot stays a full curtain */
+        a*=smoothstep(2.4,8.,length(cameraPosition-vW));
         /* a stream only a pixel or two wide from afar is a faint soft thread, not a hard yellow line */
         /* the haze a fall sinks into is its own dust: fade it to an ochre as bright as the sky haze, never the haze's pale cream
            (which reads as water), and let the lower fall dissipate rather than turn pale */
@@ -1593,7 +1598,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
    off in a short ragged veil of strands and grains that drops a few metres down the cliff and gives itself up to ochre dust;
    longer and thicker on the downwind rim and in gusts, patchy where little sand reaches the edge, damped by rain. One strip
    round the whole lip, hung outside the cliff wherever it bulges. */
-(function rimFringe(){const M=MOB?160:288,NR=MOB?8:11,HC=16;
+(function rimFringe(){const M=MOB?176:320,NR=MOB?9:12,HC=18;
   const rp=rockMesh.geometry.attributes.position.array,nV=rp.length/3,LIPV=3*NT,col=[];
   for(let b=0;b<M;b++){const th=b/M*TAU,[x,z]=edgeXZ(th,1),[x1,z1]=edgeXZ(th+.02,1),[x0,z0]=edgeXZ(th-.02,1),l=Math.hypot(x1-x0,z1-z0),tx=(x1-x0)/l,tz=(z1-z0)/l;
     col.push({th,x,z,nx:tz,nz:-tx,lipY:-99,lipD:-.2,B:new Float32Array(24).fill(-9)})}
@@ -1618,25 +1623,28 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
     fragmentShader:`uniform float uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vF;varying vec3 vW;varying float vLam,vFs,vWd,vG;${GLSL_NOISE}
       void main(){float P=vF.x,s=vF.y;
         /* how much sand reaches this stretch of lip: the downwind rim and the gusts feed it, some stretches get little */
-        float feed=dn2(vec2(P*.07,3.1))*.65+dn2(vec2(P*.23,7.7))*.35,rate=uFR*(.45+.55*vWd)*(.75+.5*vG)*(1.+1.2*uDust)*(1.-.6*uWet);
-        float k=clamp(rate*(.35+.9*feed),0.,1.6);if(k<.04)discard;
+        /* every stretch of lip sheds. Downwind is thicker; the quiet side does not open a hole in the ring. */
+        float feed=.72+.28*(dn2(vec2(P*.07,3.1))*.65+dn2(vec2(P*.23,7.7))*.35),rate=uFR*(.78+.22*vWd)*(.85+.35*vG)*(1.+1.1*uDust)*(1.-.55*uWet);
+        float k=clamp(rate*(.9+.35*feed),0.,1.9);if(k<.03)discard;
         float u=s-uFT*.42*(.8+.4*feed),X=P*2.4+.6*(dn2(vec2(P*.4,u*1.5))-.5);
         float n1=dn2(vec2(X*.6,u*1.7)),n2=dn2(vec2(X*1.5+5.,u*4.2)),n3=dn2(vec2(X*3.3+9.,u*9.)),str=n1*.5+n2*.32+n3*.18;
         /* strands far smaller than a pixel are drawn as their mean, so the fringe never shimmers from afar */
         float aa=clamp(fwidth(X)*1.2-.3,0.,1.);
-        float tear=mix(smoothstep(.36+.14*s,.5+.2*s,str),.5,aa);
-        float endS=(.55+.7*feed)*min(1.,.65+.7*k)+.06*dn2(vec2(X*.9,7.)),cut=1.-smoothstep(endS-.16,endS+.04,s);
+        float tear=mix(smoothstep(.28+.1*s,.46+.16*s,str),.62,aa);
+        float endS=(.78+.4*feed)*min(1.,.8+.45*k)+.04*dn2(vec2(X*.9,7.)),cut=1.-smoothstep(endS-.12,endS+.05,s);
         vec2 gq=vec2(X*4.,u*60.),gc=floor(gq),gf=fract(gq)-.5;float gw=clamp(max(fwidth(gq.x),fwidth(gq.y))*1.3-.3,0.,1.);
         float grain=mix(step(.86,dh2(gc))*exp(-dot(gf,gf)*24.),.07,gw)*smoothstep(.0,.06,s)*(1.-smoothstep(endS,endS+.3,s));
-        float body=max((.82-.42*smoothstep(0.,.6,s))*tear,.7*(1.-smoothstep(.02,.09,s))*(.55+.45*feed))*cut*smoothstep(0.,.02,s);
+        float body=max((.86-.34*smoothstep(0.,.6,s))*tear,.74*(1.-smoothstep(.02,.09,s))*(.6+.4*feed))*cut*smoothstep(0.,.02,s);
         float du=dn2(vec2(X*.35,u*2.2))*.6+dn2(vec2(X*.9,u*5.))*.4;
-        float dust=smoothstep(.1,.45,s)*(1.-smoothstep(.55+.25*feed,.95,s))*(.35+.5*du)*(.6+.5*uDust)*(1.-.8*uWet);
-        float a=(body*1.85+grain*.95+dust*(1.-body)*.45)*smoothstep(.004,.05,k)*(1.05+.4*min(k,1.));
+        float dust=smoothstep(.12,.5,s)*(1.-smoothstep(.62+.22*feed,.98,s))*(.35+.5*du)*(.55+.45*uDust)*(1.-.8*uWet);
+        float a=(body*1.95+grain*.9+dust*(1.-body)*.44)*smoothstep(.004,.05,k)*(1.06+.36*min(k,1.));
         vec3 base=uCol*vLam*mix(vec3(1.),vec3(.7,.64,.58),uWet);base=mix(vec3(dot(base,vec3(.3,.55,.15))),base,1.18);
         vec3 c=base*(.84+.2*n3);c=mix(c,base*1.1+uSheen*vFs*.6*(1.-.75*uNt),(1.-body)*.4);
         float dF=dust*(1.-body)/(a+.001);c=mix(c,base*vec3(.96,.74,.48)*.9,clamp(dF,0.,1.)*.7);
         float hL=dot(uFogC,vec3(.3,.59,.11)),bL=max(dot(base,vec3(.3,.59,.11)),.02);vec3 fO=mix(uFogC,base*(min(hL,bL*1.05)/bL)*vec3(1.,.82,.6),.7);
-        float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*.45);a*=1.-.6*fd*smoothstep(.2,.9,s);
+        float camD=length(cameraPosition-vW);
+        float fd=smoothstep(uFogNF.x,uFogNF.y,camD);c=mix(c,fO,fd*.45);a*=1.-.6*fd*smoothstep(.2,.9,s);
+        a*=smoothstep(2.4,8.,camD);
         if(a<.004)discard;
         gl_FragColor=vec4(c,clamp(a,0.,1.));
         #include <tonemapping_fragment>
@@ -4200,7 +4208,9 @@ function trLoad(){return glb(TR_FILE).then(src=>{const up=new V3(),q=new T.Quat(
    snow send them home. Procedural, one instanced draw; the legs and claws move in the vertex shader. ---------------- */
 const CR_N=MOB?5:8,CR_K=1.6,CR={list:[],im:null,A:null,bm:null,vis:0,U:{uVis:{value:0}}};
 function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
-  const vtx=(p,nr,c,k,h)=>{P.push(p[0],p[1],p[2]);N.push(nr[0],nr[1],nr[2]);C.push(c[0],c[1],c[2]);K.push(k);H.push(h[0],h[1],h[2]);return n++};
+  /* gapK 12/13 marks the movable finger. It hinges at gapJ on top of the same claw swing as the palm. */
+  const J=[];let gapK=0,gapJ=null;
+  const vtx=(p,nr,c,k,h)=>{P.push(p[0],p[1],p[2]);N.push(nr[0],nr[1],nr[2]);C.push(c[0],c[1],c[2]);K.push(gapK||k);H.push(h[0],h[1],h[2]);const j=gapJ||h;J.push(j[0],j[1],j[2]);return n++};
   const ell=(cx,cy,cz,rx,ry,rz,c,k,h,nu,nv,sh)=>{const b=n;for(let i=0;i<=nv;i++){const t=i/nv*Math.PI;for(let j=0;j<=nu;j++){const p=j/nu*TAU;
         let x=Math.sin(t)*Math.cos(p),y=Math.cos(t),z=Math.sin(t)*Math.sin(p);const q=sh?sh(x,y,z):[x,y,z,1];
         const ry2=q[1]>0?ry:ry*(sh?.55:1);vtx([cx+q[0]*rx,cy+q[1]*ry2,cz+q[2]*rz],(()=>{const a=q[0]/rx,bb=q[1]/ry2,d=q[2]/rz,l=Math.hypot(a,bb,d)||1;return[a/l,bb/l,d/l]})(),
@@ -4238,23 +4248,31 @@ function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
     const jn=[palm[0],palm[1]+.005*c,palm[2]+.005*c];
     ell(jn[0],jn[1],jn[2],.0034*c,.003*c,.0032*c,[.5,.14,.04],k,h,8,6);
     const d1=[jn[0]-s*.003*c,jn[1]+.003*c,jn[2]+.012*c],d2=[jn[0]-s*.004*c,jn[1]+.0002*c,jn[2]+.019*c];
+    /* the dactyl and its teeth hinge at the joint; the fixed finger stays with the palm */
+    gapK=s>0?12:13;gapJ=jn;
     tube([jn,d1,d2],[.003*c,.0022*c,.0011*c],[palmC,legD,cream],k,h,6);
     for(let t=1;t<=3;t++){const u=t/4;
-      ell(f0[0]+(f2[0]-f0[0])*u,f0[1]+(f2[1]-f0[1])*u+.0013*c,f0[2]+(f2[2]-f0[2])*u,.0009*c,.00065*c,.0009*c,cream,k,h,5,4);
       ell(jn[0]+(d2[0]-jn[0])*u,jn[1]+(d2[1]-jn[1])*u-.0013*c,jn[2]+(d2[2]-jn[2])*u,.00085*c,.0006*c,.00085*c,cream,k,h,5,4)}
+    gapK=0;gapJ=null;
+    for(let t=1;t<=3;t++){const u=t/4;
+      ell(f0[0]+(f2[0]-f0[0])*u,f0[1]+(f2[1]-f0[1])*u+.0013*c,f0[2]+(f2[2]-f0[2])*u,.0009*c,.00065*c,.0009*c,cream,k,h,5,4)}
     for(let t=0;t<6;t++){const a=t*1.15;ell(palm[0]+Math.cos(a)*.0052*c*s,palm[1]+.0056*c,palm[2]+(t-2.5)*.003*c,.0014*c,.001*c,.0014*c,[.58,.15,.04],k,h,5,4)}}
   /* eyes on short stalks */
   for(const s of[1,-1]){tube([[s*.0065,.031,.019],[s*.008,.036,.0215]],[.0014,.0013],[shell,shell],11,[0,0,0],5);ell(s*.0082,.0372,.022,.0026,.0026,.0026,[.03,.03,.025],11,[0,0,0],7,5)}
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(P),3));g.setAttribute("normal",new T.BA(new Float32Array(N),3));
-  g.setAttribute("color",new T.BA(new Float32Array(C),3));g.setAttribute("aK",new T.BA(new Float32Array(K),1));g.setAttribute("aH",new T.BA(new Float32Array(H),3));g.setIndex(I);return g}
+  g.setAttribute("color",new T.BA(new Float32Array(C),3));g.setAttribute("aK",new T.BA(new Float32Array(K),1));g.setAttribute("aH",new T.BA(new Float32Array(H),3));
+  g.setAttribute("aJ",new T.BA(new Float32Array(J),3));g.setIndex(I);return g}
 /* legs: alternating tetrapod gait (L1 R2 L3 R4 against the rest), each lifting and swinging at its hip; claws: raised in a threat,
    drawn in to the mouth in turn while feeding */
-const CR_ANIM={head:"attribute float aK;attribute vec3 aH;attribute vec4 aG;"+GLR+`
-mat3 crR(){float k=aK;if(k<.5||k>10.5)return mat3(1.);
+/* aOpen 0 closes the dactyl onto the fixed finger, 1 lifts it. The palm and the fixed finger keep the old claw swing. */
+const CR_ANIM={head:"attribute float aK;attribute float aOpen;attribute vec3 aH;attribute vec3 aJ;attribute vec4 aG;"+GLR+`
+mat3 crBase(float k){if(k<.5||k>10.5)return mat3(1.);
   if(k<8.5){float i=k-1.,sd=i<3.5?1.:-1.,j=mod(i,4.),g=mod(j+step(sd,0.),2.),ph=aG.x+g*3.14159;
     return rY(.3*cos(ph)*aG.y*sd)*rZ(sd*.5*max(0.,sin(ph))*aG.y);}
-  float sd=k<9.5?1.:-1.,fd=k<9.5?max(aG.z,0.):max(-aG.z,0.);return rZ(sd*.7*aG.w)*rY(-sd*(.5*fd-.45*aG.w))*rX(-1.5*aG.w-.4*fd);}`,
-  nrm:"mat3 cR=crR();objectNormal=cR*objectNormal;",pos:"transformed=aH+cR*(transformed-aH);"};
+  float sd=k<9.5?1.:-1.,fd=k<9.5?max(aG.z,0.):max(-aG.z,0.);return rZ(sd*.7*aG.w)*rY(-sd*(.5*fd-.45*aG.w))*rX(-1.5*aG.w-.4*fd);}
+float crAng(){return mix(0.,.4,clamp(aOpen,0.,1.));}`,
+  nrm:"mat3 crNL=crBase(aK>11.5?aK-3.:aK);mat3 crNH=aK>11.5?rX(crAng()):mat3(1.);objectNormal=crNL*crNH*objectNormal;",
+  pos:"mat3 crPL=crBase(aK>11.5?aK-3.:aK);vec3 crP=transformed;if(aK>11.5)crP=aJ+rX(crAng())*(crP-aJ);transformed=aH+crPL*(crP-aH);"};
 /* the burrow: a dark hole in a low collar of damp sand, the dug-out pellets heaped to one side */
 function crBurrowGeo(){const P=[],N=[],C=[],I=[];let n=0;const sand=[.3,.19,.095],dark=[.012,.009,.006];
   const R=[0,.012,.02,.026,.036,.046],Y=[-.006,-.004,.001,.005,.002,0],CC=[dark,dark,[.12,.075,.04],[.25,.16,.08],sand,[.33,.21,.105]];
@@ -4269,7 +4287,7 @@ function crBurrowGeo(){const P=[],N=[],C=[],I=[];let n=0;const sand=[.3,.19,.095
 /* a burrow site: damp bank 2–8 cm above the water, not too steep */
 function crSite(th){for(let k=.8;k<1.2;k+=.005){const[x,z]=pondEdge(th,k),d=pfDep(x,z);if(d<-.025&&d>-.08){const s=Math.abs(pfDep(x+.15,z)-pfDep(x-.15,z))+Math.abs(pfDep(x,z+.15)-pfDep(x,z-.15));if(s<.2)return[x,z]}}return null}
 function crBuild(){const g=crGeo(),m=new T.MSM({vertexColors:true,roughness:.2,metalness:0});m.userData.U=CR.U;uwMat(m,"cr",".9",CR_ANIM);
-  const A=iba(CR_N,4);g.setAttribute("aG",A);
+  const A=iba(CR_N,4),OA=iba(CR_N,1);g.setAttribute("aG",A);g.setAttribute("aOpen",OA);CR.OA=OA;
   const im=new T.IM(g,m,CR_N);im.frustumCulled=false;im.renderOrder=3;W.add(im);onDes(im);CR.im=im;CR.A=A;
   const bm=new T.IM(crBurrowGeo(),new T.MSM({vertexColors:true,roughness:.95,metalness:0,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2}),CR_N);
   bm.frustumCulled=false;bm.receiveShadow=true;W.add(bm);onDes(bm);CR.bm=bm;
@@ -4277,7 +4295,7 @@ function crBuild(){const g=crGeo(),m=new T.MSM({vertexColors:true,roughness:.2,m
       if(s&&CR.list.some(c=>Math.hypot(c.bx-s[0],c.bz-s[1])<1.6))s=null}
     if(!s)continue;const[bx,bz]=s,y=lkY(bx,bz),yaw=Math.atan2(POND.x-bx,POND.z-bz);
     _tq.setFromUnitVectors(_hUp,nTop(bx,bz)).multiply(_tq2.setFromAxisAngle(_hUp,-yaw+rr(-.5,.5)));_tm.compose(_ts.set(bx,y+.002,bz),_tq,_v.set(CR_K,CR_K,CR_K));bm.setMatrixAt(CR.list.length,_tm);
-    CR.list.push({bx,bz,x:bx,z:bz,y,yaw,mode:"in",t:rr(1,12),tx:bx,tz:bz,v:0,ph:0,walk:0,fph:rr(0,6),feed:0,up:0,sk:1,s:rr(.85,1.15),go:null})}
+    CR.list.push({bx,bz,x:bx,z:bz,y,yaw,mode:"in",t:rr(1,12),tx:bx,tz:bz,v:0,ph:0,walk:0,fph:rr(0,6),feed:0,up:0,gape:.2,gapT:rr(0,4),sk:1,s:rr(.85,1.15),go:null})}
   bm.count=CR.list.length;im.count=CR.list.length;bm.instanceMatrix.needsUpdate=true;
   /* the bank round each burrow is kept clear of grass and reeds, with a short lane up the bank behind it, so a crab out at its
      door is never lost in the tufts when seen from the land */
@@ -4297,7 +4315,8 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
     let near=null,nd=1e9;for(const h of LKT){const d=Math.hypot(c.x-h.x,c.z-h.z)-h.r;if(d<nd){nd=d;near=h}}
     /* a viewer leaning in close: within about a metre it stops, turns its front to the lens and holds its claws up; much
        closer and it runs like from anything else */
-    const dcx=_cl.x-c.x,dcz=_cl.z-c.z,dcm=Math.hypot(dcx,dcz),cam=_cl.y-c.y<1.2&&c.mode!=="in"&&c.mode!=="down";
+    const dcx=_cl.x-c.x,dcz=_cl.z-c.z,dcm=Math.hypot(dcx,dcz),cam=!CR.calm&&_cl.y-c.y<1.2&&c.mode!=="in"&&c.mode!=="down";
+    if(CR.calm)nd=99;
     if(cam&&dcm<.4&&nd>.4){nd=.4;near={x:_cl.x,z:_cl.z,r:0}}
     const fear=nd<1.2;c.up+=((c.mode==="run"?1:c.mode==="face"?1:fear&&c.mode!=="in"?.6:0)-c.up)*ease(6,dt);
     if(!fear&&cam&&dcm<1.05&&(c.mode==="out"||c.mode==="walk"||c.mode==="dig")){c.mode="face";c.v=0;c.t=rr(2,4)}
@@ -4325,14 +4344,17 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
     else c.v+=(0-c.v)*ease(10,dt);
     c.ph+=c.v*dt/(.032*CR_K)*TAU;c.walk+=((c.v>.01?1:0)-c.walk)*ease(10,dt);
     const feeding=c.mode==="out"||c.mode==="sub"||c.mode==="dig";c.fph+=dt*(feeding?c.mode==="dig"?7:4.2:0);c.feed+=((feeding?1:0)-c.feed)*ease(3,dt);
+    /* both chelae open and close together, slowly enough to read. A threat holds them open. CR.gapePin freezes the proof. */
+    c.gapT+=dt;const gWant=CR.gapePin!=null?CR.gapePin:c.mode==="run"||c.mode==="face"?.92:.5+.5*Math.sin(c.gapT*1.6);
+    c.gape+=(gWant-c.gape)*ease(4.5,dt);
     c.y=lkY(c.x,c.z)}
   if(CR.vis>0){const A=CR.A.array;CR.list.forEach((c,i)=>{const fw=Math.sin(c.yaw),fz=Math.cos(c.yaw),e=.03,
       gp=(lkY(c.x+fw*e,c.z+fz*e)-lkY(c.x-fw*e,c.z-fz*e))/(2*e),gr=(lkY(c.x+fz*e,c.z-fw*e)-lkY(c.x-fz*e,c.z+fw*e))/(2*e);
       qYXZ(_tq,-Math.atan(gp),c.yaw,Math.atan(gr));const k=c.s*CR_K,sc=c.mode==="in"?0:k;
       _tm.compose(_ts.set(c.x,c.y-c.sk*.05*k+.0025*CR_K*c.walk*Math.abs(Math.sin(c.ph))+.008*c.up*k,c.z),_tq,_v.set(sc,sc,sc));CR.im.setMatrixAt(i,_tm);
       if(sc>0&&c.sk<.6)blobAdd(c.x,c.y,c.z,c.yaw,.085*k,.07*k,.42*(1-.6*st.night)*CR.vis*(1-c.sk),.75,0);
-      A[i*4]=c.ph;A[i*4+1]=c.walk;A[i*4+2]=Math.sin(c.fph)*c.feed*(1-c.up);A[i*4+3]=c.up});
-    CR.im.instanceMatrix.needsUpdate=true;CR.A.needsUpdate=true}}
+      A[i*4]=c.ph;A[i*4+1]=c.walk;A[i*4+2]=Math.sin(c.fph)*c.feed*(1-c.up);A[i*4+3]=c.up;CR.OA.array[i]=c.gape});
+    CR.im.instanceMatrix.needsUpdate=true;CR.A.needsUpdate=true;CR.OA.needsUpdate=true}}
 /* the lake animals are hidden once they are under a couple of pixels */
 function lakeVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
   const D=Math.max(.5,Math.hypot((c.x-POND.x),(c.z-POND.z),c.y-POND.wy)-Math.max(POND.rx,POND.rz)*.6),ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
@@ -4390,8 +4412,11 @@ function agSpawn(scene,anims,male,sandMap){const g=new T.Group();g.add(scene);W.
         vec4 sampledDiffuseColor=texture2D(map,vMapUv);
         vec3 sandC=texture2D(uSand,vMapUv).rgb;
         float sl=dot(sandC,vec3(.30,.59,.11));
-        vec3 blue=sampledDiffuseColor.rgb*clamp(.58+sl*1.25,.68,1.6);
-        sampledDiffuseColor.rgb=mix(sandC,blue,uWarm);
+        vec3 blue=sampledDiffuseColor.rgb*clamp(.72+sl*.75,.78,1.35);
+        /* the body stays the blue file. Warmer flecks of the sandy map read as ochre grains in that blue. */
+        float speck=smoothstep(.05,.15,sandC.r-sandC.b)*smoothstep(.38,.7,sl);
+        vec3 dyed=mix(sandC,blue,mix(.58,.93,clamp(uWarm,0.,1.)));
+        sampledDiffuseColor.rgb=mix(dyed,sandC,speck*.7);
         diffuseColor*=sampledDiffuseColor;
         #endif`)};c.customProgramCacheKey=()=>"agBlue2"});
   onDes(g);
@@ -5144,13 +5169,13 @@ function scLoad(){return Promise.all([pgGet("sc"),pgGet("scUV")]).then(([src,uv]
   if(src&&uv)matsOf(uv.scene,m=>{if(m.emissiveMap&&!glow)glow=m.emissiveMap});
   const geo=moundGeo(SC_MOUND);for(const rk of scRocks()){const A=scSpawn(rk,src,glow);A.gy=hTop(A.x,A.z);PA.sc.push(A);
   const ex=rk.x+SHADE.x*(rk.r+.02),ez=rk.z+SHADE.z*(rk.r+.02);rk.mound=moundAt(geo,ex,ez,Math.atan2(-SHADE.x,-SHADE.z))}})}
-/* ---- the rigged models: Godot's ostrich_v2z2, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
+/* ---- the rigged models: Godot's ostrich_v2af, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
    UV-fluorescence twin scorpion_uv_v2b lends its emissive map for the glow under the moon. Each takes the place of the
    procedural mesh above with the same behaviour, schedules, prints and sounds: its pose is the model's own clips, chosen and
    timed from the same state, plus a few bones turned on top (where it looks). Night and hail play the ostrich's sit clip.
-   ostrich_v2c.glb through ostrich_v2g.glb stay on disk and are not loaded. If a file can't be had the procedural animal is built instead.
+   ostrich_v2c.glb through ostrich_v2z2.glb stay on disk and are not loaded. If a file can't be had the procedural animal is built instead.
    Bones run along their local y (Blender's); three drops the dots from their names. ---- */
-const PG={os:"ostrich_v2z2",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
+const PG={os:"ostrich_v2af",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
 const pgGet=k=>glb(PG[k]).catch(()=>null);
 const PGM=new Map();let PG_GLOW=null;
 /* wet plumage and fur go darker in rain; the hen is the cock's model in her dull grey-brown (black -> earth, white -> buff) */
@@ -5177,10 +5202,11 @@ function pgTurn(b,ax,a){if(b&&a)b.quaternion.multiply(_pgq.setFromAxisAngle(ax,a
 /* turn bone b (world matrices current) so the world point p it carries swings onto the line toward t */
 function pgAim(b,p,t){b.getWorldPosition(_pgv);_pgq.setFromUnitVectors(_pgv2.copy(p).sub(_pgv).normalize(),_pgv3.copy(t).sub(_pgv).normalize());
   b.getWorldQuaternion(_pgq2).premultiply(_pgq);b.parent.getWorldQuaternion(_pgq).invert();b.quaternion.copy(_pgq.multiply(_pgq2));b.updateMatrixWorld(true)}
-/* ostrich v2z2: idle 4 s, slow_walk 1.50 s (ground speed / 1.0 m/s), fast_run 0.717 s (ground speed / 4.86 m/s),
+/* ostrich v2af: idle 4 s, slow_walk 1.50 s (ground speed / 1.0 m/s), fast_run 0.717 s (ground speed / 4.86 m/s),
    peck 2.5 s, sit 3.5 s (settle 0–1 s, hold from 1 s) and stand_up 1.65 s. Night and hail play sit once, then keep the hold from 1 s.
    sit and stand_up play as authored. sit_skirt (on the body) and soft_mound (on the fluff mound and cards) are weight tracks
-   inside those clips; AnimationMixer writes them to morphTargetInfluences while the clip runs. Nothing here offsets bones or scales limbs.
+   inside those clips; AnimationMixer writes them to morphTargetInfluences while the clip runs. Nothing here offsets bones.
+   The clips leave the legs at scale 1 and fold the wings back against the body on their own tracks.
    The leg fold below is only for a file with no sit clip. */
 const OS_VW=1,OS_VR=4.86;
 const _ow=[new V3(),new V3(),new V3(),new V3(),new V3(),new V3()];
@@ -5220,25 +5246,14 @@ function torAnim(A,dt){const P=A.P,R=A.rig,inS=A.mode==="shell"||A.mode==="sleep
   /* cropping, drinking and looking about, on top of the clip */
   const ho=c==="idle"||c==="slow_crawl"?1:0;pgTurn(A.bn.neck1,_pgX,ho*(.3*P.gr+.45*P.dr));pgTurn(A.bn.head,_pgX,ho*(.25*P.gr+.3*P.dr+.15*P.bite));
   pgTurn(A.bn.neck2,_pgY,ho*P.look*.5)}
-/* gerbil: idle, stand_lookout, dig (scratching for seed) and hop_run (.36 m/s per 0.3 s hop) */
+/* gerbil: idle, stand_lookout (the upright hind-foot stand; played as authored), dig and hop_run (.36 m/s per 0.3 s hop).
+   Extra bone pitch on top of stand_lookout tore the skin and tipped the nose down, so the clip is left alone. */
 const GB_SC=1.25,GB_VH=.36;
 function gbAnim(A,dt){const P=A.P,R=A.rig;let c="idle",ts=1;
   if(A.v>.05){c="hop_run";ts=cl(A.v/(GB_VH*GB_SC),.8,2.4)}
   else if(A.mode==="stand"||A.mode==="look"||A.mode==="peek")c="stand_lookout";
   else if(A.mode==="nibble"){c="dig";ts=.8}
-  play(R,c,c==="hop_run"||R.cur==="hop_run"?.08:.2,ts);rigTick(R,dt);pgTurn(A.bn.head,_pgY,P.look*.5);pgTurn(A.bn.neck,_pgY,P.look*.3);
-  /* stand_lookout is a low scan. On a true stand the pelvis and spine come up and the hind legs take the weight. */
-  if(A.mode==="stand")gbRear(A,P.up)}
-function gbRear(A,k){if(!A.bn||k<.02)return;const b=A.bn,X=_pgX;
-  b.pelvis.position.y+=.012*k;
-  pgTurn(b.pelvis,X,.82*k);
-  pgTurn(b.spine1,X,.2*k);pgTurn(b.spine2,X,.08*k);
-  pgTurn(b.neck,X,-.35*k);
-  pgTurn(b["thigh.L"],X,-.35*k);pgTurn(b["thigh.R"],X,-.35*k);
-  pgTurn(b["shin.L"],X,.55*k);pgTurn(b["shin.R"],X,.55*k);
-  pgTurn(b["foot.L"],X,-.25*k);pgTurn(b["foot.R"],X,-.25*k);
-  pgTurn(b["upperarm.L"],X,.35*k);pgTurn(b["upperarm.R"],X,.35*k);
-  pgTurn(b["forearm.L"],X,.2*k);pgTurn(b["forearm.R"],X,.2*k)}
+  play(R,c,c==="hop_run"||R.cur==="hop_run"?.08:.2,ts);rigTick(R,dt);pgTurn(A.bn.head,_pgY,P.look*.5);pgTurn(A.bn.neck,_pgY,P.look*.3)}
 /* scorpion: idle, walk (.071 m/s) and the threat display; claws_raise and tail_raise are not used */
 const SC_VW=.071;
 function scAnim(A,dt){const P=A.P,R=A.rig;let c="idle",ts=1;

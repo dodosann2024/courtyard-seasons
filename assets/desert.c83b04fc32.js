@@ -1578,6 +1578,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.5,1.,smoothstep(.05,.45,abs(dot(N,normalize(cameraPosition-vW)))));
         }
         a*=vis*(1.08+.32*min(uFR,1.));
+        /* a close camera looking back at the dune (the lee snow check) must see the slip face; the far island shot stays a full curtain */
+        a*=smoothstep(2.4,8.,length(cameraPosition-vW));
         /* a stream only a pixel or two wide from afar is a faint soft thread, not a hard yellow line */
         /* the haze a fall sinks into is its own dust: fade it to an ochre as bright as the sky haze, never the haze's pale cream
            (which reads as water), and let the lower fall dissipate rather than turn pale */
@@ -1640,7 +1642,9 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         vec3 c=base*(.84+.2*n3);c=mix(c,base*1.1+uSheen*vFs*.6*(1.-.75*uNt),(1.-body)*.4);
         float dF=dust*(1.-body)/(a+.001);c=mix(c,base*vec3(.96,.74,.48)*.9,clamp(dF,0.,1.)*.7);
         float hL=dot(uFogC,vec3(.3,.59,.11)),bL=max(dot(base,vec3(.3,.59,.11)),.02);vec3 fO=mix(uFogC,base*(min(hL,bL*1.05)/bL)*vec3(1.,.82,.6),.7);
-        float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*.45);a*=1.-.6*fd*smoothstep(.2,.9,s);
+        float camD=length(cameraPosition-vW);
+        float fd=smoothstep(uFogNF.x,uFogNF.y,camD);c=mix(c,fO,fd*.45);a*=1.-.6*fd*smoothstep(.2,.9,s);
+        a*=smoothstep(2.4,8.,camD);
         if(a<.004)discard;
         gl_FragColor=vec4(c,clamp(a,0.,1.));
         #include <tonemapping_fragment>

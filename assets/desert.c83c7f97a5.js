@@ -1478,6 +1478,16 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
     /* upwind sheets (the far view's thin side) overlap their neighbours. Downwind widths stay as placed. */
     if(-(best.E.nx*WIND.x+best.E.nz*WIND.z)>.2)hw=Math.max(hw,ty?3.45:4.4);
     pick.push({ty,hw,E:best.E,P:best.P,k:prr(K[2],K[3]),sd:pr()*50,v0:prr(.06,.14)})}
+  /* the search clusters falls round the best spots and leaves arcs of the lip under no sheet: from off the island those seams show
+     the rock and the sky through the curtain. Each arc gets a sheet of its own (no draws on the seed, so the falls above stay put). */
+  {const N=720,cov=new Uint8Array(N),ang=(x,z)=>{let a=Math.atan2(z/AZ,x/AX);if(a<0)a+=TAU;return a};
+    for(const f of pick){const E=f.E,k=.8;let a0=ang(E.x-E.tx*f.hw*k,E.z-E.tz*f.hw*k),a1=ang(E.x+E.tx*f.hw*k,E.z+E.tz*f.hw*k);if(a1<a0)a1+=TAU;
+      for(let t=a0;t<=a1;t+=TAU/N/2)cov[Math.floor(t%TAU/TAU*N)%N]=1}
+    let i0=cov.indexOf(1);if(i0<0)i0=0;
+    for(let n=0,j=0;n<N;){const i=(i0+n)%N;if(cov[i]){n++;continue}let m=0;while(m<N&&!cov[(i+m)%N])m++;n+=m;
+      const g0=i/N*TAU,g1=(i+m)/N*TAU,[x0,z0]=edgeXZ(g0,1),[x1,z1]=edgeXZ(g1,1),len=Math.hypot(x1-x0,z1-z0),parts=Math.ceil(len/7);
+      for(let p=0;p<parts;p++){const th=g0+(g1-g0)*(p+.5)/parts,hw=Math.min(6,Math.max(2.8,(len/parts/2+1.2)/.8)),E=frame(th),P=probe(E,hw);if(P.lipY<-50)continue;
+        pick.push({ty:1,hw,E,P,k:.002,sd:11.3+(j++)*4.7,v0:.09})}}}
   const pos=[],aU=[],aK=[],aN=[],aT=[],idx=[],nG=MOB?4:6,nv=MOB?24:34;
   for(const f of pick){const{E,P,hw}=f,nu=hw<.3?3:MOB?7:10,o=pos.length/3,rows=[];
     const lipAt=d=>{const b=Math.floor((d+3)/.2);return b>=0&&b<16?P.LP[b]:-99};
@@ -1489,7 +1499,9 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
     let dp=P.lipD;const path=[];
     for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.3),tau=s*SF.Tf,y=P.lipY+.05-.5*SF.G*tau*tau,c=req(y);
       const d=Math.max(P.lipD+.04+f.v0*tau,c+.14,dp);dp=d;path.push([d,y]);
-      rows.push({d,y,s,w:hw*(1-.18*ss(0,.25,s)+(f.ty?.12*ss(.75,1,s):1.3*ss(.2,1,s))),sl:Math.max(0,d-c-.14)})}
+      /* a medium fall keeps its width off the lip (necking in there opened slits between it and its neighbours just under the rim)
+         and fans a little as it falls; a heavy one spreads into its plume */
+      rows.push({d,y,s,w:hw*(f.ty?1-.04*ss(0,.25,s)+.22*ss(.35,1,s):1-.18*ss(0,.25,s)+1.3*ss(.2,1,s)),sl:Math.max(0,d-c-.14)})}
     /* a heavy pour spreads as it falls: the grains part and air drag fans the column out into a loose, widening plume */
     /* heavy falls hang a second, looser curtain just outside the first, so they have depth from afar (not on phones: it doubles the overdraw) */
     for(let ly=0;ly<(f.ty||MOB?1:2);ly++){const o=pos.length/3,R0=ly?rows.filter(r=>r.s>=0):rows;
@@ -1525,13 +1537,13 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
       void main(){float x=vU.x,s=vU.y,sd=vK.y,hw=vK.z,vis=vVis;if(vis<.01)discard;
         float ed=min(x,1.-x),Nt=4.+hw*22.,tx=x*Nt+sd;
         /* damp sand is darker and clumps */
-        vec3 base=uCol*vLam*mix(vec3(1.),vec3(.7,.64,.58),uWet);base=mix(vec3(dot(base,vec3(.3,.55,.15))),base,1.18);float a;vec3 c;
+        vec3 base=uCol*vLam*mix(vec3(1.),vec3(.7,.64,.58),uWet);base=mix(vec3(dot(base,vec3(.3,.55,.15))),base,1.18);float a,env;vec3 c;
         if(s<0.){
           /* the run: sand creeping and hopping over the surface toward the lip, a faint streaming band */
           float g=s+1.,q=dn2(vec2(tx*.6,s*5.-uFT*1.3))*.6+dn2(vec2(tx*1.7+3.,s*11.-uFT*2.6))*.4;
           vec2 gq=vec2(x*Nt*3.,s*40.-uFT*9.),gc=floor(gq),gf=fract(gq)-.5;float gr=step(.84-.12*g,dh2(gc))*exp(-dot(gf,gf)*9.);
           a=(smoothstep(.45,.75,q)*.32+gr*.45)*smoothstep(0.,.4,g)*smoothstep(0.,.3,ed)*mix(1.,.45,uWet)*(1.+.9*smoothstep(.4,.75,hw))*smoothstep(-.1,.4,cameraPosition.y-vW.y);
-          c=base*(1.06+.12*q);
+          c=base*(1.06+.12*q);env=a;
         }else{
           /* u rides with the falling sand: anything scrolled at this rate in s moves with the grains and stretches as they speed up */
           /* each fall runs at its own pace: how much sand the wind feeds it, and how freely it slides off its lip */
@@ -1548,12 +1560,14 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float cm=1.,sgU=1.,fr=0.,ly=vK.w,dkB=min(1.,max(dk*1.8,(.36+.25*ly)*smoothstep(.25,.6,hw)*smoothstep(.04,.3,s)));
           if(dkB>.01){cm=fallN(vec2(Xw*.9+11.,sd),s,5.,24.)*.55+fallN(vec2(Xw*2.6+4.,sd*2.),s,12.,55.)*.45;sgU=fallN(vec2(Xw*.12+sd*.7,sd),s,1.5,6.);}
           if(dk>.01){fr=fallN(vec2(x*13.+sd,0.),s,10.,40.);str=mix(str,fallN(vec2(Xw*.7,9.),s,3.,14.)*.6+fallN(vec2(Xw*1.8+5.,2.),s,7.,30.)*.4,dk);}
-          /* sides stay in the sheet. The old peel opened dark splits between neighbouring falls.
-             Upwind (vUp) peels even less, so the far shot's left side reads as one sheet. Downwind is unchanged, and still tears lower down. */
-          float peel=(.03+.14*s)*ew*(1.+1.1*max(dk,dkB*.6))+.04*(1.-n2)*s+.07*dk*fr;peel*=mix(1.,.18,vUp);
+          /* sides stay in the sheet: a ragged side that peels far in opens daylight between neighbouring falls. Upwind (vUp) peels
+             least; downwind peels a little more, so the ring still reads as separate pours that overlap */
+          float peel=(.03+.14*s)*ew*(1.+1.1*max(dk,dkB*.6))+.04*(1.-n2)*s+.07*dk*fr;peel*=mix(.42,.18,vUp);
           float edge=smoothstep(0.,.05+.1*s,ed-peel);
           float hv=smoothstep(.9,1.7,hw),tear=mix(mix(smoothstep(.3+.16*s,.46+.2*s,str),.55,ab),1.,hv*(1.-smoothstep(.3,.75,s))*.7);
-          tear=mix(tear,max(tear,.86),vUp);
+          /* the sheet holds together down its upper part all the way round, as the sky sea's falls do; only the foot, where it gives
+             itself up to dust, tears open (upwind it stays whole) */
+          tear=mix(tear,max(tear,.86),max(vUp,1.-smoothstep(.5,.8,s)));
           float body=(.98-(.22-.1*hv)*smoothstep(.2,.72,s))*edge*mix(1.,tear,max(smoothstep(.22,.62,s)*(.4+.35*min(uFR,1.)),dkB*.7))*mix(1.,(.04+1.3*smoothstep(.42,.58,cm))*(.2+1.*smoothstep(.25,.75,sgU)),dkB)*mix(1.,smoothstep(.25,.55,str),wet*.45)*(.82+.18*speck);
           /* trickles come in spurts */
           if(hw<.3)body*=smoothstep(.42,.7,fallN(vec2(sd,3.),s,1.2,5.))*(.75-.35*smoothstep(.1,.3,s));
@@ -1561,7 +1575,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           body*=mix(.5,1.,smoothstep(.28,.62,fallN(vec2(sd*.31+1.,sd),s,.7,2.2)));
           float gb=smoothstep(.62,.92,vG)*smoothstep(.12,.45,s)*(1.-.6*wet);if(gb>.01)body*=1.-gb*(1.-smoothstep(.3,.62,fallN(vec2(Xw*.4+sd,sd+3.),s,3.,12.)));
           body*=(1.-.22*ly)*(1.-.16*hv*smoothstep(.6,.95,s));
-          body=mix(body,max(body,.58*edge),vUp);
+          body=max(body,mix(.5*(1.-smoothstep(.55,.85,s)),.58,vUp)*edge);
           float endS=mix(.3,.62,smoothstep(.2,.7,hw))+.12*hv-.1*ly+mix(.16,.3,smoothstep(.4,.75,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
           /* grains, streaked by their speed; more of them shed at the sides and the foot */
           vec2 dq=vec2(x*Nt*2.2+sd,u*70.),dc=floor(dq);float dh=dh2(dc);vec2 df=fract(dq)-.5-(vec2(dh2(dc+3.1),dh2(dc+7.7))-.5)*.6;df.y*=mix(1.,.35,smoothstep(.1,.7,s));
@@ -1572,11 +1586,17 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* in a storm the veil is torn too: drifting clots of dust with ragged sides, not an even haze */
           float vc=dk>.01?fallN(vec2(x*3.1+sd,5.),s,2.5,10.):.5;
           float dust=smoothstep(.3,.65,s)*(1.-smoothstep(.72+.15*uDust,.97,s))*smoothstep(-.1,.45,ed+.25*du-.35*dk*(fr-.4))*(.3+.5*du)*(.7+.6*uDust)*mix(1.,(.2+.8*cm)*(.05+1.6*smoothstep(.35,.72,vc)),dk)*(1.-.8*wet)*smoothstep(.12,.5,hw)*(.6+.4*smoothstep(.4,.75,hw));
-          float bc=body*cut;
+          float bc=body*cut;env=edge*cut*(1.-.6*smoothstep(.55,.95,s))+.5*dust;
           a=(bc*(.84+.24*str)+grain*.6*(1.-smoothstep(.9,1.,s)))+dust*(1.-.72*bc);
           /* thick sheet shades itself; thin strands and edges catch the light */
           c=base*(.8+.22*n3)*(1.-.14*bc*smoothstep(.1,.5,ed));
           c=mix(c,base*1.12+uSheen*vFs*.7*(1.-.75*uNt),clamp(1.-bc,0.,1.)*.55);
+          /* from afar the sheet still reads as a pour, as the sky sea's falls do: broad ropes of denser sand a metre or so across,
+             lit on their crowns, with shaded folds between them, all carried down with the sand. They shade the sheet, never open it. */
+          float rope=dn2(vec2(Xw*.1+sd*.37,u*.42))*.62+dn2(vec2(Xw*.27+sd,u*1.1))*.38,rp=smoothstep(.28,.74,rope);
+          c*=mix(1.,.68+.54*rp,bc*(.72+.28*uNt));a*=.9+.13*rp;
+          /* where it crests the lip the sand is thin, fast and catches the light: a bright band along the rim, like the sea's lip */
+          float lip=(1.-smoothstep(.015,.075,s))*edge;c=mix(c,base*1.24+uSheen*vFs*.5*(1.-.75*uNt),lip*.55);
           /* the dust it sheds is ochre, a shade deeper than the sheet, never the white of the cloud sea's mist */
           float dF=dust/(a+.001);c=mix(c,base*vec3(1.,.82,.6)*1.02+vec3(.03,.018,.006)*(1.-uNt),dF*.62);
           /* low down the thin veil is seen against the bright cloud sea: the thinner it is the deeper its own ochre, so what reaches
@@ -1586,8 +1606,10 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.5,1.,smoothstep(.05,.45,abs(dot(N,normalize(cameraPosition-vW)))));
         }
         a*=vis*(1.08+.32*min(uFR,1.));
-        /* a close camera looking back at the dune (the lee snow check) must see the slip face; the far island shot stays a full curtain */
-        a*=smoothstep(2.4,8.,length(cameraPosition-vW));
+        /* a close camera looking back at the dune (the lee snow check) must see the slip face; the far island shot stays a full curtain.
+           In between the sheet does not keep its strands at a lower alpha (that reads as sparse stripes): it eases to an even gauze
+           following the sheet's outline, which itself clears within a few metres of the lens */
+        float camD=length(cameraPosition-vW);a=mix(env*.3*vis*smoothstep(1.7,3.,camD),a,smoothstep(2.4,8.,camD));
         /* a stream only a pixel or two wide from afar is a faint soft thread, not a hard yellow line */
         /* the haze a fall sinks into is its own dust: fade it to an ochre as bright as the sky haze, never the haze's pale cream
            (which reads as water), and let the lower fall dissipate rather than turn pale */
@@ -1596,6 +1618,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         if(a<.004)discard;
         /* far off the lower fall sinks into the haze by thinning out, not by turning pale */
         float fd=smoothstep(uFogNF.x,uFogNF.y,length(cameraPosition-vW));c=mix(c,fO,fd*(.55-.35*smoothstep(.35,.9,s)));a*=1.-.75*fd*smoothstep(.3,.95,s);
+        /* by moonlight the pour is a shade under the moonlit sand it comes off, so the island keeps its form instead of a pale wall */
+        c*=mix(vec3(1.),vec3(.6,.66,.82),uNt);
         float ck=c.r+c.g+c.b+a;if(!(ck>-1.&&ck<1e3))discard;
         gl_FragColor=vec4(c,clamp(a,0.,1.));
         #include <tonemapping_fragment>
@@ -1653,8 +1677,8 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         float hL=dot(uFogC,vec3(.3,.59,.11)),bL=max(dot(base,vec3(.3,.59,.11)),.02);vec3 fO=mix(uFogC,base*(min(hL,bL*1.05)/bL)*vec3(1.,.82,.6),.7);
         float camD=length(cameraPosition-vW);
         float fd=smoothstep(uFogNF.x,uFogNF.y,camD);c=mix(c,fO,fd*.45);a*=1.-.6*fd*smoothstep(.2,.9,s);
-        a*=smoothstep(2.4,8.,camD);
-        if(a<.004)discard;
+        a=mix(cut*smoothstep(0.,.02,s)*(.28-.12*s)*smoothstep(.004,.05,k)*smoothstep(1.7,3.,camD),a,smoothstep(2.4,8.,camD));
+        if(a<.004)discard;c*=mix(vec3(1.),vec3(.6,.66,.82),uNt);
         gl_FragColor=vec4(c,clamp(a,0.,1.));
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -1928,7 +1952,9 @@ const LIT={
   sunset:{el:15,az:0,sel:2.1,col:"#ffb469",I:3.05,sky:"#8c86c8",gnd:"#c08a62",hI:.5,exp:1,con:.09,sat:1.07,ray:.44,vig:.26,tint:[1.02,1,.96],lift:.012,top:"#5a64b0",bot:"#f2a986",glow:"#ff7438"},
   sunrise:{el:13,az:-68,sel:2.1,col:"#ffc79a",I:2.85,sky:"#9ea2da",gnd:"#c99c84",hI:.58,exp:1,con:.08,sat:1.05,ray:.4,vig:.25,tint:[1,.99,1.02],lift:.014,top:"#6478c0",bot:"#f6bcae",glow:"#ff9a7c"},
   day:{el:46,az:0,sel:40,col:"#fff0d8",I:2.9,sky:"#b4cdea",gnd:"#d8b483",hI:.95,exp:1,con:.05,sat:1.03,ray:.16,vig:.2,tint:[1,1,1],lift:.008,top:"#2e6cd0",bot:"#b4cfee",glow:"#ffd9b0"},
-  night:{el:21,az:0,sel:2.1,col:"#abc9f0",I:1.6,sky:"#18295c",gnd:"#0b0d14",hI:.085,exp:.7,con:.14,sat:.86,ray:0,vig:.36,tint:[.86,.93,1.12],lift:0,top:"#040916",bot:"#111a30",glow:"#000000"}};
+  /* night: the moonlit sky fills the shade from every side (the sky sea's night is lit the same way), so the rim, the falls and
+     the props keep their forms rather than going to flat silhouettes against a black sky */
+  night:{el:21,az:0,sel:2.1,col:"#abc9f0",I:1.6,sky:"#22346a",gnd:"#12141c",hI:.15,exp:.7,con:.14,sat:.86,ray:0,vig:.33,tint:[.86,.93,1.12],lift:.004,top:"#0b1534",bot:"#28355a",glow:"#000000"}};
 const _c1=new C3(),_c2=new C3(),_c3=new C3();
 let LK={sunset:1,sunrise:0,day:0,night:0};
 function blendL(k){let s=0;for(const p in LK)s+=LK[p]*LIT[p][k];return s}
@@ -4242,31 +4268,42 @@ function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
   for(const s of[1,-1])for(let i=0;i<4;i++){const k=(s>0?1:5)+i,a=[.5,.15,-.22,-.6][i],dx=s*Math.cos(a),dz=Math.sin(a),h=[s*.021,.026,.007-i*.0085],
       m=1+.08*(i===1||i===2),P1=[h[0]+dx*.016*m,h[1]+.01,h[2]+dz*.016*m],P2=[P1[0]+dx*.0135*m,P1[1]-.009,P1[2]+dz*.0135*m],P3=[P2[0]+dx*.007*m,.0012,P2[2]+dz*.007*m];
     tube([h,P1,P2,P3],[.0042,.0039,.003,.0008],[leg,leg,legD,tip],k,h,7)}
-  /* chela: merus, a ball-like carpus, a mottled palm, and two fingers that leave a gape and meet at pale tips.
+  /* chela: merus, a ball-like carpus, a laterally flattened palm, and two fingers held out in front of it. The fixed finger
+     (pollex) runs on from the lower front of the palm; the movable finger (dactyl) hinges at the upper front corner and lies
+     over it. Each carries a row of cream teeth on its biting edge, set at the finger's own surface and staggered against the
+     other row, so the closed claw shows the two rows meshing along one bite line with the pale tips crossed.
      The negative-s claw is the larger one. Tubercles and teeth are big enough to read from about a metre. */
-  for(const s of[1,-1]){const k=s>0?9:10,c=s>0?1.28:1.72,h=[s*.016,.026,.015],palmC=[.8,.2,.05];
+  /* a point and the tube radius a fraction u of the way along a polyline */
+  const along=(pts,rad,u)=>{let L=0;const ls=[];for(let i=0;i<pts.length-1;i++){const l=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1],pts[i+1][2]-pts[i][2]);ls.push(l);L+=l}
+    let d=u*L,i=0;while(i<ls.length-1&&d>ls[i]){d-=ls[i];i++}const f=Math.min(1,d/ls[i]),a=pts[i],b=pts[i+1];
+    return{p:[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f],r:rad[i]+(rad[i+1]-rad[i])*f}};
+  for(const s of[1,-1]){const k=s>0?9:10,c=s>0?1.28:1.72,h=[s*.016,.026,.015],palmC=[.8,.2,.05],toothC=[.92,.84,.68],toothD=[.62,.5,.36];
     const arm=[h[0]+s*.011,.024,.026],wr=[arm[0]+s*.002,.022,.035];
     tube([h,arm,wr],[.0035*c,.0032*c,.0038*c],[leg,leg,shell],k,h,7);
     ell(wr[0],wr[1],wr[2],.0048*c,.0039*c,.0046*c,shellD,k,h,8,6);
-    const palm=[wr[0]-s*.001,wr[1]-.001,wr[2]+.010*c];
-    ell(palm[0],palm[1],palm[2],.0102*c,.0084*c,.012*c,palmC,k,h,14,9,(x,y,z)=>{
-      const bump=1+.1*Math.sin(x*8.5)*Math.sin(z*6.5);
-      return[x*bump,y*(.8+.1*z),z,.72+.34*Math.abs(Math.sin(x*13.+z*9.))+.16*y]});
-    const f0=[palm[0],palm[1]-.0048*c,palm[2]+.006*c],f1=[palm[0]-s*.004*c,palm[1]-.005*c,palm[2]+.014*c],f2=[palm[0]-s*.005*c,palm[1]-.001*c,palm[2]+.02*c];
-    tube([f0,f1,f2],[.0034*c,.0025*c,.0012*c],[palmC,legD,cream],k,h,6);
-    const jn=[palm[0],palm[1]+.005*c,palm[2]+.005*c];
-    ell(jn[0],jn[1],jn[2],.0034*c,.003*c,.0032*c,[.5,.14,.04],k,h,8,6);
-    /* rest pose is the bite: the movable finger lies on the fixed finger, teeth meeting, no daylight between them */
-    const d1=[jn[0]-s*.004*c,jn[1]-.0088*c,jn[2]+.011*c],d2=[jn[0]-s*.005*c,jn[1]-.0064*c,jn[2]+.0175*c];
+    const palm=[wr[0]-s*.001,wr[1]-.001,wr[2]+.0105*c];
+    ell(palm[0],palm[1],palm[2],.0074*c,.0082*c,.0128*c,palmC,k,h,14,9,(x,y,z)=>{
+      const bump=1+.06*Math.sin(x*8.5)*Math.sin(z*6.5);
+      return[x*bump,y*(.86+.08*z),z,.74+.3*Math.abs(Math.sin(x*13.+z*9.))+.16*y]});
+    /* the fixed finger: from the palm's lower front, straight out, its tip hooking up a little */
+    const F=[[palm[0],palm[1]-.0036*c,palm[2]+.0085*c],[palm[0]-s*.0008*c,palm[1]-.0034*c,palm[2]+.0165*c],[palm[0]-s*.0016*c,palm[1]-.0024*c,palm[2]+.0235*c],[palm[0]-s*.002*c,palm[1]-.0008*c,palm[2]+.0282*c]],
+      FR=[.0034*c,.0026*c,.0018*c,.0007*c];
+    tube(F,FR,[palmC,palmC,legD,cream],k,h,8);
+    /* the hinge knuckle at the palm's upper front corner */
+    const jn=[palm[0],palm[1]+.0042*c,palm[2]+.0098*c];
+    ell(jn[0],jn[1],jn[2],.0026*c,.0024*c,.0026*c,[.5,.14,.04],k,h,8,6);
+    /* the dactyl, closed: over the fixed finger, curving down so its tip crosses just past the fixed tip */
+    const D=[jn,[palm[0]-s*.0008*c,palm[1]+.0026*c,palm[2]+.0168*c],[palm[0]-s*.0016*c,palm[1]+.0012*c,palm[2]+.0238*c],[palm[0]-s*.002*c,palm[1]-.0002*c,palm[2]+.0286*c]],
+      DR=[.0028*c,.0023*c,.0016*c,.0006*c];
     /* the dactyl and its teeth hinge at the joint; the fixed finger stays with the palm */
     gapK=s>0?12:13;gapJ=jn;
-    tube([jn,d1,d2],[.003*c,.0022*c,.0011*c],[palmC,legD,cream],k,h,6);
-    for(let t=1;t<=3;t++){const u=t/4;
-      ell(jn[0]+(d2[0]-jn[0])*u,jn[1]+(d2[1]-jn[1])*u-.0013*c,jn[2]+(d2[2]-jn[2])*u,.00085*c,.0006*c,.00085*c,cream,k,h,5,4)}
+    tube(D,DR,[palmC,palmC,legD,cream],k,h,8);
+    for(let t=0;t<4;t++){const q=along(D,DR,.3+t*.15);
+      ell(q.p[0],q.p[1]-q.r*.82,q.p[2],.0011*c,.00085*c,.00075*c,t&1?toothD:toothC,k,h,5,4)}
     gapK=0;gapJ=null;
-    for(let t=1;t<=3;t++){const u=t/4;
-      ell(f0[0]+(f2[0]-f0[0])*u,f0[1]+(f2[1]-f0[1])*u+.0013*c,f0[2]+(f2[2]-f0[2])*u,.0009*c,.00065*c,.0009*c,cream,k,h,5,4)}
-    for(let t=0;t<6;t++){const a=t*1.15;ell(palm[0]+Math.cos(a)*.0052*c*s,palm[1]+.0056*c,palm[2]+(t-2.5)*.003*c,.0014*c,.001*c,.0014*c,[.58,.15,.04],k,h,5,4)}}
+    for(let t=0;t<4;t++){const q=along(F,FR,.25+t*.15);
+      ell(q.p[0],q.p[1]+q.r*.82,q.p[2],.0012*c,.0009*c,.0008*c,t&1?toothD:toothC,k,h,5,4)}
+    for(let t=0;t<6;t++){const a=t*1.15;ell(palm[0]+Math.cos(a)*.0036*c*s,palm[1]+.0062*c,palm[2]+(t-2.5)*.0034*c,.0011*c,.0008*c,.0011*c,[.58,.15,.04],k,h,5,4)}}
   /* eyes on short stalks */
   for(const s of[1,-1]){tube([[s*.0065,.031,.019],[s*.008,.036,.0215]],[.0014,.0013],[shell,shell],11,[0,0,0],5);ell(s*.0082,.0372,.022,.0026,.0026,.0026,[.03,.03,.025],11,[0,0,0],7,5)}
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(P),3));g.setAttribute("normal",new T.BA(new Float32Array(N),3));
@@ -4364,7 +4401,7 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
       qYXZ(_tq,-Math.atan(gp),c.yaw,Math.atan(gr));const k=c.s*CR_K,sc=c.mode==="in"?0:k;
       _tm.compose(_ts.set(c.x,c.y-c.sk*.05*k+.0025*CR_K*c.walk*Math.abs(Math.sin(c.ph))+.008*c.up*k,c.z),_tq,_v.set(sc,sc,sc));CR.im.setMatrixAt(i,_tm);
       if(sc>0&&c.sk<.6)blobAdd(c.x,c.y,c.z,c.yaw,.085*k,.07*k,.42*(1-.6*st.night)*CR.vis*(1-c.sk),.75,0);
-      A[i*4]=c.ph;A[i*4+1]=c.walk;A[i*4+2]=Math.sin(c.fph)*c.feed*(1-c.up);A[i*4+3]=c.up;CR.OA.array[i]=c.gape});
+      A[i*4]=c.ph;A[i*4+1]=c.walk;A[i*4+2]=Math.sin(c.fph)*c.feed*(1-c.up);A[i*4+3]=c.up;CR.OA.array[i]=Math.max(c.gape,1e-4)});
     CR.im.instanceMatrix.needsUpdate=true;CR.A.needsUpdate=true;CR.OA.needsUpdate=true}}
 /* the lake animals are hidden once they are under a couple of pixels */
 function lakeVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
@@ -5180,13 +5217,13 @@ function scLoad(){return Promise.all([pgGet("sc"),pgGet("scUV")]).then(([src,uv]
   if(src&&uv)matsOf(uv.scene,m=>{if(m.emissiveMap&&!glow)glow=m.emissiveMap});
   const geo=moundGeo(SC_MOUND);for(const rk of scRocks()){const A=scSpawn(rk,src,glow);A.gy=hTop(A.x,A.z);PA.sc.push(A);
   const ex=rk.x+SHADE.x*(rk.r+.02),ez=rk.z+SHADE.z*(rk.r+.02);rk.mound=moundAt(geo,ex,ez,Math.atan2(-SHADE.x,-SHADE.z))}})}
-/* ---- the rigged models: Godot's ostrich_v2af, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
+/* ---- the rigged models: Godot's ostrich_v2ag, tortoise_v2g (with its withdraw morph), gerbil_v5 (with its lookout_fix morph) and scorpion_v2b, whose
    UV-fluorescence twin scorpion_uv_v2b lends its emissive map for the glow under the moon. Each takes the place of the
    procedural mesh above with the same behaviour, schedules, prints and sounds: its pose is the model's own clips, chosen and
    timed from the same state, plus a few bones turned on top (where it looks). Night and hail play the ostrich's sit clip.
-   ostrich_v2c.glb through ostrich_v2z2.glb stay on disk and are not loaded. If a file can't be had the procedural animal is built instead.
+   ostrich_v2c.glb through ostrich_v2af.glb and gerbil_v4d.glb stay on disk and are not loaded. If a file can't be had the procedural animal is built instead.
    Bones run along their local y (Blender's); three drops the dots from their names. ---- */
-const PG={os:"ostrich_v2af",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
+const PG={os:"ostrich_v2ag",tt:"tortoise_v2g",gb:"gerbil_v5",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
 const pgGet=k=>glb(PG[k]).catch(()=>null);
 const PGM=new Map();let PG_GLOW=null;
 /* wet plumage and fur go darker in rain; the hen is the cock's model in her dull grey-brown (black -> earth, white -> buff) */
@@ -5204,6 +5241,13 @@ function pgMats(s,k,o){animalMats(s,false);matsOf(s,(m,c)=>{const key=m.uuid+k+(
   c.material=n})}
 function pgModel(src,k,sc,o){const s=VT.cloneSkinned(src.scene),g=new T.Group();g.add(s);g.scale.setScalar(sc);W.add(g);onDes(g);
   s.traverse(c=>{if(c.isMesh){c.castShadow=!!o.shadow;c.receiveShadow=true;c.frustumCulled=false}});pgMats(s,k,o);
+  /* after animalMats (which turns every mesh's shadow on): alpha-blended cards would cast solid quads, since the shadow pass
+     reads alpha only with alphaTest, so they cast none */
+  s.traverse(c=>{if(c.isMesh&&c.material.transparent)c.castShadow=false});
+  /* every primitive comes with its own Skeleton over the same bones, and each one is recomputed and its bone texture uploaded
+     every frame (16 per ostrich). Primitives whose bones and inverses match share the first one. */
+  const sks=[];s.traverse(c=>{if(!c.isSkinnedMesh)return;const a=c.skeleton,m=sks.find(b=>b.bones.length===a.bones.length&&b.bones.every((x,i)=>x===a.bones[i])&&b.boneInverses.every((x,i)=>x.equals(a.boneInverses[i])));
+    if(m)c.skeleton=m;else sks.push(a)});
   const bn={};s.traverse(c=>{if(c.isBone)bn[c.name]=c});const rig=rigUp(s,src.animations);
   for(const n of o.once||[]){const a=rig.acts[n];if(a){a.setLoop(VT.THREE.LoopOnce,1);a.clampWhenFinished=true}}
   return{g,s,bn,rig}}
@@ -5213,7 +5257,7 @@ function pgTurn(b,ax,a){if(b&&a)b.quaternion.multiply(_pgq.setFromAxisAngle(ax,a
 /* turn bone b (world matrices current) so the world point p it carries swings onto the line toward t */
 function pgAim(b,p,t){b.getWorldPosition(_pgv);_pgq.setFromUnitVectors(_pgv2.copy(p).sub(_pgv).normalize(),_pgv3.copy(t).sub(_pgv).normalize());
   b.getWorldQuaternion(_pgq2).premultiply(_pgq);b.parent.getWorldQuaternion(_pgq).invert();b.quaternion.copy(_pgq.multiply(_pgq2));b.updateMatrixWorld(true)}
-/* ostrich v2af: idle 4 s, slow_walk 1.50 s (ground speed / 1.0 m/s), fast_run 0.717 s (ground speed / 4.86 m/s),
+/* ostrich v2ag (v2af's clips, retimed mid-sit cover): idle 4 s, slow_walk 1.50 s (ground speed / 1.0 m/s), fast_run 0.717 s (ground speed / 4.86 m/s),
    peck 2.5 s, sit 3.5 s (settle 0–1 s, hold from 1 s) and stand_up 1.65 s. Night and hail play sit once, then keep the hold from 1 s.
    sit and stand_up play as authored. sit_skirt (on the body) and soft_mound (on the fluff mound and cards) are weight tracks
    inside those clips; AnimationMixer writes them to morphTargetInfluences while the clip runs. Nothing here offsets bones.
@@ -5257,8 +5301,10 @@ function torAnim(A,dt){const P=A.P,R=A.rig,inS=A.mode==="shell"||A.mode==="sleep
   /* cropping, drinking and looking about, on top of the clip */
   const ho=c==="idle"||c==="slow_crawl"?1:0;pgTurn(A.bn.neck1,_pgX,ho*(.3*P.gr+.45*P.dr));pgTurn(A.bn.head,_pgX,ho*(.25*P.gr+.3*P.dr+.15*P.bite));
   pgTurn(A.bn.neck2,_pgY,ho*P.look*.5)}
-/* gerbil: idle, stand_lookout (the upright hind-foot stand; played as authored), dig and hop_run (.36 m/s per 0.3 s hop).
-   Extra bone pitch on top of stand_lookout tore the skin and tipped the nose down, so the clip is left alone. */
+/* gerbil v5 (v4d's 39 bones and clips on the Tripo fur): idle, stand_lookout (the upright hind-foot stand; played as authored),
+   dig and hop_run (.36 m/s per 0.3 s hop). Every clip carries a lookout_fix weight track (1 in stand_lookout, 0 in the rest),
+   so the chest corrective fades in and out with the crossfade. Extra bone pitch on top of stand_lookout tore the skin and
+   tipped the nose down, so the clip is left alone. The body is v4d's length; the tail is 45 mm (x1.25 in the scene) longer. */
 const GB_SC=1.25,GB_VH=.36;
 function gbAnim(A,dt){const P=A.P,R=A.rig;let c="idle",ts=1;
   if(A.v>.05){c="hop_run";ts=cl(A.v/(GB_VH*GB_SC),.8,2.4)}

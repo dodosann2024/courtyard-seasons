@@ -1,0 +1,61 @@
+{
+  "live": {
+    "desert": "assets/desert.c83c7f97a5.js",
+    "os": 2777816,
+    "gb": 2165244
+  },
+  "gerbilSpot": {
+    "x": -2.6,
+    "z": -7.707,
+    "yaw": 1.571,
+    "dh": 0.0047,
+    "r": 0.95,
+    "score": -0.377,
+    "h": 0
+  },
+  "gerbil": {
+    "file": "gerbil_v5",
+    "stand": {
+      "cur": "stand_lookout",
+      "morph": {
+        "lookout_fix": 1
+      },
+      "boneScaleMaxOff": 0,
+      "cast": [
+        "gerbil_fur:true",
+        "gerbil_hair:false"
+      ],
+      "furPx": 2048,
+      "headY": 0.0911,
+      "sc": 1
+    },
+    "idle": {
+      "cur": "idle",
+      "morph": {
+        "lookout_fix": 0
+      },
+      "boneScaleMaxOff": 0,
+      "cast": [
+        "gerbil_fur:true",
+        "gerbil_hair:false"
+      ],
+      "furPx": 2048,
+      "headY": 0.0449,
+      "sc": 1
+    },
+    "dig": {
+      "cur": "dig",
+      "morph": {
+        "lookout_fix": 0
+      },
+      "boneScaleMaxOff": 0,
+      "cast": [
+        "gerbil_fur:true",
+        "gerbil_hair:false"
+      ],
+      "furPx": 2048,
+      "headY": 0.0482,
+      "sc": 1
+    }
+  }
+}

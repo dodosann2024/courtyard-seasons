@@ -5217,13 +5217,13 @@ function scLoad(){return Promise.all([pgGet("sc"),pgGet("scUV")]).then(([src,uv]
   if(src&&uv)matsOf(uv.scene,m=>{if(m.emissiveMap&&!glow)glow=m.emissiveMap});
   const geo=moundGeo(SC_MOUND);for(const rk of scRocks()){const A=scSpawn(rk,src,glow);A.gy=hTop(A.x,A.z);PA.sc.push(A);
   const ex=rk.x+SHADE.x*(rk.r+.02),ez=rk.z+SHADE.z*(rk.r+.02);rk.mound=moundAt(geo,ex,ez,Math.atan2(-SHADE.x,-SHADE.z))}})}
-/* ---- the rigged models: Godot's ostrich_v2af, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
+/* ---- the rigged models: Godot's ostrich_v2ag, tortoise_v2g (with its withdraw morph), gerbil_v4d and scorpion_v2b, whose
    UV-fluorescence twin scorpion_uv_v2b lends its emissive map for the glow under the moon. Each takes the place of the
    procedural mesh above with the same behaviour, schedules, prints and sounds: its pose is the model's own clips, chosen and
    timed from the same state, plus a few bones turned on top (where it looks). Night and hail play the ostrich's sit clip.
-   ostrich_v2c.glb through ostrich_v2z2.glb stay on disk and are not loaded. If a file can't be had the procedural animal is built instead.
+   ostrich_v2c.glb through ostrich_v2af.glb stay on disk and are not loaded. If a file can't be had the procedural animal is built instead.
    Bones run along their local y (Blender's); three drops the dots from their names. ---- */
-const PG={os:"ostrich_v2af",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
+const PG={os:"ostrich_v2ag",tt:"tortoise_v2g",gb:"gerbil_v4d",sc:"scorpion_v2b",scUV:"scorpion_uv_v2b"};
 const pgGet=k=>glb(PG[k]).catch(()=>null);
 const PGM=new Map();let PG_GLOW=null;
 /* wet plumage and fur go darker in rain; the hen is the cock's model in her dull grey-brown (black -> earth, white -> buff) */
@@ -5250,7 +5250,7 @@ function pgTurn(b,ax,a){if(b&&a)b.quaternion.multiply(_pgq.setFromAxisAngle(ax,a
 /* turn bone b (world matrices current) so the world point p it carries swings onto the line toward t */
 function pgAim(b,p,t){b.getWorldPosition(_pgv);_pgq.setFromUnitVectors(_pgv2.copy(p).sub(_pgv).normalize(),_pgv3.copy(t).sub(_pgv).normalize());
   b.getWorldQuaternion(_pgq2).premultiply(_pgq);b.parent.getWorldQuaternion(_pgq).invert();b.quaternion.copy(_pgq.multiply(_pgq2));b.updateMatrixWorld(true)}
-/* ostrich v2af: idle 4 s, slow_walk 1.50 s (ground speed / 1.0 m/s), fast_run 0.717 s (ground speed / 4.86 m/s),
+/* ostrich v2ag (v2af's clips, retimed mid-sit cover): idle 4 s, slow_walk 1.50 s (ground speed / 1.0 m/s), fast_run 0.717 s (ground speed / 4.86 m/s),
    peck 2.5 s, sit 3.5 s (settle 0–1 s, hold from 1 s) and stand_up 1.65 s. Night and hail play sit once, then keep the hold from 1 s.
    sit and stand_up play as authored. sit_skirt (on the body) and soft_mound (on the fluff mound and cards) are weight tracks
    inside those clips; AnimationMixer writes them to morphTargetInfluences while the clip runs. Nothing here offsets bones.

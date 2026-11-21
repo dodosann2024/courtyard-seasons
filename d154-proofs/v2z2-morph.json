@@ -1,0 +1,38 @@
+{
+  "morphs": {
+    "fluff_cards_mesh": {
+      "soft_mound": 1
+    },
+    "fluff_cards_mesh_1": {
+      "soft_mound": 1
+    },
+    "fluff_cards_mesh_2": {
+      "soft_mound": 1
+    },
+    "fluff_cards_mesh_3": {
+      "soft_mound": 1
+    },
+    "fluff_mound": {
+      "soft_mound": 1
+    },
+    "ostrich": {
+      "sit_skirt": 1.75
+    }
+  },
+  "clips": {
+    "fast_run": 0.717,
+    "idle": 4,
+    "peck": 2.5,
+    "sit": 3.5,
+    "slow_walk": 1.5,
+    "stand_up": 1.65
+  },
+  "loaded": [
+    "fast_run",
+    "idle",
+    "peck",
+    "sit",
+    "slow_walk",
+    "stand_up"
+  ]
+}

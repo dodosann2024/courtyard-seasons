@@ -1,0 +1,29 @@
+{
+ "ci": {
+  "run": 45061798200,
+  "commit": "231d83f",
+  "prMs": 32.4,
+  "mainMs": 31.9,
+  "limitMs": 36.6,
+  "over200": [
+   0,
+   0
+  ],
+  "maxMs": [
+   116,
+   108
+  ]
+ },
+ "ciCrabFirst": {
+  "run": 45059821376,
+  "commit": "ef7d59c",
+  "prMs": 35.2,
+  "mainMs": 34.4,
+  "limitMs": 39.5
+ },
+ "localSandfallOnly": {
+  "bundle": "desert.7aec453d30.js",
+  "prMs": 11.6,
+  "mainMs": 13.5
+ }
+}

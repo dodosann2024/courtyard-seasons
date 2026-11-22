@@ -757,9 +757,12 @@ try {
       await drive("sit", s => s.cur === "sit" && s.sitT >= 1.6 && s.sitT <= 3.1, 120);
       await cam("side"); await shot(page, `${OSN}_sit_side.png`);
       await drive("stand", s => s.cur === "idle" && s.wu < .01, 160);
+      /* ui.js prefetches every model in the manifest; desert.js takes a prefetched buffer out of window.__desPre when it parses it,
+         so the ostrich files the scene actually built are the ones gone from it */
       report.osRequested = [...osReq];
-      console.log("ostrich files requested", JSON.stringify(report.osRequested));
-      if (!(osReq.has("ostrich_v2ag") && osReq.size === 1)) fails.push("the scene did not load ostrich_v2ag alone");
+      report.osParsed = await page.evaluate(() => Object.keys(window.CY.ms).filter(k => /^ostrich_/.test(k) && !(k in (window.__desPre || {}))));
+      console.log("ostrich files prefetched", JSON.stringify(report.osRequested), "parsed", JSON.stringify(report.osParsed));
+      if (!(report.osParsed.length === 1 && report.osParsed[0] === "ostrich_v2ag")) fails.push("the scene did not build ostrich_v2ag alone");
     }
     if (want("sit") || want("sitstill")) {
     const M = report.sitMetrics = {};

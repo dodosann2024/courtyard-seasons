@@ -1,0 +1,2152 @@
+{
+ "live": {
+  "desert": "assets/desert.9175365e00.js",
+  "os": 2777816,
+  "gb": 2194376,
+  "sc": 1149584,
+  "tt": 816900
+ },
+ "sandNear": {
+  "up": 0.999,
+  "x": -20.89,
+  "z": 10.04,
+  "hw": 0.05,
+  "n": 54,
+  "lip": -0.49,
+  "nearD": 5.07,
+  "farD": 27.76,
+  "samples": 592
+ },
+ "duneRim": {
+  "crest": [
+   16.13,
+   -9.41
+  ],
+  "lipRange": 0.144,
+  "samples": [
+   {
+    "a": -1.03,
+    "lip": -0.553,
+    "dune": 0
+   },
+   {
+    "a": -0.93,
+    "lip": -0.592,
+    "dune": 0
+   },
+   {
+    "a": -0.83,
+    "lip": -0.605,
+    "dune": 0
+   },
+   {
+    "a": -0.73,
+    "lip": -0.595,
+    "dune": 0
+   },
+   {
+    "a": -0.63,
+    "lip": -0.626,
+    "dune": 0
+   },
+   {
+    "a": -0.53,
+    "lip": -0.688,
+    "dune": 0
+   },
+   {
+    "a": -0.43,
+    "lip": -0.697,
+    "dune": 0
+   },
+   {
+    "a": -0.33,
+    "lip": -0.69,
+    "dune": 0
+   },
+   {
+    "a": -0.23,
+    "lip": -0.674,
+    "dune": 0
+   },
+   {
+    "a": -0.13,
+    "lip": -0.65,
+    "dune": 0
+   },
+   {
+    "a": -0.03,
+    "lip": -0.638,
+    "dune": 0
+   }
+  ]
+ },
+ "ostrich": {
+  "file": "ostrich_v2ag",
+  "glb": true,
+  "clips": [
+   "fast_run",
+   "idle",
+   "peck",
+   "sit",
+   "slow_walk",
+   "stand_up"
+  ]
+ },
+ "sitSpot": {
+  "x": -5.300000000000004,
+  "z": -6.100000000000001,
+  "dh": 0.035,
+  "score": 1.93
+ },
+ "osRequested": [
+  "ostrich_v2af",
+  "ostrich_v2ag",
+  "ostrich_v2ah",
+  "ostrich_v2c",
+  "ostrich_v2d",
+  "ostrich_v2e",
+  "ostrich_v2g",
+  "ostrich_v2z2"
+ ],
+ "cmp": {
+  "base": "#159 3d64fa1",
+  "B_sandfall_far": {
+   "before": 3.26,
+   "after": 32.95
+  },
+  "B_day_far_desert": {
+   "before": 3.3,
+   "after": 32.98
+  },
+  "B_dusk_far_desert": {
+   "before": 8.51,
+   "after": 19.85
+  },
+  "B_night_far_desert": {
+   "before": 6.42,
+   "after": 31.05
+  },
+  "near_seam": {
+   "before": 3,
+   "after": 106.6
+  },
+  "B_sandfall_full_footSky": {
+   "before": 0.028,
+   "after": 0.975
+  },
+  "B_day_full_desert_footSky": {
+   "before": 0.03,
+   "after": 0.984
+  }
+ },
+ "osParsed": [
+  "ostrich_v2ag"
+ ],
+ "crab": {
+  "sel": {
+   "i": 6,
+   "n": 8,
+   "glb": true,
+   "bx": -13.142,
+   "bz": 3.743,
+   "s": 1.102
+  },
+  "live": {
+   "ms": 702704,
+   "glb": true,
+   "crG": 1
+  },
+  "pinchBones": {
+   "duration": 1.2000000476837158,
+   "tracks": [
+    "claw_aL.position",
+    "claw_aL.quaternion",
+    "claw_aL.scale",
+    "claw_bL.position",
+    "claw_bL.quaternion",
+    "claw_bL.scale",
+    "claw_cL.position",
+    "claw_cL.quaternion",
+    "claw_cL.scale",
+    "claw_fingerL.position",
+    "claw_fingerL.quaternion",
+    "claw_fingerL.scale",
+    "claw_aR.position",
+    "claw_aR.quaternion",
+    "claw_aR.scale",
+    "claw_bR.position",
+    "claw_bR.quaternion",
+    "claw_bR.scale",
+    "claw_cR.position",
+    "claw_cR.quaternion",
+    "claw_cR.scale",
+    "claw_fingerR.position",
+    "claw_fingerR.quaternion",
+    "claw_fingerR.scale"
+   ],
+   "maxTurnDeg": {
+    "claw_aL": 1.72,
+    "claw_bL": 4.58,
+    "claw_cL": 0,
+    "claw_fingerL": 0,
+    "claw_aR": 5.16,
+    "claw_bR": 4.58,
+    "claw_cR": 0,
+    "claw_fingerR": 0
+   }
+  },
+  "stand": {
+   "mode": "out",
+   "v": 0,
+   "yaw": 1.179,
+   "x": -13.142,
+   "y": -0.3901,
+   "z": 3.743,
+   "sk": 0,
+   "body": "idle",
+   "claw": "claw_pinch",
+   "bodyActs": {
+    "claw_pinch": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    },
+    "dig": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    },
+    "idle": {
+     "w": 1,
+     "ts": 1,
+     "t": 1.86
+    },
+    "scuttle_sideways": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    },
+    "walk_sideways": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    }
+   },
+   "clawActs": {
+    "claw_pinch": {
+     "w": 1,
+     "ts": 1,
+     "t": 1
+    },
+    "dig": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    },
+    "scuttle_sideways": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    },
+    "walk_sideways": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    }
+   },
+   "visible": true,
+   "scale": 1.102
+  },
+  "walkStill": {
+   "mode": "walk",
+   "v": 0.1,
+   "yaw": 1.179,
+   "x": -13.183,
+   "y": -0.408,
+   "z": 3.842,
+   "sk": 0,
+   "body": "walk_sideways",
+   "claw": "walk_sideways",
+   "bodyActs": {
+    "claw_pinch": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    },
+    "dig": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    },
+    "scuttle_sideways": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    },
+    "walk_sideways": {
+     "w": 1,
+     "ts": 0.65,
+     "t": 0.28
+    }
+   },
+   "clawActs": {
+    "dig": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    },
+    "scuttle_sideways": {
+     "w": 1,
+     "ts": 1,
+     "t": 0
+    },
+    "walk_sideways": {
+     "w": 1,
+     "ts": 0.65,
+     "t": 0.28
+    }
+   },
+   "visible": true,
+   "scale": 1.102
+  },
+  "footSlip": [
+   {
+    "dir": "+x",
+    "plantedSlip": 0.0262,
+    "planted": 236,
+    "body": 0.1,
+    "clip": "walk_sideways",
+    "ts": -0.65
+   },
+   {
+    "dir": "-x",
+    "plantedSlip": 0.0279,
+    "planted": 232,
+    "body": 0.1,
+    "clip": "walk_sideways",
+    "ts": 0.65
+   }
+  ],
+  "walk": [
+   {
+    "mode": "walk",
+    "v": 0.025,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3903,
+    "z": 3.744,
+    "sk": 0,
+    "body": "idle",
+    "claw": "idle",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.38
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "claw_pinch": {
+      "w": 0.93,
+      "ts": 1,
+      "t": 0.38
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 0.07,
+      "ts": 1,
+      "t": 0.04
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.098,
+    "yaw": 1.179,
+    "x": -13.158,
+    "y": -0.3974,
+    "z": 3.782,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.63,
+      "t": 0.27
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.63,
+      "t": 0.27
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.177,
+    "y": -0.4056,
+    "z": 3.828,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.19
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.19
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.196,
+    "y": -0.4133,
+    "z": 3.874,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.11
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.11
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.215,
+    "y": -0.421,
+    "z": 3.92,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.04
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.04
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.234,
+    "y": -0.4284,
+    "z": 3.966,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.36
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.36
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.253,
+    "y": -0.4357,
+    "z": 4.013,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.28
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.28
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.272,
+    "y": -0.4425,
+    "z": 4.059,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.21
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.21
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.291,
+    "y": -0.4485,
+    "z": 4.105,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.13
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": 0.65,
+      "t": 0.13
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.09,
+    "yaw": 1.179,
+    "x": -13.286,
+    "y": -0.4468,
+    "z": 4.092,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.59,
+      "t": 0.1
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.59,
+      "t": 0.1
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.268,
+    "y": -0.4409,
+    "z": 4.047,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.18
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.18
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.248,
+    "y": -0.4338,
+    "z": 4.001,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.26
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.26
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.229,
+    "y": -0.4266,
+    "z": 3.955,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.33
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.33
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.21,
+    "y": -0.4191,
+    "z": 3.909,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.01
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.01
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.191,
+    "y": -0.4114,
+    "z": 3.862,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.08
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.08
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "walk",
+    "v": 0.1,
+    "yaw": 1.179,
+    "x": -13.172,
+    "y": -0.4035,
+    "z": 3.816,
+    "sk": 0,
+    "body": "walk_sideways",
+    "claw": "walk_sideways",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.16
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "walk_sideways": {
+      "w": 1,
+      "ts": -0.65,
+      "t": 0.16
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   }
+  ],
+  "pinch": [
+   {
+    "mode": "out",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "idle",
+    "claw": "claw_pinch",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.71
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.71
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "out",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "idle",
+    "claw": "claw_pinch",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 1,
+      "ts": 1,
+      "t": 1.21
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.01
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "out",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "idle",
+    "claw": "claw_pinch",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 1,
+      "ts": 1,
+      "t": 1.71
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.51
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "out",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "idle",
+    "claw": "claw_pinch",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 1,
+      "ts": 1,
+      "t": 2.21
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 1.01
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "out",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "idle",
+    "claw": "claw_pinch",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 1,
+      "ts": 1,
+      "t": 2.71
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.31
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "out",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "idle",
+    "claw": "claw_pinch",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 1,
+      "ts": 1,
+      "t": 3.21
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.81
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "out",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "idle",
+    "claw": "claw_pinch",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.11
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.11
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "out",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "idle",
+    "claw": "claw_pinch",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.61
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.61
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "out",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "idle",
+    "claw": "claw_pinch",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 1,
+      "ts": 1,
+      "t": 1.11
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 1.11
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "out",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "idle",
+    "claw": "claw_pinch",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "idle": {
+      "w": 1,
+      "ts": 1,
+      "t": 1.61
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.41
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   }
+  ],
+  "pinchRun": {
+   "bundle": "desert.94a35a3fb5.js",
+   "note": "same claw code; only the gait rates changed after"
+  },
+  "dig": [
+   {
+    "mode": "dig",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "dig",
+    "claw": "dig",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.38
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.38
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "dig",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "dig",
+    "claw": "dig",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.87
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.87
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "dig",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "dig",
+    "claw": "dig",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.17
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.17
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "dig",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "dig",
+    "claw": "dig",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.67
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.67
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "dig",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "dig",
+    "claw": "dig",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 1.17
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 1.17
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "dig",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "dig",
+    "claw": "dig",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.47
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.47
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "dig",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "dig",
+    "claw": "dig",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.97
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.97
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "dig",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "dig",
+    "claw": "dig",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.27
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.27
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "dig",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "dig",
+    "claw": "dig",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.77
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.77
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   },
+   {
+    "mode": "dig",
+    "v": 0,
+    "yaw": 1.179,
+    "x": -13.142,
+    "y": -0.3901,
+    "z": 3.743,
+    "sk": 0,
+    "body": "dig",
+    "claw": "dig",
+    "bodyActs": {
+     "claw_pinch": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     },
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.07
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "clawActs": {
+     "dig": {
+      "w": 1,
+      "ts": 1,
+      "t": 0.07
+     },
+     "scuttle_sideways": {
+      "w": 1,
+      "ts": 1,
+      "t": 0
+     }
+    },
+    "visible": true,
+    "scale": 1.102
+   }
+  ],
+  "digRun": {
+   "bundle": "desert.94a35a3fb5.js",
+   "size": "640x360"
+  }
+ },
+ "perf": {
+  "ci": {
+   "run": 45061798200,
+   "commit": "231d83f",
+   "prMs": 32.4,
+   "mainMs": 31.9,
+   "limitMs": 36.6,
+   "over200": [
+    0,
+    0
+   ],
+   "maxMs": [
+    116,
+    108
+   ]
+  },
+  "ciCrabFirst": {
+   "run": 45059821376,
+   "commit": "ef7d59c",
+   "prMs": 35.2,
+   "mainMs": 34.4,
+   "limitMs": 39.5
+  },
+  "localSandfallOnly": {
+   "bundle": "desert.7aec453d30.js",
+   "prMs": 11.6,
+   "mainMs": 13.5
+  }
+ }
+}

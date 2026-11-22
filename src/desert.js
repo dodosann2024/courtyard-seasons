@@ -1579,8 +1579,8 @@ ${RING.glsl}
              falls and where a gust blows through, and it gives out at the foot stream by stream, the densest last. In front of the
              rock it stays whole. Through those gaps the far side of the ring shows (vFc < 0: a sheet facing away); it is fainter,
              seen through the dust under the island, so the near streams stand in front of it instead of closing up with it */
-          float lowK=1.-smoothstep(-5.,-.8,vDy),gT=.5+.16*smoothstep(.72,1.,s)+.1*smoothstep(.55,.9,vG)*(1.-wet);
-          openK=mix(1.,smoothstep(gT-.08,gT+.08,sP)*mix(1.,.45,1.-smoothstep(-.35,.05,vFc)),lowK);
+          float dpK=1.-smoothstep(-9.,-2.3,vDy-5.*(.5-sP)),lowK=smoothstep(0.,.3,dpK),gT=.44+.24*dpK+.1*smoothstep(.72,1.,s)+.1*smoothstep(.55,.9,vG)*(1.-wet);
+          openK=mix(1.,smoothstep(gT-.1,gT+.1,sP)*mix(1.,.45,1.-smoothstep(-.35,.05,vFc)),lowK);
           float Xw=tx+.35*(dn2(vec2(tx*.23+7.,u*2.4))-.5);
           float n1=dn2(vec2(Xw*.5,u*1.6)),n2=dn2(vec2(Xw*1.3+5.,u*4.)),n3=dn2(vec2(Xw*3.1+9.,u*9.));
           float str=n1*.5+n2*.32+n3*.18,ab=clamp(fwidth(Xw*1.3)*.8-.2,0.,1.);

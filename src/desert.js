@@ -4141,7 +4141,7 @@ function trLoad(){return glb(TR_FILE).then(src=>{const up=new V3(),q=new T.Quat(
    Each has a burrow in the damp bank just above the waterline. They pick over the wet margin and the shallows round it,
    walking sideways in short runs and feeding claw to mouth in the pauses. A camel coming to the water, the rattlesnake on the
    bank or the eagle low over it sends them scuttling, claws up, down the nearest burrow or into deeper water; rain, hail and
-   snow send them home. Drawn with Godot's rigged crab_v6b (crLoad below, life size); this procedural instanced crab, one draw with
+   snow send them home. Drawn with Godot's rigged crab_v6c (crLoad below, life size); this procedural instanced crab, one draw with
    the legs and claws moved in the vertex shader, is the fallback. The burrows are the same for both. ---------------- */
 const CR_N=MOB?5:8,CR_K=1.6,CR={list:[],im:null,A:null,bm:null,vis:0,U:{uVis:{value:0}}};
 function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
@@ -4298,7 +4298,9 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
       if(d<.02){c.v=0;if(c.go==="home"){c.x=c.bx;c.z=c.bz;c.mode="down";spPuff(c.bx,c.y,c.bz,5,c.bx-POND.x,c.bz-POND.z,.3,.35,.03)}else if(c.go==="water"){c.mode="sub";c.t=rr(12,30)}else{c.mode="out";c.t=rr(1,5)}}
       else{const dir=Math.atan2(dx,dz),y1=dir-Math.PI/2,y2=dir+Math.PI/2,ty=Math.abs(wrapA(y1-c.yaw))<Math.abs(wrapA(y2-c.yaw))?y1:y2,dy=wrapA(ty-c.yaw);
         c.yaw=wrapA(c.yaw+cl(dy,-6*dt,6*dt));const vt=Math.abs(dy)<.5?c.vt:0;c.v+=(vt-c.v)*ease(c.mode==="run"?14:7,dt);
-        const st_=Math.min(c.v*dt,d);c.x+=dx/d*st_;c.z+=dz/d*st_}}
+        /* it only ever moves along its own x, the way the gait clip steps, by the share of the way that lies along it; turning
+           brings the rest round. Moving straight at the target while still turning slid the planted feet sideways. */
+        const rx=Math.cos(c.yaw),rz=-Math.sin(c.yaw),st_=Math.min(c.v*dt,d)*(dx*rx+dz*rz)/d;c.x+=rx*st_;c.z+=rz*st_}}
     else c.v+=(0-c.v)*ease(10,dt);
     c.ph+=c.v*dt/(.032*CR_K)*TAU;c.walk+=((c.v>.01?1:0)-c.walk)*ease(10,dt);
     const feeding=c.mode==="out"||c.mode==="sub"||c.mode==="dig";c.fph+=dt*(feeding?c.mode==="dig"?7:4.2:0);c.feed+=((feeding?1:0)-c.feed)*ease(3,dt);
@@ -4316,11 +4318,12 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
       const bn=c.mode==="dig"?"dig":gait?fast?"scuttle_sideways":"walk_sideways":"idle",bt=gait?cl(-vl/((fast?CR_SCUT:CR_WALK)*k),-3,3):1;
       play(c.rb,bn,gait?.15:.3,bt);
       /* the claws: claw_pinch opens and closes them in the pauses and holds them open (its middle frame) in a threat or a run;
-         digging and walking keep the claws of their own clip. CR.gapePin (0 shut .. 1 open) holds the pinch for a proof. */
-      const hold=CR.gapePin!=null?CR.gapePin*CR_OPEN:c.mode==="run"||c.mode==="face"?CR_OPEN:null,pinch=hold!=null||c.mode==="out"||c.mode==="sub";
-      play(c.rc,pinch?"claw_pinch":bn,.25,pinch?hold!=null?0:1:bt);
-      if(hold!=null){const a=c.rc.acts.claw_pinch;a.time+=(hold-a.time)*(CR.gapePin!=null?1:ease(6,dt))}
-      if(c.rc.fd){c.rc.fd.u+=dt/c.rc.fd.T;rigW(c.rc)}rigTick(c.rb,dt)}}
+         digging and walking keep the claws of their own clip, with the dactyls shut by idle. CR.gapePin (0 shut .. 1 open) holds
+         the pinch and CR.clawIdle keeps the pauses on idle, for a proof. */
+      const hold=CR.gapePin!=null?CR.gapePin*CR_OPEN:c.mode==="run"||c.mode==="face"?CR_OPEN:null,pinch=hold!=null||!CR.clawIdle&&(c.mode==="out"||c.mode==="sub");
+      play(c.rc,pinch?"claw_pinch":bn,.25,pinch?hold!=null?0:1:bt);play(c.rf,pinch?"claw_pinch":"idle",.25,pinch&&hold!=null?0:1);
+      if(hold!=null)for(const r of[c.rc,c.rf]){const a=r.acts.claw_pinch;a.time+=(hold-a.time)*(CR.gapePin!=null?1:ease(6,dt))}
+      for(const r of[c.rc,c.rf])if(r.fd){r.fd.u+=dt/r.fd.T;rigW(r)}rigTick(c.rb,dt)}}
   else if(CR.vis>0){const A=CR.A.array;CR.list.forEach((c,i)=>{const fw=Math.sin(c.yaw),fz=Math.cos(c.yaw),e=.03,
       gp=(lkY(c.x+fw*e,c.z+fz*e)-lkY(c.x-fw*e,c.z-fz*e))/(2*e),gr=(lkY(c.x+fz*e,c.z-fw*e)-lkY(c.x-fz*e,c.z+fw*e))/(2*e);
       qYXZ(_tq,-Math.atan(gp),c.yaw,Math.atan(gr));const k=c.s*CR_K,sc=c.mode==="in"?0:k;
@@ -4328,22 +4331,25 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
       if(sc>0&&c.sk<.6)blobAdd(c.x,c.y,c.z,c.yaw,.085*k,.07*k,.42*(1-.6*st.night)*CR.vis*(1-c.sk),.75,0);
       A[i*4]=c.ph;A[i*4+1]=c.walk;A[i*4+2]=Math.sin(c.fph)*c.feed*(1-c.up);A[i*4+3]=c.up;CR.OA.array[i]=Math.max(c.gape,1e-4)});
     CR.im.instanceMatrix.needsUpdate=true;CR.A.needsUpdate=true;CR.OA.needsUpdate=true}}
-/* Godot's crab_v6b (the Tripo shell with rebuilt legs and chelae, 36 bones, mud olive-brown): idle 3.6 s, walk_sideways .4 s
-   (.14 m/s under the planted tips), scuttle_sideways .18 s (.464 m/s), dig 1.2 s, claw_pinch 1.2 s (claw_finger.L/R hinge 0 → 30° at
-   0.6 s → 0, keyed at 60 fps, so it is held by time: CR_OPEN is the fully open instant); in place, facing +z, walking along local -x, a 5 cm
-   carapace and 12 cm leg span at scale 1. Once it has loaded each crab is a skinned clone of it under the underwater shading and the
-   instanced crab above is not drawn. One mixer, two layers: the body and legs from the gait clip, the claw_* bones either from that
-   clip or from claw_pinch. */
-const CR_FILE="crab_v6b",CR_G=1,CR_WALK=.14,CR_SCUT=.464,CR_OPEN=.6,CRM=new Map();
+/* Godot's crab_v6c (the Tripo shell with rebuilt legs and chelae, 36 bones, mud olive-brown): idle 3.6 s, walk_sideways .4 s
+   (.14 m/s under the planted tips), scuttle_sideways .18 s (.48 m/s), dig 1.2 s, claw_pinch 1.2 s; in place, facing +z, walking along
+   local -x, a 5 cm carapace and 12 cm leg span at scale 1. The dactyls (claw_finger.L/R) are modelled open: at rest the minor claw gapes
+   2.1 mm and the major 3.9 mm. idle closes them to the bite (L -26.5°, R -35.5° from rest) and opens them 13° every 1.8 s; claw_pinch
+   swings bite -> +40° at 0.6 s -> bite, keyed at 60 fps, so it is held by time (CR_OPEN is the fully open instant). The gait and dig
+   clips leave the dactyls at rest. Once it has loaded each crab is a skinned clone of it under the underwater shading and the instanced
+   crab above is not drawn. One mixer, three layers: the body and legs from the gait clip; claw_a/b/c either from that clip or from
+   claw_pinch; the dactyls from claw_pinch with the claws, otherwise from idle, so the open rest pose is never shown. */
+const CR_FILE="crab_v6c",CR_G=1,CR_WALK=.14,CR_SCUT=.48,CR_OPEN=.6,CRM=new Map();
 function crMats(s){matsOf(s,(m,c)=>{c.castShadow=false;c.receiveShadow=true;c.renderOrder=3;c.frustumCulled=false;let n=CRM.get(m.uuid);
   if(!n){n=m.clone();CRM.set(m.uuid,n);if(n.map)n.map.anisotropy=MOB?2:4;if(n.emissive)n.emissive.setRGB(0,0,0);
     n.metalness=0;n.metalnessMap=null;n.aoMapIntensity=.6;n.userData.U=CR.U;uwMat(n,"crg",".9",{head:"",nrm:"",pos:""})}
   c.material=n})}
-function crLoad(){return glb(CR_FILE).then(src=>{const C=VT.THREE.AnimationClip,isC=t=>/^claw_/.test(t.name),body=[],claw=[];
-  for(const a of src.animations){body.push(new C(a.name,a.duration,a.tracks.filter(t=>!isC(t))));claw.push(new C(a.name,a.duration,a.tracks.filter(isC)))}
+function crLoad(){return glb(CR_FILE).then(src=>{const C=VT.THREE.AnimationClip,isF=t=>/^claw_finger/.test(t.name),isC=t=>/^claw_/.test(t.name)&&!isF(t),body=[],claw=[],fing=[];
+  for(const a of src.animations){body.push(new C(a.name,a.duration,a.tracks.filter(t=>!isC(t)&&!isF(t))));claw.push(new C(a.name,a.duration,a.tracks.filter(isC)));
+    if(a.name==="idle"||a.name==="claw_pinch")fing.push(new C(a.name,a.duration,a.tracks.filter(isF)))}
   for(const c of CR.list){const s=VT.cloneSkinned(src.scene),g=new T.Group();g.rotation.order="YXZ";g.add(s);W.add(g);onDes(g);crMats(s);
-    const b=rigUp(s,body),k={mx:b.mx,acts:{},cur:null};for(const a of claw)k.acts[a.name]=b.mx.clipAction(a);
-    play(b,"idle",.01,1);play(k,"idle",.01,1);b.acts.idle.time=k.acts.idle.time=rr(0,3.6);c.g=g;c.rb=b;c.rc=k;g.visible=false}
+    const b=rigUp(s,body),k={mx:b.mx,acts:{},cur:null},f={mx:b.mx,acts:{},cur:null};for(const a of claw)k.acts[a.name]=b.mx.clipAction(a);for(const a of fing)f.acts[a.name]=b.mx.clipAction(a);
+    play(b,"idle",.01,1);play(k,"idle",.01,1);play(f,"idle",.01,1);b.acts.idle.time=k.acts.idle.time=f.acts.idle.time=rr(0,3.6);c.g=g;c.rb=b;c.rc=k;c.rf=f;g.visible=false}
   CR.glb=1;CR.im.visible=false})}
 /* the lake animals are hidden once they are under a couple of pixels */
 function lakeVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
@@ -4418,8 +4424,9 @@ const agSun=()=>(1-st.night)*WX.sunK*(1-WX.rain)*(1-.5*WX.dust)*(st.phase==="day
 const agGrid=()=>navGrid("agama",.05,1.12,.86);
 function agGo(a,goal,then){const p=navPath(agGrid(),a.x,a.z,goal.x,goal.z)||[{x:a.x,z:a.z},{x:goal.x,z:goal.z}];
   a.path=p;a.pi=1;a.then=then;a.goal=goal;a.mode="run";a.burst=rr(.8,2.8);play(a.r,"run",.12,AG_V/AG_RUN)}
-/* rain shelter: right under the crown, just below the skirt of dead leaf sheaths (whose lowest ring starts ~12 % of the trunk down) */
-const agRainT=pp=>Math.max(.3,(pp.h*.876-.3)/pp.h);
+/* rain shelter: up in the crown, half a metre under the top of the trunk where the live fronds spring (the hen 20 cm lower), in
+   the gap between the first and second rings of dead leaf sheaths, so the fronds and the upper sheaths are its roof */
+const agRainT=(pp,male)=>1-(male?.5:.7)/pp.h;
 /* the viewer's side of things: palms and rocks nearer the camera are picked more often and kept longer, so a lizard this
    small is mostly where it can be seen; k is 1 for the nearest, falling off over ~6 m further away */
 function agNearK(x,z,L){let m=1e9;for(const o of L)m=Math.min(m,Math.hypot(o.x-_cl.x,o.z-_cl.z));return Math.exp(-(Math.hypot(x-_cl.x,z-_cl.z)-m)/6)}
@@ -4442,7 +4449,7 @@ function agDecide(a){const night=st.night>.5||WX.cold>0,rain=WX.rain>.25,sun=agS
   if(night){if(a.palm){agClimb(a,0);return}const sp=a.spot||AG.spots[0],h={x:sp.x+.25*Math.sin(SUN.lazL),z:sp.z+.25*Math.cos(SUN.lazL)};
     if(Math.hypot(a.x-h.x,a.z-h.z)<.3){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}agGo(a,h,"hide");return}
   a.g.visible=true;
-  if(rain){if(a.palm){const tg=agRainT(a.palm)-(a.male?0:.28/a.palm.h);if(Math.abs(a.ct-tg)>.01){agClimb(a,tg);return}a.mode="perch";a.timer=rr(8,14);play(a.r,"climb",.2,0);return}
+  if(rain){if(a.palm){const tg=agRainT(a.palm,a.male);if(Math.abs(a.ct-tg)>.01){agClimb(a,tg);return}a.mode="perch";a.timer=rr(8,14);play(a.r,"climb",.2,0);return}
     const pp=agNearPalm(a);agGo(a,agPalmBase(a,pp),"climb");a.goal.rain=1;return}
   if(a.palm){if(a.Tb<.55&&sun>.3){agClimb(a,0);return}
     if(rnd()<.35){agClimb(a,cl(a.ct+rr(-.15,.2),.15/a.palm.h,(a.palm.h-2.2)/a.palm.h));return}
@@ -4453,7 +4460,7 @@ function agDecide(a){const night=st.night>.5||WX.cold>0,rain=WX.rain>.25,sun=agS
   const w=randFree(agGrid(),GROVE.x,GROVE.z,9);if(w){agGo(a,w,"idle");return}
   a.mode="idle";a.timer=rr(3,8);play(a.r,"idle",.3,1)}
 function agArrive(a){const k=a.then,g=a.goal;a.path=null;
-  if(k==="climb"){agMount(a,g.pp);a.ctGoal=g.rain?agRainT(g.pp)-(a.male?0:.28/g.pp.h):Math.min(rr(1.5,3.5),g.pp.h-2.2)/g.pp.h;return}
+  if(k==="climb"){agMount(a,g.pp);a.ctGoal=g.rain?agRainT(g.pp,a.male):Math.min(rr(1.5,3.5),g.pp.h-2.2)/g.pp.h;return}
   if(k==="bask"){agBask(a,g.sp);return}
   if(k==="hide"){a.mode="hide";a.g.visible=false;a.timer=rr(20,40);return}
   a.mode="idle";a.timer=rr(2,6);play(a.r,"idle",.25,1)}
@@ -4802,6 +4809,11 @@ function osFollow(A,dt){const p=A.path[A.pi],dx=p.x-A.x,dz=p.z-A.z,d=Math.hypot(
   const dy=wrapA(Math.atan2(dx,dz)-A.yaw),run=A.mode==="run";steer(A,dy,run?1.3:1.5,dt);
   const vt=A.vmax*cl(1-Math.abs(dy)/(run?1.6:1.2),.12,1)*(A.pi===A.path.length-1?cl(d/(run?6:1.5),.2,1):1);
   A.v+=(vt-A.v)*Math.min(1,dt*(vt>A.v?(run?2.2:1.5):2.6));return true}
+/* the tent's floor plan and a body width round it are out of bounds, whatever the path or a running bird's turning circle: one
+   that strays in is set back out at the nearest wall. It walks on the sand (hTop), never on the cloth. */
+function osOffTent(A){const c=Math.cos(TENT.yaw),s=Math.sin(TENT.yaw),dx=A.x-TENT.x,dz=A.z-TENT.z;let lx=dx*c-dz*s,lz=dx*s+dz*c;
+  const hx=TENT.L/2+.7,hz=TENT.D/2+.7,ox=hx-Math.abs(lx),oz=hz-Math.abs(lz);if(ox<=0||oz<=0)return false;
+  if(ox<oz)lx=(lx<0?-1:1)*hx;else lz=(lz<0?-1:1)*hz;A.x=TENT.x+lx*c+lz*s;A.z=TENT.z-lx*s+lz*c;return true}
 function osUpdate(A,dt){const P=A.P,ny=st.night>.6||(st.night>.3&&st.phase==="night"),hail=WX.hf>.05||WX.hcold>0,dust=WX.dust>.5,sitW=ny||hail||dust;
   A.t-=dt;A.runT-=dt;
   /* threats: the eagle low or stooping, the snake, a camel walking up, a viewer leaning in */
@@ -4842,7 +4854,7 @@ function osUpdate(A,dt){const P=A.P,ny=st.night>.6||(st.night>.3&&st.phase==="ni
       if(A.mode==="walk"&&fear>.55&&A.thr&&A.thr.until>st.t&&!A.fled){A.fled=1;if(fleeFrom(fear>1.1))break}
       if(!A.path||!osFollow(A,dt)){A.fled=0;A.path=null;A.mode=A.then||"stand";A.then=null;A.t=A.mode==="graze"?rr(6,16):rr(1.5,4);if(A.mode==="graze"){A.peckT=rr(.3,1);A.scanT=rr(3,8)}}
       break}}
-  A.x+=Math.sin(A.yaw)*A.v*dt;A.z+=Math.cos(A.yaw)*A.v*dt;A.gy+=(hTop(A.x,A.z)-A.gy)*Math.min(1,dt*10);
+  A.x+=Math.sin(A.yaw)*A.v*dt;A.z+=Math.cos(A.yaw)*A.v*dt;osOffTent(A);A.gy+=(hTop(A.x,A.z)-A.gy)*Math.min(1,dt*10);
   /* targets for the pose */
   const gr=A.mode==="graze"?1:0,al=A.mode==="alert"||(fear>.15&&A.mode!=="run")?1:0,ru=A.mode==="run"?ss(2,5,A.v):0;
   const kq=ease(A.mode==="alert"?4:2.2,dt);P.gr+=(gr-P.gr)*kq;P.al+=(al*(1-P.sit)-P.al)*kq;P.run+=(ru-P.run)*ease(3,dt);
@@ -5329,7 +5341,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={rq:()=>0,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={rq:()=>0,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,osOffTent,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

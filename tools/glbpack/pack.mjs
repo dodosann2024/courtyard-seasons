@@ -31,7 +31,7 @@ const TEX={
      at their authored sizes (the strands are the point of the model); the 512 px hair-card atlas is left alone */
   ...Object.fromEntries(['gerbil_v5','gerbil_v5b'].map(k=>[k,[textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5})]])),
   /* a 5 cm crab at the water's edge: colour as delivered (1024 px), normal/ORM 512 px */
-  ...Object.fromEntries(['crab_v6','crab_v6b'].map(k=>[k,[textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,slots:/baseColor/}),
+  ...Object.fromEntries(['crab_v6','crab_v6b','crab_v6c'].map(k=>[k,[textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,slots:/baseColor/}),
     textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,resize:[512,512],slots:/^(?!baseColor)/})]])),
   /* a 40 cm trout seen through a metre of water: body colour and fin atlas 1024 px (from 2048), normal/ORM 512 px */
   ...Object.fromEntries(['trout_v2','trout_v3'].map(k=>[k,[

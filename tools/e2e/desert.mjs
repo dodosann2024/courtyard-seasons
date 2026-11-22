@@ -89,7 +89,7 @@ try {
     return [P.n > n0 && windy < calm - .1 && gone < .05, {printsAdded: P.n - n0, leftAfter60sCalm: +calm.toFixed(3), leftAfter60sWindy: +windy.toFixed(3), leftAfter300sWindy: +gone.toFixed(4)}];
   }));
 
-  /* 4. agamas: active in the sun (basking or climbing), perched just under the fronds in rain, hidden at night */
+  /* 4. agamas: active in the sun (basking or climbing), perched up in the crown under the fronds in rain, hidden at night */
   check("agama behaviour", ...await page.evaluate(() => {
     const q = window.__desQA(), L = q.AG.list, out = {n: L.length};
     if (!L.length) return [false, out];
@@ -100,8 +100,9 @@ try {
     out.moved = +Math.max(...L.map((a, i) => Math.hypot(a.x - p0[i][0], a.z - p0[i][1]) + Math.abs((a.ct || 0) - p0[i][2]) * 5)).toFixed(2);
     const active = [...seen].some(m => /bask|climb|perch|palm/.test(m));
     window.__set({weather: "hrain", ct: "overcast"}); q.sim(180);
-    out.rain = L.map(a => ({mode: a.mode, onPalm: !!a.palm, under: a.palm ? +(q.agRainT(a.palm) - (a.male ? 0 : .28 / a.palm.h) - a.ct).toFixed(3) : null}));
-    const perched = L.every(a => a.palm && Math.abs(q.agRainT(a.palm) - (a.male ? 0 : .28 / a.palm.h) - a.ct) < .06);
+    /* up in the crown: metres below the top of the trunk, where the live fronds spring */
+    out.rain = L.map(a => ({mode: a.mode, onPalm: !!a.palm, belowTop: a.palm ? +((1 - a.ct) * a.palm.h).toFixed(2) : null}));
+    const perched = L.every(a => a.palm && Math.abs(q.agRainT(a.palm, a.male) - a.ct) * a.palm.h < .05 && (1 - a.ct) * a.palm.h < .95);
     window.__set({weather: "sun", ct: "clear"}); q.tod("night"); q.sim(240);
     out.night = L.map(a => a.mode + (a.g.visible ? "" : ":hidden"));
     const hidden = L.every(a => !a.g.visible || a.then === "hide" || (a.palm && a.mode === "climb"));
@@ -109,7 +110,7 @@ try {
     return [active && out.moved > .3 && perched && hidden, out];
   }));
 
-  /* 4b. lake life: freshwater crabs (Godot's crab_v6b at life size, about 5 cm across) on the damp bank, the grass cleared round their doors and in the shallows round their burrows, walking sideways,
+  /* 4b. lake life: freshwater crabs (Godot's crab_v6c at life size, about 5 cm across) on the damp bank, the grass cleared round their doors and in the shallows round their burrows, walking sideways,
      bolting into a burrow or the water when something big comes close and going home in rain and hail; rainbow trout (26–38 cm)
      schooling under the surface over the deep cold middle, rising at dawn and going down to the bed in hail */
   check("lake: crabs on the bank, trout in the deep, both take cover", ...await page.evaluate(() => {

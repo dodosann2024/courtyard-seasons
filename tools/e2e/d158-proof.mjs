@@ -576,7 +576,8 @@ try {
       window.__runCam = () => { const C = window.__C(), y = window.__run.yaw, d = 8.2;
         q.lookAt(A.x + Math.cos(y) * d, A.gy + 1.25, A.z - Math.sin(y) * d, A.x, A.gy + 1.05, A.z); C.De.fov = 30; C.De.near = .05; C.De.updateProjectionMatrix();
         for (const o of q.PA.os) if (o !== A) o.g.visible = false; };
-      for (let i = 0; i < 28; i++) { A.mode = "run"; A.t = 999; A.vmax = 4.9; q.step(1, 1 / 24); window.__runCam(); }
+      /* a bird sat down by an earlier night shot plays stand_up first: record from the stride, not the rise */
+      for (let i = 0; i < 28 || (A.rig && A.rig.cur !== "fast_run" && i < 24 * 10); i++) { A.mode = "run"; A.t = 999; A.vmax = 4.9; q.step(1, 1 / 24); window.__runCam(); }
       return {best, plants: plants.length, cur: A.rig && A.rig.cur};
     });
     console.log("run path", JSON.stringify(info));

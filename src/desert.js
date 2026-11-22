@@ -5268,13 +5268,13 @@ function scLoad(){return Promise.all([pgGet("sc"),pgGet("scUV")]).then(([src,uv]
   if(src&&uv)matsOf(uv.scene,m=>{if(m.emissiveMap&&!glow)glow=m.emissiveMap});
   const geo=moundGeo(SC_MOUND);for(const rk of scRocks()){const A=scSpawn(rk,src,glow);A.gy=hTop(A.x,A.z);PA.sc.push(A);
   const ex=rk.x+SHADE.x*(rk.r+.02),ez=rk.z+SHADE.z*(rk.r+.02);rk.mound=moundAt(geo,ex,ez,Math.atan2(-SHADE.x,-SHADE.z))}})}
-/* ---- the rigged models: Godot's ostrich_v2ah, tortoise_v2g (with its withdraw morph), gerbil_v5b (with its lookout_fix morph) and scorpion_v2c (v2b with skinned alpha setae cards), whose
+/* ---- the rigged models: Godot's ostrich_v2ah, tortoise_v2h (v2g's mesh and clips, warmer shell maps; with its withdraw morph), gerbil_v5b (with its lookout_fix morph) and scorpion_v2c (v2b with skinned alpha setae cards), whose
    UV-fluorescence twin scorpion_uv_v2c lends its emissive map for the glow under the moon. Each takes the place of the
    procedural mesh above with the same behaviour, schedules, prints and sounds: its pose is the model's own clips, chosen and
    timed from the same state, plus a few bones turned on top (where it looks). Night and hail play the ostrich's sit clip.
-   ostrich_v2c.glb through ostrich_v2ag.glb, gerbil_v4d.glb, gerbil_v5.glb and the v2b scorpions stay on disk and are not loaded. If a file can't be had the procedural animal is built instead.
+   ostrich_v2c.glb through ostrich_v2ag.glb, tortoise_v2g.glb, gerbil_v4d.glb, gerbil_v5.glb and the v2b scorpions stay on disk and are not loaded. If a file can't be had the procedural animal is built instead.
    Bones run along their local y (Blender's); three drops the dots from their names. ---- */
-const PG={os:"ostrich_v2ah",tt:"tortoise_v2g",gb:"gerbil_v5b",sc:"scorpion_v2c",scUV:"scorpion_uv_v2c"};
+const PG={os:"ostrich_v2ah",tt:"tortoise_v2h",gb:"gerbil_v5b",sc:"scorpion_v2c",scUV:"scorpion_uv_v2c"};
 const pgGet=k=>glb(PG[k]).catch(()=>null);
 const PGM=new Map();let PG_GLOW=null;
 /* wet plumage and fur go darker in rain; the hen is the cock's model in her dull grey-brown (black -> earth, white -> buff) */

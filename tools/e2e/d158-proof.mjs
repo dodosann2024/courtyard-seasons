@@ -137,13 +137,15 @@ const report = {};
 try {
   await boot(page, "desert");
   const live = await page.evaluate(() => ({desert: window.CY && window.CY.desert, os: window.CY && window.CY.ms && window.CY.ms.ostrich_v2ah,
-    gb: window.CY && window.CY.ms && window.CY.ms.gerbil_v5b, sc: window.CY && window.CY.ms && window.CY.ms.scorpion_v2c && window.CY.ms.scorpion_uv_v2c}));
+    gb: window.CY && window.CY.ms && window.CY.ms.gerbil_v5b, sc: window.CY && window.CY.ms && window.CY.ms.scorpion_v2c && window.CY.ms.scorpion_uv_v2c,
+    tt: window.CY && window.CY.ms && window.CY.ms.tortoise_v2h}));
   console.log("live", JSON.stringify(live));
   report.live = live;
   if (!live.desert || !/desert\.[0-9a-f]+\.js$/.test(live.desert)) fails.push("desert bundle missing");
   if (!live.os) fails.push("ostrich_v2ah not in the live manifest");
   if (!live.gb) fails.push("gerbil_v5b not in the live manifest");
   if (!live.sc) fails.push("scorpion_v2c / scorpion_uv_v2c not in the live manifest");
+  if (!live.tt) fails.push("tortoise_v2h not in the live manifest");
   let sea = null;
   const seaPage = async () => {
     if (sea) return sea;
@@ -831,6 +833,62 @@ try {
       console.log("encoded scorpion walk");
     }
     console.log("scorpion metrics", JSON.stringify(SC));
+  }
+  /* tortoise_v2h in the scene: the first tortoise on a fixed patch of dune, held in mode "dbg" (idle) for rest, then "shell" so
+     head_withdraw plays through and holds with its withdraw_close morph */
+  const TTN = "tortoise_v2h";
+  if (want("tort")) {
+    const spot = await page.evaluate(() => {
+      const q = window.__desQA();
+      window.__set({weather: "sun", ct: "clear", wind: .2}); q.tod("day");
+      q.PA.noView = true;
+      if (q.ANIM.eagle && q.ANIM.eagle.pos) q.ANIM.eagle.pos.set(40, 22, 40);
+      q.ANIM.camels.forEach((c, i) => { c.x = -22; c.z = -18 - i * 4; c.g.position.set(c.x, q.hTop(c.x, c.z), c.z); });
+      if (q.rsPut) q.rsPut(18, 14, 0);
+      for (const o of q.PA.os) { o.mode = "sit"; o.t = 999; o.x = 24; o.z = -20; o.g.visible = false; }
+      for (const g of q.PA.gb) { g.mode = "in"; g.t = 999; g.g.visible = false; }
+      for (const s of q.PA.sc) { s.mode = "hide"; s.t = 999; }
+      q.PA.tt.slice(1).forEach(t => { t.x = -20; t.z = -16; t.mode = "dbg"; t.t = 999; });
+      const A = q.PA.tt[0], mats = [];
+      A.g.traverse(m => { if (m.isMesh) mats.push({name: m.material.name, transparent: !!m.material.transparent, cast: m.castShadow,
+        morphs: m.morphTargetDictionary ? Object.keys(m.morphTargetDictionary) : []}); });
+      /* a fixed open, level patch of dune east of the pond, so reruns frame the same ground */
+      A.x = 5.74; A.z = -.726; A.yaw = 2.683; A.gy = q.hTop(A.x, A.z);
+      window.__tt = {x: A.x, z: A.z, yaw: A.yaw};
+      return {x: +A.x.toFixed(3), z: +A.z.toFixed(3), yaw: +A.yaw.toFixed(3), rig: !!A.rig, clips: A.rig ? Object.keys(A.rig.acts) : [],
+        bones: A.bn ? Object.keys(A.bn).length : 0, mats};
+    });
+    console.log("tortoise", TTN, JSON.stringify(spot));
+    const TT = report.tortoise = {file: TTN, ...spot};
+    if (!spot.rig) fails.push("tortoise rig not loaded");
+    for (const c of ["idle", "slow_crawl", "head_withdraw", "head_out"]) if (!spot.clips.includes(c)) fails.push("tortoise clip missing: " + c);
+    if (!spot.mats.some(m => m.morphs.includes("withdraw_close"))) fails.push("tortoise withdraw_close morph missing");
+    const ttStep = (mode, n, dt) => page.evaluate((mode, n, dt) => {
+      const q = window.__desQA(), s = window.__tt, A = q.PA.tt[0];
+      for (let k = 0; k < n; k++) { A.mode = mode; A.t = 99; A.v = 0; A.x = s.x; A.z = s.z; A.yaw = s.yaw; q.step(1, dt); A.g.visible = true; }
+      A.g.updateMatrixWorld(true);
+      let r = 0, wc = 0; A.g.traverse(m => { if (m.isMesh) { m.geometry.computeBoundingBox(); const b = m.geometry.boundingBox; r = Math.max(r, b.max.x - b.min.x, b.max.z - b.min.z) / 2 * A.g.scale.x;
+        const i = m.morphTargetDictionary && m.morphTargetDictionary.withdraw_close; if (i !== undefined) wc = Math.max(wc, m.morphTargetInfluences[i]); } });
+      /* lowest skinned point above the sand under it (island metres) */
+      let lo = Infinity; const gw = A.g.getWorldPosition(A.g.position.clone());
+      A.g.traverse(m => { if (m.isSkinnedMesh) { m.computeBoundingBox(); const b = m.boundingBox.clone().applyMatrix4(m.matrixWorld);
+        lo = Math.min(lo, q.W.worldToLocal(gw.clone().setY(b.min.y)).y); } });
+      return {cur: A.rig && A.rig.cur, r, wc: +wc.toFixed(3), wd: +A.P.wd.toFixed(3), gap: +(lo - q.hTop(A.x, A.z)).toFixed(4), gy: +(A.gy - q.hTop(A.x, A.z)).toFixed(4)};
+    }, mode, n, dt);
+    const ttCam = (kind, r) => page.evaluate((kind, r) => {
+      const q = window.__desQA(), C = window.__C(), s = window.__tt, gy = q.hTop(s.x, s.z), yaw = s.yaw;
+      const put = (a, d, y, ty, fov) => { q.lookAt(s.x + Math.sin(yaw + a) * d, gy + y, s.z + Math.cos(yaw + a) * d, s.x, gy + ty, s.z); C.De.fov = fov; C.De.near = .005; C.De.updateProjectionMatrix(); };
+      ({side: () => put(Math.PI / 2, r * 4.6, r * .55, r * .5, 28), three_q: () => put(Math.PI / 4, r * 4, r * 1.6, r * .4, 28),
+        front_close: () => put(0, r * 2.4, r * .45, r * .4, 28), three_q_close: () => put(Math.PI / 4, r * 2.6, r * .9, r * .4, 28)})[kind]();
+    }, kind, r);
+    const rest = await ttStep("dbg", 60, 1 / 30);
+    TT.rest = {cur: rest.cur, r: +rest.r.toFixed(4), wc: rest.wc, gap: rest.gap, gy: rest.gy};
+    for (const k of ["side", "three_q"]) { await ttCam(k, rest.r); await shot(page, `${TTN}_rest_${k}.png`); }
+    const wd = await ttStep("shell", 120, 1 / 30);
+    TT.withdraw = {cur: wd.cur, wc: wd.wc, wd: wd.wd, gap: wd.gap, gy: wd.gy};
+    if (wd.cur !== "head_withdraw") fails.push("tortoise not in head_withdraw after 4 s in shell");
+    for (const k of ["front_close", "three_q_close"]) { await ttCam(k, rest.r); await shot(page, `${TTN}_withdraw_${k}.png`); }
+    console.log("tortoise metrics", JSON.stringify(TT));
   }
 } catch (e) {
   console.log("PROOF ERROR", String(e && e.stack || e).slice(0, 1500));

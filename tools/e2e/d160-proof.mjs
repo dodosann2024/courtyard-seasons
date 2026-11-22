@@ -3,7 +3,7 @@
 // brightness-step measure of the near seam and the share of sky between the falls below the rock. The user's reference framings
 // are tools/e2e/d160-ref.mjs. Behaviour clips (wind,
 // dunevid, rain, tent, lake, agama) are stepped at 24 fps; the tent clip carries the scene's own rain sound, recorded off its bus.
-// Not part of CI. Usage: node tools/e2e/d160-proof.mjs [pair|sand|sandq|tod|full|dune|cmp|wind|dunevid|rain|tent|lake|agama|crab|run|sit|...]   (OUT=/tmp/d160)
+// Not part of CI. Usage: node tools/e2e/d160-proof.mjs [pair|sand|sandq|tod|full|dune|cmp|wind|dunevid|rain|tent|lake|agama|crstand|crwalk|crpinch|crdig|crbur|run|sit|...]   (OUT=/tmp/d160)
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -152,8 +152,8 @@ async function seaTod(page, k) {
 
 const page = await browser.newPage();
 /* which ostrich file the scene asks for: v2ag only (v2ah and v2ai stay on disk unused) */
-const osReq = new Set();
-page.on("request", r => { const m = /\/(ostrich_v2[a-z0-9]+)\.glb/.exec(r.url()); if (m) osReq.add(m[1]); });
+const osReq = new Set(), crReq = new Set();
+page.on("request", r => { const m = /\/(ostrich_v2[a-z0-9]+)\.glb/.exec(r.url()); if (m) osReq.add(m[1]); const k = /\/(crab_[a-z0-9_]+)\.glb/.exec(r.url()); if (k) crReq.add(k[1]); });
 await page.setViewport({width: W, height: H, deviceScaleFactor: 1});
 const want = k => WHICH === "all" || WHICH === k || WHICH.split(",").includes(k);
 const fails = [];
@@ -504,79 +504,145 @@ try {
     }, 24 * 5);
     report.snake = {n: s.length, modes: [...new Set(s.map(v => v.mode + "/" + v.gait))]};
   }
-  /* crab chela: the crab nearest the pond out of its burrow, the others in. g pins the gape. view "q34" is #157's close 3/4 view
-     of the big claw's outer side; "side" looks square on at the outer face, level with the bite line, so the hinge reads in profile. */
-  const crabPose = (g, view = "q34") => page.evaluate((g, view) => {
-    const q = window.__desQA(), C = window.__C(), R = q.CR;
-    if (R._proof == null) { const c = R.list.slice().sort((a, b) => q.pN(b.bx, b.bz) - q.pN(a.bx, a.bz))[0]; R._proof = R.list.indexOf(c); for (const o of R.list) if (o !== c) o.mode = "in"; }
-    const c = R.list[R._proof];
-    R.calm = true; R.vis = 1; R.U.uVis.value = 1; R.im.visible = true; R.gapePin = g;
-    const hold = () => { c.mode = "out"; c.t = 999; c.sk = 0; c.up = 0; c.v = 0; c.feed = 0; c.walk = 0; c.x = c.bx; c.z = c.bz; c.y = q.hTop(c.x, c.z); c.gape = g; };
-    /* the camera goes first: the crab update is skipped while the lake animals are culled for distance */
-    const aim = () => {
-      const k = c.s * q.crK, fw = [Math.sin(c.yaw), Math.cos(c.yaw)], rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
-      const L = (lx, ly, lz) => [c.x + rt[0] * lx * k + fw[0] * lz * k, c.y + ly * k, c.z + rt[1] * lx * k + fw[1] * lz * k];
-      /* the side view goes through the crab's own instance matrix, so it holds on the claw wherever the body sits */
-      const M = new C.De.matrix.constructor(), v = C.De.position.clone();
-      R.im.getMatrixAt(R._proof, M);
-      const LM = (x, y, z) => { v.set(x, y, z).applyMatrix4(M); return [v.x, v.y, v.z]; };
-      const [t, e] = view === "side" ? [LM(-.03, .0165, .094), LM(-.215, .02, .094)] : [L(-.026, .019, .085), L(-.186, .069, .205)];
-      q.lookAt(e[0], e[1], e[2], t[0], t[1], t[2]); C.De.fov = 22; C.De.near = .005; C.De.updateProjectionMatrix();
-    };
-    hold(); aim(); q.step(2, 1 / 30); hold(); q.step(1, 1 / 30); aim();
-    return {gape: +R.OA.array[R._proof].toFixed(4)};
-  }, g, view);
-  /* the hinge in numbers: every dactyl vertex turns about one joint point, at its own fixed distance from it */
-  const hinge = () => page.evaluate(() => {
-    const g = window.__desQA().CR.im.geometry, K = g.attributes.aK, J = g.attributes.aJ, P = g.attributes.position;
-    const out = {};
-    for (const k of [12, 13]) {
-      let n = 0, jx = 0, jy = 0, jz = 0, spread = 0, rmin = 1e9, rmax = 0;
-      for (let i = 0; i < K.count; i++) if (Math.round(K.getX(i)) === k) {
-        if (!n) { jx = J.getX(i); jy = J.getY(i); jz = J.getZ(i); }
-        spread = Math.max(spread, Math.hypot(J.getX(i) - jx, J.getY(i) - jy, J.getZ(i) - jz));
-        const r = Math.hypot(P.getX(i) - jx, P.getY(i) - jy, P.getZ(i) - jz); rmin = Math.min(rmin, r); rmax = Math.max(rmax, r); n++;
-      }
-      out[k === 12 ? "small" : "big"] = {verts: n, joint: [jx, jy, jz].map(v => +v.toFixed(4)), jointSpread: +spread.toFixed(6), reach: [+rmin.toFixed(4), +rmax.toFixed(4)]};
-    }
-    return out;
+  /* crab_v6 at the lake edge: the crab with the most open bank round its burrow is the subject, the others stay in. Cameras are in
+     the crab's own frame (fw its +z front, rt its +x), so they follow it wherever it is: "q34" front three-quarter low over the bank,
+     "claw" close on the big (right) claw, "side" wide along the bank for the side-walk, "bur" over the burrow mouth. */
+  const crabSel = () => page.evaluate(() => {
+    const q = window.__desQA(), R = q.CR;
+    if (R._proof == null) { const c = R.list.slice().sort((a, b) => q.pN(b.bx, b.bz) - q.pN(a.bx, a.bz))[0]; R._proof = R.list.indexOf(c); }
+    const c = R.list[R._proof]; for (const o of R.list) if (o !== c) { o.mode = "in"; o.t = 999; }
+    R.calm = true; R.gapePin = null; window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day");
+    return {i: R._proof, n: R.list.length, glb: !!R.glb, bx: +c.bx.toFixed(3), bz: +c.bz.toFixed(3), s: +c.s.toFixed(3)};
   });
-  const crabLoop = async (name, view, N) => {
+  const crabCam = (view, at) => page.evaluate((view, at) => {
+    const q = window.__desQA(), C = window.__C(), R = q.CR, c = R.list[R._proof], k = c.s * q.crG;
+    const yaw = at && at.yaw != null ? at.yaw : c.yaw, x0 = at ? at.x : c.x, z0 = at ? at.z : c.z, y0 = at ? at.y : c.y;
+    const fw = [Math.sin(yaw), Math.cos(yaw)], rt = [Math.cos(yaw), -Math.sin(yaw)];
+    const L = (lx, ly, lz) => [x0 + rt[0] * lx * k + fw[0] * lz * k, y0 + ly * k, z0 + rt[1] * lx * k + fw[1] * lz * k];
+    const V = {q34: [[0, .03, .01], [.16, .13, .3], 30], claw: [[-.03, .025, .03], [-.07, .11, .25], 30], side: [[0, .03, 0], [0, .2, .78], 38],
+      bur: [[0, .02, 0], [.12, .3, .36], 34], top: [[0, 0, 0], [0, .32, .02], 34]}[view];
+    const t = L(...V[0]), e = L(...V[1]);
+    q.lookAt(e[0], e[1], e[2], t[0], t[1], t[2]); C.De.fov = V[2]; C.De.near = .005; C.De.updateProjectionMatrix();
+  }, view, at);
+  /* out at the burrow mouth, facing the water, standing still */
+  const crabOut = (mode = "out") => page.evaluate(mode => {
+    const q = window.__desQA(), R = q.CR, c = R.list[R._proof];
+    Object.assign(c, {mode, t: 999, sk: 0, up: 0, v: 0, walk: 0, x: c.bx, z: c.bz, tx: c.bx, tz: c.bz, go: null});
+  }, mode);
+  const crabState = () => page.evaluate(() => {
+    const q = window.__desQA(), R = q.CR, c = R.list[R._proof];
+    const w = r => Object.fromEntries(Object.entries(r.acts).filter(([, a]) => a.isRunning() || a.getEffectiveWeight() > .01).map(([k, a]) => [k, {w: +a.getEffectiveWeight().toFixed(2), ts: +a.timeScale.toFixed(2), t: +a.time.toFixed(2)}]));
+    return {mode: c.mode, v: +c.v.toFixed(3), yaw: +c.yaw.toFixed(3), x: +c.x.toFixed(3), y: +c.y.toFixed(4), z: +c.z.toFixed(3), sk: +c.sk.toFixed(2), body: c.rb ? c.rb.cur : null, claw: c.rc ? c.rc.cur : null,
+      bodyActs: c.rb ? w(c.rb) : null, clawActs: c.rc ? w(c.rc) : null, visible: c.g ? c.g.visible : null, scale: c.g ? +c.g.scale.x.toFixed(3) : null};
+  });
+  /* a clip of N frames at 24 fps: each frame steps the scene 1/24 s; `each` runs before the step (camera, holds) */
+  const crabVid = async (name, N, each) => {
     const dir = path.join(OUT, name + "-frames");
     fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir);
-    await crabPose(0, view);
+    const log = [];
     for (let i = 0; i < N; i++) {
-      /* two full bites: closed, open, closed, held shut a moment at each close */
-      const u = i / N * 2 % 1, g = u < .1 ? 0 : .5 - .5 * Math.cos((u - .1) / .9 * Math.PI * 2);
-      await page.evaluate(g => { const q = window.__desQA(), R = q.CR, c = R.list[R._proof];
-        R.gapePin = g; c.mode = "out"; c.t = 999; c.v = 0; c.walk = 0; c.feed = 0; c.x = c.bx; c.z = c.bz; c.gape = g; q.step(1, 1 / 24); }, g);
+      if (each) await each(i);
+      await page.evaluate(() => window.__desQA().step(1, 1 / 24));
+      if (i % 12 === 0) log.push(await crabState());
       await frames(page, 1);
       await page.screenshot({path: path.join(dir, String(i).padStart(4, "0") + ".png")});
     }
     await ffmpeg(["-framerate", "24", "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", path.join(OUT, name + ".mp4")]);
-    fs.rmSync(dir, {recursive: true, force: true});
     console.log("encoded", name, N);
+    return {dir, log};
   };
-  if (want("crab") || want("crabvid") || want("crabside")) {
-    await page.evaluate(() => { window.__set({weather: "sun", ct: "clear", wind: .3}); window.__desQA().tod("day"); });
-    report.crab = {hinge: await hinge()};
-    console.log("crab hinge", JSON.stringify(report.crab.hinge));
-    for (const k of ["small", "big"]) if (!report.crab.hinge[k] || !report.crab.hinge[k].verts || report.crab.hinge[k].jointSpread > 1e-6) fails.push(`crab ${k} dactyl does not share one joint`);
+  const strip = (files, out, crop) => ffmpeg([...files.flatMap(f => ["-i", f]), "-filter_complex",
+    files.map((_, j) => `[${j}:v]${crop ? `crop=${crop},` : ""}scale=480:-2[s${j}]`).join(";") + ";" + files.map((_, j) => `[s${j}]`).join("") + `hstack=inputs=${files.length}`, path.join(OUT, out)]);
+  const CRW = ["crstand", "crwalk", "crpinch", "crdig", "crbur"];
+  if (CRW.some(want)) {
+    report.crab = {sel: await crabSel(), live: await page.evaluate(() => ({ms: window.CY.ms.crab_v6, glb: window.__desQA().crGlb(), crG: window.__desQA().crG}))};
+    console.log("crab", JSON.stringify(report.crab));
+    if (!report.crab.sel.glb) fails.push("crab_v6 not loaded: the procedural crab is drawing");
+    if (!crReq.has("crab_v6")) fails.push("crab_v6.glb never requested");
+    /* what claw_pinch moves: each claw bone's turn from its first frame, sampled over the clip on the subject crab's own rig */
+    report.crab.pinchBones = await page.evaluate(() => {
+      const q = window.__desQA(), c = q.CR.list[q.CR._proof], a = c.rc.acts.claw_pinch, clip = a.getClip(), out = {};
+      for (const tr of clip.tracks) {
+        if (!/quaternion$/.test(tr.name)) continue; const v = tr.values, n = v.length / 4; let mx = 0;
+        for (let i = 1; i < n; i++) { const d = Math.abs(v[0] * v[i * 4] + v[1] * v[i * 4 + 1] + v[2] * v[i * 4 + 2] + v[3] * v[i * 4 + 3]); mx = Math.max(mx, 2 * Math.acos(Math.min(1, d))); }
+        out[tr.name.replace(".quaternion", "")] = +(mx * 180 / Math.PI).toFixed(2);
+      }
+      return {duration: clip.duration, tracks: clip.tracks.map(t => t.name), maxTurnDeg: out};
+    });
+    console.log("pinch bones", JSON.stringify(report.crab.pinchBones.maxTurnDeg));
   }
-  if (want("crab")) {
-    report.crab.closed = await crabPose(0); await shot(page, "B_crab_claw_closed.png");
-    report.crab.open = await crabPose(1); await shot(page, "B_crab_claw_open.png");
-    await crabPose(0, "side"); await shot(page, "B_crab_claw_closed_side.png");
-    await crabPose(1, "side"); await shot(page, "B_crab_claw_open_side.png");
-    /* the hinge strip: side view at gape 0, .25, .5, .75, 1 */
-    const G = [0, .25, .5, .75, 1], fs5 = [];
-    for (const g of G) { await crabPose(g, "side"); fs5.push(await shot(page, `crab-hinge-${g}.png`)); }
-    await ffmpeg([...fs5.flatMap(f => ["-i", f]), "-filter_complex", fs5.map((_, j) => `[${j}:v]crop=880:560:200:80,scale=440:280[s${j}]`).join(";") + ";" + fs5.map((_, j) => `[s${j}]`).join("") + `hstack=inputs=${fs5.length}`,
-      path.join(OUT, "B_crab_claw_hinge_strip.png")]);
-    for (const f of fs5) fs.rmSync(f);
+  if (want("crstand")) {
+    await crabOut(); await crabCam("q34"); await page.evaluate(() => window.__desQA().step(30, 1 / 30)); await crabCam("q34");
+    report.crab.stand = await crabState(); await shot(page, "B_crab_v6_stand_q34.png");
+    await crabCam("top"); await page.evaluate(() => window.__desQA().step(2, 1 / 30)); await shot(page, "B_crab_v6_stand_top.png");
+    /* mid-stride: walking sideways along the bank, a still from the side-walk */
+    await crabOut("walk");
+    const at = await page.evaluate(() => { const q = window.__desQA(), c = q.CR.list[q.CR._proof], rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
+      Object.assign(c, {tx: c.bx - rt[0] * .5, tz: c.bz - rt[1] * .5, vt: .1, go: null, mode: "walk"}); return {x: c.bx - rt[0] * .25, z: c.bz - rt[1] * .25, y: c.y, yaw: c.yaw}; });
+    await crabCam("q34", at); await page.evaluate(() => window.__desQA().step(36, 1 / 30)); await crabCam("q34", (await crabState()));
+    report.crab.walkStill = await crabState(); await shot(page, "B_crab_v6_walk_q34.png");
   }
-  if (want("crabvid")) await crabLoop("crab-claw-open-close", "q34", 24 * 5);
-  if (want("crabside")) await crabLoop("crab-claw-open-close-side", "side", 24 * 5);
+  if (want("crwalk")) {
+    /* foraging pace along the bank, then back the other way: the gait clip forward one way and backward the other */
+    await crabOut();
+    const at = await page.evaluate(() => { const q = window.__desQA(), c = q.CR.list[q.CR._proof], rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
+      c.leg = [[c.bx - rt[0] * .42, c.bz - rt[1] * .42], [c.bx, c.bz]];
+      Object.assign(c, {tx: c.leg[0][0], tz: c.leg[0][1], vt: .1, go: null, mode: "walk"}); return {x: c.bx - rt[0] * .21, z: c.bz - rt[1] * .21, y: c.y, yaw: c.yaw}; });
+    await crabCam("side", at);
+    const r = await crabVid("crab_v6-walk-sideways", 24 * 10, async () => {
+      await page.evaluate(() => { const q = window.__desQA(), c = q.CR.list[q.CR._proof];
+        if (c.mode === "out" && c.leg.length) { const [x, z] = c.leg.shift(); Object.assign(c, {tx: x, tz: z, vt: .1, go: null, mode: "walk"}); }
+        if (c.mode === "out" || c.mode === "walk") c.t = Math.max(c.t, .6); });
+    });
+    report.crab.walk = r.log;
+    const pick = [24, 60, 96, 132, 168, 204].map(i => path.join(r.dir, String(i).padStart(4, "0") + ".png"));
+    await strip(pick, "B_crab_v6_walk_strip.png", `${W * .6 | 0}:${H * .6 | 0}:${W * .2 | 0}:${H * .2 | 0}`);
+    fs.rmSync(r.dir, {recursive: true, force: true});
+    if (!r.log.some(s => s.body === "walk_sideways")) fails.push("crab side-walk never played walk_sideways");
+  }
+  if (want("crpinch")) {
+    /* the pause at the burrow mouth: claw_pinch runs on the claws alone, as the scene plays it */
+    await crabOut(); await crabCam("claw"); await page.evaluate(() => window.__desQA().step(20, 1 / 30)); await crabCam("claw");
+    const r = await crabVid("crab_v6-claw-pinch", 24 * 5, async () => { await crabOut(); await crabCam("claw"); });
+    report.crab.pinch = r.log; fs.rmSync(r.dir, {recursive: true, force: true});
+    if (!r.log.every(s => s.claw === "claw_pinch" && s.body === "idle")) fails.push("crab pause is not idle + claw_pinch");
+    /* the strip: claw_pinch held at 0, 1/6 … 5/6 of its 1.2 s, the same camera */
+    const fs6 = [];
+    for (let j = 0; j < 6; j++) {
+      /* gapePin × 0.6 s is the held clip time, so j/3 is j/6 of the clip */
+      await page.evaluate(j => { const q = window.__desQA(); q.CR.gapePin = j / 3; q.step(2, 1 / 30); }, j);
+      await crabCam("claw"); fs6.push(await shot(page, `crab-pinch-${j}.png`));
+    }
+    await page.evaluate(() => { window.__desQA().CR.gapePin = null; });
+    await strip(fs6, "B_crab_v6_claw_pinch_strip.png");
+    for (const f of fs6) fs.rmSync(f);
+  }
+  if (want("crdig")) {
+    await crabOut("dig"); await crabCam("bur"); await page.evaluate(() => window.__desQA().step(10, 1 / 30)); await crabCam("bur");
+    const r = await crabVid("crab_v6-dig", 24 * 5, async () => { await page.evaluate(() => { const c = window.__desQA().CR.list[window.__desQA().CR._proof]; c.mode = "dig"; c.t = 99; }); });
+    report.crab.dig = r.log;
+    await ffmpeg(["-i", path.join(r.dir, "0060.png"), "-frames:v", "1", "-update", "1", path.join(OUT, "B_crab_v6_dig.png")]);
+    fs.rmSync(r.dir, {recursive: true, force: true});
+    if (!r.log.every(s => s.body === "dig" && s.claw === "dig")) fails.push("crab dig is not playing dig");
+  }
+  if (want("crbur")) {
+    /* foraging 0.45 m out on the bank, then something big at the water: it scuttles home and goes down the burrow */
+    await crabOut();
+    const at = await page.evaluate(() => { const q = window.__desQA(), R = q.CR, c = R.list[R._proof], rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
+      c.x = c.bx + rt[0] * .45; c.z = c.bz + rt[1] * .45; c.y = q.hTop(c.x, c.z); c.mode = "out"; c.t = 999;
+      return {x: c.bx + rt[0] * .22, z: c.bz + rt[1] * .22, y: c.y, yaw: c.yaw}; });
+    await crabCam("side", at); await page.evaluate(() => window.__desQA().step(10, 1 / 30));
+    const r = await crabVid("crab_v6-scare-into-burrow", 24 * 5, async i => {
+      if (i === 18) await page.evaluate(() => { const q = window.__desQA(), R = q.CR, c = R.list[R._proof]; R.calm = false;
+        const ox = c.x - (c.bx - c.x), oz = c.z - (c.bz - c.z); q.lakeScare(ox, oz, .5, 6); });
+    });
+    report.crab.burrow = r.log; await page.evaluate(() => { window.__desQA().CR.calm = true; });
+    const pick = [12, 30, 42, 54, 66, 90].map(i => path.join(r.dir, String(i).padStart(4, "0") + ".png"));
+    await strip(pick, "B_crab_v6_scare_burrow_strip.png", `${W * .6 | 0}:${H * .6 | 0}:${W * .2 | 0}:${H * .2 | 0}`);
+    fs.rmSync(r.dir, {recursive: true, force: true});
+    if (!r.log.some(s => s.body === "scuttle_sideways")) fails.push("scared crab never scuttled");
+    if (!r.log.some(s => s.mode === "in" || s.mode === "down")) fails.push("scared crab never went down its burrow");
+  }
   /* ostrich_v2ag in the scene: the engine plays sit and stand_up as authored (no bone offsets, no caption). The cock alone,
      on level sand south of the palms facing east, so the side camera sits due south. */
   const OSN = "ostrich_v2ag";

@@ -7,9 +7,9 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {execFile} from "node:child_process";
 import puppeteer from "puppeteer-core";
-/* pixels the pink probe painted magenta, in a crop */
+/* pixels the pink probe painted magenta, in a crop. The composer's output pass grades the probe's (1,0,1) to about (250,43,227). */
 const magentaPx = (file, [w, h, x, y]) => new Promise((res, rej) => execFile("ffmpeg", ["-loglevel", "error", "-i", file, "-vf", `crop=${w}:${h}:${x}:${y}`, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
-  {encoding: "buffer", maxBuffer: 1e8}, (e, o) => { if (e) return rej(e); let n = 0; for (let i = 0; i < o.length; i += 3) if (o[i] > 225 && o[i + 1] < 40 && o[i + 2] > 225) n++; res(n); }));
+  {encoding: "buffer", maxBuffer: 1e8}, (e, o) => { if (e) return rej(e); let n = 0; for (let i = 0; i < o.length; i += 3) if (o[i] > 220 && o[i + 1] < 80 && o[i + 2] > 200 && o[i] - o[i + 1] > 150) n++; res(n); }));
 const ffmpeg = args => new Promise((res, rej) => execFile("ffmpeg", ["-y", "-loglevel", "error", ...args], {maxBuffer: 1e8}, (e, _o, se) => e ? rej(new Error(String(se).slice(-500))) : res()));
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");

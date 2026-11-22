@@ -519,8 +519,8 @@ try {
     const yaw = at && at.yaw != null ? at.yaw : c.yaw, x0 = at ? at.x : c.x, z0 = at ? at.z : c.z, y0 = at ? at.y : c.y;
     const fw = [Math.sin(yaw), Math.cos(yaw)], rt = [Math.cos(yaw), -Math.sin(yaw)];
     const L = (lx, ly, lz) => [x0 + rt[0] * lx * k + fw[0] * lz * k, y0 + ly * k, z0 + rt[1] * lx * k + fw[1] * lz * k];
-    const V = {q34: [[0, .03, .01], [.16, .13, .3], 30], claw: [[-.03, .025, .03], [-.07, .11, .25], 30], side: [[0, .03, 0], [0, .2, .78], 38],
-      bur: [[0, .02, 0], [.12, .3, .36], 34], top: [[0, 0, 0], [0, .32, .02], 34]}[view];
+    const V = {q34: [[0, .03, .01], [.16, .13, .3], 30], claw: [[-.03, .025, .03], [-.07, .11, .25], 30], side: [[0, .03, 0], [0, .16, .56], 36],
+      bur: [[0, .02, .02], [.1, .2, .3], 30], top: [[0, 0, 0], [0, .32, .02], 34]}[view];
     const t = L(...V[0]), e = L(...V[1]);
     q.lookAt(e[0], e[1], e[2], t[0], t[1], t[2]); C.De.fov = V[2]; C.De.near = .005; C.De.updateProjectionMatrix();
   }, view, at);
@@ -553,7 +553,7 @@ try {
   };
   const strip = (files, out, crop) => ffmpeg([...files.flatMap(f => ["-i", f]), "-filter_complex",
     files.map((_, j) => `[${j}:v]${crop ? `crop=${crop},` : ""}scale=480:-2[s${j}]`).join(";") + ";" + files.map((_, j) => `[s${j}]`).join("") + `hstack=inputs=${files.length}`, path.join(OUT, out)]);
-  const CRW = ["crstand", "crwalk", "crpinch", "crdig", "crbur"];
+  const CRW = ["crstand", "crwalk", "crslip", "crpinch", "crdig", "crbur"];
   if (CRW.some(want)) {
     report.crab = {sel: await crabSel(), live: await page.evaluate(() => ({ms: window.CY.ms.crab_v6, glb: window.__desQA().crGlb(), crG: window.__desQA().crG}))};
     console.log("crab", JSON.stringify(report.crab));
@@ -582,20 +582,46 @@ try {
     await crabCam("q34", at); await page.evaluate(() => window.__desQA().step(36, 1 / 30)); await crabCam("q34", (await crabState()));
     report.crab.walkStill = await crabState(); await shot(page, "B_crab_v6_walk_q34.png");
   }
-  if (want("crwalk")) {
+  if (want("crwalk") || want("crslip")) {
     /* foraging pace along the bank, then back the other way: the gait clip forward one way and backward the other */
     await crabOut();
     const at = await page.evaluate(() => { const q = window.__desQA(), c = q.CR.list[q.CR._proof], rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
       c.leg = [[c.bx - rt[0] * .42, c.bz - rt[1] * .42], [c.bx, c.bz]];
       Object.assign(c, {tx: c.leg[0][0], tz: c.leg[0][1], vt: .1, go: null, mode: "walk"}); return {x: c.bx - rt[0] * .21, z: c.bz - rt[1] * .21, y: c.y, yaw: c.yaw}; });
     await crabCam("side", at);
-    const r = await crabVid("crab_v6-walk-sideways", 24 * 10, async () => {
+    /* foot slip: skinned vertices within 1.5 mm of the sand in the crab's own frame at two steps 1/60 s apart, measured in island
+       metres. Planted feet should stay nearly put while the body moves at its walking speed; a gait clip running the wrong way
+       would slide them at about twice that, one not running at all at the body's speed. */
+    const slip = () => page.evaluate(() => {
+      const q = window.__desQA(), c = q.CR.list[q.CR._proof], V = c.g.position.constructor;
+      let sk = null; c.g.traverse(o => { if (o.isSkinnedMesh) sk = o; });
+      const grab = () => { c.g.updateMatrixWorld(true); const v = new V(), out = []; const n = sk.geometry.attributes.position.count;
+        for (let i = 0; i < n; i++) { sk.getVertexPosition(i, v); const h = v.y; v.applyMatrix4(sk.matrixWorld); q.W.worldToLocal(v); out.push([v.x, h, v.z]); } return out; };
+      /* over a whole 0.4 s cycle (24 steps) */
+      const run = () => { let s = 0, n = 0, bd = 0, a = grab();
+        for (let k = 0; k < 24; k++) { const b0 = [c.x, c.z]; q.step(1, 1 / 60); const b = grab(); bd += Math.hypot(c.x - b0[0], c.z - b0[1]) * 60;
+          for (let i = 0; i < a.length; i++) if (a[i][1] < .0015 && b[i][1] < .0015) { s += Math.hypot(b[i][0] - a[i][0], b[i][2] - a[i][2]) * 60; n++; } a = b; }
+        return {plantedSlip: +(s / Math.max(1, n)).toFixed(4), planted: n, body: +(bd / 24).toFixed(4), clip: c.rb.cur, ts: +c.rb.acts[c.rb.cur].timeScale.toFixed(2)}; };
+      const out = [];
+      for (const dir of [1, -1]) { const rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
+        Object.assign(c, {x: c.bx, z: c.bz, mode: "walk", vt: .1, v: .1, walk: 1, go: null, tx: c.bx + dir * rt[0] * .4, tz: c.bz + dir * rt[1] * .4});
+        q.step(18, 1 / 60); out.push({dir: dir > 0 ? "+x" : "-x", ...run()}); }
+      Object.assign(c, {x: c.bx, z: c.bz, mode: "out", v: 0, walk: 0, tx: c.bx, tz: c.bz, t: 999}); q.step(10, 1 / 30);
+      return out;
+    });
+    report.crab.footSlip = await slip(); console.log("crab foot slip", JSON.stringify(report.crab.footSlip));
+    for (const s of report.crab.footSlip) if (!(s.plantedSlip < .5 * s.body)) fails.push(`crab feet slide walking ${s.dir}: ${s.plantedSlip} m/s at body ${s.body} m/s`);
+  }
+  if (want("crwalk")) {
+    await page.evaluate(() => { const q = window.__desQA(), c = q.CR.list[q.CR._proof], rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
+      c.leg = [[c.bx - rt[0] * .42, c.bz - rt[1] * .42], [c.bx, c.bz]]; Object.assign(c, {tx: c.leg[0][0], tz: c.leg[0][1], vt: .1, go: null, mode: "walk"}); });
+    const r = await crabVid("crab_v6-walk-sideways", 24 * 8, async () => {
       await page.evaluate(() => { const q = window.__desQA(), c = q.CR.list[q.CR._proof];
         if (c.mode === "out" && c.leg.length) { const [x, z] = c.leg.shift(); Object.assign(c, {tx: x, tz: z, vt: .1, go: null, mode: "walk"}); }
         if (c.mode === "out" || c.mode === "walk") c.t = Math.max(c.t, .6); });
     });
     report.crab.walk = r.log;
-    const pick = [24, 60, 96, 132, 168, 204].map(i => path.join(r.dir, String(i).padStart(4, "0") + ".png"));
+    const pick = [12, 42, 72, 102, 132, 162].map(i => path.join(r.dir, String(i).padStart(4, "0") + ".png"));
     await strip(pick, "B_crab_v6_walk_strip.png", `${W * .6 | 0}:${H * .6 | 0}:${W * .2 | 0}:${H * .2 | 0}`);
     fs.rmSync(r.dir, {recursive: true, force: true});
     if (!r.log.some(s => s.body === "walk_sideways")) fails.push("crab side-walk never played walk_sideways");

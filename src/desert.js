@@ -1385,12 +1385,12 @@ for(let r=0;r<3;r++){
   const mesh=new T.Mesh(g,mat);mesh.frustumCulled=false;mesh.renderOrder=7;W.add(mesh);SMOKE.push(mesh)}
 
 /* ---------------- soft points (sand wisps, fireflies) ---------------- */
-function softPoints(n,col,size,additive){
+function softPoints(n,col,size,additive,pMax){
   const g=new T.BG(),P=new Float32Array(n*3),A=new Float32Array(n),Z=new Float32Array(n);
   g.setAttribute("position",new T.BA(P,3));g.setAttribute("a",new T.BA(A,1));g.setAttribute("z",new T.BA(Z,1));
   const m=new T.SM({transparent:true,depthWrite:false,blending:additive?2:1,uniforms:{uC:{value:new C3(col)},uS:{value:size*S/.25},uH:{value:innerHeight}},
     vertexShader:`attribute float a,z;varying float vA;uniform float uS,uH;void main(){vA=a;vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;
-      gl_PointSize=clamp(uS*z*uH*.5/max(.5,-mv.z),1.,48.);}`,
+      gl_PointSize=clamp(uS*z*uH*.5/max(.5,-mv.z),1.,${(pMax||48).toFixed(1)});}`,
     fragmentShader:`uniform vec3 uC;varying float vA;void main(){vec2 q=gl_PointCoord-.5;float d=dot(q,q)*4.;float a=vA*exp(-d*3.)*(1.-d);if(a<.004)discard;gl_FragColor=vec4(uC,a);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
@@ -1452,6 +1452,13 @@ function curtainUpdate(t){
    darker, lighter trickles. Sand is not water: most of the rim only sheds short broken trickles off the creeping veneer, and a few
    heavier falls hang a narrow column off the lip that clumps and surges and, at its foot only, gives itself up to dust drifting downwind. */
 const SF={H:28,G:9.8,F:[]};SF.Tf=Math.sqrt(2*SF.H/SF.G);
+/* metres round the lip at each angle (the rim fringe's own P runs the same way). The falls and the fringe read one field of streams
+   there, carried down at one pace, so where pours overlap a gap in one is a gap in the others too; joined up across the ring's start */
+const RING=(()=>{const NA=720,AL=new Float32Array(NA+1);let[x0,z0]=edgeXZ(0,1);
+  for(let i=1;i<=NA;i++){const[x,z]=edgeXZ(i/NA*TAU,1);AL[i]=AL[i-1]+Math.hypot(x-x0,z-z0);x0=x;z0=z}
+  const L=AL[NA],at=(x,z)=>{let a=Math.atan2(z/AZ,x/AX);if(a<0)a+=TAU;const q=a/TAU*NA,i=Math.min(NA-1,q|0);return AL[i]+(AL[i+1]-AL[i])*(q-i)};
+  return{L,at,glsl:`float strN(float P,float u){return dn2(vec2(P*.42,u*1.15))*.62+dn2(vec2(P*1.07+3.7,u*2.7))*.38;}
+      float ringS(float P,float u){float L=${L.toFixed(2)},q=mod(P,L),w=smoothstep(L-12.,L,q),n=strN(q,u);if(w>0.)n=mix(n,strN(q-L,u),w);return n;}`}})();
 const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value:0},uNt:{value:0},uWV:{value:new T.V2()},
   uCol:curU.uCol,uSheen:curU.uSheen,uLd:sandU.uLd,uGT:sandU.uGT,uWD:sandU.uWD,uFogC:pondU.uFogC,uFogNF:pondU.uFogNF};
 (function sandFalls(){
@@ -1498,7 +1505,10 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
   /* light the sheets by the lip's outward normal where each vertex hangs, not by its own fall's: one flat normal per ribbon shades
      the ring as facets, and where it turns away from the far view (the right side) neighbouring pours read as paler slabs */
   const sN2=(x,z)=>{let a=Math.atan2(z/AZ,x/AX);const F=frame(a);return[F.nx,F.nz]};
-  for(const f of pick){const{E,P,hw}=f,nu=hw<.3?3:MOB?7:10,o=pos.length/3,rows=[],i0=idx.length;
+  /* every sheet reads the shared streams at its metres round the lip (vP), unwrapped about each sheet's middle */
+  const ringL=RING.L,arcAt=RING.at;
+  for(const f of pick){const{E,P,hw}=f,nu=hw<.3?3:MOB?7:10,o=pos.length/3,rows=[],i0=idx.length,Pc=arcAt(E.x,E.z);
+    const arcU=(x,z)=>{const p=arcAt(x,z);return p-Pc>ringL/2?p-ringL:Pc-p>ringL/2?p+ringL:p};
     /* down to where the underside stops showing behind it (P.yS) the sheet hides the rock entirely (at dusk and by night the
        dark rock's lower edge otherwise shows through it). It stays whole for 3 m below that and only then eases, over 14 m, back
        to its own open, tearing foot: thinning right at the rock's lower edge would trace that edge in the sheet's opacity */
@@ -1520,16 +1530,16 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
        do (not on phones: it doubles the overdraw) */
     for(let ly=0;ly<(MOB?1:2);ly++){const o=pos.length/3,R0=ly?rows.filter(r=>r.s>=0):rows;
       for(const r of R0){const dd=r.d+ly*(.14+.22*r.s),cx=E.x+E.nx*dd,cz=E.z+E.nz*dd,w=r.w*(ly?1.18:1);
-        for(let i=0;i<=nu;i++){const u=i/nu,lat=(u*2-1)*w,px=cx+E.tx*lat,pz=cz+E.tz*lat;pos.push(px,r.y-ly*.12,pz);aU.push(u,r.s);aK.push(f.k,f.sd+ly*23,hw,ly);aN.push(E.nx,E.nz,r.sl+ly*(.14+.22*r.s));aT.push(E.tx*lat,E.tz*lat);aB.push(ly?0:r.s<0?0:back(r.y),r.y-yBot);aS.push(...sN2(px,pz))}}
+        for(let i=0;i<=nu;i++){const u=i/nu,lat=(u*2-1)*w,px=cx+E.tx*lat,pz=cz+E.tz*lat;pos.push(px,r.y-ly*.12,pz);aU.push(u,r.s);aK.push(f.k,f.sd+ly*23,hw,ly);aN.push(E.nx,E.nz,r.sl+ly*(.14+.22*r.s));aT.push(E.tx*lat,E.tz*lat);aB.push(ly?0:r.s<0?0:back(r.y),r.y-yBot);aS.push(...sN2(px,pz),arcU(px,pz))}}
       for(let j=0;j<R0.length-1;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}}
     SF.F.push({E,k:f.k,hw,path,ty:f.ty,yb:yBot,lipY:P.lipY,i0,i1:idx.length,c:[E.x+E.nx*(P.lipD+1),(P.lipY+yBot)/2,E.z+E.nz*(P.lipD+1)]})}
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("aU",new T.BA(new Float32Array(aU),2));
   g.setAttribute("aK",new T.BA(new Float32Array(aK),4));g.setAttribute("aN",new T.BA(new Float32Array(aN),3));g.setAttribute("aT",new T.BA(new Float32Array(aT),2));
-  g.setAttribute("aB",new T.BA(new Float32Array(aB),2));g.setAttribute("aS",new T.BA(new Float32Array(aS),2));SF.I0=new Uint32Array(idx);g.setIndex(new T.BA(SF.I0.slice(),1));
+  g.setAttribute("aB",new T.BA(new Float32Array(aB),2));g.setAttribute("aS",new T.BA(new Float32Array(aS),3));SF.I0=new Uint32Array(idx);g.setIndex(new T.BA(SF.I0.slice(),1));
   const m=new T.SM({uniforms:sfU,transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-.6,polygonOffsetUnits:-6,
-    vertexShader:`attribute vec2 aU,aT,aB,aS;attribute vec4 aK;attribute vec3 aN;uniform float uT,uFR,uWet;uniform vec2 uWV;uniform vec3 uLd;${GLSL_GUST}
-      varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG,vUp,vB,vDy;
-      void main(){vU=aU;vK=aK;vB=aB.x;vDy=aB.y;vec2 n=aN.xy;vG=gustF(position.xz);
+    vertexShader:`attribute vec2 aU,aT,aB;attribute vec3 aS,aN;attribute vec4 aK;uniform float uT,uFR,uWet;uniform vec2 uWV;uniform vec3 uLd;${GLSL_GUST}
+      varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG,vUp,vB,vDy,vP,vFc;
+      void main(){vU=aU;vK=aK;vB=aB.x;vDy=aB.y;vP=aS.z;vec2 n=aN.xy;vG=gustF(position.xz);
         /* downwind pours as before. The upwind rim (left of the far island shot) stays a full sheet instead of opening seams. */
         float wl=length(uWV),wd=dot(n,uWV)/max(wl,1e-4);vUp=smoothstep(.25,-.45,wd);
         float k=aK.x+.05*(.5-.5*wd),s=aU.y,vis=smoothstep(k,k+.28,uFR);vVis=vis;vec3 p=position;
@@ -1541,10 +1551,11 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float inw=dot(dr,n);dr-=n*(inw-max(inw,-aN.z));p.xz+=dr;}
         vec4 w=modelMatrix*vec4(p,1.);vW=w.xyz;
         vec3 Nl=s>0.?vec3(aS.x,.2,aS.y):vec3(0.,1.,0.),Nw=normalize(mat3(modelMatrix)*Nl);
-        vLam=.5+.5*max(dot(Nw,uLd),0.);
-        vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);
+        vLam=.5+.5*max(dot(Nw,uLd),0.);vec3 vd=normalize(cameraPosition-w.xyz);
+        vFs=pow(max(dot(vd,-uLd),0.),4.);vFc=dot(normalize(mat3(modelMatrix)*vec3(aS.x,0.,aS.y)),vd);
         gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uT,uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG,vUp,vB,vDy;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG,vUp,vB,vDy,vP,vFc;${GLSL_NOISE}
+${RING.glsl}
       /* noise carried down with the falling sand at a size that stays even on screen as the sand speeds up (the drop grows as s*s):
          two copies scrolled half a cycle apart and cross-faded, so the pattern never stretches out over time */
       float fallN(vec2 q,float s,float f0,float f1){float T=uFT*${(1/SF.Tf/.5).toFixed(4)},p1=fract(T),p2=fract(T+.5),f=f0+f1*s;
@@ -1552,7 +1563,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
       void main(){float x=vU.x,s=vU.y,sd=vK.y,hw=vK.z,vis=vVis;if(vis<.01)discard;
         float ed=min(x,1.-x),Nt=4.+hw*22.,tx=x*Nt+sd;
         /* damp sand is darker and clumps */
-        vec3 base=uCol*vLam*mix(vec3(1.),vec3(.7,.64,.58),uWet);base=mix(vec3(dot(base,vec3(.3,.55,.15))),base,1.18);float a,gz;vec3 c;
+        vec3 base=uCol*vLam*mix(vec3(1.),vec3(.7,.64,.58),uWet);base=mix(vec3(dot(base,vec3(.3,.55,.15))),base,1.18);float a,gz,openK=1.;vec3 c;
         if(s<0.){
           /* the run: sand creeping and hopping over the surface toward the lip, a faint streaming band */
           float g=s+1.,q=dn2(vec2(tx*.6,s*5.-uFT*1.3))*.6+dn2(vec2(tx*1.7+3.,s*11.-uFT*2.6))*.4;
@@ -1563,6 +1574,13 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* u rides with the falling sand: anything scrolled at this rate in s moves with the grains and stretches as they speed up */
           /* each fall runs at its own pace: how much sand the wind feeds it, and how freely it slides off its lip */
           float spd=.8+.45*fract(sd*.618),u=s-uFT*${(1/SF.Tf).toFixed(4)}*spd,wet=uWet;
+          float sP=ringS(vP,s-uFT*${(.9/SF.Tf).toFixed(4)}),dens=smoothstep(.2,.8,sP);
+          /* below the rock's lower edge (vDy: metres above it) the curtain parts into its streams: gaps open between them, wider as it
+             falls and where a gust blows through, and it gives out at the foot stream by stream, the densest last. In front of the
+             rock it stays whole. Through those gaps the far side of the ring shows (vFc < 0: a sheet facing away); it is fainter,
+             seen through the dust under the island, so the near streams stand in front of it instead of closing up with it */
+          float lowK=1.-smoothstep(-5.,-.8,vDy),gT=.5+.16*smoothstep(.72,1.,s)+.1*smoothstep(.55,.9,vG)*(1.-wet);
+          openK=mix(1.,smoothstep(gT-.08,gT+.08,sP)*mix(1.,.45,1.-smoothstep(-.35,.05,vFc)),lowK);
           float Xw=tx+.35*(dn2(vec2(tx*.23+7.,u*2.4))-.5);
           float n1=dn2(vec2(Xw*.5,u*1.6)),n2=dn2(vec2(Xw*1.3+5.,u*4.)),n3=dn2(vec2(Xw*3.1+9.,u*9.));
           float str=n1*.5+n2*.32+n3*.18,ab=clamp(fwidth(Xw*1.3)*.8-.2,0.,1.);
@@ -1596,30 +1614,34 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           /* the outer layer is loose strands hanging in front of the sheet, not a second veil: it keeps only its denser streams */
           if(ly>.5){float os=dn2(vec2(Xw*1.1+sd*.7,u*1.4))*.6+dn2(vec2(Xw*2.9+3.,u*3.6))*.4,oA=clamp(fwidth(Xw*2.9)*.9-.2,0.,1.);body*=mix(smoothstep(.46,.64,os),.38,oA);}
           else body=max(body,mix(.5*(1.-smoothstep(.55,.85,s)),.58,vUp)*edge);
+          body*=openK;
           float endS=mix(.3,.62,smoothstep(.2,.7,hw))+.12*hv-.1*ly+mix(.16,.3,smoothstep(.4,.75,hw))*dn2(vec2(Xw*1.6+17.,sd))+.08*dn2(vec2(Xw*4.+3.,sd+1.))+.16*uDust,cut=1.-smoothstep(endS-.22,endS+.04,s);
           /* grains, streaked by their speed; more of them shed at the sides and the foot */
           vec2 dq=vec2(x*Nt*2.2+sd,u*70.),dc=floor(dq);float dh=dh2(dc);vec2 df=fract(dq)-.5-(vec2(dh2(dc+3.1),dh2(dc+7.7))-.5)*.6;df.y*=mix(1.,.35,smoothstep(.1,.7,s));
           vec2 gw=fwidth(dq);float gd=.9-.2*(1.-edge)-.18*smoothstep(.4,.9,s)+.06*wet-.12*dk-.07*hv;
-          float grain=step(gd,dh)*exp(-dot(df,df)*26.)*smoothstep(.02,.1,s)*(1.-smoothstep(.9,1.,s))*(1.-clamp(max(gw.x,gw.y)*1.4-.3,0.,1.))*(1.-.6*nE);
+          float grain=step(gd,dh)*exp(-dot(df,df)*26.)*smoothstep(.02,.1,s)*(1.-smoothstep(.9,1.,s))*(1.-clamp(max(gw.x,gw.y)*1.4-.3,0.,1.))*(1.-.6*nE)*(.45+.55*openK);
           /* dust shed off the sheet: a soft veil that spreads down the fall, more in a dust storm and off the heavy falls, little off damp sand */
           float du=dn2(vec2(x*2.3+sd,u*2.6))*.6+dn2(vec2(x*5.+sd*2.,u*6.))*.4;
           /* in a storm the veil is torn too: drifting clots of dust with ragged sides, not an even haze */
           float vc=dk>.01?fallN(vec2(x*3.1+sd,5.),s,2.5,10.):.5;
-          float dust=smoothstep(.3,.65,s)*(1.-smoothstep(.72+.15*uDust,.97,s))*smoothstep(-.1,.45,ed+.25*du-.35*dk*(fr-.4))*(.3+.5*du)*(.7+.6*uDust)*mix(1.,(.2+.8*cm)*(.05+1.6*smoothstep(.35,.72,vc)),dk)*(1.-.8*wet)*smoothstep(.12,.5,hw)*(.6+.4*smoothstep(.4,.75,hw));
+          float dust=smoothstep(.3,.65,s)*(1.-smoothstep(.72+.15*uDust,.97,s))*smoothstep(-.1,.45,ed+.25*du-.35*dk*(fr-.4))*(.3+.5*du)*(.7+.6*uDust)*mix(1.,(.2+.8*cm)*(.05+1.6*smoothstep(.35,.72,vc)),dk)*(1.-.8*wet)*smoothstep(.12,.5,hw)*(.6+.4*smoothstep(.4,.75,hw))*(.2+.8*openK);
           float bc=body*cut;
           a=(bc*(.84+.24*str)+grain*.6*(1.-smoothstep(.9,1.,s)))+dust*(1.-.72*bc);
           /* thick sheet shades itself; thin strands and edges catch the light */
           c=base*(.8+.22*n3)*(1.-.14*bc*smoothstep(.1,.5,ed));
           c=mix(c,base*1.12+uSheen*vFs*.7*(1.-.75*uNt),clamp(1.-bc,0.,1.)*.55);
-          /* from afar the sheet still reads as a pour, as the sky sea's falls do: broad ropes of denser sand a metre or so across,
-             lit on their crowns, with shaded folds between them, all carried down with the sand. They shade the sheet, never open it. */
-          float rope=dn2(vec2(Xw*.1+sd*.37,u*.42))*.62+dn2(vec2(Xw*.27+sd,u*1.1))*.38,rp=smoothstep(.28,.74,rope);
-          c*=mix(1.,.68+.54*rp,bc*(.72+.28*uNt));a*=.9+.13*rp;
+          /* from afar the sheet still reads as a pour, as the sky sea's falls do: the streams lit on their crowns with thinner, shaded
+             sand between, and fainter ropes within each, all carried down with the sand. They shade the sheet, never open it, and stay
+             gentle and short: long hard ropes read as a striped wall, worst at dusk */
+          float rope=dn2(vec2(Xw*.1+sd*.37,u*.9))*.6+dn2(vec2(Xw*.27+sd,u*1.9))*.4,rp=smoothstep(.2,.8,rope);
+          c*=mix(1.,mix(.85,1.1,dens)*mix(.94,1.05,rp),bc);a*=.94+.07*rp;
+          /* where the curtain is thin in front of the rock the cliff shows through; below it the same thin places are the gaps */
+          c=mix(c,base*vec3(.62,.47,.35),(1.-dens)*vB*(1.-ly)*(1.-lowK)*.48*(1.-.5*wet));
           /* finer detail riding on the ropes: long thin strands, bright where the grains stream fast and catch the light, dark where
              the sheet folds in, carried down with the sand like the streaks in the sky sea's falls; evened out once under a pixel */
           float skX=Xw*2.4+sd*1.3,sk=dn2(vec2(skX,u*.5))*.7+dn2(vec2(skX*2.3+4.,u*1.2))*.3,skA=clamp(fwidth(skX)*1.2-.35,0.,1.);
           float hiS=mix(smoothstep(.6,.78,sk),.18,skA),loS=mix(smoothstep(.4,.22,sk),.18,skA);
-          c*=1.+(.2*hiS*(1.-.5*uNt)-.16*loS)*bc;c+=uSheen*vFs*hiS*.12*bc*(1.-.75*uNt);
+          c*=1.+(.12*hiS*(1.-.5*uNt)-.08*loS)*bc;c+=uSheen*vFs*hiS*.08*bc*(1.-.75*uNt);
           /* the outer strands are lit; the sheet behind them lies in their shade, so the two read apart */
           c*=1.-.07*(1.-ly)*bc;c=mix(c,base*1.16+uSheen*vFs*.6*(1.-.75*uNt),ly*.38);
           /* each pour's sides catch the light where the sheet curls, so overlapping pours read one in front of another */
@@ -1633,19 +1655,21 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float lw=smoothstep(.3,.85,s)*(1.-clamp(a,0.,1.));c=mix(c,base*vec3(.94,.7,.42)*.86,lw*.85*(1.-.8*uNt));a=mix(a,a*(2.-a),smoothstep(.3,.8,s)*step(a,1.));
           /* a sheet seen edge-on piles up alpha into a hard line: keep the stream but thin it */
           vec3 N=normalize(cross(dFdx(vW),dFdy(vW)));a*=mix(.5,1.,smoothstep(.05,.45,abs(dot(N,normalize(cameraPosition-vW)))));
-          gz=(smoothstep(0.,.28,ed)*cut*(1.-.6*smoothstep(.55,.95,s))*(.82+.3*rp)+.3*dust)*(1.-.5*ly);
+          gz=(smoothstep(0.,.28,ed)*cut*(1.-.6*smoothstep(.55,.95,s))*(.82+.3*rp)*openK+.3*dust)*(1.-.5*ly);
         }
         a*=vis*(1.08+.32*min(uFR,1.));
         /* in front of the cliff the sheet is whole (vB: rock behind it), so no edge of the rock shows through at any hour */
-        float bk=s>=0.?vB*smoothstep(0.,.12,ed):0.;a=max(a,bk*smoothstep(0.,.55,vis)*.99);
+        float bk=s>=0.?vB*smoothstep(0.,.12,ed)*openK:0.;a=max(a,bk*smoothstep(0.,.55,vis)*.99);
         /* a close camera looking back at the dune (the lee snow check) must see the slip face; the far island shot stays a full curtain.
            In between the sheet does not keep its strands at a lower alpha (that reads as sparse stripes): it eases to an even gauze
            following the sheet's outline with soft sides, so where neighbouring falls overlap it does not band; it clears within a
-           few metres of the lens. Below the cliff's lower edge the gauze has bright cloud behind it instead of rock: at one opacity
-           that jagged edge reads through it as a horizontal seam, so the gauze is carried as far down as the whole sheet is (bk) and
-           thickens toward and past the edge. vDy is metres above yBot; from a close camera the edge shows about 5 m above it. */
-        float camD=length(cameraPosition-vW),gzK=.35+.5*smoothstep(12.,-3.,vDy)*step(0.,s);gz=max(gz,bk*.95);
-        a=mix(gz*gzK*vis*smoothstep(1.7,3.,camD),a,smoothstep(2.4,8.,camD));
+           few metres of the lens. Below the cliff's lower edge the gauze has bright cloud behind it instead of rock, and through any
+           gauze at all that jagged edge reads as a seam. So the thinning keeps off the band the edge can show in (vDy, metres above
+           yBot: from a close camera the edge shows up to about 6 m above it): there the sheet stays whole until right at the lens,
+           and the thinned sheet above eases into it over a few metres, a soft gradient that follows no edge. */
+        float camD=length(cameraPosition-vW),eb=step(0.,s)*(1.-smoothstep(5.,8.5,vDy));gz=max(gz,bk*.95);
+        vec4 nT=mix(vec4(1.7,3.,2.4,8.),vec4(.5,1.,.9,2.),eb);
+        a=mix(gz*(.35+.5*eb)*vis*smoothstep(nT.x,nT.y,camD),a,smoothstep(nT.z,nT.w,camD));
         /* a stream only a pixel or two wide from afar is a faint soft thread, not a hard yellow line */
         /* the haze a fall sinks into is its own dust: fade it to an ochre as bright as the sky haze, never the haze's pale cream
            (which reads as water), and let the lower fall dissipate rather than turn pale */
@@ -1694,7 +1718,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         float wl=length(uWV);vWd=.5+.5*dot(n,uWV/max(wl,1e-4));
         vec4 w=modelMatrix*vec4(p,1.);vW=w.xyz;vec3 Nw=normalize(mat3(modelMatrix)*vec3(n.x,.25,n.y));vLam=.5+.5*max(dot(Nw,uLd),0.);
         vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vF;varying vec3 vW;varying float vLam,vFs,vWd,vG;${GLSL_NOISE}
+    fragmentShader:`uniform float uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vF;varying vec3 vW;varying float vLam,vFs,vWd,vG;${GLSL_NOISE}${RING.glsl}
       void main(){float P=vF.x,s=vF.y;
         /* how much sand reaches this stretch of lip: the downwind rim and the gusts feed it, some stretches get little */
         /* every stretch of lip sheds. Downwind is as before; the upwind rim (quiet) is filled so it does not open a hole. */
@@ -1715,6 +1739,9 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         float du=dn2(vec2(X*.35,u*2.2))*.6+dn2(vec2(X*.9,u*5.))*.4;
         float dust=smoothstep(.12,.5,s)*(1.-smoothstep(.62+.22*feed,.98,s))*(.35+.5*du)*(.55+.45*uDust)*(1.-.8*uWet);
         float a=(body*1.95+grain*.9+dust*(1.-body)*.44)*smoothstep(.004,.05,k)*(1.06+.36*min(k,1.));
+        /* below the rock (13 m down at s .85: the drop is 18 s*s, the falls' 28 s*s) it parts into the falls' streams as they do, at
+           the same place and pace, instead of hanging on as an even veil that fills their gaps */
+        float lowF=smoothstep(.8,.95,s);if(lowF>0.)a*=mix(1.,smoothstep(.32,.48,ringS(P,.8*s-uFT*${(.9/SF.Tf).toFixed(4)})),lowF);
         vec3 base=uCol*vLam*mix(vec3(1.),vec3(.7,.64,.58),uWet);base=mix(vec3(dot(base,vec3(.3,.55,.15))),base,1.18);
         vec3 c=base*(.84+.2*n3);c=mix(c,base*1.1+uSheen*vFs*.6*(1.-.75*uNt),(1.-body)*.4);
         float dF=dust*(1.-body)/(a+.001);c=mix(c,base*vec3(.96,.74,.48)*.9,clamp(dF,0.,1.)*.7);
@@ -1728,17 +1755,23 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         #include <colorspace_fragment>
       }`});
   SF.rim=new T.Mesh(g,m);SF.rim.frustumCulled=false;SF.rim.renderOrder=5;W.add(SF.rim)})();
-/* dust trails: soft puffs shed by the falls that drift downwind, spread and thin out into the air below the island */
-const SFD=softPoints(MOB?96:190,"#e4c69c",.9,false);SFD.o.renderOrder=6;W.add(SFD.o);
+/* dust trails: soft puffs shed by the falls that drift downwind, spread and thin out into the air below the island. A third of them
+   (k 1) are the dust each stream's foot gives itself up to: wide, slow billows that rise off the foot and roll away downwind, so the
+   curtain ends in a haze of sand rather than a flat fade; a third (k 2) are grains thrown off the lower streams, falling and fanning
+   out into the gaps between them */
+const SFD=softPoints(MOB?120:300,"#e4c69c",.9,false,MOB?72:128);SFD.o.renderOrder=6;W.add(SFD.o);
 const SFDP=[];{let ps=9127;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^ps>>>15,1|ps);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
-  for(let i=0;i<SFD.n;i++)SFDP.push({f:SF.F.length?Math.floor(pr()*SF.F.length):0,life:pr(),dur:2.5+3*pr(),x:0,y:0,z:0,vx:0,vy:0,vz:0,z0:.7+.8*pr(),hz:i%6==0,r:pr});
+  for(let i=0;i<SFD.n;i++)SFDP.push({f:SF.F.length?Math.floor(pr()*SF.F.length):0,life:pr(),dur:2.5+3*pr(),x:0,y:0,z:0,vx:0,vy:0,vz:0,z0:.7+.8*pr(),k:i%3,r:pr});
   SFD.pr=pr;if(SF.F.length)for(const q of SFDP){const l=q.life;sfDust(q);q.life=l}}
 function sfDust(q){const F=SF.F,pr=SFD.pr;let f=F[q.f];
   /* heavier falls shed more dust */
   for(let k=0;k<5;k++){const c=F[Math.floor(pr()*F.length)];if(c.hw>f.hw||pr()<.15)f=c}
-  q.f=F.indexOf(f);q.s=.5+.55*Math.min(f.hw,2.2);const j=Math.floor((q.hz?.55+.4*pr():.25+.55*pr())*(f.path.length-1)),[d,y]=f.path[j],s=j/(f.path.length-1),lat=(pr()*2-1)*f.hw,dr=Math.pow(ss(.45,1,s),1.5)*.9*sfU.uWV.value.length();
-  q.x=f.E.x+f.E.nx*(d+.2)+f.E.tx*lat+WIND.x*dr;q.z=f.E.z+f.E.nz*(d+.2)+f.E.tz*lat+WIND.z*dr;q.y=y;
-  q.vx=WIND.x*(.12+.2*pr())+f.E.nx*.05;q.vz=WIND.z*(.12+.2*pr())+f.E.nz*.05;q.vy=-1.2-1.2*pr();q.life=0;q.dur=q.hz?6+4*pr():2.5+3*pr();if(q.hz){q.vx*=1.4;q.vz*=1.4;q.vy*=.5}}
+  const K=q.k,W0=sfU.uWV.value.length();
+  q.f=F.indexOf(f);q.s=.5+.55*Math.min(f.hw,2.2);const j=Math.floor((K==1?.6+.25*pr():K==2?.5+.45*pr():.25+.55*pr())*(f.path.length-1)),[d,y]=f.path[j],s=j/(f.path.length-1),lat=(pr()*2-1)*f.hw*(K==1?1.3:1),dr=Math.pow(ss(.45,1,s),1.5)*.9*W0;
+  q.x=f.E.x+f.E.nx*(d+.2)+f.E.tx*lat+WIND.x*dr;q.z=f.E.z+f.E.nz*(d+.2)+f.E.tz*lat+WIND.z*dr;q.y=y;q.life=0;
+  if(K==1){const o=.15+.25*pr();q.vx=WIND.x*(.3+.35*pr())+f.E.nx*o;q.vz=WIND.z*(.3+.35*pr())+f.E.nz*o;q.vy=-.6+.9*pr();q.dur=5+4*pr()}
+  else if(K==2){const o=.25+.6*pr(),t=(pr()*2-1)*.5;q.vx=WIND.x*(.3+.4*pr())+f.E.nx*o+f.E.tx*t;q.vz=WIND.z*(.3+.4*pr())+f.E.nz*o+f.E.tz*t;q.vy=-2.5-3*s*pr();q.dur=1+1.2*pr()}
+  else{q.vx=WIND.x*(.12+.2*pr())+f.E.nx*.05;q.vz=WIND.z*(.12+.2*pr())+f.E.nz*.05;q.vy=-1.2-1.2*pr();q.dur=2.5+3*pr()}}
 function sandFallsUpdate(dt,t,wn,nk){
   wn=Math.max(wn,.35+WX.dust*.7);
   /* the rate follows the wind and its gusts; dust storms feed it, wet sand barely moves */
@@ -1758,12 +1791,13 @@ function sandFallsUpdate(dt,t,wn,nk){
   for(let i=0;i<SFD.n;i++){const q=SFDP[i];q.life+=dt/q.dur;
     if(q.life>=1)sfDust(q);
     const f=SF.F[q.f],k=f.k+.22*(.5-.5*(f.E.nx*WIND.x+f.E.nz*WIND.z)),vis=ss(k,k+.3,R),sp=.5+wv;
-    q.x+=q.vx*dt*sp;q.z+=q.vz*dt*sp;q.y+=q.vy*dt;q.vy*=Math.exp(-dt*.5);
-    const o=i*3;SFD.P[o]=q.x;SFD.P[o+1]=q.y;SFD.P[o+2]=q.z;SFD.Z[i]=q.z0*q.s*(q.hz?2.2*(1+1.6*q.life):1+3*q.life);
-    SFD.A[i]=Math.sin(q.life*Math.PI)*(q.hz?.028:.05)*vis*Math.min(1,f.hw/.35+.25)*(1+1.4*WX.dust)*(1-.85*WX.wet)}
+    q.x+=q.vx*dt*sp;q.z+=q.vz*dt*sp;q.y+=q.vy*dt;
+    if(q.k==2)q.vy-=3.5*dt;else{q.vy*=Math.exp(-dt*(q.k?.9:.5));if(q.k)q.vy+=.12*dt}
+    const o=i*3,K=q.k,L=q.life;SFD.P[o]=q.x;SFD.P[o+1]=q.y;SFD.P[o+2]=q.z;SFD.Z[i]=K==2?.07+.05*q.z0:q.z0*q.s*(K?2.4*(1+2.2*L):1+3*L);
+    SFD.A[i]=(K==1?Math.sin(Math.PI*Math.pow(L,.6))*.12:K==2?Math.sin(L*Math.PI)*.5:Math.sin(L*Math.PI)*.05)*vis*Math.min(1,f.hw/.35+.25)*(1+1.4*WX.dust)*(1-.85*WX.wet)}
   SFD.g.attributes.position.needsUpdate=SFD.g.attributes.a.needsUpdate=SFD.g.attributes.z.needsUpdate=true;SFD.m.uniforms.uH.value=innerHeight;
   /* sand dust, not cloud: a warm ochre a shade deeper than the lit sand, so it never reads as the white mist of the cloud sea */
-  {const c=SFD.m.uniforms.uC.value.copy(curU.uCol.value);c.r*=1.02;c.g*=.88;c.b*=.68}}
+  {const c=SFD.m.uniforms.uC.value.copy(curU.uCol.value);c.r*=1.;c.g*=.82;c.b*=.58}}
 /* night fireflies over the oasis */
 /* two lots: a loose swarm over the water's edge, and a denser one hanging low in and just over the reeds, grass clumps and
    shrubs, each keeping close to its plant (the second lot from its own seed, so the island's layout does not shift) */

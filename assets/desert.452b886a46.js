@@ -1491,7 +1491,10 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
       const g0=i/N*TAU,g1=(i+m)/N*TAU,[x0,z0]=edgeXZ(g0,1),[x1,z1]=edgeXZ(g1,1),len=Math.hypot(x1-x0,z1-z0),parts=Math.ceil(len/7);
       for(let p=0;p<parts;p++){const th=g0+(g1-g0)*(p+.5)/parts,hw=Math.min(6,Math.max(2.8,(len/parts/2+1.2)/.8)),E=frame(th),P=probe(E,hw);if(P.lipY<-50)continue;
         pick.push({ty:1,hw,E,P,k:.002,sd:11.3+(j++)*4.7,v0:.09})}}}
-  const pos=[],aU=[],aK=[],aN=[],aT=[],aB=[],idx=[],nG=MOB?4:6,nv=MOB?24:34;
+  const pos=[],aU=[],aK=[],aN=[],aT=[],aB=[],aS=[],idx=[],nG=MOB?4:6,nv=MOB?24:34;
+  /* light the sheets by the lip's outward normal where each vertex hangs, not by its own fall's: one flat normal per ribbon shades
+     the ring as facets, and where it turns away from the far view (the right side) neighbouring pours read as paler slabs */
+  const sN2=(x,z)=>{let a=Math.atan2(z/AZ,x/AX);const F=frame(a);return[F.nx,F.nz]};
   for(const f of pick){const{E,P,hw}=f,nu=hw<.3?3:MOB?7:10,o=pos.length/3,rows=[],i0=idx.length;
     /* down to where the underside stops showing behind it (P.yS) the sheet hides the rock entirely (at dusk and by night the
        dark rock's lower edge otherwise shows through it). It stays whole for 3 m below that and only then eases, over 14 m, back
@@ -1514,16 +1517,16 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
        do (not on phones: it doubles the overdraw) */
     for(let ly=0;ly<(MOB?1:2);ly++){const o=pos.length/3,R0=ly?rows.filter(r=>r.s>=0):rows;
       for(const r of R0){const dd=r.d+ly*(.14+.22*r.s),cx=E.x+E.nx*dd,cz=E.z+E.nz*dd,w=r.w*(ly?1.18:1);
-        for(let i=0;i<=nu;i++){const u=i/nu,lat=(u*2-1)*w;pos.push(cx+E.tx*lat,r.y-ly*.12,cz+E.tz*lat);aU.push(u,r.s);aK.push(f.k,f.sd+ly*23,hw,ly);aN.push(E.nx,E.nz,r.sl+ly*(.14+.22*r.s));aT.push(E.tx*lat,E.tz*lat);aB.push(ly?0:r.s<0?0:back(r.y))}}
+        for(let i=0;i<=nu;i++){const u=i/nu,lat=(u*2-1)*w,px=cx+E.tx*lat,pz=cz+E.tz*lat;pos.push(px,r.y-ly*.12,pz);aU.push(u,r.s);aK.push(f.k,f.sd+ly*23,hw,ly);aN.push(E.nx,E.nz,r.sl+ly*(.14+.22*r.s));aT.push(E.tx*lat,E.tz*lat);aB.push(ly?0:r.s<0?0:back(r.y),r.y-yBot);aS.push(...sN2(px,pz))}}
       for(let j=0;j<R0.length-1;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}}
     SF.F.push({E,k:f.k,hw,path,ty:f.ty,yb:yBot,lipY:P.lipY,i0,i1:idx.length,c:[E.x+E.nx*(P.lipD+1),(P.lipY+yBot)/2,E.z+E.nz*(P.lipD+1)]})}
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("aU",new T.BA(new Float32Array(aU),2));
   g.setAttribute("aK",new T.BA(new Float32Array(aK),4));g.setAttribute("aN",new T.BA(new Float32Array(aN),3));g.setAttribute("aT",new T.BA(new Float32Array(aT),2));
-  g.setAttribute("aB",new T.BA(new Float32Array(aB),1));SF.I0=new Uint32Array(idx);g.setIndex(new T.BA(SF.I0.slice(),1));
+  g.setAttribute("aB",new T.BA(new Float32Array(aB),2));g.setAttribute("aS",new T.BA(new Float32Array(aS),2));SF.I0=new Uint32Array(idx);g.setIndex(new T.BA(SF.I0.slice(),1));
   const m=new T.SM({uniforms:sfU,transparent:true,depthWrite:false,side:2,polygonOffset:true,polygonOffsetFactor:-.6,polygonOffsetUnits:-6,
-    vertexShader:`attribute vec2 aU,aT;attribute vec4 aK;attribute vec3 aN;attribute float aB;uniform float uT,uFR,uWet;uniform vec2 uWV;uniform vec3 uLd;${GLSL_GUST}
-      varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG,vUp,vB;
-      void main(){vU=aU;vK=aK;vB=aB;vec2 n=aN.xy;vG=gustF(position.xz);
+    vertexShader:`attribute vec2 aU,aT,aB,aS;attribute vec4 aK;attribute vec3 aN;uniform float uT,uFR,uWet;uniform vec2 uWV;uniform vec3 uLd;${GLSL_GUST}
+      varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG,vUp,vB,vDy;
+      void main(){vU=aU;vK=aK;vB=aB.x;vDy=aB.y;vec2 n=aN.xy;vG=gustF(position.xz);
         /* downwind pours as before. The upwind rim (left of the far island shot) stays a full sheet instead of opening seams. */
         float wl=length(uWV),wd=dot(n,uWV)/max(wl,1e-4);vUp=smoothstep(.25,-.45,wd);
         float k=aK.x+.05*(.5-.5*wd),s=aU.y,vis=smoothstep(k,k+.28,uFR);vVis=vis;vec3 p=position;
@@ -1534,11 +1537,11 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
           float side=dot(dr,tg);dr-=tg*side*(1.-.8*smoothstep(.45,.9,s));
           float inw=dot(dr,n);dr-=n*(inw-max(inw,-aN.z));p.xz+=dr;}
         vec4 w=modelMatrix*vec4(p,1.);vW=w.xyz;
-        vec3 Nl=s>0.?vec3(n.x,.2,n.y):vec3(0.,1.,0.),Nw=normalize(mat3(modelMatrix)*Nl);
+        vec3 Nl=s>0.?vec3(aS.x,.2,aS.y):vec3(0.,1.,0.),Nw=normalize(mat3(modelMatrix)*Nl);
         vLam=.5+.5*max(dot(Nw,uLd),0.);
         vFs=pow(max(dot(normalize(cameraPosition-w.xyz),-uLd),0.),4.);
         gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uT,uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG,vUp,vB;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uFT,uFR,uWet,uDust,uNt;uniform vec2 uFogNF;uniform vec3 uCol,uSheen,uFogC;varying vec2 vU;varying vec3 vW;varying vec4 vK;varying float vVis,vFs,vLam,vG,vUp,vB,vDy;${GLSL_NOISE}
       /* noise carried down with the falling sand at a size that stays even on screen as the sand speeds up (the drop grows as s*s):
          two copies scrolled half a cycle apart and cross-faded, so the pattern never stretches out over time */
       float fallN(vec2 q,float s,float f0,float f1){float T=uFT*${(1/SF.Tf/.5).toFixed(4)},p1=fract(T),p2=fract(T+.5),f=f0+f1*s;
@@ -1635,8 +1638,11 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         /* a close camera looking back at the dune (the lee snow check) must see the slip face; the far island shot stays a full curtain.
            In between the sheet does not keep its strands at a lower alpha (that reads as sparse stripes): it eases to an even gauze
            following the sheet's outline with soft sides, so where neighbouring falls overlap it does not band; it clears within a
-           few metres of the lens */
-        float camD=length(cameraPosition-vW);a=mix(gz*.35*vis*smoothstep(1.7,3.,camD),a,smoothstep(2.4,8.,camD));
+           few metres of the lens. Below the cliff's lower edge the gauze has bright cloud behind it instead of rock: at one opacity
+           that jagged edge reads through it as a horizontal seam, so the gauze is carried as far down as the whole sheet is (bk) and
+           thickens toward and past the edge. vDy is metres above yBot; from a close camera the edge shows about 5 m above it. */
+        float camD=length(cameraPosition-vW),gzK=.35+.5*smoothstep(12.,-3.,vDy)*step(0.,s);gz=max(gz,bk*.95);
+        a=mix(gz*gzK*vis*smoothstep(1.7,3.,camD),a,smoothstep(2.4,8.,camD));
         /* a stream only a pixel or two wide from afar is a faint soft thread, not a hard yellow line */
         /* the haze a fall sinks into is its own dust: fade it to an ochre as bright as the sky haze, never the haze's pale cream
            (which reads as water), and let the lower fall dissipate rather than turn pale */

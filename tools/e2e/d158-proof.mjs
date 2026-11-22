@@ -137,12 +137,12 @@ const report = {};
 try {
   await boot(page, "desert");
   const live = await page.evaluate(() => ({desert: window.CY && window.CY.desert, os: window.CY && window.CY.ms && window.CY.ms.ostrich_v2ah,
-    gb: window.CY && window.CY.ms && window.CY.ms.gerbil_v5}));
+    gb: window.CY && window.CY.ms && window.CY.ms.gerbil_v5b}));
   console.log("live", JSON.stringify(live));
   report.live = live;
   if (!live.desert || !/desert\.[0-9a-f]+\.js$/.test(live.desert)) fails.push("desert bundle missing");
   if (!live.os) fails.push("ostrich_v2ah not in the live manifest");
-  if (!live.gb) fails.push("gerbil_v5 not in the live manifest");
+  if (!live.gb) fails.push("gerbil_v5b not in the live manifest");
   let sea = null;
   const seaPage = async () => {
     if (sea) return sea;
@@ -627,9 +627,9 @@ try {
       await shot(page, `${OSN}_run_shadow_top.png`);
     }
   }
-  /* gerbil_v5 in the scene: one gerbil out on level open sand by day, the others below; clips chosen by the engine from the mode
+  /* gerbil_v5b in the scene: one gerbil out on level open sand by day, the others below; clips chosen by the engine from the mode
      (stand -> stand_lookout, nibble -> dig, a mode it has no case for -> idle, moving -> hop_run) */
-  const GBN = "gerbil_v5";
+  const GBN = "gerbil_v5b";
   if (want("gerbil") || want("gbdig") || want("gbhop")) {
     const spot = await page.evaluate(() => {
       const q = window.__desQA();
@@ -692,6 +692,7 @@ try {
       G.idle = await gbStep("hold", 90, 1 / 30);
       await gbCam("side"); await shot(page, `${GBN}_idle_side.png`);
       G.dig = await gbStep("nibble", 45, 1 / 30);
+      await gbCam("side"); await shot(page, `${GBN}_dig_side.png`);
       console.log("gerbil metrics", JSON.stringify(G));
       if (G.stand.cur !== "stand_lookout" || !(G.stand.morph.lookout_fix > .99)) fails.push("gerbil lookout: lookout_fix not 1 in stand_lookout");
       if (G.idle.cur !== "idle" || G.idle.morph.lookout_fix > .01) fails.push("gerbil idle: lookout_fix not 0");
@@ -700,6 +701,8 @@ try {
       if (G.stand.cast.some(c => /hair/.test(c) && /true/.test(c))) fails.push("gerbil hair cards cast shadows");
       if (G.stand.furPx !== 2048) fails.push("gerbil fur colour not 2048 px in the scene");
     }
+    const gbStrip = (dir, pick, out) => ffmpeg([...pick.flatMap(n => ["-i", path.join(dir, String(n).padStart(4, "0") + ".png")]), "-filter_complex",
+      pick.map((_, j) => `[${j}:v]scale=384:216[s${j}]`).join(";") + ";" + pick.map((_, j) => `[s${j}]`).join("") + `hstack=inputs=${pick.length}`, path.join(OUT, out)]);
     if (want("gbdig")) {
       await gbStep("hold", 30, 1 / 30);
       await gbCam("side");
@@ -712,6 +715,8 @@ try {
         await page.screenshot({path: path.join(dir, String(i).padStart(4, "0") + ".png")});
       }
       await ffmpeg(["-framerate", "24", "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", path.join(OUT, `${GBN}_dig_side.mp4`)]);
+      /* five frames across one 2 s dig cycle, from 0.5 s in */
+      await gbStrip(dir, [12, 24, 36, 48, 60], `${GBN}_strip_dig_side.png`);
       fs.rmSync(dir, {recursive: true, force: true});
       console.log("encoded gerbil dig", N);
     }
@@ -737,6 +742,15 @@ try {
       G.hop = {clips: [...new Set(hs.map(h => h.cur))], vmax: Math.max(...hs.map(h => h.v))};
       console.log("gerbil hop", JSON.stringify(G.hop));
       if (!G.hop.clips.includes("hop_run")) fails.push("gerbil dash never played hop_run");
+      /* the stills come from the dash itself: the fastest hop_run frames, then five 2 frames apart (one 0.3 s hop at 24 fps is 7 frames) */
+      const hopI = hs.map((h, i) => [h, i]).filter(([h]) => h.cur === "hop_run").map(([, i]) => i);
+      if (hopI.length) {
+        const mid = hopI[Math.floor(hopI.length / 2)];
+        fs.copyFileSync(path.join(dir, String(mid).padStart(4, "0") + ".png"), path.join(OUT, `${GBN}_hop_run_side.png`));
+        const a0 = Math.max(hopI[0], Math.min(mid - 4, hs.length - 9));
+        await gbStrip(dir, [0, 2, 4, 6, 8].map(d => a0 + d), `${GBN}_strip_hop_run_side.png`);
+        G.hop.still = mid;
+      }
       await ffmpeg(["-framerate", "24", "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", path.join(OUT, `${GBN}_hop_run_side.mp4`)]);
       fs.rmSync(dir, {recursive: true, force: true});
       console.log("encoded gerbil hop");

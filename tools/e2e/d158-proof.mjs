@@ -137,12 +137,13 @@ const report = {};
 try {
   await boot(page, "desert");
   const live = await page.evaluate(() => ({desert: window.CY && window.CY.desert, os: window.CY && window.CY.ms && window.CY.ms.ostrich_v2ah,
-    gb: window.CY && window.CY.ms && window.CY.ms.gerbil_v5b}));
+    gb: window.CY && window.CY.ms && window.CY.ms.gerbil_v5b, sc: window.CY && window.CY.ms && window.CY.ms.scorpion_v2c && window.CY.ms.scorpion_uv_v2c}));
   console.log("live", JSON.stringify(live));
   report.live = live;
   if (!live.desert || !/desert\.[0-9a-f]+\.js$/.test(live.desert)) fails.push("desert bundle missing");
   if (!live.os) fails.push("ostrich_v2ah not in the live manifest");
   if (!live.gb) fails.push("gerbil_v5b not in the live manifest");
+  if (!live.sc) fails.push("scorpion_v2c / scorpion_uv_v2c not in the live manifest");
   let sea = null;
   const seaPage = async () => {
     if (sea) return sea;
@@ -755,6 +756,81 @@ try {
       fs.rmSync(dir, {recursive: true, force: true});
       console.log("encoded gerbil hop");
     }
+  }
+  /* scorpion_v2c in the scene: one scorpion on its rock's doorstep on level sand, driven directly (mode "dbg" has no case in its
+     behaviour, so it keeps the speed it is given; noView keeps the camera from reading as a threat) */
+  const SCN = "scorpion_v2c";
+  if (want("scorp") || want("scwalk")) {
+    const spot = await page.evaluate(() => {
+      const q = window.__desQA();
+      window.__set({weather: "sun", ct: "clear", wind: .2}); q.tod("day");
+      q.PA.noView = true;
+      if (q.ANIM.eagle && q.ANIM.eagle.pos) q.ANIM.eagle.pos.set(40, 22, 40);
+      q.ANIM.camels.forEach((c, i) => { c.x = -22; c.z = -18 - i * 4; c.g.position.set(c.x, q.hTop(c.x, c.z), c.z); });
+      if (q.rsPut) q.rsPut(18, 14, 0);
+      for (const o of q.PA.os) { o.mode = "sit"; o.t = 999; o.x = 24; o.z = -20; o.g.visible = false; }
+      for (const t of q.PA.tt) { t.x = -20; t.z = -16; t.g.visible = false; }
+      for (const g of q.PA.gb) { g.mode = "in"; g.t = 999; g.g.visible = false; }
+      const slope = (x, z) => { let dh = 0; for (const [dx, dz] of [[.15, 0], [-.15, 0], [0, .15], [0, -.15]]) dh = Math.max(dh, Math.abs(q.hTop(x + dx, z + dz) - q.hTop(x, z))); return dh; };
+      let best = null;
+      for (const [i, S] of q.PA.sc.entries()) { const r = S.rk, yaw = Math.atan2(r.dx - r.hx, r.dz - r.hz), dh = slope(r.dx, r.dz);
+        if (!best || dh < best.dh) best = {i, x: +r.dx.toFixed(3), z: +r.dz.toFixed(3), yaw: +yaw.toFixed(3), dh: +dh.toFixed(4)}; }
+      for (const [i, S] of q.PA.sc.entries()) if (i !== best.i) { S.mode = "hide"; S.t = 999; }
+      window.__sc = best;
+      const A = q.PA.sc[best.i], mats = [];
+      A.g.traverse(m => { if (m.isMesh) mats.push({name: m.material.name, transparent: !!m.material.transparent, cast: m.castShadow, glow: !!m.material.emissiveMap}); });
+      return {...best, rig: !!A.rig, clips: A.rig ? Object.keys(A.rig.acts) : [], mats};
+    });
+    console.log("scorpion", SCN, JSON.stringify(spot));
+    const SC = report.scorpion = {file: SCN, ...spot};
+    if (!spot.rig) fails.push("scorpion rig not loaded");
+    if (spot.mats.some(m => m.transparent && m.cast)) fails.push("scorpion setae cards cast shadows");
+    if (!spot.mats.some(m => !m.transparent && m.glow) || spot.mats.some(m => m.transparent && m.glow)) fails.push("scorpion UV glow not on the cuticle alone");
+    const scStep = (v, n, dt, hold) => page.evaluate((v, n, dt, hold) => {
+      const q = window.__desQA(), s = window.__sc, A = q.PA.sc[s.i];
+      for (let k = 0; k < n; k++) { A.mode = "dbg"; A.t = 99; A.v = v; A.P.thr = 0; if (hold) { A.x = s.x; A.z = s.z; } A.yaw = s.yaw; q.step(1, dt); A.g.visible = true; }
+      A.g.updateMatrixWorld(true);
+      /* framing radius from the body's bind-pose box (in island metres; the model is drawn at file scale) */
+      let r = 0; A.g.traverse(m => { if (m.isMesh && !m.material.transparent) { m.geometry.computeBoundingBox(); const b = m.geometry.boundingBox; r = Math.max(r, b.max.x - b.min.x, b.max.z - b.min.z) / 2 * A.g.scale.x; } });
+      return {cur: A.rig && A.rig.cur, x: A.x, z: A.z, r};
+    }, v, n, dt, hold);
+    const scCam = (kind, r, at) => page.evaluate((kind, r, at) => {
+      const q = window.__desQA(), C = window.__C(), s = window.__sc, A = q.PA.sc[s.i], x = at ? at.x : A.x, z = at ? at.z : A.z, gy = q.hTop(x, z), yaw = s.yaw;
+      const put = (a, d, y, ty, fov, tx = x, tz = z) => { q.lookAt(tx + Math.sin(yaw + a) * d, gy + y, tz + Math.cos(yaw + a) * d, tx, gy + ty, tz); C.De.fov = fov; C.De.near = .005; C.De.updateProjectionMatrix(); };
+      ({side: () => put(Math.PI / 2, r * 4.4, r * .6, r * .45, 28), three_q: () => put(Math.PI / 4, r * 3.2, r * 1.5, r * .25, 28),
+        close: () => put(Math.PI / 2, r * 1.35, r * .3, r * .22, 28, x + Math.sin(yaw) * r * .35, z + Math.cos(yaw) * r * .35)})[kind]();
+    }, kind, r, at);
+    const rest = await scStep(0, 60, 1 / 30, true);
+    SC.rest = {cur: rest.cur, r: +rest.r.toFixed(4)};
+    if (want("scorp")) {
+      for (const k of ["side", "three_q", "close"]) { await scCam(k, rest.r); await shot(page, `${SCN}_rest_${k === "close" ? "close_setae_side" : k}.png`); }
+      await page.evaluate(() => window.__desQA().tod("night")); await scStep(0, 30, 1 / 30, true);
+      await scCam("three_q", rest.r); await shot(page, `${SCN}_uv_night_three_q.png`);
+      await page.evaluate(() => window.__desQA().tod("day")); await scStep(0, 30, 1 / 30, true);
+    }
+    if (want("scwalk")) {
+      /* 2 s at the clip's own pace (.071 m/s), camera tracking from the side */
+      await page.evaluate(() => { const q = window.__desQA(), s = window.__sc, A = q.PA.sc[s.i]; A.x = s.x - Math.sin(s.yaw) * .07; A.z = s.z - Math.cos(s.yaw) * .07; });
+      const dir = path.join(OUT, "scwalk-frames");
+      fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir);
+      const cl = [];
+      for (let i = 0; i < 48; i++) {
+        const st = await scStep(.071, 1, 1 / 24, false); cl.push(st.cur);
+        await scCam("side", rest.r, {x: st.x, z: st.z});
+        await frames(page, 1);
+        await page.screenshot({path: path.join(dir, String(i).padStart(4, "0") + ".png")});
+      }
+      SC.walk = {clips: [...new Set(cl)]};
+      if (!cl.includes("walk")) fails.push("scorpion never played walk");
+      await ffmpeg(["-framerate", "24", "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", path.join(OUT, `${SCN}_walk_side.mp4`)]);
+      /* one 0.5 s step cycle (12 frames) in five, from 1 s in */
+      await ffmpeg([...[24, 26, 28, 31, 33].flatMap(n => ["-i", path.join(dir, String(n).padStart(4, "0") + ".png")]), "-filter_complex",
+        [0, 1, 2, 3, 4].map(j => `[${j}:v]scale=384:216[s${j}]`).join(";") + ";[s0][s1][s2][s3][s4]hstack=inputs=5", path.join(OUT, `${SCN}_strip_walk_side.png`)]);
+      fs.copyFileSync(path.join(dir, "0028.png"), path.join(OUT, `${SCN}_walk_side.png`));
+      fs.rmSync(dir, {recursive: true, force: true});
+      console.log("encoded scorpion walk");
+    }
+    console.log("scorpion metrics", JSON.stringify(SC));
   }
 } catch (e) {
   console.log("PROOF ERROR", String(e && e.stack || e).slice(0, 1500));

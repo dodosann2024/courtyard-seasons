@@ -725,16 +725,16 @@ try {
       console.log("encoded gerbil dig", N);
     }
     if (want("gbhop")) {
-      /* a short dash across level sand past the spot, the camera tracking from the side */
+      /* a short dash across level sand past the spot, the camera tracking from the side. By day its behaviour sends a foraging
+         gerbil straight home, so it is driven at .8 m/s in mode "dbg" (no case in gbUpdate: it keeps the speed and heading given) */
       const dir = path.join(OUT, "gbhop-frames");
       fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir);
       await page.evaluate(() => { const q = window.__desQA(), A = q.PA.gb[0], s = window.__gb;
-        A.x = s.x - Math.sin(s.yaw) * .5; A.z = s.z - Math.cos(s.yaw) * .5; A.yaw = s.yaw; A.mode = "forage"; A.t = 99; A.spd = .8;
-        A.goal = {x: s.x + Math.sin(s.yaw) * 2.5, z: s.z + Math.cos(s.yaw) * 2.5}; });
+        q.PA.noView = true; A.x = s.x - Math.sin(s.yaw) * .5; A.z = s.z - Math.cos(s.yaw) * .5; A.yaw = s.yaw; A.mode = "dbg"; A.t = 99; });
       const hs = [];
       for (let i = 0; i < 24 * 2; i++) {
         const r = await page.evaluate(() => { const q = window.__desQA(), C = window.__C(), A = q.PA.gb[0], s = window.__gb;
-          A.mode = "forage"; A.t = 99; A.spd = .8; A.out = true; A.P.in = 0; A.goal = {x: s.x + Math.sin(s.yaw) * 2.5, z: s.z + Math.cos(s.yaw) * 2.5};
+          A.mode = "dbg"; A.t = 99; A.v = .8; A.yaw = s.yaw; A.out = true; A.P.in = 0;
           q.step(1, 1 / 24); A.g.visible = true;
           const gy = q.hTop(A.x, A.z), y = s.yaw;
           q.lookAt(A.x + Math.sin(y + Math.PI / 2) * .9, gy + .1, A.z + Math.cos(y + Math.PI / 2) * .9, A.x, gy + .04, A.z); C.De.fov = 30; C.De.near = .01; C.De.updateProjectionMatrix();

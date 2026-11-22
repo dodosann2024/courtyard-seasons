@@ -109,7 +109,7 @@ try {
     return [active && out.moved > .3 && perched && hidden, out];
   }));
 
-  /* 4b. lake life: big old freshwater crabs (7–9 cm across) on the damp bank, the grass cleared round their doors and in the shallows round their burrows, walking sideways,
+  /* 4b. lake life: freshwater crabs (Godot's crab_v6 at life size, about 5 cm across) on the damp bank, the grass cleared round their doors and in the shallows round their burrows, walking sideways,
      bolting into a burrow or the water when something big comes close and going home in rain and hail; rainbow trout (26–38 cm)
      schooling under the surface over the deep cold middle, rising at dawn and going down to the bed in hail */
   check("lake: crabs on the bank, trout in the deep, both take cover", ...await page.evaluate(() => {
@@ -124,7 +124,7 @@ try {
     const C = q.crabs(), F = q.trout();
     r.crabModes = [...seen].sort(); r.sideways = +(side.reduce((a, b) => a + b, 0) / Math.max(1, side.length)).toFixed(3); r.walkSamples = side.length;
     r.crabDepth = [Math.min(...C.map(c => c.dep)), Math.max(...C.map(c => c.dep))].map(v => +v.toFixed(3)); r.crabScale = [Math.min(...C.map(c => c.s)), Math.max(...C.map(c => c.s))].map(v => +v.toFixed(2));
-    r.crK = q.crK; r.crLane = q.crLane();
+    r.crK = q.crK; r.crG = q.crG; r.crGlb = q.crGlb(); r.crLane = q.crLane();
     r.troutLen = [Math.min(...F.map(f => f.L)), Math.max(...F.map(f => f.L))].map(v => +v.toFixed(3));
     r.troutWater = +Math.min(...F.map(f => f.dep)).toFixed(3); r.troutBelow = [Math.min(...F.map(f => f.below)), Math.max(...F.map(f => f.below))].map(v => +v.toFixed(3));
     const placed = C.length >= 5 && C.every(c => c.dep > -.12 && c.dep < .45 && c.s > .8 && c.s < 1.2) && F.length >= 3 &&
@@ -146,7 +146,7 @@ try {
     q.tod("day"); window.__set({weather: "hail", hailLv: 1}); q.sim(30, .1);
     r.hailAboveBed = +Math.max(...q.trout().map(f => f.dep - f.below)).toFixed(3); r.hail = CL.map(c => c.mode); const hailHid = hidden();
     window.__set({weather: "sun", ct: "clear", hailLv: 1}); q.sim(900, 1);
-    return [placed && r.crK >= 1.5 && r.crLane === 0 && seen.has("walk") && r.sideways > .85 && !!r.scareOk && rainHid && r.outAgain > 0 && r.dawnRises > 0 && r.hailAboveBed < .3 && hailHid, r];
+    return [placed && r.crGlb && r.crG === 1 && r.crLane === 0 && seen.has("walk") && r.sideways > .85 && !!r.scareOk && rainHid && r.outAgain > 0 && r.dawnRises > 0 && r.hailAboveBed < .3 && hailHid, r];
   }));
 
   /* 4b2. the procedural animals: ostriches (cock's head ~2.4 m, over a camel's hump; walk and graze by day, run from the eagle,

@@ -108,7 +108,7 @@ function duneEvolve(dph){
 let DOB=null,DLIVE=false;const PINS=[];
 function dZone(x,z){const c=Math.cos(DUNE0.yaw),s=Math.sin(DUNE0.yaw),dx=x-DUNE0.x,dz=z-DUNE0.z,u=dx*c-dz*s,v=dx*s+dz*c;
   if(u<-9||u>11.5||Math.abs(v)>10)return 0;return ss(-9,-6.5,u)*ss(11.5,9,u)*ss(10,7.5,Math.abs(v))*(1-ss(.88,.96,sN(x,z)))}
-function dMask(x,z){let m=dZone(x,z);if(m<=0||!DOB)return m;for(const o of DOB){const d=Math.hypot(x-o.x,z-o.z);if(d<o.r+1.6)m*=ss(o.r+.25,o.r+1.6,d)}return m}
+function dMask(x,z){let m=dZone(x,z);if(m>0)m*=duneRim(x,z);if(m<=0||!DOB)return m;for(const o of DOB){const d=Math.hypot(x-o.x,z-o.z);if(d<o.r+1.6)m*=ss(o.r+.25,o.r+1.6,d)}return m}
 /* the mask never changes once settled, so per-frame lookups (grains, veil, animals) read it from a 0.25 m grid; the zone fits inside ±16 m */
 let MG=null;
 function bakeMask(){const N=129,h=.25,x0=DUNE0.x-16,z0=DUNE0.z-16,a=new Float32Array(N*N);
@@ -142,9 +142,12 @@ const BARRELS=[{x:17.1,z:4.9,s:1.12,ry:.4,tilt:.2},{x:18.3,z:5.9,s:.78,ry:2.9,ti
   {x:-11,z:-13.9,s:1,ry:1.7,tilt:.18},{x:-11.95,z:-14.7,s:.68,ry:5.3,tilt:.13},{x:8.3,z:-14.6,s:.9,ry:3.4,tilt:.16},{x:12,z:9.4,s:.72,ry:.9,tilt:.12}];
 const PADS=[{x:TENT.x,z:TENT.z,rx:5.2,rz:4.2,yaw:TENT.yaw},{x:FIRE.x,z:FIRE.z,rx:2.2,rz:2.2,yaw:0},{x:RACK.x,z:RACK.z,rx:2.4,rz:1.6,yaw:RACK.yaw}];
 
+/* the dune's horns and lee foot reach the rim: there it would lift the lip 2.7 m and the falls would hang off that step like a wall
+   or a breaking wave. It dies down over the last few metres instead, so the lip stays level and the dune reads as one on the sand */
+const duneRim=(x,z)=>1-ss(.8,.97,sN(x,z));
 function hRaw(x,z){
   let h=.55*(fbm2(x*.045+3.1,z*.045-1.7)-.5)+.16*(fbm2(x*.17,z*.17)-.5);
-  h+=duneH(x,z);
+  const dh=duneH(x,z);if(dh>.002)h+=dh*duneRim(x,z);
   h+=1.1*G2(x,z,-12,-11.5,6.5,4)+.7*G2(x,z,15,7,5.5,4)+.5*G2(x,z,-19,-8,4,5)+.35*G2(x,z,3,11.5,6.5,3);
   return h}
 PADS.forEach(p=>{p.h=hRaw(p.x,p.z)});

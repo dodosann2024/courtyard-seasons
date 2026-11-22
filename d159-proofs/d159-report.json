@@ -1,0 +1,43 @@
+{
+  "live": {
+    "desert": "assets/desert.452b886a46.js",
+    "os": 2816060,
+    "gb": 2194376,
+    "sc": 1149584,
+    "tt": 816900
+  },
+  "sandNear": {
+    "up": 0.995,
+    "x": -20.16,
+    "z": 11.03,
+    "hw": 4.4,
+    "n": 54,
+    "lip": -0.49,
+    "nearD": 4.73,
+    "farD": 27.52,
+    "samples": 444
+  },
+  "cmp": {
+    "base": "desert.3bd0f9cde2.js (d158 bundle, same script, framings and settings)",
+    "B_sandfall_far": {
+      "before": 3.96,
+      "after": 3.27
+    },
+    "B_day_far_desert": {
+      "before": 3.48,
+      "after": 3.33
+    },
+    "B_dusk_far_desert": {
+      "before": 10.44,
+      "after": 8.48
+    },
+    "B_night_far_desert": {
+      "before": 7.19,
+      "after": 6.41
+    },
+    "near_seam": {
+      "before": 6.8,
+      "after": 2.8
+    }
+  }
+}

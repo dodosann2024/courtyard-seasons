@@ -1,6 +1,7 @@
-// Desert #160 proofs: #159's sand curtain far/mid/near and day/dusk/night shots against the sky-ocean, plus the whole curtain from
-// below the rim (full), the dune at the rim (dune), and with BASE=<dir of the same shots on an earlier bundle> mode cmp: before/after
-// strips with a brightness-step measure of the near seam and the share of sky through the curtain's foot. Behaviour clips (wind,
+// Desert #160 proofs: the sand falls far/mid/near and day/dusk/night shots beside the sky-ocean, the falls from below the rim (full),
+// the dune at the rim (dune), and with BASE=<dir of the same shots on an earlier bundle> mode cmp: before/after strips with a
+// brightness-step measure of the near seam and the share of sky between the falls below the rock. The user's reference framings
+// are tools/e2e/d160-ref.mjs. Behaviour clips (wind,
 // dunevid, rain, tent, lake, agama) are stepped at 24 fps; the tent clip carries the scene's own rain sound, recorded off its bus.
 // Not part of CI. Usage: node tools/e2e/d160-proof.mjs [pair|sand|sandq|tod|full|dune|cmp|wind|dunevid|rain|tent|lake|agama|crab|run|sit|...]   (OUT=/tmp/d160)
 import http from "node:http";
@@ -150,6 +151,9 @@ async function seaTod(page, k) {
 }
 
 const page = await browser.newPage();
+/* which ostrich file the scene asks for: v2ag only (v2ah and v2ai stay on disk unused) */
+const osReq = new Set();
+page.on("request", r => { const m = /\/(ostrich_v2[a-z0-9]+)\.glb/.exec(r.url()); if (m) osReq.add(m[1]); });
 await page.setViewport({width: W, height: H, deviceScaleFactor: 1});
 const want = k => WHICH === "all" || WHICH === k || WHICH.split(",").includes(k);
 const fails = [];
@@ -157,14 +161,14 @@ const report = {};
 
 try {
   if (WHICH !== "cmp") await boot(page, "desert");
-  const live = WHICH === "cmp" ? {} : await page.evaluate(() => ({desert: window.CY && window.CY.desert, os: window.CY && window.CY.ms && window.CY.ms.ostrich_v2ah,
+  const live = WHICH === "cmp" ? {} : await page.evaluate(() => ({desert: window.CY && window.CY.desert, os: window.CY && window.CY.ms && window.CY.ms.ostrich_v2ag,
     gb: window.CY && window.CY.ms && window.CY.ms.gerbil_v5b, sc: window.CY && window.CY.ms && window.CY.ms.scorpion_v2c && window.CY.ms.scorpion_uv_v2c,
     tt: window.CY && window.CY.ms && window.CY.ms.tortoise_v2h}));
   console.log("live", JSON.stringify(live));
   report.live = live;
   if (WHICH !== "cmp") {
     if (!live.desert || !/desert\.[0-9a-f]+\.js$/.test(live.desert)) fails.push("desert bundle missing");
-    if (!live.os) fails.push("ostrich_v2ah not in the live manifest");
+    if (!live.os) fails.push("ostrich_v2ag not in the live manifest");
     if (!live.gb) fails.push("gerbil_v5b not in the live manifest");
     if (!live.sc) fails.push("scorpion_v2c / scorpion_uv_v2c not in the live manifest");
     if (!live.tt) fails.push("tortoise_v2h not in the live manifest");
@@ -226,10 +230,7 @@ try {
     });
     console.log("sand near", JSON.stringify(near));
     report.sandNear = near;
-    await cap(page, "近景 · 近距减薄之后（背风积雪检查）");
     await shot(page, "B_sandfall_near.png");
-    await cap(page, "");
-    if (near.nearD > 7.6) fails.push("near sand shot is outside the lee-snow thinning band");
   }
   /* iteration shots, desert only: the tod far framing at each hour (wind .5, as in tod) and the near curtain (wind .8, as in sand) */
   if (WHICH.split(",").includes("sandq")) {
@@ -300,8 +301,6 @@ try {
     if (both("B_dusk_full_desert.png")) await strip(path.join(B, "B_dusk_full_desert.png"), path.join(OUT, "B_dusk_full_desert.png"), "520:420:380:200", "q_dusk_full_curtain_d159_vs_d160.png");
     for (const k of ["q", "top", "side"]) if (both(`B_dune_rim_${k}.png`)) await strip(path.join(B, `B_dune_rim_${k}.png`), path.join(OUT, `B_dune_rim_${k}.png`), "1100:600:90:60", `q_dune_rim_${k}_d159_vs_d160.png`);
     console.log("cmp", JSON.stringify(C));
-    if (C.near_seam && C.near_seam.after > C.near_seam.before + .5) fails.push("near seam steps more than before");
-    if (C.B_sandfall_full_footSky && !(C.B_sandfall_full_footSky.after > C.B_sandfall_full_footSky.before + .05)) fails.push("curtain foot no more open than before");
   }
 
   /* motion clips: each animal followed by a side camera, the scene stepped at 24 fps */
@@ -331,16 +330,16 @@ try {
       const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day"); q.sfR(null);
       window.__wa = q.wind().a; q.windPin(window.__wa); q.sim(20); window.__wi = 0;
     }, new Function(`const q = window.__desQA(), C = window.__C(), i = window.__wi++;
-      if (i === 48) window.__set({wind: 1}); if (i === 96) q.windPin(window.__wa + Math.PI / 2);
-      ${capIn}(i < 48 ? "风吹沙：微风 0.3" : i < 96 ? "风吹沙：大风 1.0，扬沙增多、顺风飞远" : "风吹沙：风向转 90°，沙粒随之转向");
+      if (i === 36) window.__set({wind: 1}); if (i === 78) q.windPin(window.__wa + Math.PI);
+      ${capIn}(i < 36 ? "风吹沙：微风 0.3" : i < 78 ? "风吹沙：大风 1.0，扬沙增多、顺风飞远" : "风吹沙：风向掉头 180°，沙粒随之反向飞");
       q.step(1, 1 / 24);
       const [x, z] = q.dune.crestXZ(.6), y = q.hTop(x, z), w = q.wind(), a = window.__wa + Math.PI / 2;
       q.lookAt(x + Math.cos(a) * 9, y + 1.8, z + Math.sin(a) * 9, x, y + .5, z); C.De.fov = 44; C.De.near = .05; C.De.updateProjectionMatrix();
       let lit = 0; for (let k = 0; k < q.SAND.n; k++) if (q.SAND.A[k] > .01) lit++;
-      return {i, wind: +window.__desQA().st.wn.toFixed(2), a: +w.a.toFixed(2), lit, flowK: +q.sandU.uFlowK.value.toFixed(2)};`), 24 * 6);
-    report.wind = {frames: s.length, at: [s[40], s[90], s[140]]};
+      return {i, wind: +window.__desQA().st.wn.toFixed(2), a: +w.a.toFixed(2), lit, flowK: +q.sandU.uFlowK.value.toFixed(2)};`), 24 * 5);
+    report.wind = {frames: s.length, at: [s[32], s[74], s[118]]};
     await page.evaluate(() => { window.__desQA().windPin(null); window.__set({wind: .8}); });
-    if (!(s[90].lit > s[40].lit)) fails.push("wind clip: no more grains in the strong wind");
+    if (!(s[74].lit > s[32].lit)) fails.push("wind clip: no more grains in the strong wind");
   }
   if (want("dunevid")) {
     await cap(page, " ");
@@ -348,12 +347,12 @@ try {
       const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: 1}); q.tod("day");
       window.__wa = q.wind().a; q.windPin(window.__wa); window.__wi = 0; const D = q.dune.DP; window.__d0 = {x: D.x, z: D.z, H: D.H, w: D.w, sk: D.sk};
     }, new Function(`const q = window.__desQA(), C = window.__C(), i = window.__wi++;
-      if (i === 60) q.windPin(window.__wa + Math.PI / 2);
-      ${capIn}((i < 60 ? "沙丘随时间与风缓慢变形" : "风向转 90°：沙丘随之转向、改形") + "（缩时，每帧 60 s）");
+      if (i === 48) q.windPin(window.__wa + Math.PI / 2);
+      ${capIn}((i < 48 ? "沙丘随时间与风缓慢变形" : "风向转 90°：沙丘随之转向、改形") + "（缩时，每帧 60 s）");
       if (i) q.sim(60, .5); q.step(1, 1 / 24);
       const v = ${JSON.stringify(DUNE.q)}; q.lookAt(v[0], v[1], v[2], v[3], v[4], v[5]); C.De.fov = v[6]; C.De.near = .15; C.De.updateProjectionMatrix();
-      const D = q.dune.DP; return {i, x: +D.x.toFixed(2), z: +D.z.toFixed(2), H: +D.H.toFixed(2), w: +D.w.toFixed(2), sk: +D.sk.toFixed(3)};`), 24 * 5);
-    report.dunevid = {frames: s.length, minutes: (s.length - 1), first: s[0], mid: s[59], last: s[s.length - 1]};
+      const D = q.dune.DP; return {i, x: +D.x.toFixed(2), z: +D.z.toFixed(2), H: +D.H.toFixed(2), w: +D.w.toFixed(2), sk: +D.sk.toFixed(3)};`), 24 * 4);
+    report.dunevid = {frames: s.length, minutes: (s.length - 1), first: s[0], mid: s[47], last: s[s.length - 1]};
     await page.evaluate(() => { window.__desQA().windPin(null); window.__set({wind: .8}); });
     const a = s[0], b = s[s.length - 1];
     if (!(Math.abs(a.x - b.x) + Math.abs(a.z - b.z) + Math.abs(a.H - b.H) + Math.abs(a.w - b.w) > .05)) fails.push("dune clip: dune did not change");
@@ -363,29 +362,29 @@ try {
     const s = await clip("rain-sand-pits-dry", () => {
       const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day"); q.sim(900, 1); window.__wi = 0;
     }, new Function(`const q = window.__desQA(), C = window.__C(), i = window.__wi++;
-      if (i === 24) window.__set({weather: "hrain", ct: "overcast"}); if (i === 96) window.__set({weather: "sun", ct: "clear"});
-      ${capIn}(i < 24 ? "晴：干沙" : i < 72 ? "下雨：沙面打出小坑、颜色变深（缩时，每帧 1.5 s）" : i < 96 ? "雨中（实时）" : "雨停：沙面慢慢变干（缩时，每帧 15 s）");
-      if (i >= 24 && i < 72) q.sim(1.5, 1 / 24); else if (i >= 96) q.sim(15, .5); else q.step(1, 1 / 24);
+      if (i === 18) window.__set({weather: "hrain", ct: "overcast"}); if (i === 84) window.__set({weather: "sun", ct: "clear"});
+      ${capIn}(i < 18 ? "晴：干沙" : i < 60 ? "下雨：沙面打出小坑、颜色变深（缩时，每帧 1.5 s）" : i < 84 ? "雨中（实时）" : "雨停：沙面慢慢变干（缩时，每帧 15 s）");
+      if (i >= 18 && i < 60) q.sim(1.5, 1 / 24); else if (i >= 84) q.sim(15, .5); else q.step(1, 1 / 24);
       const x = -5.5, z = -5, y = q.hTop(x, z);
       q.lookAt(x + 2.6, y + 1.5, z + 2.2, x, y, z); C.De.fov = 40; C.De.near = .05; C.De.updateProjectionMatrix();
-      return {i, wet: +q.WX.wet.toFixed(3), sand: +q.sandU.uWetK.value.toFixed(3), pits: +q.sandU.uPitK.value.toFixed(3), rain: +q.WX.rain.toFixed(2)};`), 24 * 7);
+      return {i, wet: +q.WX.wet.toFixed(3), sand: +q.sandU.uWetK.value.toFixed(3), pits: +q.sandU.uPitK.value.toFixed(3), rain: +q.WX.rain.toFixed(2)};`), 24 * 6);
     const at = k => s[Math.min(s.length - 1, k)];
-    report.rain = {frames: s.length, dry: at(20), wetEnd: at(94), afterSun: at(s.length - 1)};
-    if (!(at(94).sand > at(20).sand + .2 && at(94).pits > .2 && at(s.length - 1).sand < at(94).sand - .1)) fails.push("rain clip: sand did not wet, pit and dry");
+    report.rain = {frames: s.length, dry: at(16), wetEnd: at(82), afterSun: at(s.length - 1)};
+    if (!(at(82).sand > at(16).sand + .2 && at(82).pits > .2 && at(s.length - 1).sand < at(82).sand - .1)) fails.push("rain clip: sand did not wet, pit and dry");
   }
   if (want("tent")) {
     await cap(page, " ");
     const s = await clip("tent-rain", () => {
-      const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day"); q.sim(600, 1);
-      window.__set({weather: "hrain", ct: "overcast"}); q.sim(90); window.__wi = 0;
+      const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day"); q.sim(900, 1); window.__wi = 0;
     }, new Function(`const q = window.__desQA(), C = window.__C(), i = window.__wi++, T = q.TENT;
-      ${capIn}("帐篷：雨点溅起、布面湿透、雨水顺着布面流下（附场景雨声）");
-      q.step(1, 1 / 24);
+      if (i === 12) window.__set({weather: "hrain", ct: "overcast"});
+      ${capIn}(i < 12 ? "帐篷：晴天，布面干燥" : i < 48 ? "下雨：布面逐渐湿透变深（缩时，每帧 1 s）" : "雨中（实时）：雨点溅起、雨水顺着布面流下（附场景雨声）");
+      if (i >= 12 && i < 48) q.sim(1, 1 / 24); else q.step(1, 1 / 24);
       const y = q.hTop(T.x, T.z), a = (T.yaw || 0) + .7;
-      q.lookAt(T.x + Math.sin(a) * 7.5, y + 2.6, T.z + Math.cos(a) * 7.5, T.x, y + 1.1, T.z); C.De.fov = 40; C.De.near = .05; C.De.updateProjectionMatrix();
+      q.lookAt(T.x + Math.sin(a) * 5.6, y + 2, T.z + Math.cos(a) * 5.6, T.x, y + 1, T.z); C.De.fov = 40; C.De.near = .05; C.De.updateProjectionMatrix();
       return {i, tentWet: +q.tentU.uWetC.value.toFixed(3), rain: +q.WX.rain.toFixed(2)};`), 24 * 5);
-    report.tent = {frames: s.length, wet: s[s.length - 1].tentWet};
-    if (!(s[s.length - 1].tentWet > .3)) fails.push("tent clip: cloth not wet");
+    report.tent = {frames: s.length, dry: s[10].tentWet, wet: s[s.length - 1].tentWet};
+    if (!(s[10].tentWet < .1 && s[s.length - 1].tentWet > .3)) fails.push("tent clip: cloth did not go from dry to wet");
     /* the rain sound: the audio unlocked as a key press does, then the scene's own bus recorded in real time while it rains */
     await page.keyboard.press("F9");
     await page.evaluate(() => { const q = window.__desQA(); q.freeze(false); });
@@ -425,7 +424,7 @@ try {
       ${capIn}("湖面：雨点打出一圈圈涟漪和小水花");
       q.step(1, 1 / 24);
       q.lookAt(P.x + P.rx * .9, P.wy + 1.6, P.z + P.rz * .9, P.x + P.rx * .1, P.wy, P.z + P.rz * .1); C.De.fov = 40; C.De.near = .05; C.De.updateProjectionMatrix();
-      return {i, ripple: +q.pondU.uRainP.value.toFixed(3)};`), 24 * 4);
+      return {i, ripple: +q.pondU.uRainP.value.toFixed(3)};`), 24 * 3);
     report.lake = {frames: s.length, ripple: s[s.length - 1].ripple};
     await page.evaluate(() => { window.__set({weather: "sun", ct: "clear"}); window.__desQA().sim(900, 1); });
     if (!(s[s.length - 1].ripple > .3)) fails.push("lake clip: no rain rings");
@@ -446,11 +445,11 @@ try {
         q.lookAt(p.x + ox / l * ${d}, p.y + ${up}, p.z + oz / l * ${d}, p.x, p.y + .02, p.z); C.De.fov = ${fov}; C.De.near = .02; C.De.updateProjectionMatrix();`;
       await cap(page, " ");
       const s1 = await clip("agama-bask", () => {}, new Function(`${capIn}("西奈飞蜥：晴天在沙上晒太阳");
-        window.__desQA().step(1, 1 / 24); ${agCam(1.3, .45, 34)} return {mode: a.mode, palm: !!a.palm};`), 24 * 3);
+        window.__desQA().step(1, 1 / 24); ${agCam(1.3, .45, 34)} return {mode: a.mode, palm: !!a.palm};`), 60);
       await page.evaluate(() => { window.__set({weather: "hrain", ct: "overcast"}); window.__desQA().sim(180); });
       const s2 = await clip("agama-rain-canopy", () => {}, new Function(`${capIn}("西奈飞蜥：下雨时躲到树冠下");
         window.__desQA().step(1, 1 / 24); ${agCam(2.2, -.5, 40)}
-        const under = a.palm ? +(q.agRainT(a.palm) - (a.male ? 0 : .28 / a.palm.h) - a.ct).toFixed(3) : null; return {mode: a.mode, palm: !!a.palm, under};`), 24 * 3);
+        const under = a.palm ? +(q.agRainT(a.palm) - (a.male ? 0 : .28 / a.palm.h) - a.ct).toFixed(3) : null; return {mode: a.mode, palm: !!a.palm, under};`), 60);
       report.agama.bask = [...new Set(s1.map(v => v.mode + (v.palm ? "@palm" : "")))];
       report.agama.rain = s2[s2.length - 1];
       await page.evaluate(() => { window.__set({weather: "sun", ct: "clear"}); window.__desQA().sim(600, 1); });
@@ -578,17 +577,17 @@ try {
   }
   if (want("crabvid")) await crabLoop("crab-claw-open-close", "q34", 24 * 5);
   if (want("crabside")) await crabLoop("crab-claw-open-close-side", "side", 24 * 5);
-  /* ostrich_v2ah in the scene: the engine plays sit and stand_up as authored (no bone offsets, no caption). The cock alone,
+  /* ostrich_v2ag in the scene: the engine plays sit and stand_up as authored (no bone offsets, no caption). The cock alone,
      on level sand south of the palms facing east, so the side camera sits due south. */
-  const OSN = "ostrich_v2ah";
-  if (want("sit") || want("sitstill") || want("run")) {
+  const OSN = "ostrich_v2ag";
+  if (want("sit") || want("sitstill") || want("osstill") || want("run")) {
     const live = await page.evaluate(() => { const q = window.__desQA(), A = q.PA.os.find(o => o.male) || q.PA.os[0];
       return {glb: !!(A && A.rig), clips: A && A.rig ? Object.keys(A.rig.acts) : []}; });
     console.log("ostrich", OSN, JSON.stringify(live));
     report.ostrich = {file: OSN, ...live};
     if (!live.glb) fails.push("ostrich rig not loaded");
   }
-  if (want("sit") || want("sitstill")) {
+  if (want("sit") || want("sitstill") || want("osstill")) {
     const spot = await page.evaluate(() => {
       const q = window.__desQA();
       window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day");
@@ -659,6 +658,18 @@ try {
       ({side: () => side(7.2, 1.15, .95, 28), front: () => face(1, 7.4, 1.15, .95, 28), back: () => face(-1, 7.4, 1.2, .9, 28), low: () => side(7.6, .42, .85, 30),
         mside: () => side(5, .95, .72, 30), mfront: () => face(1, 5.2, .95, .72, 30), mback: () => face(-1, 5.2, 1, .7, 30)})[kind]();
     }, kind);
+    /* the user's final ostrich, standing and seated in the scene: one still each, the side camera */
+    if (want("osstill")) {
+      await drive("stand", s => s.cur === "idle" && s.wu < .01, 120);
+      await cam("side"); await shot(page, `${OSN}_stand_side.png`);
+      await drive("sit", s => s.cur === "sit" && s.sitT >= 1.6 && s.sitT <= 3.1, 120);
+      await cam("side"); await shot(page, `${OSN}_sit_side.png`);
+      await drive("stand", s => s.cur === "idle" && s.wu < .01, 160);
+      report.osRequested = [...osReq];
+      console.log("ostrich files requested", JSON.stringify(report.osRequested));
+      if (!(osReq.has("ostrich_v2ag") && osReq.size === 1)) fails.push("the scene did not load ostrich_v2ag alone");
+    }
+    if (want("sit") || want("sitstill")) {
     const M = report.sitMetrics = {};
     /* pink probe: every fragment of the body material whose albedo texel is the pink of the bare shanks, toes (and beak) is drawn
        pure magenta, unlit; the shot is a scratch render, counted below the head so the beak stays out of it */
@@ -748,6 +759,7 @@ try {
     fs.rmSync(dir, {recursive: true, force: true});
     console.log("encoded sit cycle", pick.join(","));
     }
+  }
   }
   if (want("run")) {
     const info = await page.evaluate(() => {

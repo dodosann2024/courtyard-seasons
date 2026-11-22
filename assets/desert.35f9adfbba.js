@@ -4349,6 +4349,8 @@ function crLoad(){return glb(CR_FILE).then(src=>{const C=VT.THREE.AnimationClip,
     if(a.name==="idle"||a.name==="claw_pinch")fing.push(new C(a.name,a.duration,a.tracks.filter(isF)))}
   for(const c of CR.list){const s=VT.cloneSkinned(src.scene),g=new T.Group();g.rotation.order="YXZ";g.add(s);W.add(g);onDes(g);crMats(s);
     const b=rigUp(s,body),k={mx:b.mx,acts:{},cur:null},f={mx:b.mx,acts:{},cur:null};for(const a of claw)k.acts[a.name]=b.mx.clipAction(a);for(const a of fing)f.acts[a.name]=b.mx.clipAction(a);
+    /* a crab down its burrow keeps its 36 bones out of the per-frame matrix walk; shown again, its own matrix update forces the subtree */
+    const umw=g.updateMatrixWorld;g.updateMatrixWorld=function(f){if(this.visible)umw.call(this,f)};
     play(b,"idle",.01,1);play(k,"idle",.01,1);play(f,"idle",.01,1);b.acts.idle.time=k.acts.idle.time=f.acts.idle.time=rr(0,3.6);c.g=g;c.rb=b;c.rc=k;c.rf=f;g.visible=false}
   CR.glb=1;CR.im.visible=false})}
 /* the lake animals are hidden once they are under a couple of pixels */

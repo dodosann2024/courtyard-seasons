@@ -4137,12 +4137,12 @@ function trLoad(){return glb(TR_FILE).then(src=>{const up=new V3(),q=new T.Quat(
       g.getWorldQuaternion(_tq2);f.sp.push({b,ax:up.set(0,1,0).applyQuaternion(_tq2).applyQuaternion(q).normalize().clone()})}});g.visible=false}
   TT.glb=1})}
 
-/* ---------------- freshwater crabs (Potamon potamios), big old males: a carapace 7–9 cm across, legs spanning about 18 cm,
-   a rusty brown shell over orange-red claws, so they read against the sand from a few metres off.
+/* ---------------- freshwater crabs (Potamon potamios): a carapace about 5 cm across, legs spanning about 12 cm, mud olive-brown.
    Each has a burrow in the damp bank just above the waterline. They pick over the wet margin and the shallows round it,
    walking sideways in short runs and feeding claw to mouth in the pauses. A camel coming to the water, the rattlesnake on the
    bank or the eagle low over it sends them scuttling, claws up, down the nearest burrow or into deeper water; rain, hail and
-   snow send them home. Procedural, one instanced draw; the legs and claws move in the vertex shader. ---------------- */
+   snow send them home. Drawn with Godot's rigged crab_v6 (crLoad below, life size); this procedural instanced crab, one draw with
+   the legs and claws moved in the vertex shader, is the fallback. The burrows are the same for both. ---------------- */
 const CR_N=MOB?5:8,CR_K=1.6,CR={list:[],im:null,A:null,bm:null,vis:0,U:{uVis:{value:0}}};
 function crGeo(){const P=[],N=[],C=[],K=[],H=[],I=[];let n=0;
   /* gapK 12/13 marks the movable finger. It hinges at gapJ on top of the same claw swing as the palm. */
@@ -4306,18 +4306,49 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
     c.gapT+=dt;const gWant=CR.gapePin!=null?CR.gapePin:c.mode==="run"||c.mode==="face"?.92:.5+.5*Math.sin(c.gapT*1.6);
     c.gape+=(gWant-c.gape)*ease(4.5,dt);
     c.y=lkY(c.x,c.z)}
-  if(CR.vis>0){const A=CR.A.array;CR.list.forEach((c,i)=>{const fw=Math.sin(c.yaw),fz=Math.cos(c.yaw),e=.03,
+  if(CR.glb){for(const c of CR.list){const on=CR.vis>0&&c.mode!=="in";c.g.visible=on;if(!on)continue;
+      const fw=Math.sin(c.yaw),fz=Math.cos(c.yaw),e=.03,k=c.s*CR_G,
+        gp=(lkY(c.x+fw*e,c.z+fz*e)-lkY(c.x-fw*e,c.z-fz*e))/(2*e),gr=(lkY(c.x+fz*e,c.z-fw*e)-lkY(c.x-fz*e,c.z+fw*e))/(2*e);
+      qYXZ(c.g.quaternion,-Math.atan(gp),c.yaw,Math.atan(gr));c.g.position.set(c.x,c.y-c.sk*.09*k+.006*c.up*k,c.z);c.g.scale.setScalar(k);
+      if(c.sk<.6)blobAdd(c.x,c.y,c.z,c.yaw,.07*k,.06*k,.42*(1-.6*st.night)*CR.vis*(1-c.sk),.75,0);
+      /* the gait clip runs at the ground speed along the crab's own x (walk_sideways goes -x; played backwards it goes +x) */
+      const mx=c.tx-c.x,mz=c.tz-c.z,ml=Math.hypot(mx,mz)||1,vl=c.v*(mx*fz-mz*fw)/ml,gait=(c.mode==="walk"||c.mode==="run")&&c.walk>.5,fast=Math.abs(vl)>.24*k;
+      const bn=c.mode==="dig"?"dig":gait?fast?"scuttle_sideways":"walk_sideways":"idle",bt=gait?cl(-vl/((fast?CR_SCUT:CR_WALK)*k),-3,3):1;
+      play(c.rb,bn,gait?.15:.3,bt);
+      /* the claws: claw_pinch opens and closes them in the pauses and holds them open (its middle frame) in a threat or a run;
+         digging and walking keep the claws of their own clip. CR.gapePin (0 shut .. 1 open) holds the pinch for a proof. */
+      const hold=CR.gapePin!=null?CR.gapePin*CR_OPEN:c.mode==="run"||c.mode==="face"?CR_OPEN:null,pinch=hold!=null||c.mode==="out"||c.mode==="sub";
+      play(c.rc,pinch?"claw_pinch":bn,.25,pinch?hold!=null?0:1:bt);
+      if(hold!=null){const a=c.rc.acts.claw_pinch;a.time+=(hold-a.time)*(CR.gapePin!=null?1:ease(6,dt))}
+      if(c.rc.fd){c.rc.fd.u+=dt/c.rc.fd.T;rigW(c.rc)}rigTick(c.rb,dt)}}
+  else if(CR.vis>0){const A=CR.A.array;CR.list.forEach((c,i)=>{const fw=Math.sin(c.yaw),fz=Math.cos(c.yaw),e=.03,
       gp=(lkY(c.x+fw*e,c.z+fz*e)-lkY(c.x-fw*e,c.z-fz*e))/(2*e),gr=(lkY(c.x+fz*e,c.z-fw*e)-lkY(c.x-fz*e,c.z+fw*e))/(2*e);
       qYXZ(_tq,-Math.atan(gp),c.yaw,Math.atan(gr));const k=c.s*CR_K,sc=c.mode==="in"?0:k;
       _tm.compose(_ts.set(c.x,c.y-c.sk*.05*k+.0025*CR_K*c.walk*Math.abs(Math.sin(c.ph))+.008*c.up*k,c.z),_tq,_v.set(sc,sc,sc));CR.im.setMatrixAt(i,_tm);
       if(sc>0&&c.sk<.6)blobAdd(c.x,c.y,c.z,c.yaw,.085*k,.07*k,.42*(1-.6*st.night)*CR.vis*(1-c.sk),.75,0);
       A[i*4]=c.ph;A[i*4+1]=c.walk;A[i*4+2]=Math.sin(c.fph)*c.feed*(1-c.up);A[i*4+3]=c.up;CR.OA.array[i]=Math.max(c.gape,1e-4)});
     CR.im.instanceMatrix.needsUpdate=true;CR.A.needsUpdate=true;CR.OA.needsUpdate=true}}
+/* Godot's crab_v6 (the Tripo shell with rebuilt legs and chelae, 36 bones, mud olive-brown): idle 3.6 s, walk_sideways .4 s
+   (.101 m/s), scuttle_sideways .18 s (.364 m/s), dig 1.2 s, claw_pinch 1.2 s; in place, facing +z, walking along local -x, a 5 cm
+   carapace and 12 cm leg span at scale 1. Once it has loaded each crab is a skinned clone of it under the underwater shading and the
+   instanced crab above is not drawn. One mixer, two layers: the body and legs from the gait clip, the claw_* bones either from that
+   clip or from claw_pinch. */
+const CR_FILE="crab_v6",CR_G=1,CR_WALK=.101,CR_SCUT=.364,CR_OPEN=.6,CRM=new Map();
+function crMats(s){matsOf(s,(m,c)=>{c.castShadow=false;c.receiveShadow=true;c.renderOrder=3;c.frustumCulled=false;let n=CRM.get(m.uuid);
+  if(!n){n=m.clone();CRM.set(m.uuid,n);if(n.map)n.map.anisotropy=MOB?2:4;if(n.emissive)n.emissive.setRGB(0,0,0);
+    n.metalness=0;n.metalnessMap=null;n.aoMapIntensity=.6;n.userData.U=CR.U;uwMat(n,"crg",".9",{head:"",nrm:"",pos:""})}
+  c.material=n})}
+function crLoad(){return glb(CR_FILE).then(src=>{const C=VT.THREE.AnimationClip,isC=t=>/^claw_/.test(t.name),body=[],claw=[];
+  for(const a of src.animations){body.push(new C(a.name,a.duration,a.tracks.filter(t=>!isC(t))));claw.push(new C(a.name,a.duration,a.tracks.filter(isC)))}
+  for(const c of CR.list){const s=VT.cloneSkinned(src.scene),g=new T.Group();g.rotation.order="YXZ";g.add(s);W.add(g);onDes(g);crMats(s);
+    const b=rigUp(s,body),k={mx:b.mx,acts:{},cur:null};for(const a of claw)k.acts[a.name]=b.mx.clipAction(a);
+    play(b,"idle",.01,1);play(k,"idle",.01,1);b.acts.idle.time=k.acts.idle.time=rr(0,3.6);c.g=g;c.rb=b;c.rc=k;g.visible=false}
+  CR.glb=1;CR.im.visible=false})}
 /* the lake animals are hidden once they are under a couple of pixels */
 function lakeVis(){const c=_pfc.copy(De.position);W.worldToLocal(c);
   const D=Math.max(.5,Math.hypot((c.x-POND.x),(c.z-POND.z),c.y-POND.wy)-Math.max(POND.rx,POND.rz)*.6),ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
-  TT.vis=1-ss(.32*ppm/3*.6,.32*ppm/3,D);const px=.32*ppm/D;TT.hi=!!TT.glb&&px>(TT.hi?15:20);CR.vis=1-ss(.1*CR_K*ppm/2.5*.6,.1*CR_K*ppm/2.5,D);
-  TT.U.uVis.value=TT.vis;CR.U.uVis.value=CR.vis;TT.im.visible=TT.vis>0&&!TT.hi;CR.im.visible=CR.vis>0;CR.bm.visible=CR.vis>0;
+  TT.vis=1-ss(.32*ppm/3*.6,.32*ppm/3,D);const px=.32*ppm/D;TT.hi=!!TT.glb&&px>(TT.hi?15:20);const crL=CR.glb?.12*CR_G:.1*CR_K;CR.vis=1-ss(crL*ppm/2.5*.6,crL*ppm/2.5,D);
+  TT.U.uVis.value=TT.vis;CR.U.uVis.value=CR.vis;TT.im.visible=TT.vis>0&&!TT.hi;CR.im.visible=CR.vis>0&&!CR.glb;CR.bm.visible=CR.vis>0;
   UW.uWy.value=W.position.y+POND.wy*W.scale.y;UW.uWob.value=.012+.03*st.wn+.05*WX.rain}
 
 /* ---------------- Sinai agama (Pseudotrapelus sinaitus), real size (25 cm, 62 % of it tail) ----------------
@@ -5248,7 +5279,7 @@ const animalsReady=propsReady.then(()=>{const big=[
   ];
   /* the snake's file is the largest and the snake starts hidden in shade: on a slow link it must not hold up the rest */
   const after=Promise.all(big).then(()=>{AU.big=1});
-  return Promise.all(big.concat(after.then(pfLoad).catch(()=>{}),after.then(trLoad).catch(()=>{}),after.then(agLoad).catch(()=>{}),after.then(osLoad).catch(()=>{}),after.then(torLoad).catch(()=>{}),after.then(gbLoad).catch(()=>{}),after.then(scLoad).catch(()=>{}),after.then(()=>glb(RS_FILE)).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
+  return Promise.all(big.concat(after.then(pfLoad).catch(()=>{}),after.then(trLoad).catch(()=>{}),after.then(crLoad).catch(()=>{}),after.then(agLoad).catch(()=>{}),after.then(osLoad).catch(()=>{}),after.then(torLoad).catch(()=>{}),after.then(gbLoad).catch(()=>{}),after.then(scLoad).catch(()=>{}),after.then(()=>glb(RS_FILE)).then(({scene,animations})=>{const s=rsSpawn(scene,animations);ANIM.rs=s;
     const day=st.phase==="day",sp=day?snakeShadeSpot():randFree(navGrid("snake",.32,1.3,.82),SNK_HOME.x,SNK_HOME.z,3)||SNK_HOME;
     Object.assign(s,{x:sp.x,z:sp.z,yaw:sp.yaw!=null?sp.yaw:-.8,inShade:day?1:0});s.gy=hTop(s.x,s.z);s.g.position.set(s.x,s.gy,s.z);s.g.rotation.set(0,s.yaw,0);
     play(s.r,"relaxed_coil",.01,1)}).catch(()=>{})))});
@@ -5309,7 +5340,7 @@ const QA={rq:()=>0,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,T
   pf:()=>PF.list.map(f=>({x:f.x,y:f.y,z:f.z,yaw:f.yaw,v:f.v,mode:f.mode,male:f.male,ter:f.ter,clip:f.r.cur})),PF,pfDep,
   /* lake life: trout() and crabs() states; lakeScare(x,z,r,sec) puts a threat by the water */
   trout:()=>TT.list.map(f=>({x:f.x,y:f.y,z:f.z,L:f.L,mode:f.mode,dep:pfDep(f.x,f.z),below:POND.wy-f.y})),TT,
-  crK:CR_K,crLane:()=>{const M=new T.M4(),e=M.elements;let n=0;for(const im of VEG)for(let i=0;i<im.count;i++){im.getMatrixAt(i,M);if(e[0]*e[0]+e[1]*e[1]+e[2]*e[2]>1e-8&&CR.list.some(c=>Math.hypot(e[12]-c.bx,e[14]-c.bz)<.55))n++}return n},
+  crK:CR_K,crG:CR_G,crGlb:()=>!!CR.glb,crLane:()=>{const M=new T.M4(),e=M.elements;let n=0;for(const im of VEG)for(let i=0;i<im.count;i++){im.getMatrixAt(i,M);if(e[0]*e[0]+e[1]*e[1]+e[2]*e[2]>1e-8&&CR.list.some(c=>Math.hypot(e[12]-c.bx,e[14]-c.bz)<.55))n++}return n},
   crabs:()=>CR.list.map(c=>({x:c.x,z:c.z,y:c.y,mode:c.mode,dep:pfDep(c.x,c.z),bx:c.bx,bz:c.bz,s:c.s,shown:c.mode!=="in"})),CR,
   /* procedural animals: PA registry; os() ostrich states (head height in island metres); paThreat(x,z,sec) puts a threat down */
   PA,paU,osPlace,osGo,osSpot,osOpen:(x,z)=>navOpen(navGrid("ostrich",.9,1.25,.8),x,z,40),torPlace,torGo,torShade,
@@ -5360,7 +5391,7 @@ paThreat:(x,z,sec,r)=>{PA.dbg={x,z,r:r||.4,k:"dbg",o:null,until:st.t+(sec||4)}},
   synth:(k,R)=>Array.from(SYN[k](R||48000)),tentU,propU,flakes:()=>SNF,
   Cn,pi,dc,ready:false,OBST,PROPS,glb,ANIM,DV,REST,DRINK,navGrid,navPath,NAV,fn:{camelGo,camelPlan,grazeSpot,eagleTakeoff,eagleLand,eagleSpots,eaglePerchAt,play,rsBout}};
 animalsReady.then(()=>{QA.ready=true});
-window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1",...PF_FILES,TR_FILE,...AG_FILES,...Object.values(PG),RS_FILE])];
+window.__desProg=()=>{const ks=[...new Set(["saguaro_v3","cholla_v2","barrel_cactus_v3","tent",...CAMEL_SLOTS.map((_,i)=>camelKind(i).file),"bald_eagle_v1",...PF_FILES,TR_FILE,CR_FILE,...AG_FILES,...Object.values(PG),RS_FILE])];
   let l=0,t=0,d=0;for(const k of ks){const P=GLP[k],E=desPre()[k],sz=P?P.t:((window.CY||{}).ms||{})[k]||3e6;t+=sz;
     l+=.88*Math.min(sz,Math.max(P?P.l:0,E?E.l:0))+(P&&P.d?.12*sz:0);if(P)d+=P.d}
   /* parsed: every file is in; done: and every model has been placed and drawn once (or half a minute has passed since) */

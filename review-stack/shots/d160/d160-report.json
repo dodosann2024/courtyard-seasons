@@ -2148,5 +2148,105 @@
    "prMs": 11.6,
    "mainMs": 13.5
   }
+ },
+ "wind": {
+  "frames": 120,
+  "at": [
+   {
+    "i": 32,
+    "wind": 0.3,
+    "a": 0.5,
+    "lit": 0,
+    "flowK": 0
+   },
+   {
+    "i": 74,
+    "wind": 0.88,
+    "a": 0.5,
+    "lit": 181,
+    "flowK": 0.62
+   },
+   {
+    "i": 118,
+    "wind": 0.98,
+    "a": 3.65,
+    "lit": 462,
+    "flowK": 1.77
+   }
+  ]
+ },
+ "dunevid": {
+  "frames": 96,
+  "minutes": 95,
+  "first": {
+   "i": 0,
+   "x": 16.16,
+   "z": -9.43,
+   "H": 4.95,
+   "w": 6.31,
+   "sk": 0.304
+  },
+  "mid": {
+   "i": 47,
+   "x": 14.97,
+   "z": -9.1,
+   "H": 4.71,
+   "w": 6.45,
+   "sk": -0.383
+  },
+  "last": {
+   "i": 95,
+   "x": 14.87,
+   "z": -9.59,
+   "H": 4.65,
+   "w": 5.98,
+   "sk": -0.155
+  }
+ },
+ "rain": {
+  "frames": 144,
+  "dry": {
+   "i": 16,
+   "wet": 0,
+   "sand": 0,
+   "pits": 0,
+   "rain": 0
+  },
+  "wetEnd": {
+   "i": 82,
+   "wet": 1,
+   "sand": 1,
+   "pits": 1,
+   "rain": 1
+  },
+  "afterSun": {
+   "i": 143,
+   "wet": 0,
+   "sand": 0,
+   "pits": 0,
+   "rain": 0
+  }
+ },
+ "agama": {
+  "pick": {
+   "i": 0,
+   "mode": "bask",
+   "palm": false
+  },
+  "bask": [
+   "bask"
+  ],
+  "rain": {
+   "mode": "perch",
+   "palm": true,
+   "under": 0
+  }
+ },
+ "tent": {
+  "note": "tent clip rendered and passed in this run; the worker was stopped after the lake clip, so its numbers come from the log",
+  "sound": {
+   "mime": "audio/webm;codecs=opus",
+   "bytes": 96896
+  }
  }
 }

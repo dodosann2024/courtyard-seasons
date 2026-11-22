@@ -4329,11 +4329,11 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
       A[i*4]=c.ph;A[i*4+1]=c.walk;A[i*4+2]=Math.sin(c.fph)*c.feed*(1-c.up);A[i*4+3]=c.up;CR.OA.array[i]=Math.max(c.gape,1e-4)});
     CR.im.instanceMatrix.needsUpdate=true;CR.A.needsUpdate=true;CR.OA.needsUpdate=true}}
 /* Godot's crab_v6 (the Tripo shell with rebuilt legs and chelae, 36 bones, mud olive-brown): idle 3.6 s, walk_sideways .4 s
-   (.101 m/s), scuttle_sideways .18 s (.364 m/s), dig 1.2 s, claw_pinch 1.2 s; in place, facing +z, walking along local -x, a 5 cm
+   (.14 m/s under the planted tips), scuttle_sideways .18 s (.464 m/s), dig 1.2 s, claw_pinch 1.2 s; in place, facing +z, walking along local -x, a 5 cm
    carapace and 12 cm leg span at scale 1. Once it has loaded each crab is a skinned clone of it under the underwater shading and the
    instanced crab above is not drawn. One mixer, two layers: the body and legs from the gait clip, the claw_* bones either from that
    clip or from claw_pinch. */
-const CR_FILE="crab_v6",CR_G=1,CR_WALK=.101,CR_SCUT=.364,CR_OPEN=.6,CRM=new Map();
+const CR_FILE="crab_v6",CR_G=1,CR_WALK=.14,CR_SCUT=.464,CR_OPEN=.6,CRM=new Map();
 function crMats(s){matsOf(s,(m,c)=>{c.castShadow=false;c.receiveShadow=true;c.renderOrder=3;c.frustumCulled=false;let n=CRM.get(m.uuid);
   if(!n){n=m.clone();CRM.set(m.uuid,n);if(n.map)n.map.anisotropy=MOB?2:4;if(n.emissive)n.emissive.setRGB(0,0,0);
     n.metalness=0;n.metalnessMap=null;n.aoMapIntensity=.6;n.userData.U=CR.U;uwMat(n,"crg",".9",{head:"",nrm:"",pos:""})}

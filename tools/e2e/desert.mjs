@@ -109,7 +109,7 @@ try {
     return [active && out.moved > .3 && perched && hidden, out];
   }));
 
-  /* 4b. lake life: freshwater crabs (Godot's crab_v6 at life size, about 5 cm across) on the damp bank, the grass cleared round their doors and in the shallows round their burrows, walking sideways,
+  /* 4b. lake life: freshwater crabs (Godot's crab_v6b at life size, about 5 cm across) on the damp bank, the grass cleared round their doors and in the shallows round their burrows, walking sideways,
      bolting into a burrow or the water when something big comes close and going home in rain and hail; rainbow trout (26–38 cm)
      schooling under the surface over the deep cold middle, rising at dawn and going down to the bed in hail */
   check("lake: crabs on the bank, trout in the deep, both take cover", ...await page.evaluate(() => {

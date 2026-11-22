@@ -1,0 +1,655 @@
+{
+  "live": {
+    "desert": "assets/desert.35f9adfbba.js",
+    "crab": 709404,
+    "os": 2777816
+  },
+  "crab": {
+    "sel": 6,
+    "glb": true,
+    "crG": 1,
+    "s": 1.102,
+    "requested": [
+      "crab_v6c"
+    ],
+    "angles": {
+      "bones": [
+        "claw_cL",
+        "claw_fingerL",
+        "claw_cR",
+        "claw_fingerR"
+      ],
+      "pinch": [
+        {
+          "t": 0,
+          "clipT": 0,
+          "claw_cL": 0,
+          "claw_fingerL": 26.5,
+          "claw_cR": 0,
+          "claw_fingerR": 35.5
+        },
+        {
+          "t": 0.05,
+          "clipT": 0.05,
+          "claw_cL": 0,
+          "claw_fingerL": 25.37,
+          "claw_cR": 0,
+          "claw_fingerR": 34.21
+        },
+        {
+          "t": 0.1,
+          "clipT": 0.1,
+          "claw_cL": 0,
+          "claw_fingerL": 22.05,
+          "claw_cR": 0,
+          "claw_fingerR": 30.44
+        },
+        {
+          "t": 0.15,
+          "clipT": 0.15,
+          "claw_cL": 0,
+          "claw_fingerL": 16.76,
+          "claw_cR": 0,
+          "claw_fingerR": 24.44
+        },
+        {
+          "t": 0.2,
+          "clipT": 0.2,
+          "claw_cL": 0,
+          "claw_fingerL": 9.87,
+          "claw_cR": 0,
+          "claw_fingerR": 16.62
+        },
+        {
+          "t": 0.25,
+          "clipT": 0.25,
+          "claw_cL": 0,
+          "claw_fingerL": 1.86,
+          "claw_cR": 0,
+          "claw_fingerR": 7.52
+        },
+        {
+          "t": 0.3,
+          "clipT": 0.3,
+          "claw_cL": 0,
+          "claw_fingerL": 6.75,
+          "claw_cR": 0,
+          "claw_fingerR": 2.25
+        },
+        {
+          "t": 0.35,
+          "clipT": 0.35,
+          "claw_cL": 0,
+          "claw_fingerL": 15.36,
+          "claw_cR": 0,
+          "claw_fingerR": 12.02
+        },
+        {
+          "t": 0.4,
+          "clipT": 0.4,
+          "claw_cL": 0,
+          "claw_fingerL": 23.38,
+          "claw_cR": 0,
+          "claw_fingerR": 21.12
+        },
+        {
+          "t": 0.45,
+          "clipT": 0.45,
+          "claw_cL": 0,
+          "claw_fingerL": 30.26,
+          "claw_cR": 0,
+          "claw_fingerR": 28.94
+        },
+        {
+          "t": 0.5,
+          "clipT": 0.5,
+          "claw_cL": 0,
+          "claw_fingerL": 35.55,
+          "claw_cR": 0,
+          "claw_fingerR": 34.94
+        },
+        {
+          "t": 0.55,
+          "clipT": 0.55,
+          "claw_cL": 0,
+          "claw_fingerL": 38.87,
+          "claw_cR": 0,
+          "claw_fingerR": 38.71
+        },
+        {
+          "t": 0.6,
+          "clipT": 0.6,
+          "claw_cL": 0,
+          "claw_fingerL": 40,
+          "claw_cR": 0,
+          "claw_fingerR": 40
+        },
+        {
+          "t": 0.65,
+          "clipT": 0.65,
+          "claw_cL": 0,
+          "claw_fingerL": 38.87,
+          "claw_cR": 0,
+          "claw_fingerR": 38.71
+        },
+        {
+          "t": 0.7,
+          "clipT": 0.7,
+          "claw_cL": 0,
+          "claw_fingerL": 35.55,
+          "claw_cR": 0,
+          "claw_fingerR": 34.94
+        },
+        {
+          "t": 0.75,
+          "clipT": 0.75,
+          "claw_cL": 0,
+          "claw_fingerL": 30.26,
+          "claw_cR": 0,
+          "claw_fingerR": 28.94
+        },
+        {
+          "t": 0.8,
+          "clipT": 0.8,
+          "claw_cL": 0,
+          "claw_fingerL": 23.38,
+          "claw_cR": 0,
+          "claw_fingerR": 21.12
+        },
+        {
+          "t": 0.85,
+          "clipT": 0.85,
+          "claw_cL": 0,
+          "claw_fingerL": 15.36,
+          "claw_cR": 0,
+          "claw_fingerR": 12.02
+        },
+        {
+          "t": 0.9,
+          "clipT": 0.9,
+          "claw_cL": 0,
+          "claw_fingerL": 6.75,
+          "claw_cR": 0,
+          "claw_fingerR": 2.25
+        },
+        {
+          "t": 0.95,
+          "clipT": 0.95,
+          "claw_cL": 0,
+          "claw_fingerL": 1.86,
+          "claw_cR": 0,
+          "claw_fingerR": 7.52
+        },
+        {
+          "t": 1,
+          "clipT": 1,
+          "claw_cL": 0,
+          "claw_fingerL": 9.88,
+          "claw_cR": 0,
+          "claw_fingerR": 16.63
+        },
+        {
+          "t": 1.05,
+          "clipT": 1.05,
+          "claw_cL": 0,
+          "claw_fingerL": 16.76,
+          "claw_cR": 0,
+          "claw_fingerR": 24.44
+        },
+        {
+          "t": 1.1,
+          "clipT": 1.1,
+          "claw_cL": 0,
+          "claw_fingerL": 22.05,
+          "claw_cR": 0,
+          "claw_fingerR": 30.44
+        },
+        {
+          "t": 1.15,
+          "clipT": 1.15,
+          "claw_cL": 0,
+          "claw_fingerL": 25.37,
+          "claw_cR": 0,
+          "claw_fingerR": 34.21
+        },
+        {
+          "t": 1.2,
+          "clipT": 1.2,
+          "claw_cL": 0,
+          "claw_fingerL": 26.5,
+          "claw_cR": 0,
+          "claw_fingerR": 35.5
+        }
+      ],
+      "swing": {
+        "claw_cL": 0,
+        "claw_fingerL": 66.5,
+        "claw_cR": 0,
+        "claw_fingerR": 75.5
+      },
+      "idle": {
+        "min": {
+          "claw_cL": 0,
+          "claw_fingerL": 13.5,
+          "claw_cR": 0,
+          "claw_fingerR": 22.5
+        },
+        "max": {
+          "claw_cL": 0,
+          "claw_fingerL": 26.5,
+          "claw_cR": 0,
+          "claw_fingerR": 35.5
+        },
+        "trace": [
+          {
+            "t": 1.35,
+            "claw_cL": 0,
+            "claw_fingerL": 26.18,
+            "claw_cR": 0,
+            "claw_fingerR": 29
+          },
+          {
+            "t": 1.5,
+            "claw_cL": 0,
+            "claw_fingerL": 24.35,
+            "claw_cR": 0,
+            "claw_fingerR": 32.25
+          },
+          {
+            "t": 1.65,
+            "claw_cL": 0,
+            "claw_fingerL": 21.35,
+            "claw_cR": 0,
+            "claw_fingerR": 34.63
+          },
+          {
+            "t": 1.8,
+            "claw_cL": 0,
+            "claw_fingerL": 17.99,
+            "claw_cR": 0,
+            "claw_fingerR": 35.5
+          },
+          {
+            "t": 1.95,
+            "claw_cL": 0,
+            "claw_fingerL": 15.17,
+            "claw_cR": 0,
+            "claw_fingerR": 34.63
+          },
+          {
+            "t": 2.1,
+            "claw_cL": 0,
+            "claw_fingerL": 13.64,
+            "claw_cR": 0,
+            "claw_fingerR": 32.25
+          },
+          {
+            "t": 2.25,
+            "claw_cL": 0,
+            "claw_fingerL": 13.82,
+            "claw_cR": 0,
+            "claw_fingerR": 29
+          },
+          {
+            "t": 2.4,
+            "claw_cL": 0,
+            "claw_fingerL": 15.65,
+            "claw_cR": 0,
+            "claw_fingerR": 25.75
+          },
+          {
+            "t": 2.55,
+            "claw_cL": 0,
+            "claw_fingerL": 18.65,
+            "claw_cR": 0,
+            "claw_fingerR": 23.37
+          },
+          {
+            "t": 2.7,
+            "claw_cL": 0,
+            "claw_fingerL": 22.01,
+            "claw_cR": 0,
+            "claw_fingerR": 22.5
+          },
+          {
+            "t": 2.85,
+            "claw_cL": 0,
+            "claw_fingerL": 24.83,
+            "claw_cR": 0,
+            "claw_fingerR": 23.37
+          },
+          {
+            "t": 3,
+            "claw_cL": 0,
+            "claw_fingerL": 26.36,
+            "claw_cR": 0,
+            "claw_fingerR": 25.75
+          },
+          {
+            "t": 3.15,
+            "claw_cL": 0,
+            "claw_fingerL": 26.18,
+            "claw_cR": 0,
+            "claw_fingerR": 29
+          },
+          {
+            "t": 3.3,
+            "claw_cL": 0,
+            "claw_fingerL": 24.35,
+            "claw_cR": 0,
+            "claw_fingerR": 32.25
+          },
+          {
+            "t": 3.45,
+            "claw_cL": 0,
+            "claw_fingerL": 21.35,
+            "claw_cR": 0,
+            "claw_fingerR": 34.63
+          },
+          {
+            "t": 0,
+            "claw_cL": 0,
+            "claw_fingerL": 17.99,
+            "claw_cR": 0,
+            "claw_fingerR": 35.5
+          },
+          {
+            "t": 0.15,
+            "claw_cL": 0,
+            "claw_fingerL": 15.17,
+            "claw_cR": 0,
+            "claw_fingerR": 34.63
+          },
+          {
+            "t": 0.3,
+            "claw_cL": 0,
+            "claw_fingerL": 13.64,
+            "claw_cR": 0,
+            "claw_fingerR": 32.25
+          },
+          {
+            "t": 0.45,
+            "claw_cL": 0,
+            "claw_fingerL": 13.82,
+            "claw_cR": 0,
+            "claw_fingerR": 29
+          },
+          {
+            "t": 0.6,
+            "claw_cL": 0,
+            "claw_fingerL": 15.65,
+            "claw_cR": 0,
+            "claw_fingerR": 25.75
+          },
+          {
+            "t": 0.75,
+            "claw_cL": 0,
+            "claw_fingerL": 18.65,
+            "claw_cR": 0,
+            "claw_fingerR": 23.37
+          },
+          {
+            "t": 0.9,
+            "claw_cL": 0,
+            "claw_fingerL": 22.01,
+            "claw_cR": 0,
+            "claw_fingerR": 22.5
+          },
+          {
+            "t": 1.05,
+            "claw_cL": 0,
+            "claw_fingerL": 24.83,
+            "claw_cR": 0,
+            "claw_fingerR": 23.37
+          },
+          {
+            "t": 1.2,
+            "claw_cL": 0,
+            "claw_fingerL": 26.36,
+            "claw_cR": 0,
+            "claw_fingerR": 25.75
+          },
+          {
+            "t": 1.35,
+            "claw_cL": 0,
+            "claw_fingerL": 26.18,
+            "claw_cR": 0,
+            "claw_fingerR": 29
+          },
+          {
+            "t": 1.5,
+            "claw_cL": 0,
+            "claw_fingerL": 24.35,
+            "claw_cR": 0,
+            "claw_fingerR": 32.25
+          },
+          {
+            "t": 1.65,
+            "claw_cL": 0,
+            "claw_fingerL": 21.35,
+            "claw_cR": 0,
+            "claw_fingerR": 34.63
+          },
+          {
+            "t": 1.8,
+            "claw_cL": 0,
+            "claw_fingerL": 17.99,
+            "claw_cR": 0,
+            "claw_fingerR": 35.5
+          },
+          {
+            "t": 1.95,
+            "claw_cL": 0,
+            "claw_fingerL": 15.17,
+            "claw_cR": 0,
+            "claw_fingerR": 34.63
+          },
+          {
+            "t": 2.1,
+            "claw_cL": 0,
+            "claw_fingerL": 13.64,
+            "claw_cR": 0,
+            "claw_fingerR": 32.25
+          },
+          {
+            "t": 2.25,
+            "claw_cL": 0,
+            "claw_fingerL": 13.82,
+            "claw_cR": 0,
+            "claw_fingerR": 29
+          },
+          {
+            "t": 2.4,
+            "claw_cL": 0,
+            "claw_fingerL": 15.65,
+            "claw_cR": 0,
+            "claw_fingerR": 25.75
+          },
+          {
+            "t": 2.55,
+            "claw_cL": 0,
+            "claw_fingerL": 18.65,
+            "claw_cR": 0,
+            "claw_fingerR": 23.37
+          },
+          {
+            "t": 2.7,
+            "claw_cL": 0,
+            "claw_fingerL": 22.01,
+            "claw_cR": 0,
+            "claw_fingerR": 22.5
+          },
+          {
+            "t": 2.85,
+            "claw_cL": 0,
+            "claw_fingerL": 24.83,
+            "claw_cR": 0,
+            "claw_fingerR": 23.37
+          },
+          {
+            "t": 3,
+            "claw_cL": 0,
+            "claw_fingerL": 26.36,
+            "claw_cR": 0,
+            "claw_fingerR": 25.75
+          },
+          {
+            "t": 3.15,
+            "claw_cL": 0,
+            "claw_fingerL": 26.18,
+            "claw_cR": 0,
+            "claw_fingerR": 29
+          },
+          {
+            "t": 3.3,
+            "claw_cL": 0,
+            "claw_fingerL": 24.35,
+            "claw_cR": 0,
+            "claw_fingerR": 32.25
+          },
+          {
+            "t": 3.45,
+            "claw_cL": 0,
+            "claw_fingerL": 21.35,
+            "claw_cR": 0,
+            "claw_fingerR": 34.63
+          },
+          {
+            "t": 0,
+            "claw_cL": 0,
+            "claw_fingerL": 17.99,
+            "claw_cR": 0,
+            "claw_fingerR": 35.5
+          },
+          {
+            "t": 0.15,
+            "claw_cL": 0,
+            "claw_fingerL": 15.17,
+            "claw_cR": 0,
+            "claw_fingerR": 34.63
+          },
+          {
+            "t": 0.3,
+            "claw_cL": 0,
+            "claw_fingerL": 13.64,
+            "claw_cR": 0,
+            "claw_fingerR": 32.25
+          },
+          {
+            "t": 0.45,
+            "claw_cL": 0,
+            "claw_fingerL": 13.82,
+            "claw_cR": 0,
+            "claw_fingerR": 29
+          },
+          {
+            "t": 0.6,
+            "claw_cL": 0,
+            "claw_fingerL": 15.65,
+            "claw_cR": 0,
+            "claw_fingerR": 25.75
+          },
+          {
+            "t": 0.75,
+            "claw_cL": 0,
+            "claw_fingerL": 18.65,
+            "claw_cR": 0,
+            "claw_fingerR": 23.37
+          },
+          {
+            "t": 0.9,
+            "claw_cL": 0,
+            "claw_fingerL": 22.01,
+            "claw_cR": 0,
+            "claw_fingerR": 22.5
+          },
+          {
+            "t": 1.05,
+            "claw_cL": 0,
+            "claw_fingerL": 24.83,
+            "claw_cR": 0,
+            "claw_fingerR": 23.37
+          },
+          {
+            "t": 1.2,
+            "claw_cL": 0,
+            "claw_fingerL": 26.36,
+            "claw_cR": 0,
+            "claw_fingerR": 25.75
+          }
+        ],
+        "fingers": "idle"
+      },
+      "walk": {
+        "body": "walk_sideways",
+        "fingers": "idle",
+        "min": {
+          "claw_cL": 0,
+          "claw_fingerL": 13.5,
+          "claw_cR": 0,
+          "claw_fingerR": 27.14
+        },
+        "max": {
+          "claw_cL": 0,
+          "claw_fingerL": 23.44,
+          "claw_cR": 0,
+          "claw_fingerR": 35.5
+        }
+      },
+      "scuttle": {
+        "body": "scuttle_sideways",
+        "fingers": "claw_pinch",
+        "min": {
+          "claw_cL": 0,
+          "claw_fingerL": 26.23,
+          "claw_cR": 0,
+          "claw_fingerR": 24.53
+        },
+        "max": {
+          "claw_cL": 0,
+          "claw_fingerL": 39.99,
+          "claw_cR": 0,
+          "claw_fingerR": 39.99
+        }
+      }
+    },
+    "claw": {
+      "swingL": 66.5,
+      "swingR": 75.5,
+      "expect": {
+        "L": 66.5,
+        "R": 75.5
+      },
+      "biteL": 26.5,
+      "biteR": 35.5,
+      "openL": 40,
+      "openR": 40,
+      "clawC": {
+        "claw_cL": 0,
+        "claw_cR": 0
+      },
+      "idleL": [
+        13.5,
+        26.5
+      ],
+      "idleR": [
+        22.5,
+        35.5
+      ],
+      "walkMin": {
+        "L": 13.5,
+        "R": 27.14
+      },
+      "scuttleMin": {
+        "L": 26.23,
+        "R": 24.53
+      }
+    },
+    "pinchClip": {
+      "frames": 144,
+      "clips": [
+        "claw_pinch/claw_pinch"
+      ]
+    }
+  }
+}

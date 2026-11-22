@@ -24,7 +24,7 @@ const TEX={
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/^(?!baseColor)/}),
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,slots:/baseColor/})]])),
   /* 38, 14 and 13 cm animals: 1024 px colour, 512 px normal/ORM; the gerbil's 256 px whisker card is left alone */
-  ...Object.fromEntries(['tortoise_v2g','gerbil_v4d','scorpion_v2b','scorpion_uv_v2b','scorpion_v2c','scorpion_uv_v2c'].map(k=>[k,[
+  ...Object.fromEntries(['tortoise_v2g','tortoise_v2h','gerbil_v4d','scorpion_v2b','scorpion_uv_v2b','scorpion_v2c','scorpion_uv_v2c'].map(k=>[k,[
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/baseColor/}),
     textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,resize:[512,512],slots:/^(?!baseColor)/})]])),
   /* the Tripo-furred gerbil is looked at from a few cm when a viewer leans in: its 2048 px fur colour and 1024 px normal/ORM stay

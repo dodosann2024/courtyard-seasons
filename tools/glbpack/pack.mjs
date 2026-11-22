@@ -20,16 +20,16 @@ const TEX={
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/baseColor/}),
     textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,resize:[512,512],slots:/^(?!baseColor)/})]])),
   /* a 2.45 m bird seen from a metre or two: plumage colour stays 2048 px. v2e is v2d with a deeper sit. */
-  ...Object.fromEntries(['ostrich_v2c','ostrich_v2d','ostrich_v2e','ostrich_v2g','ostrich_v2z2','ostrich_v2af','ostrich_v2ag'].map(k=>[k,[
+  ...Object.fromEntries(['ostrich_v2c','ostrich_v2d','ostrich_v2e','ostrich_v2g','ostrich_v2z2','ostrich_v2af','ostrich_v2ag','ostrich_v2ah'].map(k=>[k,[
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/^(?!baseColor)/}),
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,slots:/baseColor/})]])),
   /* 38, 14 and 13 cm animals: 1024 px colour, 512 px normal/ORM; the gerbil's 256 px whisker card is left alone */
-  ...Object.fromEntries(['tortoise_v2g','gerbil_v4d','scorpion_v2b','scorpion_uv_v2b'].map(k=>[k,[
+  ...Object.fromEntries(['tortoise_v2g','tortoise_v2h','gerbil_v4d','scorpion_v2b','scorpion_uv_v2b','scorpion_v2c','scorpion_uv_v2c'].map(k=>[k,[
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/baseColor/}),
     textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5,resize:[512,512],slots:/^(?!baseColor)/})]])),
   /* the Tripo-furred gerbil is looked at from a few cm when a viewer leans in: its 2048 px fur colour and 1024 px normal/ORM stay
      at their authored sizes (the strands are the point of the model); the 512 px hair-card atlas is left alone */
-  gerbil_v5:[textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5})],
+  ...Object.fromEntries(['gerbil_v5','gerbil_v5b'].map(k=>[k,[textureCompress({encoder:sharp,targetFormat:'webp',quality:90,effort:5})]])),
   /* a 40 cm trout seen through a metre of water: body colour and fin atlas 1024 px (from 2048), normal/ORM 512 px */
   ...Object.fromEntries(['trout_v2','trout_v3'].map(k=>[k,[
     textureCompress({encoder:sharp,targetFormat:'webp',quality:88,effort:5,resize:[1024,1024],slots:/baseColor/}),

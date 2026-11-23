@@ -1237,42 +1237,56 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
   /* the wind travels along +WIND: the windward face looks along -WIND */
   const wdx=-WIND.x,wdz=-WIND.z;let aUp=0,bu=-9;for(let i=0;i<32;i++){const a=i/32*TAU,d=dW(0,Math.cos(a),Math.sin(a));if(d[1]>bu){bu=d[1];aUp=a}}
   const ph=[rg(0,TAU),rg(0,TAU),rg(0,50),rg(0,50),rg(0,50)],lobe=o.lobe||1,E=o.ends||["worn","worn"];
+  /* the face the wind scours hardest, as an angle round the piece */
+  let aWd=0;{let bw=-9;for(let i=0;i<64;i++){const a=i/64*TAU,d=dW(0,Math.cos(a),Math.sin(a)),w=Math.max(0,d[0]*wdx+d[2]*wdz)+.6*Math.max(0,d[1]);if(w>bw){bw=w;aWd=a}}}
   /* checks: long, mostly on the sun side, wandering with the grain; splits running in from the worn ends */
   const CK=Array.from({length:o.checks??3},(_,i)=>{const x0=rg(-.45,.2)*L,x1=Math.min(.47*L,x0+rg(.25,.65)*L);
     return{a:(bu>.3?aUp:0)+rg(-1.4,1.4)+(i%3===2?Math.PI:0),x0,x1,w:rg(.003,.0055)*Kd,d:rg(.008,.016)*Kd,s:rg(0,9)}});
   const cA=(C,x)=>C.a-x*.108+.12*(vn2(x*1.6+C.s,1.7)-.5);
   /* deep wind furrows: a few grooves the sand has cut much deeper than the rest, wandering with the grain, deepest windward */
   const GR=Array.from({length:o.furrows??0},(_,i)=>({a:rg(0,TAU),w:rg(.006,.0095)*Kd,d:rg(.0022,.0042)*Kd,s:rg(0,50),i}));
-  const gA=(G,x)=>G.a-x*.108+.5*(vn2(x*.9+G.s,2.3)-.5)+.25*(vn2(x*3.3+G.s,5.1)-.5)+.22*(vn2(x*7.5+G.s,8.7)-.5),gD=(G,x)=>G.d*(.25+.75*ss(.25,.65,vn2(x*1.4/Kd+G.s,4.4)));
+  /* scoured grooves (o.scour): a few broad, deep ones cut into the windward band only, wandering and meeting, dying out and starting
+     again along the piece, and parting round the knots. Their own draws come after all the others, so other pieces are unchanged */
+  const SC=o.scour,KX=o.bigKnots||[];
+  const gA0=(G,x)=>G.a-x*.108+.5*(vn2(x*.9+G.s,2.3)-.5)+.25*(vn2(x*3.3+G.s,5.1)-.5)+.22*(vn2(x*7.5+G.s,8.7)-.5),gD0=(G,x)=>G.d*(.25+.75*ss(.25,.65,vn2(x*1.4/Kd+G.s,4.4)));
+  const gA=(G,x)=>{if(!G.sc)return gA0(G,x);let a=G.a-x*.06+G.wv*(vn2(x*1.05+G.s,2.3)-.5)+.45*G.wv*(vn2(x*2.9+G.s,5.1)-.5);
+      for(const K of KX){const d=wrapD(a,K.a)*R,q=Math.exp(-(((x-K.x)/(K.r*2.6))**2));if(q>.01)a+=Math.sign(d||1)*K.r*1.25*q*Math.exp(-((d/(K.r*1.9))**2))/R}return a},
+    gD=(G,x)=>{if(!G.sc)return gD0(G,x);const t=cl(Math.min(x-G.x0,G.x1-x)/.22,0,1);return G.d*ss(0,1,t)*(.45+.55*ss(.2,.7,vn2(x*1.2+G.s,4.4)))};
   const SP=[];for(const en of[-1,1])if(E[en<0?0:1]==="worn")for(let i=0;i<(o.splits??2);i++)SP.push({e:en,a:rg(0,TAU),l:rg(.5,1.1)*Math.min(.42,L*.12,9*R),s:rg(0,9)});
   const KN=Array.from({length:o.knots??2},()=>({x:rg(-.4,.4)*L,a:(o.stubs?aUp+rg(-1.6,1.6):rg(0,TAU)),r:rg(.3,.45)*R*(o.stubs?1.5:1),h:o.stubs?rg(.12,.28)*R:.0032*Kd}));
   const NK=Array.from({length:o.nicks??3},()=>({x:rg(-.45,.45)*L,a:rg(-1.2,2.4)+aUp,sx:rg(.008,.016)*Kd,sa:rg(.25,.5),d:rg(.0025,.005)*Kd}));
+  if(SC)for(let i=0;i<SC.n;i++){const f=SC.n>1?i/(SC.n-1)-.5:0,full=i%3!==1,x0=full?-L:rg(-.5,.1)*L,x1=full?L:x0+rg(.3,.6)*L;
+    GR.push({sc:1,a:aWd+f*SC.band+rg(-.08,.08),w:rg(.75,1.25)*SC.w,d:rg(.7,1.15)*SC.d,wv:SC.wave*rg(.7,1.3),s:rg(0,50),x0,x1,i})}
+  
+  /* big hard knots (o.bigKnots): they wear slowest, so they stand well proud, a little dished at the core, in a scoured hollow */
+  for(const K of KX){K.a=K.a??aWd+(K.da||0);KN.push({x:K.x,a:K.a,r:K.r,h:K.h,big:1,moat:K.moat||0})}
+  for(const C of o.chips||[])NK.push({x:C.e*(L/2-C.x),a:aWd+C.da,sx:C.sx,sa:C.sa,d:C.d});
   const SE=(o.seats||[]).map(s=>Object.assign({w:.05},s));
   /* firewood: a split piece, two flat faces meeting at a ridge (normals a0 +- fa, at d from the axis), bark on the round back */
   const WG=o.wedge?[o.wedge.a0+o.wedge.fa,o.wedge.a0-o.wedge.fa].map(n=>({n,d:o.wedge.d*R})):[];
-  const RC=Math.min(R*.3,.02);
+  const RC=o.rc||Math.min(R*.3,.02);
   /* rows along the piece crowd round knots, seats and the worn ends */
   const xa=-L/2+(E[0]==="worn"?RC:0),xb=L/2-(E[1]==="worn"?RC:0),NB=400,cdf=new Float32Array(NB+1);
-  for(let b=0;b<NB;b++){const x=xa+(xb-xa)*(b+.5)/NB,we=.05*L+2*R;let d=1;for(const k of KN)d+=2.5*Math.exp(-(((x-k.x)/(k.r*2.2))**2));
+  for(let b=0;b<NB;b++){const x=xa+(xb-xa)*(b+.5)/NB,we=.05*L+2*R;let d=1;for(const k of KN)d+=(k.big?6:2.5)*Math.exp(-(((x-k.x)/(k.r*2.2))**2));
     for(const s of SE)d+=1.5*Math.exp(-(((x-s.x)/(s.w*1.5))**2));d+=2*Math.exp(-(((x-xa)/we)**2))+2*Math.exp(-(((x-xb)/we)**2));cdf[b+1]=cdf[b]+d}
   const rows=[];for(let i=0;i<=NL;i++){const tg=i/NL*cdf[NB];let b=0;while(b<NB-1&&cdf[b+1]<tg)b++;rows.push(xa+(xb-xa)*(b+(tg-cdf[b])/Math.max(1e-6,cdf[b+1]-cdf[b]))/NB)}
   /* columns round the piece crowd into the cracks, the split V's, round knots and onto the edges of split faces */
   const NBA=240,dA=new Float32Array(NBA+1);
   const cols=x=>{const F=[];
     for(const C of CK){if(x<C.x0||x>C.x1)continue;const t=(x-C.x0)/(C.x1-C.x0);F.push([cA(C,x),Math.max(.05,C.w/R*1.1),2.4*Math.pow(Math.sin(Math.PI*t),.6)])}
-    for(const G of GR)F.push([gA(G,x),G.w/R*.75,1.6*gD(G,x)/G.d]);
+    for(const G of GR)F.push([gA(G,x),G.w/R*(G.sc?.6:.75),(G.sc?3.2:1.6)*gD(G,x)/G.d]);
     for(const S of SP){const xd=L/2-x*S.e;if(xd<S.l)F.push([S.a,.06,2.2*ss(0,.25,1-xd/S.l)])}
-    for(const k of KN){const q=Math.exp(-(((x-k.x)/(k.r*1.6))**2));if(q>.05)F.push([k.a,k.r/R*.9,2*q])}
+    for(const k of KN){const q=Math.exp(-(((x-k.x)/(k.r*(k.big?1.3:1.6)))**2));if(q>.05)F.push(k.big?[k.a-k.r/R,.12,3*q]:[k.a,k.r/R*.9,2*q]);if(k.big&&q>.05)F.push([k.a+k.r/R,.12,3*q],[k.a,.3*k.r/R,4*q])}
     for(const w of WG){const c=Math.acos(cl(w.d/R,-1,1));F.push([w.n+c,.05,1.3],[w.n-c,.05,1.3])}
     if(WG.length)F.push([o.wedge.a0,.05,1.3]);
-    let m=0;for(const f of F)m+=f[2];const sc=m>NR*.55?NR*.55/m:1,base=NR-m*sc;
+    let m=0;for(const f of F)m+=f[2];const cc=NR*(o.colCap||.55),sc=m>cc?cc/m:1,base=NR-m*sc;
     for(let b=0;b<NBA;b++){const th=-Math.PI+(b+.5)/NBA*TAU;let d=base/TAU;for(const f of F){const u=wrapD(th,f[0])/f[1];if(u*u<16)d+=f[2]*sc*Math.exp(-.5*u*u)/(f[1]*2.5066)}dA[b+1]=dA[b]+d*TAU/NBA}
     const out=new Float32Array(NR),k=NR/dA[NBA];let b=0;
     for(let j=0;j<NR;j++){const tg=(j+.5)/k;while(b<NBA-1&&dA[b+1]<tg)b++;out[j]=-Math.PI+(b+(tg-dA[b])/Math.max(1e-6,dA[b+1]-dA[b]))/NBA*TAU}return out};
   /* profile: left end (cap rings, worn round edge), the body rows, right end */
   const prof=[];
   for(const en of[-1,1]){const worn=E[en<0?0:1]==="worn",side=[];
-    if(worn){for(const r of[0,.42,.75])side.push({rho:(R-RC)*r/R,dx:0,cap:1});for(const th of[Math.PI/6,Math.PI/3])side.push({rho:(R-RC+RC*Math.sin(th))/R,dx:RC-RC*Math.cos(th),cap:.5})}
+    if(worn){for(const r of o.rc?[0,.5,.82,.96]:[0,.42,.75])side.push({rho:(R-RC)*r/R,dx:0,cap:1});for(const th of o.rc?[Math.PI/8,Math.PI/4,3*Math.PI/8]:[Math.PI/6,Math.PI/3])side.push({rho:(R-RC+RC*Math.sin(th))/R,dx:RC-RC*Math.cos(th),cap:.5})}
     else side.push({rho:0,dx:0,cap:1});
     if(en<0)prof.push(...side.map(p=>({x:-L/2+p.dx,rho:p.rho,cap:p.cap,e:-1,cx:xa})));
     else{for(const x of rows)prof.push({x,rho:1,cap:0,e:0,cx:x});prof.push(...side.reverse().map(p=>({x:L/2-p.dx,rho:p.rho,cap:p.cap,e:1,cx:xb})))}}
@@ -1284,19 +1298,21 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
         ex=Math.min(1,Math.max(0,nW[0]*wdx+nW[2]*wdz)+.6*Math.max(0,nW[1])),
         sW=toW(x,Rr*ca,Rr*sa),hg=sW[1]-hTop(sW[0],sW[2]);
       /* shape: oval and lobed, the long axes twisting along the piece; the windward face worn flatter */
-      let sh=1+lobe*(.075*Math.cos(2*(an-ph[0]-x*.35))+.035*Math.cos(3*(an-ph[1]+x*.22))+.05*(vn2(x*1.3/Kd+ca*.6+ph[2],sa*.6)-.5))-.05*ex*ex;
+      let sh=1+lobe*(.075*Math.cos(2*(an-ph[0]-x*.35))+.035*Math.cos(3*(an-ph[1]+x*.22))+.05*(vn2(x*1.3/Kd+ca*.6+ph[2],sa*.6)-.5))-(o.plane??.05)*ex*ex;
+      if(o.irreg)sh+=o.irreg*(.09*(vn2(x*.6+ph[4],ca*1.2+sa*.4+3)-.5)+.03*Math.cos(5*(an-ph[1])+x*1.3)+.04*Math.cos(an-ph[0]*1.7+x*.8));
       if(o.waist){const w=ss(.03,.14,hg)*ss(.65,.22,hg);sh-=w*(.04+.14*ex)}
-      if(o.seatTop)sh-=.05*ss(.75,.97,top)*ss(.48,.3,Math.abs(x/L));
-      let kh=0,kn=0;for(const K of KN){const dx=(x-K.x)/K.r,da=wrapD(an,K.a)*R/K.r,d2=dx*dx+da*da;if(d2<30){const q=Math.exp(-d2*.9);kn=Math.max(kn,q);kh=Math.max(kh,q*K.h)}}
+      if(o.seatTop)sh-=(o.seatFlat??.05)*ss(.75,.97,top)*ss(.48,.3,Math.abs(x/L));
+      let kh=0,kn=0,kb=0,kbh=0,km=0;for(const K of KN){const dx=(x-K.x)/(K.r*(K.big?1.5:1)),da=wrapD(an,K.a)*R/K.r,d2=dx*dx+da*da;if(d2<30){const q=K.big?ss(1.35,.3,Math.sqrt(d2)):Math.exp(-d2*.9);kn=Math.max(kn,q);
+        if(K.big){kb=Math.max(kb,q);kbh=Math.max(kbh,q*K.h*(1-.3*Math.exp(-d2*6)));km+=K.moat*Math.exp(-3*(Math.sqrt(d2)-1.5)**2)}else kh=Math.max(kh,q*K.h)}}
       const sc=Math.pow(vn2(x*2.6/Kd+ph[3],an*1.8+ca),2);
-      let dep=.004*Kd*ex*sc-kh;
-      let fu=0;if(!P.cap)for(const G of GR){const q=Math.abs(wrapD(an,gA(G,x)))*R/G.w;if(q<1){const pr=(1-q*q)**2,dd=gD(G,x)*pr*(.5+.5*ex+.3*ss(.6,1,xe));dep+=dd;fu=Math.max(fu,pr*dd/G.d)}}
+      let dep=(o.scoop??.004)*Kd*ex*sc-kh;
+      let fu=0;if(!P.cap)for(const G of GR){const q=Math.abs(wrapD(an,gA(G,x)))*R/G.w;if(q<1){const pr=G.sc?ss(1,.3,q):(1-q*q)**2,dd=gD(G,x)*pr*(G.sc?.7+.3*ex:.5+.5*ex+.3*ss(.6,1,xe));dep+=dd;fu=Math.max(fu,pr*dd/G.d)}}
       let ck=0;for(const C of CK){if(x<C.x0-.05||x>C.x1+.05)continue;const t=cl((x-C.x0)/(C.x1-C.x0),0,1),tp=Math.pow(Math.sin(Math.PI*t),.6),
           da=Math.abs(wrapD(an,cA(C,x)))*R,hw=Math.max(.0035*Kd,C.w*(.5+.5*tp)),m=ss(hw,hw*.15,da);dep+=C.d*m*tp;ck=Math.max(ck,m*Math.sqrt(tp))}
       const side=P.rho;
       for(const S of SP){const xd=L/2-x*S.e;if(xd>S.l)continue;
-        const t=1-xd/S.l,da=Math.abs(wrapD(an,S.a+.1*(vn2(x*5/Kd+S.s,3.3)-.5)))*R*Math.max(side,.15),hw=(.003+.006*t*t)*Kd,m=ss(hw,hw*.15,da)*ss(0,.2,t);
-        dep+=(.003+.016*t*t)*Kd*m*(P.cap>=1?0:1);ck=Math.max(ck,m*(P.cap>=1?ss(.1,.5,side):1))}
+        const t=1-xd/S.l,da=Math.abs(wrapD(an,S.a+.1*(vn2(x*5/Kd+S.s,3.3)-.5)))*R*Math.max(side,.15),hw=(.003+.006*t*t)*Kd*(o.splitW||1),m=ss(hw,hw*.15,da)*ss(0,.2,t);
+        dep+=(.003+.016*t*t)*Kd*(o.splitD||1)*m*(P.cap>=1?0:1);ck=Math.max(ck,m*(P.cap>=1?ss(.1,.5,side):1))}
       let nk=0;for(const N of NK){const d2=((x-N.x)/N.sx)**2+(wrapD(an,N.a)/N.sa)**2;if(d2<9){const m=Math.exp(-d2);dep+=N.d*m;nk=Math.max(nk,m)}}
       /* where the piece rests on, or carries, another: rubbed smooth and darker, a little worn away, and blown sand packed into the
          grooves and cracks of the contact all round, the underside included */
@@ -1312,18 +1328,19 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
       let ch=0,gl=0;
       if(o.fireLog){ch=cl(ss(.28,.8,u)+.3*(vn2(x*20+ph[3],an*2)-.5),0,1);
         gl=ss(.6,.98,u)*(.55+.45*vn2(an*3+ph[2],u*9));bk*=1-ss(.2,.5,u)}
-      else if(o.fire){const fx=o.fire.x-ax[0],fz=o.fire.z-ax[2],fl=Math.hypot(fx,fz)||1,f=(nW[0]*fx+nW[2]*fz)/fl;
-        ch=cl(o.char*ss(.3,.9,f)*ss(.6,.05,top)*(.35+1.1*ss(.25,.7,vn2(x*2.2/Kd+ph[4],an*1.6)))*ss(.5,.32,Math.abs(x/L)),0,1)}
+      else if(o.fire){const fx=o.fire.x-ax[0],fz=o.fire.z-ax[2],fl=Math.hypot(fx,fz)||1,f=(nW[0]*fx+nW[2]*fz)/fl+(o.charEdge||0)*(vn2(x*2.4/Kd+ph[1],an*1.3)-.5),tq=top+(o.charEdge||0)*(vn2(x*3.1/Kd+ph[0],an*1.7+5)-.5);
+        ch=cl(o.char*ss(.3,.9,f)*ss(.6,.05,tq)*(.35+1.1*ss(.25,.7,vn2(x*2.2/Kd+ph[4],an*1.6)))*ss(.5,.32,Math.abs(x/L)),0,1)}
       bk*=1-ss(.3,.7,ch);
       /* sand: a dusting just above the ground, higher on the windward side, in the cracks on top and in the top grooves */
       const tp=Math.max(0,top);
       sd=Math.max(sd,ss(.03+.05*ex,0,hg)*(P.cap>=1?.5:1),.6*ck*tp*ss(.3,.7,vn2(x*4.5/Kd+ph[4],an*2)),(o.sandTop||0)*tp*ss(.45,.75,vn2(x*4.5/Kd+ph[3],an*2.5)));
       if(o.heap&&P.cap>=1&&P.e>0)sd=1;
-      /* geometry */
+      /* geometry: a big knot is too hard to wear, so it keeps its height whatever has been cut round it */
+      if(kb>0)dep=dep*(1-kb)-kbh;dep+=km;
       const raise=.0035*Kd*ss(.4,.62,bk)*(P.cap>=1?0:1);
-      let rO=Rr*sh;for(const w of WG){const c=Math.cos(an-w.n);if(c>.02)rO=Math.min(rO,w.d/c+.002*(vn2(x*9,an*3)-.5))}
+      let rO=Rr*sh;for(const w of WG){const c=Math.cos(an-w.n);if(c>.02)rO=Math.min(rO,(w.d+(o.wedge.torn?R*(.12*(vn2(x*5/Kd+w.n*3,an*1.5)-.5)+.06*(vn2(x*19/Kd,an*4+w.n)-.5)):0))/c+.002*(vn2(x*9,an*3)-.5))}
       const rho=P.cap>=1?side*rO:P.rho*rO-dep*(P.cap?Math.min(1,side*1.2):1)+raise;
-      let px=x;if(P.cap>=1){const capIn=ck*(.004+.01*(1-side))*Kd+.0015*(vn2(ca*3+ph[2],sa*3)-.5);px=x-P.e*capIn;if(o.heap&&P.e>0)px+=o.heap*(1-side*side)*(.8+.4*vn2(ca*2,sa*2))}
+      let px=x;if(P.cap>=1){const capIn=ck*(.004+.01*(1-side))*Kd*(o.capCrack||1)+(o.capRough||.0015)*(vn2(ca*3+ph[2],sa*3)-.5);px=x-P.e*capIn;if(o.heap&&P.e>0)px+=o.heap*(1-side*side)*(.8+.4*vn2(ca*2,sa*2))}
       if(P.e&&!o.heap)px+=.005*Kd*(ca*.8+sa*.6)*(P.e<0?1:-.6);
       const sag=(o.sag||0)*(1-Math.min(1,(x/(o.sagW||L/2))**2))+(o.bend||0)*(1-(2*x/L)**2);
       pos[k*3]=px;pos[k*3+1]=rho*ca+sag;pos[k*3+2]=rho*sa+(o.bend||0)*.6*(1-(2*x/L)**2);
@@ -1334,9 +1351,10 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
       if(WG.length&&!P.cap&&WG.some(w=>Math.cos(an-w.n)>.25)){r*=1.12;g*=1.1;b*=1.05}
       if(P.cap>=1){const ring=.8+.2*vn2(side*14+ph[4],an);r=mix(.18,.21,side)*ring;g=mix(.155,.195,side)*ring;b=mix(.12,.175,side)*ring}
       r=mix(r,.11,nk*.6);g=mix(g,.075,nk*.6);b=mix(b,.048,nk*.6);
-      r=mix(r,.1,fu*.5);g=mix(g,.085,fu*.5);b=mix(b,.066,fu*.5);
+      const fk=o.scour?.8:.5;r=mix(r,.1,fu*fk);g=mix(g,.085,fu*fk);b=mix(b,.066,fu*fk);
       r=mix(r,.12,wr*.6);g=mix(g,.098,wr*.6);b=mix(b,.075,wr*.6);
       r=mix(r,.13,kn*.8);g=mix(g,.1,kn*.8);b=mix(b,.072,kn*.8);
+      if(kb>0){const kr=.75+.25*Math.cos(kbh/Math.max(1e-4,kb)*1400);r=mix(r,.075*kr,kb*.85);g=mix(g,.05*kr,kb*.85);b=mix(b,.032*kr,kb*.85)}
       const cm=Math.pow(ck,.45);r=mix(r,.022,cm);g=mix(g,.012,cm);b=mix(b,.006,cm);
       col[k*3]=r;col[k*3+1]=g;col[k*3+2]=b;
       aw[k*4]=ck;aw[k*4+1]=cl(sd,0,1);aw[k*4+2]=wr;aw[k*4+3]=Math.min(1,ex);
@@ -1348,11 +1366,11 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
    ends, all as bump that fades out before it aliases; bark in fissured plates with ragged torn edges; charcoal crazed into small
    blocks (their cracks glow on the logs in the fire); sand as loose grains filling grooves and cracks. Rubbed and wet wood turns
    smoother; rain soaks the grey wood dark, least where sand fills it; light hardly reaches down a crack. */
-function wwMat(glow){const m=new T.MSM({vertexColors:true,roughness:.93,metalness:0});if(glow){m.emissive.set("#ff5a1a");m.emissiveIntensity=0}
-  m.onBeforeCompile=sh=>{sh.uniforms.uWetC=tentU.uWetC;sh.uniforms.uBS={value:S};
+function wwMat(glow,gb){const m=new T.MSM({vertexColors:true,roughness:.93,metalness:0});if(glow){m.emissive.set("#ff5a1a");m.emissiveIntensity=0}
+  m.onBeforeCompile=sh=>{sh.uniforms.uWetC=tentU.uWetC;sh.uniforms.uBS={value:S};sh.uniforms.uGB={value:gb??1};
     sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nattribute vec4 aW,aB;varying vec4 vW,vB;varying vec3 vOP,vON;")
       .replace("#include <begin_vertex>","#include <begin_vertex>\nvW=aW;vB=aB;vOP=position;vON=normal;");
-    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uWetC,uBS;varying vec4 vW,vB;varying vec3 vOP,vON;"+GLSL_NOISE)
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uWetC,uBS,uGB;varying vec4 vW,vB;varying vec3 vOP,vON;"+GLSL_NOISE)
       .replace("#include <color_fragment>",`#include <color_fragment>
       float wCp=smoothstep(.75,.95,abs(normalize(vON).x)),wAn=atan(vOP.z,vOP.y),wRn=vB.z,wPx=length(fwidth(vOP));
       vec2 wU=vec2(cos(wAn),sin(wAn));
@@ -1365,11 +1383,11 @@ function wwMat(glow){const m=new T.MSM({vertexColors:true,roughness:.93,metalnes
       float wGw=wAn/6.2832*wNC+vOP.x*wNC/58.+1.6*(dn2(vec2(vOP.x*.7+3.,2.3))-.5)+.9*(dn2(vec2(vOP.x*.25+wU.x*.9,wU.y*.9+5.))-.5)+.9*(dn2(vec2(vOP.x*3.1+wU.x*.7,wU.y*.7))-.5)+.45*(dn2(vec2(vOP.x*8.5+wU.x*.5,wU.y*.5+9.))-.5);
       float wGi=floor(wGw),wVw=.1+.22*dh2(vec2(wGi,3.7)),wCr=smoothstep(0.,wVw,abs(fract(wGw)-.5)),wDn=dn2(vec2(wGi*7.31,vOP.x*2.4)),wGd=min(1.,.04+1.7*wDn*wDn*wDn)*smoothstep(.15,.65,dn2(vec2(wGi*3.1,vOP.x*5.)));
       wSd=max(wSd,smoothstep(.12,.4,vW.y)*(1.-wCr)*smoothstep(.15,.5,wGd)*(1.-wCp));
-      float wGs=wGd*(.35+.65*vW.w)*(1.-.8*vW.z)*(1.-wBk)*(1.-wCh)*(1.-wSd)*(1.-wCp)*wGA;
+      float wGs=wGd*(.35+.65*vW.w)*(1.-.8*vW.z)*(1.-wBk)*(1.-wCh)*(1.-wSd)*(1.-wCp)*wGA*uGB;
       float wH=(wCr-1.)*wGs*.0045;
       float wW=wAn/6.2832*wNF+vOP.x*wNF/58.+4.8*(dn2(vec2(vOP.x*.7+3.,2.3))-.5)+1.4*(dn2(vec2(vOP.x*4.+wU.x*1.1,wU.y*1.1+2.))-.5);
-      float wRid=pow(abs(cos(3.14159*wW)),4.),wPt=smoothstep(.35,.75,dn2(vec2(vOP.x*3.3+wU.x*2.,wU.y*2.))),wFm=wFA*(1.-wCp)*(1.-wBk)*(1.-wCh)*(1.-wSd);
-      wH-=(1.-wRid)*(.00012+.0004*vW.w)*mix(.35,1.,wPt)*(1.-.8*vW.z)*wFm;
+      float wRid=pow(abs(cos(3.14159*wW)),4.)*mix(1.,.2+1.4*dn2(vec2(floor(wW+.5)*1.37,vOP.x*7.)),step(uGB,.99)),wPt=smoothstep(.35,.75,dn2(vec2(vOP.x*3.3+wU.x*2.,wU.y*2.))),wFm=wFA*(1.-wCp)*(1.-wBk)*(1.-wCh)*(1.-wSd);
+      wH-=(1.-wRid)*(.00012+.0004*vW.w)*mix(.35,1.,wPt)*(1.-.8*vW.z)*wFm*mix(.3,1.,uGB);
       float wFib=.5*dn2(vec2(vOP.x*55.,wW*1.4))+.5*dn2(vec2(vOP.x*170.,wW*3.1+7.));
       float wRr=length(vOP.yz-vec2(.004,-.003)*wRn/.037),wRg=wRr/.0024+1.2*dn2(wU*2.+vec2(wRr*30.)),wRA=(1.-smoothstep(.15,.5,wPx/.0024))*wCp*(1.-wSd),wRing=pow(abs(cos(3.14159*wRg)),4.);
       wH-=(1.-wRing)*.0004*wRA;
@@ -1413,13 +1431,19 @@ function wwMat(glow){const m=new T.MSM({vertexColors:true,roughness:.93,metalnes
 (function rack(){
   const g=new T.Group();g.position.set(RACK.x,hTop(RACK.x,RACK.z),RACK.z);g.rotation.y=RACK.yaw;W.add(g);g.updateMatrix();
   const wm=wwMat(false),inW=(x,y,z)=>new V3(x,y,z).applyMatrix4(g.matrix).toArray(),X1=new V3(1,0,0);
-  const part=(name,o,p,dir)=>{const m=new T.Mesh(new T.BG(),wm);m.name=name;m.position.copy(p);if(dir)m.quaternion.setFromUnitVectors(X1,dir);m.updateMatrix();
+  const part=(name,o,p,dir,mt)=>{const m=new T.Mesh(new T.BG(),mt||wm);m.name=name;m.position.copy(p);if(dir)m.quaternion.setFromUnitVectors(X1,dir);m.updateMatrix();
     o.M=new T.M4().multiplyMatrices(g.matrix,m.matrix);m.geometry=wwGeo(o);m.castShadow=m.receiveShadow=true;g.add(m);return m};
   /* the cross-bar lies across the crotch of each forked post: the prongs open across the bar, the post's worn top just under it
-     holds a little heap of blown sand, and the bar's underside, the prongs' inner faces and the crotch are rubbed and sanded */
+     holds a little heap of blown sand, and the bar's underside, the prongs' inner faces and the crotch are rubbed and sanded.
+     Its big shapes are all in the mesh: a lumpy, twisting section, the sag, a few deep scoured grooves wandering along the windward
+     face and parting round two hard knots that stand proud, and ends battered blunt and split open. Its own material keeps only a
+     trace of the per-pixel grooves, so they do not draw a regular ribbing over the mesh ones; fibres and hairline checks stay. */
   const BY=1.82,TOP=1.771,PH=.36,PL=.34,PB=.16;
-  part("rackBar",{seed:58163,L:3.6,R:.037,NR:32,NL:104,furrows:5,sag:-.011,sagW:1.6,rugs:true,sandTop:.35,checks:6,knots:4,nicks:9,splits:3,
-    seats:[-1.6,1.6].map(x=>({x,p:inW(x,TOP-.05,0),w:.055}))},new V3(0,BY,0));
+  part("rackBar",{seed:58163,L:3.6,R:.037,NR:40,NL:84,furrows:0,sag:-.02,sagW:1.6,rugs:true,sandTop:.35,checks:3,knots:2,nicks:6,splits:4,
+    lobe:1.35,irreg:1,plane:.015,scoop:.0012,colCap:.7,rc:.01,splitD:.6,splitW:.6,capCrack:.45,capRough:.003,scour:{n:5,band:1.75,w:.0042,d:.009,wave:.35},
+    bigKnots:[{x:1.1,da:.3,r:.017,h:.011,moat:.0025},{x:-.55,da:-.8,r:.014,h:.007,moat:.002}],
+    chips:[{e:1,x:.018,da:.5,sx:.03,sa:.5,d:.007},{e:-1,x:.022,da:-.4,sx:.035,sa:.55,d:.008}],
+    seats:[-1.6,1.6].map(x=>({x,p:inW(x,TOP-.05,0),w:.055}))},new V3(0,BY,0),null,wwMat(false,.3));
   [[-1.6,.03,"L",61331],[1.6,-.04,"R",80713]].forEach(([sx,tl,nm,sd])=>{
     const dir=new V3(-Math.sin(tl),Math.cos(tl),0),Lp=(TOP+.12)/Math.cos(tl),top=new V3(sx,TOP,0);
     part("rackPost"+nm,{seed:sd,L:Lp,R:.052,taper:.3,NR:24,NL:58,lobe:1.6,furrows:3,bend:.012,ends:["hidden","worn"],heap:.012,waist:true,checks:3,knots:3,nicks:4,splits:2,
@@ -1442,7 +1466,6 @@ const fireG=new T.Group();fireG.position.set(FIRE.x,hTop(FIRE.x,FIRE.z),FIRE.z);
 const fireU={uT:{value:0},uNight:{value:0}};
 let fireL=null;
 (function campfire(){
-  const stM=new T.MSM({color:"#4e463f",roughness:.95});
   /* ring of unequal stones, some sunk deeper, the ones nearest the coals blackened with soot */
   const NS=13,im=new T.IM(ROCK_GEOS[1],stM,NS),m=new T.M4(),q=new T.Quat(),sc=new C3();
   for(let i=0;i<NS;i++){const a=i/NS*TAU+rr(-.12,.12),s=rr(.1,.21),r=rr(.37,.45);q.setFromAxisAngle(new V3(rr(-.3,.3),1,rr(-.3,.3)).normalize(),rnd()*TAU);
@@ -1523,16 +1546,17 @@ let fireL=null;
   const mesh=name=>{const m=new T.Mesh(new T.BG(),wm);m.name=name;m.castShadow=m.receiveShadow=true;W.add(m);return m};
   SEATS.forEach((s,i)=>{const c=Math.cos(s.yaw),n=Math.sin(s.yaw),h0=hB(s.x+n*s.len*.5,s.z+c*s.len*.5),h1=hB(s.x-n*s.len*.5,s.z-c*s.len*.5),bk=rr(0,50),bend=rr(-.04,.04);
     wood(mesh("fireSeat"+i),{seed:Math.floor(bk*1e4)+i,L:s.len,R:s.rad,taper:.1,NR:48,NL:62,furrows:5,bend,bark:.7,fire:FIRE,char:.9,seatTop:true,stubs:true,
-      knots:3,checks:10,nicks:5,splits:4,lobe:1.5},s.x,hB(s.x,s.z)+.4*s.rad,s.z,s.yaw,Math.atan2(h1-h0,s.len)*.8)});
+      knots:3,checks:6,nicks:5,splits:5,lobe:.7,irreg:.55,plane:.012,seatFlat:.012,rc:.25*s.rad,splitD:.7,splitW:.7,capCrack:.6,capRough:.02,charEdge:.7},s.x,hB(s.x,s.z)+.4*s.rad,s.z,s.yaw,Math.atan2(h1-h0,s.len)*.8)});
   /* firewood: split lengths, ridge up and bark on the round back, stacked two layers crosswise, each on the sand or on the layer below */
   {const w=fireAt(FIRE_KIT.wood.a,FIRE_KIT.wood.r),yw=FIRE_B+FIRE_KIT.wood.a,g0=hTop(w.x,w.z);let top0=g0;
     for(let L=0;L<2;L++)for(let k=0;k<(L?2:3);k++){const r=rr(.045,.06),len=rr(.48,.6),a=yw+(L?Math.PI/2:0)+rr(-.08,.08),o=(k-(L?.5:1))*.13,
       x=w.x+Math.cos(a)*o,z=w.z-Math.sin(a)*o,bk=rr(0,50),bend=rr(-.04,.04),tl=rr(-.05,.05),m=mesh("fireWood"+(L*3+k)),
-      oo={seed:Math.floor(bk*1e4)+L*3+k,L:len,R:r*1.1,NR:18,NL:12,bend:bend*.3,bark:.7,wedge:{a0:bend*6,fa:1.05,d:.12},knots:1,checks:2,nicks:2,splits:2,lobe:.7};
+      rd=(L*3+k)%4===0,oo={seed:Math.floor(bk*1e4)+L*3+k,L:len,R:r*1.1,NR:22,NL:14,bend:bend*.3,bark:rd?.8:.7,wedge:rd?null:{a0:bend*6,fa:.95,d:.3,torn:1},
+        knots:1,checks:2,nicks:2,splits:rd?3:2,lobe:rd?.8:.7,irreg:.5,plane:.015,rc:.25*r,splitD:.5,splitW:.6,capCrack:.5,capRough:.006};
       wood(m,oo,x,(L?top0:g0)+r,z,a,tl);let y=(L?top0-.006:g0-.01)-m.geometry.boundingBox.min.y;wood(m,oo,x,y,z,a,tl);
       if(!L)top0=Math.max(top0,y+m.geometry.boundingBox.max.y)}}
   /* stones: the seat slab and the piles, sun-bleached rather than sooted */
-  const stM=new T.MSM({color:"#4e463f",roughness:.95}),sp=[];
+  const sp=[];
   {const q=fireAt(FIRE_KIT.seat.a,FIRE_KIT.seat.r);sp.push({x:q.x,z:q.z,y:.06,s:[.3,.2,.26],ry:FIRE_B+FIRE_KIT.seat.a,k:1.25})}
   for(const P of FIRE_KIT.piles){const q=fireAt(P.a,P.r);let n=0;
     for(let l=0;l<3&&n<P.n;l++){const cnt=[4,2,1][l];for(let i=0;i<cnt&&n<P.n;i++,n++){const a=i/cnt*TAU+rr(-.3,.3)+l,r=[.17,.08,0][l]+rr(-.02,.02),s=rr(.09,.14)*(1-.15*l);
@@ -1720,7 +1744,7 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         /* fb: how far down the free fall below the cliff's foot (0 at the foot, 1 at the end) */
         float fb=aU.y>0.?clamp((aU.y-aB)/max(1.-aB,.05),0.,1.):0.;vB=fb;vSB=aB;
         /* the downwind rim pours first; as the wind veers, falls on the rim it now blows across start and others ease off */
-        float wl=length(uWV),k=aK.x+.22*(.5-.5*dot(n,uWV/max(wl,1e-4))),s=aU.y,vis=smoothstep(k,k+.3,uFR);vVis=vis;vec3 p=position;
+        float wl=length(uWV),k=aK.x+.22*(.5-.5*dot(n,uWV/max(wl,1e-4))),vis=smoothstep(k,k+.3,uFR);vVis=vis;vec3 p=position;
         p.xz-=aT*(1.-(.45+.55*vis)*(1.+.25*clamp(uFR-1.,0.,1.)));
         /* free of the cliff the stream fans out as its grains scatter: a trickle into a wisp, a heavy fall into a broad plume */
         p.xz+=aT/max(aK.z,.01)*(aK.z*1.3+.6)*pow(fb,.6);

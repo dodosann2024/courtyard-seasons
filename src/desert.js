@@ -1277,7 +1277,7 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
   for(let i=0;i<NP;i++){const P=prof[i],x=P.x;if(P.cx!==lastCx){ang=cols(P.cx);lastCx=P.cx}
     const xe=Math.abs(x)/(L/2),u=x/L+.5,ax=toW(x,0,0),Rr=Rx(x);
     for(let j=0;j<NR;j++){const an=ang[j],ca=Math.cos(an),sa=Math.sin(an),k=i*NR+j,nW=dW(0,ca,sa),top=nW[1],
-        ex=Math.max(0,nW[0]*wdx+nW[2]*wdz),
+        ex=Math.min(1,Math.max(0,nW[0]*wdx+nW[2]*wdz)+.6*Math.max(0,nW[1])),
         sW=toW(x,Rr*ca,Rr*sa),hg=sW[1]-hTop(sW[0],sW[2]);
       /* shape: oval and lobed, the long axes twisting along the piece; the windward face worn flatter */
       let sh=1+lobe*(.075*Math.cos(2*(an-ph[0]-x*.35))+.035*Math.cos(3*(an-ph[1]+x*.22))+.05*(vn2(x*1.3/Kd+ca*.6+ph[2],sa*.6)-.5))-.05*ex*ex;
@@ -1308,7 +1308,7 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
       if(o.fireLog){ch=cl(ss(.28,.8,u)+.3*(vn2(x*20+ph[3],an*2)-.5),0,1);
         gl=ss(.6,.98,u)*(.55+.45*vn2(an*3+ph[2],u*9));bk*=1-ss(.2,.5,u)}
       else if(o.fire){const fx=o.fire.x-ax[0],fz=o.fire.z-ax[2],fl=Math.hypot(fx,fz)||1,f=(nW[0]*fx+nW[2]*fz)/fl;
-        ch=cl(o.char*ss(.05,.8,f)*(.55+.9*(vn2(x*3.5/Kd+ph[4],an*2.2)-.3))*ss(.5,.3,Math.abs(x/L)),0,1)}
+        ch=cl(o.char*ss(.3,.9,f)*ss(.6,.05,top)*(.35+1.1*ss(.25,.7,vn2(x*2.2/Kd+ph[4],an*1.6)))*ss(.5,.32,Math.abs(x/L)),0,1)}
       bk*=1-ss(.3,.7,ch);
       /* sand: a dusting just above the ground, higher on the windward side, in the cracks on top and in the top grooves */
       const tp=Math.max(0,top);
@@ -1324,10 +1324,10 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
       pos[k*3]=px;pos[k*3+1]=rho*ca+sag;pos[k*3+2]=rho*sa+(o.bend||0)*.6*(1-(2*x/L)**2);
       /* linear albedo: bleached silver-grey, browner on the shaded underside, darker and smoother where rubbed, dark brown in cracks */
       const grain=.86+.28*vn2(x*6/Kd+ph[2],an*3+ph[1]),blch=.9+.2*vn2(x*.9+ph[3],ca+sa*.5);
-      let r=.215*grain*blch,g=.205*grain*blch,b=.19*grain*blch;
+      let r=.225*grain*blch,g=.207*grain*blch,b=.182*grain*blch;
       const und=ss(-.15,-.85,top)*(1-.6*ex);r=mix(r,.15,und*.6);g=mix(g,.118,und*.6);b=mix(b,.082,und*.6);
       if(WG.length&&!P.cap&&WG.some(w=>Math.cos(an-w.n)>.25)){r*=1.12;g*=1.1;b*=1.05}
-      if(P.cap>=1){const ring=.8+.2*vn2(side*14+ph[4],an);r=mix(.16,.2,side)*ring;g=mix(.13,.19,side)*ring;b=mix(.095,.175,side)*ring}
+      if(P.cap>=1){const ring=.8+.2*vn2(side*14+ph[4],an);r=mix(.18,.21,side)*ring;g=mix(.155,.195,side)*ring;b=mix(.12,.175,side)*ring}
       r=mix(r,.11,nk*.6);g=mix(g,.075,nk*.6);b=mix(b,.048,nk*.6);
       r=mix(r,.12,wr*.6);g=mix(g,.098,wr*.6);b=mix(b,.075,wr*.6);
       r=mix(r,.13,kn*.8);g=mix(g,.1,kn*.8);b=mix(b,.072,kn*.8);
@@ -1351,14 +1351,15 @@ function wwMat(glow){const m=new T.MSM({vertexColors:true,roughness:.93,metalnes
       float wCp=smoothstep(.75,.95,abs(normalize(vON).x)),wAn=atan(vOP.z,vOP.y),wRn=vB.z,wPx=length(fwidth(vOP));
       vec2 wU=vec2(cos(wAn),sin(wAn));
       float wNC=2.*floor(wRn*282.7+.5),wNF=2.*floor(wRn*1193.8+.5),wGA=1.-smoothstep(.15,.45,wPx*wNC/(6.2832*wRn)),wFA=1.-smoothstep(.15,.45,wPx*wNF/(6.2832*wRn));
-      float wSdN=dn2(vec2(vOP.x*40.+wU.x*wRn*40.,wU.y*wRn*40.)),wSd=smoothstep(.4,.6,vW.y+.3*(wSdN-.5));
+      float wSdN=dn2(vec2(vOP.x*40.+wU.x*wRn*40.,wU.y*wRn*40.)),wCl=dn2(vec2(vOP.x*520.+wU.x*wRn*520.,wU.y*wRn*520.)),wCl2=dn2(vec2(vOP.x*150.+wU.x*wRn*150.+7.,wU.y*wRn*150.));
+      float wSA2=1.-smoothstep(.0012,.004,wPx),wSd=smoothstep(.4,.6,vW.y+.3*(wSdN-.5)+.18*(wCl2-.5));
       float wBk=smoothstep(.46,.54,vB.x+.24*(dn2(vec2(vOP.x*9.+wU.x*wRn*14.,wU.y*wRn*14.))-.5)+.1*(dn2(vec2(vOP.x*45.+wU.x*wRn*60.,wU.y*wRn*60.))-.5));
       float wChN=dn2(vec2(vOP.x*12.+wU.x*wRn*12.,wU.y*wRn*12.)),wCh=smoothstep(.35,.6,vB.y+.3*(wChN-.5)),wSo=smoothstep(.04,.4,vB.y+.2*(wChN-.5));
       float wGw=wAn/6.2832*wNC+vOP.x*wNC/58.+1.6*(dn2(vec2(vOP.x*.7+3.,2.3))-.5)+.9*(dn2(vec2(vOP.x*.25+wU.x*.9,wU.y*.9+5.))-.5)+.55*(dn2(vec2(vOP.x*3.1+wU.x*.7,wU.y*.7))-.5);
-      float wGi=floor(wGw+.5),wCr=pow(abs(cos(3.14159*wGw)),2.5+4.*dh2(vec2(wGi,3.7))),wDn=dn2(vec2(wGi*7.31,vOP.x*2.4)),wGd=min(1.,.04+1.7*wDn*wDn*wDn);
+      float wGi=floor(wGw),wVw=.1+.22*dh2(vec2(wGi,3.7)),wCr=smoothstep(0.,wVw,abs(fract(wGw)-.5)),wDn=dn2(vec2(wGi*7.31,vOP.x*2.4)),wGd=min(1.,.04+1.7*wDn*wDn*wDn)*smoothstep(.15,.65,dn2(vec2(wGi*3.1,vOP.x*5.)));
       wSd=max(wSd,smoothstep(.12,.4,vW.y)*(1.-wCr)*smoothstep(.15,.5,wGd)*(1.-wCp));
       float wGs=wGd*(.35+.65*vW.w)*(1.-.8*vW.z)*(1.-wBk)*(1.-wCh)*(1.-wSd)*(1.-wCp)*wGA;
-      float wH=(wCr-.6)*wGs*.0024;
+      float wH=(wCr-1.)*wGs*.0045;
       float wW=wAn/6.2832*wNF+vOP.x*wNF/58.+4.8*(dn2(vec2(vOP.x*.7+3.,2.3))-.5)+1.4*(dn2(vec2(vOP.x*4.+wU.x*1.1,wU.y*1.1+2.))-.5);
       float wRid=pow(abs(cos(3.14159*wW)),4.),wPt=smoothstep(.35,.75,dn2(vec2(vOP.x*3.3+wU.x*2.,wU.y*2.))),wFm=wFA*(1.-wCp)*(1.-wBk)*(1.-wCh)*(1.-wSd);
       wH-=(1.-wRid)*(.00018+.0006*vW.w)*mix(.35,1.,wPt)*(1.-.8*vW.z)*wFm;
@@ -1369,20 +1370,25 @@ function wwMat(glow){const m=new T.MSM({vertexColors:true,roughness:.93,metalnes
       float wNB=2.*floor(wRn*141.4+.5),wFv=wAn/6.2832*wNB+1.2*dn2(vec2(vOP.x*2.5+wU.x*2.,wU.y*2.)),wBA=1.-smoothstep(.2,.5,wPx*wNB/(6.2832*wRn));
       float wFis=max(smoothstep(.3,.06,abs(fract(wFv)-.5)),.7*smoothstep(.12,.02,abs(fract(vOP.x*16.+dh2(vec2(floor(wFv),1.))*3.)-.5)))*wBA;
       wH+=wBk*(.0016-.0026*wFis);
-      float wNA=2.*floor(wRn*251.3+.5),wAA2=1.-smoothstep(.2,.5,wPx*80.);
-      vec2 wAg=vec2(vOP.x*70.+.6*dn2(vec2(wU*6.+vOP.x*9.)),wAn/6.2832*wNA);wAg.y+=.5*mod(floor(wAg.x),2.);
-      vec2 wF=abs(fract(wAg)-.5);float wAl=smoothstep(.33,.46,max(wF.x*.95,wF.y))*wAA2;
+      float wAA2=1.-smoothstep(.2,.5,wPx*55.),wD1=8.,wD2=8.;
+      vec2 wQ=vec2(vOP.x*55.,wAn*wRn*48.),wQi=floor(wQ),wQf=fract(wQ);
+      for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 g=vec2(float(i),float(j)),pp=g+.1+.8*vec2(dh2(wQi+g),dh2(wQi+g+17.3))-wQf;float d=dot(pp,pp);
+        if(d<wD1){wD2=wD1;wD1=d;}else if(d<wD2)wD2=d;}
+      float wAl=(1.-smoothstep(.02,.13,sqrt(wD2)-sqrt(wD1)))*wAA2;vec2 wAg=wQi;
       wH+=wCh*((1.-wAl)*.0009-.0005);
       float wGn=dh2(floor(vec2(vOP.x*1600.,wAn*wRn*1600.))),wSA=1.-smoothstep(.0003,.0012,wPx);
-      wH+=wSd*(.0004+.0006*wGn*wSA);
-      diffuseColor.rgb*=mix(vec3(1.),mix(vec3(.66,.6,.52),vec3(1.16,1.15,1.13),wCr),wGs*.75);
-      diffuseColor.rgb*=mix(1.,.82+.36*wFib,wFm*(1.-.7*vW.x))*mix(1.,.6,smoothstep(.35,.85,vW.x))*mix(1.,.9+.2*wRid,wFm*mix(.5,1.,wPt))*mix(1.,.84+.24*wRing,wRA)*(1.-.45*wLine);
+      wH+=wSd*(.0003+.0007*wCl2+.0005*wCl*wSA2+.0003*wGn*wSA);
+      float wSt=dn2(vec2(vOP.x*2.2+wU.x*wRn*60.,wU.y*wRn*60.)),wSt2=dn2(vec2(vOP.x*6.+wU.x*wRn*170.,wU.y*wRn*170.));
+      diffuseColor.rgb*=mix(1.,(.66+.55*wSt)*(.84+.32*wSt2),(1.-wBk)*(1.-wCh)*(1.-wSd)*(1.-.6*wCp));
+      diffuseColor.rgb*=mix(vec3(1.),mix(vec3(.42,.36,.3),vec3(1.1,1.09,1.07),wCr),wGs*.9);
+      diffuseColor.rgb*=mix(1.,.86,(1.-wGA)*wGd*(.35+.65*vW.w)*(1.-wBk)*(1.-wCh)*(1.-wSd)*(1.-wCp));
+      diffuseColor.rgb*=mix(1.,.82+.36*wFib,wFm*(1.-.7*vW.x))*mix(1.,.6,smoothstep(.35,.85,vW.x))*mix(1.,.9+.2*wRid,wFm*mix(.5,1.,wPt))*mix(1.,.84+.24*wRing,wRA)*(1.-.3*wLine);
       vec3 wBc=vec3(.075,.06,.047)*(.65+.55*dn2(vec2(vOP.x*25.,wFv*2.)))*(1.-.75*wFis);
       wBc=mix(wBc,vec3(.15,.14,.128)*(.8+.3*dn2(vec2(vOP.x*9.,wFv))),.5*vW.w*(1.-wFis));
       diffuseColor.rgb=mix(diffuseColor.rgb,wBc,wBk);
       diffuseColor.rgb*=1.-.65*wSo*(1.-wCh);
       diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.021,.019,.018)*(1.-.7*wAl)*(.8+.4*dh2(floor(wAg))),wCh);
-      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.5,.35,.19)*(.78+.44*mix(.5,wGn,wSA)),wSd);
+      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.6,.36,.14)*(.8+.4*mix(.5,wGn,wSA))*(.84+.32*mix(.5,wCl,wSA2))*(.86+.28*wCl2),wSd);
       diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.5,.45,.4),uWetC*(1.-.35*wSd));`)
       .replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
       roughnessFactor=mix(roughnessFactor-.06*wRid*wFm,.6,vW.z*.75*(1.-wSd));roughnessFactor=mix(roughnessFactor,.74+.24*wAl,wCh);roughnessFactor=mix(roughnessFactor,1.,max(wSd,.6*wBk));
@@ -1402,17 +1408,17 @@ function wwMat(glow){const m=new T.MSM({vertexColors:true,roughness:.93,metalnes
     o.M=new T.M4().multiplyMatrices(g.matrix,m.matrix);m.geometry=wwGeo(o);m.castShadow=m.receiveShadow=true;g.add(m);return m};
   /* the cross-bar lies across the crotch of each forked post: the prongs open across the bar, the post's worn top just under it
      holds a little heap of blown sand, and the bar's underside, the prongs' inner faces and the crotch are rubbed and sanded */
-  const BY=1.82,TOP=1.771,PH=.42,PL=.32,PB=.113;
+  const BY=1.82,TOP=1.771,PH=.36,PL=.34,PB=.16;
   part("rackBar",{seed:58163,L:3.6,R:.037,NR:28,NL:118,sag:-.011,sagW:1.6,rugs:true,sandTop:.35,checks:6,knots:4,nicks:9,splits:3,
-    seats:[-1.6,1.6].map(x=>({x,p:inW(x,TOP-.05,0),w:.07}))},new V3(0,BY,0));
+    seats:[-1.6,1.6].map(x=>({x,p:inW(x,TOP-.05,0),w:.055}))},new V3(0,BY,0));
   [[-1.6,.03,"L",61331],[1.6,-.04,"R",80713]].forEach(([sx,tl,nm,sd])=>{
     const dir=new V3(-Math.sin(tl),Math.cos(tl),0),Lp=(TOP+.12)/Math.cos(tl),top=new V3(sx,TOP,0);
-    part("rackPost"+nm,{seed:sd,L:Lp,R:.052,taper:.3,NR:22,NL:62,ends:["hidden","worn"],heap:.012,waist:true,checks:3,knots:3,nicks:4,splits:2,
-      seats:[{x:Lp/2-.02,p:inW(sx,BY,0),w:.05}]},top.clone().addScaledVector(dir,-Lp/2),dir);
+    part("rackPost"+nm,{seed:sd,L:Lp,R:.052,taper:.3,NR:22,NL:62,lobe:1.6,bend:.012,ends:["hidden","worn"],heap:.012,waist:true,checks:3,knots:3,nicks:4,splits:2,
+      seats:[{x:Lp/2-.02,p:inW(sx,BY,0),w:.03,sand:.5}]},top.clone().addScaledVector(dir,-Lp/2),dir);
     const base=top.clone().addScaledVector(dir,-PB);
     [-1,1].forEach((k,i)=>{const p=PH+(i?.03:-.02)*(sx>0?1:-1),d=new V3(-Math.sin(tl)*Math.cos(p),Math.cos(tl)*Math.cos(p),k*Math.sin(p));
-      part("rackFork"+nm+i,{seed:sd+17+i*101,L:PL,R:.027,taper:.35,NR:14,NL:12,ends:["hidden","worn"],checks:1,knots:0,nicks:1,splits:2,
-        seats:[{x:-PL/2+.148,p:inW(sx,BY,0),w:.045,sand:1}]},base.clone().addScaledVector(d,PL/2),d)})});
+      part("rackFork"+nm+i,{seed:sd+17+i*101,L:PL,R:.03,taper:.35,NR:14,NL:12,lobe:1.9,bend:.008,ends:["hidden","worn"],checks:2,knots:0,nicks:1,splits:2,
+        seats:[{x:-PL/2+.196,p:inW(sx,BY,0),w:.045,sand:1}]},base.clone().addScaledVector(d,PL/2),d)})});
   const cloth=(x,w,len,cols,ph)=>{const geo=new T.Plane(w,len,CL_NX,CL_NY);geo.translate(0,-len/2,0);
     const m=new T.Mesh(geo,new T.MSM({map:stripeTex(cols),roughness:.95,side:2}));
     m.position.set(x,1.84,.04);m.castShadow=true;m.receiveShadow=true;
@@ -1507,8 +1513,8 @@ let fireL=null;
     if(m.geometry)m.geometry.dispose();m.geometry=wwGeo(o);m.geometry.computeBoundingBox();return m};
   const mesh=name=>{const m=new T.Mesh(new T.BG(),wm);m.name=name;m.castShadow=m.receiveShadow=true;W.add(m);return m};
   SEATS.forEach((s,i)=>{const c=Math.cos(s.yaw),n=Math.sin(s.yaw),h0=hB(s.x+n*s.len*.5,s.z+c*s.len*.5),h1=hB(s.x-n*s.len*.5,s.z-c*s.len*.5),bk=rr(0,50),bend=rr(-.04,.04);
-    wood(mesh("fireSeat"+i),{seed:Math.floor(bk*1e4)+i,L:s.len,R:s.rad,taper:.1,NR:44,NL:66,bend,bark:.55,fire:FIRE,char:1,seatTop:true,stubs:true,
-      knots:3,checks:6,nicks:5,splits:4,lobe:1.5},s.x,hB(s.x,s.z)+.4*s.rad,s.z,s.yaw,Math.atan2(h1-h0,s.len)*.8)});
+    wood(mesh("fireSeat"+i),{seed:Math.floor(bk*1e4)+i,L:s.len,R:s.rad,taper:.1,NR:44,NL:66,bend,bark:.7,fire:FIRE,char:.9,seatTop:true,stubs:true,
+      knots:3,checks:10,nicks:5,splits:4,lobe:1.5},s.x,hB(s.x,s.z)+.4*s.rad,s.z,s.yaw,Math.atan2(h1-h0,s.len)*.8)});
   /* firewood: split lengths, ridge up and bark on the round back, stacked two layers crosswise, each on the sand or on the layer below */
   {const w=fireAt(FIRE_KIT.wood.a,FIRE_KIT.wood.r),yw=FIRE_B+FIRE_KIT.wood.a,g0=hTop(w.x,w.z);let top0=g0;
     for(let L=0;L<2;L++)for(let k=0;k<(L?2:3);k++){const r=rr(.045,.06),len=rr(.48,.6),a=yw+(L?Math.PI/2:0)+rr(-.08,.08),o=(k-(L?.5:1))*.13,

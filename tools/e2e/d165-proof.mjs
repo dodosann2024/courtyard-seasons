@@ -141,7 +141,7 @@ try {
     if (want("shots")) {
       const V = JSON.parse(process.env.CAMS || "{}");
       const RMID = V.rmid || ["rack", [-3.2, 2.3, 7.6], [-1.2, 1.2, -.6], 40];
-      const RCLOSE = V.rclose || ["rack", [-1.02, 2.0, .8], [-1.6, 1.74, 0], 30];
+      const RCLOSE = V.rclose || ["rack", [-2.3, 2.05, .95], [-1.62, 1.76, 0], 30];
       const BAR = V.bar || ["rack", [.86, 1.97, .56], [1.4, 1.8, 0], 30];
       const FLOG = V.flog || ["fire", [.75, 1.05, -.55], [.15, .18, 1.45], 42];
       const WALL = V.wall || ["fire", [-3.6, 2.6, 4.6], [3.2, .6, -2.2], 52];

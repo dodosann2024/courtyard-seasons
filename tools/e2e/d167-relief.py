@@ -7,6 +7,9 @@ version's fork prongs), the bar is the longest vertical run of pixels that are n
   hp    RMS of luminance minus its own 15 px running mean across the bar (the groove-scale relief; the bar's broad shading drops out)
   dark  share of bar pixels darker than 0.6 x the column's median (deep trough shadow)
   lines number of separate dark troughs crossed per column (local minima 6 % below the 15 px mean)
+Pooled over every bar pixel of those runs (sRGB 0..1):
+  dark10RGB / dark10Lum  mean colour / luminance of the darkest 10 % (the groove bottoms: their hue and depth)
+  ridgeP95               95th percentile luminance (the bleached crests)
 Usage: python3 tools/e2e/d167-relief.py OUT/d164_R_bar_close_day.png OUT/main_R_bar_close_day.png ...   (prints JSON)
 """
 import json, sys
@@ -24,6 +27,7 @@ def measure(path):
     sky = a[..., 2] > a[..., 0] + .02
     grey = ~sand & ~sky
     S = {"std": [], "hp": [], "dark": [], "lines": [], "h": []}
+    px = []
     for x in range(X0, X1):
         col = grey[:, x]
         best, run, start = (0, 0), 0, 0
@@ -50,7 +54,13 @@ def measure(path):
         S["dark"].append(float((v < .6 * med).mean()))
         S["lines"].append(mins)
         S["h"].append(n)
-    return {k: round(float(np.mean(v)), 4) for k, v in S.items()} | {"columns": len(S["std"])}
+        px.append(a[y0 + 2:y0 + n - 2, x])
+    P = np.concatenate(px)
+    L = P @ np.array([.2126, .7152, .0722], dtype=np.float32)
+    lo = P[L <= np.percentile(L, 10)]
+    return {k: round(float(np.mean(v)), 4) for k, v in S.items()} | {"columns": len(S["std"]),
+        "dark10RGB": [round(float(c), 4) for c in lo.mean(0)], "dark10Lum": round(float(L[L <= np.percentile(L, 10)].mean()), 4),
+        "ridgeP95": round(float(np.percentile(L, 95)), 4)}
 
 
 if __name__ == "__main__":

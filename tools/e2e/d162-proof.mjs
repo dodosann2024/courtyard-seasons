@@ -301,6 +301,66 @@ try {
     if (osUsed.length !== 1 || osUsed[0] !== "ostrich_v2ag") fails.push("ostrich in use is not exactly v2ag: " + osUsed);
     console.log("tent", JSON.stringify({...report.tent, pick: undefined}));
   }
+  /* ---------------- crab_v6c walking sideways: both slip measures, then a close 1280x720 clip on a fixed camera ---------------- */
+  if (want("crwalk")) {
+    report.crab = await page.evaluate(() => {
+      const q = window.__desQA(), R = q.CR, c = R.list.slice().sort((a, b) => q.pN(b.bx, b.bz) - q.pN(a.bx, a.bz))[0]; R._proof = R.list.indexOf(c);
+      for (const o of R.list) if (o !== c) { o.mode = "in"; o.t = 999; }
+      R.calm = true; R.gapePin = null; R.clawIdle = false; window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day");
+      return {sel: R._proof, glb: q.crGlb(), crG: q.crG, s: +c.s.toFixed(3)};
+    });
+    report.crab.requested = [...crReq];
+    if (!report.crab.glb || [...crReq].some(k => k !== "crab_v6c")) fails.push("crab in use is not crab_v6c alone: " + [...crReq]);
+    /* planted-foot slip as d161 measured it: skinned vertices under 1.5 mm (#160's measure) or 0.4 mm (the tips bearing weight)
+       in the crab's own frame on both of two steps 1/60 s apart, their move in island metres per second */
+    report.crab.footSlip = await page.evaluate(() => {
+      const q = window.__desQA(), c = q.CR.list[q.CR._proof], V = c.g.position.constructor, C = window.__C(), y = q.hTop(c.bx, c.bz);
+      /* the crab is animated only when it is in view and near: the camera close on it first */
+      q.lookAt(c.bx + Math.sin(c.yaw) * .6, y + .2, c.bz + Math.cos(c.yaw) * .6, c.bx, y, c.bz); C.De.fov = 40; C.De.updateProjectionMatrix();
+      let sk = null; c.g.traverse(o => { if (o.isSkinnedMesh && !sk) sk = o; });
+      const grab = () => { c.g.updateMatrixWorld(true); const v = new V(), out = [], n = sk.geometry.attributes.position.count;
+        for (let i = 0; i < n; i++) { sk.getVertexPosition(i, v); const h = v.y; v.applyMatrix4(sk.matrixWorld); q.W.worldToLocal(v); out.push([v.x, h, v.z]); } return out; };
+      const run = N => { const S = {a: [], b: [], s: []}; let bd = 0, a = grab(), dx = c.tx - c.x, dz = c.tz - c.z; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+        for (let k = 0; k < N; k++) { const b0 = [c.x, c.z]; q.step(1, 1 / 60); const b = grab(); bd += Math.hypot(c.x - b0[0], c.z - b0[1]) * 60;
+          for (let i = 0; i < a.length; i++) { const d = Math.hypot(b[i][0] - a[i][0], b[i][2] - a[i][2]) * 60;
+            if (a[i][1] < .0015 && b[i][1] < .0015) S.a.push(d); if (a[i][1] < .0004 && b[i][1] < .0004) { S.b.push(d); S.s.push(((b[i][0] - a[i][0]) * dx + (b[i][2] - a[i][2]) * dz) * 60); } }
+          a = b; }
+        const st = v => { v.sort((x, y) => x - y); return {n: v.length, mean: +(v.reduce((s, x) => s + x, 0) / Math.max(1, v.length)).toFixed(4), median: +(v[v.length >> 1] || 0).toFixed(4)}; };
+        return {body: +(bd / N).toFixed(4), clip: c.rb.cur, ts: +c.rb.acts[c.rb.cur].timeScale.toFixed(3), thr1_5mm: st(S.a), thr0_4mm: st(S.b), tipAlong: +(S.s.reduce((x, y) => x + y, 0) / Math.max(1, S.s.length)).toFixed(4)}; };
+      const out = [];
+      for (const [mode, vt, dir, N] of [["walk", .1, 1, 96], ["walk", .1, -1, 96], ["run", .42, 1, 30], ["run", .42, -1, 30]]) { const rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
+        Object.assign(c, {x: c.bx, z: c.bz, mode, vt, v: vt, walk: 1, go: null, sk: 0, up: 0, t: 999, tx: c.bx + dir * rt[0] * 1.2, tz: c.bz + dir * rt[1] * 1.2});
+        q.step(18, 1 / 60); out.push({mode, dir: dir > 0 ? "+x" : "-x", ...run(N)}); }
+      Object.assign(c, {x: c.bx, z: c.bz, mode: "out", v: 0, walk: 0, tx: c.bx, tz: c.bz, t: 999}); q.step(10, 1 / 30);
+      return out;
+    });
+    console.log("crab foot slip", JSON.stringify(report.crab.footSlip));
+    if (!process.env.NOVID) {
+    /* the clip: from the land side behind the crab (in front of it the lake's surface hides it at the waterline), 0.6 m off and 0.22 m up
+       (crab-sized), held fixed on the burrow mouth; it walks sideways one way, then back;
+       12 frames a second, each 1/24 s of the scene (half speed) */
+    const CN = +(process.env.CN || 36);
+    await page.evaluate(v => { window.__crDH = v; }, [+(process.env.CRD || .6), +(process.env.CRH || .22)]);
+    await page.evaluate(() => { const q = window.__desQA(), C = window.__C(), c = q.CR.list[q.CR._proof], fw = [Math.sin(c.yaw), Math.cos(c.yaw)], rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
+      Object.assign(c, {x: c.bx - rt[0] * .06, z: c.bz - rt[1] * .06, mode: "walk", vt: .1, v: .1, walk: 1, go: null, sk: 0, up: 0, t: 999, tx: c.bx + rt[0] * 1.2, tz: c.bz + rt[1] * 1.2}); const pre = [c.x, c.z, c.yaw, c.bx, c.bz]; q.step(12, 1 / 60); window.__crPre = [...pre, c.x, c.z, c.yaw, c.mode].map(v => typeof v === 'number' ? +v.toFixed(3) : v);
+      const k = c.s * q.crG, y = c.y; const [cd, ch] = window.__crDH; window.__crCam = [c.bx - fw[0] * cd * k, y + ch * k, c.bz - fw[1] * cd * k, c.bx, y + .02 * k, c.bz];
+      q.lookAt(...window.__crCam); C.De.fov = 36; C.De.near = .005; C.De.updateProjectionMatrix(); window.__ci = 0;
+      const w = c.g.getWorldPosition(c.g.position.clone()), p = w.clone().project(C.De);
+      return {mode: c.mode, visible: c.g.visible, crVis: +q.CR.vis.toFixed(3), ndc: [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(4)], dist: +w.distanceTo(C.De.position).toFixed(3), scale: +c.g.scale.x.toFixed(3), anc: (() => { const a = []; let o = c.g; while (o) { a.push((o.type || '?') + (o.visible ? '' : '(hidden)') + (o.name ? ':' + o.name : '')); o = o.parent; } return a; })(), meshes: (() => { let n = 0, v = 0; c.g.traverse(o => { if (o.isMesh) { n++; if (o.visible && o.material && o.material.visible !== false) v++; } }); return [n, v]; })(), pre: window.__crPre, now: [+c.x.toFixed(3), +c.z.toFixed(3), +c.yaw.toFixed(3)]}; })
+      .then(v => { console.log("crab cam", JSON.stringify(v)); report.crab.cam = v; });
+    if (process.env.CRSTILL) { await shot("crab_dbg.png"); console.log("after shot", JSON.stringify(await page.evaluate(() => { const q = window.__desQA(), c = q.CR.list[q.CR._proof]; return {mode: c.mode, vis: c.g.visible, x: c.x, z: c.z, y: c.y, sk: c.sk, gp: c.g.position.toArray(), crVis: q.CR.vis, frozen: q.frozen}; }))); throw new Error("still only"); }
+    const r = await vid("crab_v6c-sideways-walk", CN, async () => page.evaluate((capIn, CN) => {
+      const q = window.__desQA(), C = window.__C(), c = q.CR.list[q.CR._proof], i = window.__ci++, rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
+      if (i === CN >> 1) Object.assign(c, {mode: "walk", vt: .1, v: .1, walk: 1, go: null, sk: 0, up: 0, t: 999, tx: c.bx - rt[0] * 1.2, tz: c.bz - rt[1] * 1.2});
+      (new Function("t", capIn + "(t)"))(`湖边蟹（crab_v6c）横着走：${i < CN >> 1 ? "向右" : "向左"}，0.1 m/s，镜头固定贴近沙面（慢放 ½）`);
+      q.step(2, 1 / 48); q.lookAt(...window.__crCam);
+      return {i, x: +c.x.toFixed(3), z: +c.z.toFixed(3), clip: c.rb.cur};
+    }, capIn, CN), true, 12);
+    report.crab.walkClip = {frames: r.log.length, clips: [...new Set(r.log.map(s => s.clip))]};
+    await strip([4, CN >> 2, (CN >> 1) - 2, (CN >> 1) + 4, (3 * CN) >> 2, CN - 2].map(i => frameAt(r.dir, i)), "D_crab_v6c_sideways_strip.png", null, 426);
+    fs.rmSync(r.dir, {recursive: true, force: true}); await cap("");
+    }
+  }
 } catch (e) {
   console.log("PROOF ERROR", String(e && e.stack || e).slice(0, 1500));
   fails.push("exception");

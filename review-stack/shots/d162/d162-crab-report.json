@@ -1,0 +1,152 @@
+{
+  "crab": {
+    "sel": 6,
+    "glb": true,
+    "crG": 1,
+    "s": 1.102,
+    "requested": [
+      "crab_v6c"
+    ],
+    "footSlip": [
+      {
+        "mode": "walk",
+        "dir": "+x",
+        "body": 0.1,
+        "clip": "walk_sideways",
+        "ts": -0.66,
+        "thr1_5mm": {
+          "n": 932,
+          "mean": 0.028,
+          "median": 0.0104
+        },
+        "thr0_4mm": {
+          "n": 348,
+          "mean": 0.0055,
+          "median": 0.0049
+        },
+        "tipAlong": -0.0007
+      },
+      {
+        "mode": "walk",
+        "dir": "-x",
+        "body": 0.1,
+        "clip": "walk_sideways",
+        "ts": 0.66,
+        "thr1_5mm": {
+          "n": 894,
+          "mean": 0.0282,
+          "median": 0.0085
+        },
+        "thr0_4mm": {
+          "n": 354,
+          "mean": 0.006,
+          "median": 0.0052
+        },
+        "tipAlong": -0.0008
+      },
+      {
+        "mode": "run",
+        "dir": "+x",
+        "body": 0.42,
+        "clip": "scuttle_sideways",
+        "ts": -0.828,
+        "thr1_5mm": {
+          "n": 319,
+          "mean": 0.0785,
+          "median": 0.047
+        },
+        "thr0_4mm": {
+          "n": 87,
+          "mean": 0.0344,
+          "median": 0.0266
+        },
+        "tipAlong": -0.0007
+      },
+      {
+        "mode": "run",
+        "dir": "-x",
+        "body": 0.42,
+        "clip": "scuttle_sideways",
+        "ts": 0.828,
+        "thr1_5mm": {
+          "n": 342,
+          "mean": 0.0779,
+          "median": 0.0467
+        },
+        "thr0_4mm": {
+          "n": 82,
+          "mean": 0.0356,
+          "median": 0.0291
+        },
+        "tipAlong": 0.0015
+      }
+    ],
+    "walkClip": {
+      "frames": 36,
+      "clips": [
+        "walk_sideways"
+      ]
+    },
+    "cam": {
+      "mode": "walk",
+      "visible": true,
+      "crVis": 1,
+      "ndc": [
+        0.1,
+        -0.09,
+        0.9527
+      ],
+      "dist": 0.212,
+      "scale": 1.102,
+      "anc": [
+        "Group",
+        "Group",
+        "Group",
+        "Scene"
+      ],
+      "meshes": [
+        1,
+        1
+      ],
+      "pre": [
+        -13.165,
+        3.798,
+        1.179,
+        -13.142,
+        3.743,
+        -13.157,
+        3.78,
+        1.179,
+        "walk"
+      ],
+      "now": [
+        -13.157,
+        3.78,
+        1.179
+      ]
+    }
+  },
+  "before_sync": {
+    "note": "same harness on desert.60282df679.js (CR_WALK .14, CR_SCUT .48)",
+    "walk+x": {
+      "thr1_5mm": 0.0289,
+      "thr0_4mm": 0.0061,
+      "tipAlong": 0.0017
+    },
+    "walk-x": {
+      "thr1_5mm": 0.0298,
+      "thr0_4mm": 0.0069,
+      "tipAlong": 0.0019
+    },
+    "run+x": {
+      "thr1_5mm": 0.0874,
+      "thr0_4mm": 0.0326,
+      "tipAlong": 0.0162
+    },
+    "run-x": {
+      "thr1_5mm": 0.0913,
+      "thr0_4mm": 0.0366,
+      "tipAlong": 0.0195
+    }
+  }
+}

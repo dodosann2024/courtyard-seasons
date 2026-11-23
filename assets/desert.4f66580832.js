@@ -4342,14 +4342,15 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
       A[i*4]=c.ph;A[i*4+1]=c.walk;A[i*4+2]=Math.sin(c.fph)*c.feed*(1-c.up);A[i*4+3]=c.up;CR.OA.array[i]=Math.max(c.gape,1e-4)});
     CR.im.instanceMatrix.needsUpdate=true;CR.A.needsUpdate=true;CR.OA.needsUpdate=true}}
 /* Godot's crab_v6c (the Tripo shell with rebuilt legs and chelae, 36 bones, mud olive-brown): idle 3.6 s, walk_sideways .4 s
-   (.14 m/s under the planted tips), scuttle_sideways .18 s (.48 m/s), dig 1.2 s, claw_pinch 1.2 s; in place, facing +z, walking along
+   (.14 m/s under the planted tips; .1375 in the scene, where the tips weighed down to .4 mm drifted 1.8 % forward), scuttle_sideways .18 s
+   (.48 m/s; .46 in the scene, 4.3 % drift), dig 1.2 s, claw_pinch 1.2 s; in place, facing +z, walking along
    local -x, a 5 cm carapace and 12 cm leg span at scale 1. The dactyls (claw_finger.L/R) are modelled open: at rest the minor claw gapes
    2.1 mm and the major 3.9 mm. idle closes them to the bite (L -26.5°, R -35.5° from rest) and opens them 13° every 1.8 s; claw_pinch
    swings bite -> +40° at 0.6 s -> bite, keyed at 60 fps, so it is held by time (CR_OPEN is the fully open instant). The gait and dig
    clips leave the dactyls at rest. Once it has loaded each crab is a skinned clone of it under the underwater shading and the instanced
    crab above is not drawn. One mixer, three layers: the body and legs from the gait clip; claw_a/b/c either from that clip or from
    claw_pinch; the dactyls from claw_pinch with the claws, otherwise from idle, so the open rest pose is never shown. */
-const CR_FILE="crab_v6c",CR_G=1,CR_WALK=.14,CR_SCUT=.48,CR_OPEN=.6,CRM=new Map();
+const CR_FILE="crab_v6c",CR_G=1,CR_WALK=.1375,CR_SCUT=.46,CR_OPEN=.6,CRM=new Map();
 function crMats(s){matsOf(s,(m,c)=>{c.castShadow=false;c.receiveShadow=true;c.renderOrder=3;c.frustumCulled=false;let n=CRM.get(m.uuid);
   if(!n){n=m.clone();CRM.set(m.uuid,n);if(n.map)n.map.anisotropy=MOB?2:4;if(n.emissive)n.emissive.setRGB(0,0,0);
     n.metalness=0;n.metalnessMap=null;n.aoMapIntensity=.6;n.userData.U=CR.U;uwMat(n,"crg",".9",{head:"",nrm:"",pos:""})}

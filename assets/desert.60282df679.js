@@ -362,8 +362,11 @@ function sandMat(){
         /* heat: far sand shimmers, and a mirage shows the sky in the sand as broken blue-grey pools that drift, split and
            breathe with the heat. A real mirage needs grazing angles (under ~9 degrees): from the usual high view only the farthest
            flat sand, seen at its lowest angle, keeps a faint trace of it, so the island top never reads as standing water */
-        if(uHeat>.01){float dM=dC/${S.toFixed(3)},fl=smoothstep(.85,.95,normalize(vSN).y);
-          float gz=smoothstep(.16,.035,V.y)*smoothstep(4.,12.,dM)*fl,gf=smoothstep(.3,.2,V.y)*smoothstep(38.,55.,dM)*fl*.45;
+        if(uHeat>.01){float dM=dC/${S.toFixed(3)},fl=smoothstep(.93,.98,normalize(vSN).y);
+          /* grazing against the sand itself, not the horizontal: a dune foot or rim slope tilted toward the eye is seen too steeply
+             for a mirage, and drew white streaks up the slope */
+          float vg=max(V.y,dot(normalize(normalMatrix*vSN),normalize((viewMatrix*vec4(V,0.)).xyz)));
+          float gz=smoothstep(.16,.035,vg)*smoothstep(4.,12.,dM)*fl,gf=smoothstep(.3,.2,vg)*smoothstep(38.,55.,dM)*fl*.45;
           vec2 vh=normalize(V.xz+vec2(1e-5));float ax=dot(vSP.xz,vec2(-vh.y,vh.x)),ay=dot(vSP.xz,vh);
           float sh=dn2(vec2(ax*.6,ay*2.4-uTm*1.6))*.6+dn2(vec2(ax*1.9,ay*5.-uTm*2.9))*.4;
           float pu=.62+.38*(.5+.5*sin(uTm*.37+ax*.04))*(.6+.4*sin(uTm*.21+1.3));
@@ -628,6 +631,13 @@ const KEEL_TIP={x:-.6,z:.7},KEEL_STEPS=4;
         if(R.u!=null)y+=(fbm3(x*.09+1,y*.05,z*.09)-.5)*2.2*ss(.1,.6,R.u)*(1-ss(.85,1,R.u))}
       x+=ox*disp;z+=oz*disp;
       const o=(r*NT+j)*3;pos[o]=x;pos[o+1]=y;pos[o+2]=z;aV[r*NT+j]=eY-y}}
+  /* the wall's foot and the top of the underside meet in one level crease round the whole island (an overhang facing down over
+     a band facing up), which a low or side light drew as a bright seam across every cliff: round it off, radius and height */
+  {const J=2+TW,R0=J-2,R1=J+5;
+    for(let it=0;it<4;it++)for(let j=0;j<NT;j++){const rr=[],yy=[];
+      for(let r=R0;r<=R1;r++){const o=(r*NT+j)*3;rr.push(Math.hypot(pos[o],pos[o+2]));yy.push(pos[o+1])}
+      for(let k=1;k<rr.length-1;k++){const o=((R0+k)*NT+j)*3,rn=(rr[k-1]+2*rr[k]+rr[k+1])/4,s=rn/rr[k];pos[o]*=s;pos[o+2]*=s;
+        pos[o+1]=(yy[k-1]+2*yy[k]+yy[k+1])/4;aV[(R0+k)*NT+j]+=yy[k]-pos[o+1]}}}
   for(let r=0;r<nR-1;r++)for(let j=0;j<NT;j++){const a=r*NT+j,b=r*NT+(j+1)%NT,c=a+NT,d=b+NT;idx.push(a,b,c,b,d,c)}
   /* close the tip */
   const tip=nR*NT,last=(nR-1)*NT;let sx=0,sy=0,sz=0;for(let j=0;j<NT;j++){sx+=pos[(last+j)*3];sy+=pos[(last+j)*3+1];sz+=pos[(last+j)*3+2]}

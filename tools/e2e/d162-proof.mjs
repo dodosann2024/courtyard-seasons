@@ -126,16 +126,20 @@ const desCam = v => page.evaluate(v => { const q = window.__desQA(), C = window.
 const desCamW = v => page.evaluate(v => { const C = window.__C(); C.De.position.set(v[0], v[1], v[2]); C.Ce.target.set(v[3], v[4], v[5]); C.De.lookAt(C.Ce.target); C.De.fov = v[6]; C.De.near = .1; C.De.updateProjectionMatrix(); }, v);
 const desTod = k => page.evaluate(k => { const q = window.__desQA(); window.__set(k === "night" ? {mode: "full"} : {mode: "manual"}); q.tod(k); q.sim(1.5); }, k === "dusk" ? "sunset" : k);
 
-/* the sand falls: each stream's rim point and half width; the share of the rim they cover, and the widest run of rim covered without
-   a gap (a ring curtain covers it all) */
+/* the sand falls: each stream's rim point and half width; the share of the rim they cover (the union of their angular spans, exact),
+   and the widest run of rim covered without a gap (a ring curtain covers it all) */
 const fallsStat = () => page.evaluate(() => {
-  const q = window.__desQA(), F = q.sf().F, N = 720, cov = new Uint8Array(N);
+  const q = window.__desQA(), F = q.sf().F, T = 2 * Math.PI;
   const R = F.map(f => Math.hypot(f.x, f.z)), rMean = R.reduce((s, r) => s + r, 0) / Math.max(1, R.length);
-  for (const f of F) { const a = Math.atan2(f.z, f.x), da = f.hw / Math.max(1, Math.hypot(f.x, f.z));
-    for (let k = Math.floor((a - da) / (2 * Math.PI) * N); k <= Math.ceil((a + da) / (2 * Math.PI) * N); k++) cov[((k % N) + N) % N] = 1; }
-  let n = 0, run = 0, best = 0; for (let k = 0; k < 2 * N; k++) { if (cov[k % N]) { run++; best = Math.max(best, run); } else run = 0; } for (const c of cov) n += c;
+  const iv = [];
+  for (const f of F) { const a = ((Math.atan2(f.z, f.x) % T) + T) % T, da = Math.min(Math.PI, f.hw / Math.max(1, Math.hypot(f.x, f.z)));
+    if (a - da < 0) iv.push([a - da + T, T], [0, a + da]); else if (a + da > T) iv.push([a - da, T], [0, a + da - T]); else iv.push([a - da, a + da]); }
+  iv.sort((x, y) => x[0] - y[0]);
+  const m = []; for (const v of iv) { const l = m[m.length - 1]; if (l && v[0] <= l[1]) l[1] = Math.max(l[1], v[1]); else m.push(v.slice()); }
+  let n = 0, best = 0; for (const v of m) { n += v[1] - v[0]; best = Math.max(best, v[1] - v[0]); }
+  if (m.length > 1 && m[0][0] <= 0 && m[m.length - 1][1] >= T) best = Math.max(best, m[0][1] - m[0][0] + m[m.length - 1][1] - m[m.length - 1][0]);
   const hw = F.map(f => f.hw).sort((a, b) => a - b);
-  return {streams: F.length, rimRadius: +rMean.toFixed(2), rimCovered: +(n / N).toFixed(3), widestRunDeg: +(Math.min(best, N) / N * 360).toFixed(1),
+  return {streams: F.length, rimRadius: +rMean.toFixed(2), rimCovered: +(n / T).toFixed(3), widestRunDeg: +(best / T * 360).toFixed(1),
     hwMin: +hw[0].toFixed(2), hwMedian: +hw[hw.length >> 1].toFixed(2), hwMax: +hw[hw.length - 1].toFixed(2), rate: +q.sf().rate.toFixed(3)};
 });
 
@@ -172,6 +176,7 @@ try {
     report.falls = {stat: await fallsStat()};
     console.log("falls", JSON.stringify(report.falls.stat));
     if (report.falls.stat.rimCovered > .35 || report.falls.stat.widestRunDeg > 20) fails.push("sand falls cover the rim like a curtain");
+    if (!process.env.NOVID) {
     for (const k of ["day", "dusk"]) {
       await desTod(k);
       await desCam(DES.full); await cap(k === "day" ? "沙瀑（白天）：崖边一股股分开的竖直沙流，中间露出石崖和天空" : "沙瀑（黄昏）：分开的竖直沙流，不是整圈沙帘");
@@ -180,15 +185,17 @@ try {
     }
     await desTod("day");
     await cap("沙瀑：分开的竖直沙流随风摆动（风向在片中转动）");
-    const r = await vid(`${TAG}sandfall-streams`, 24 * 5, async i => page.evaluate(i => {
-      const q = window.__desQA(); if (i === 0) q.windPin(null); q.step(2, 1 / 48);
-      const v = [84, -6, 60, 2, -16, 0, 40], C = window.__C(), a = i / 120 * .5;
+    const FN = +(process.env.FN || 36);
+    const r = await vid(`${TAG}sandfall-streams`, FN, async i => page.evaluate((i, FN) => {
+      const q = window.__desQA(); if (i === 0) q.windPin(null); q.step(4, 1 / 48);
+      const v = [84, -6, 60, 2, -16, 0, 40], C = window.__C(), a = i / FN * .5;
       q.lookAt(v[0] * Math.cos(a) - v[2] * Math.sin(a), v[1], v[0] * Math.sin(a) + v[2] * Math.cos(a), v[3], v[4], v[5]); C.De.fov = v[6]; C.De.near = .15; C.De.updateProjectionMatrix();
       return {n: q.sf().n};
-    }, i), false);
+    }, i, FN), false, 12);
     report.falls.clip = {frames: r.log.length};
     report.falls.statAfter = await fallsStat();
     await cap("");
+    }
   }
 
   /* ---------------- tent in rain from eye level, no ostrich inside the tent's silhouette ---------------- */

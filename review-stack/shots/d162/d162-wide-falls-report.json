@@ -1,0 +1,66 @@
+{
+  "wide_before": {
+    "day": {
+      "farRightColStep": 35.85,
+      "nearSeamRowStep": 107.4,
+      "farCliffBands": {
+        "rows": 1.987,
+        "cols": 2.36
+      },
+      "farSlopeBands": {
+        "rows": 0.991,
+        "cols": 2.251
+      }
+    },
+    "dusk": {
+      "farRightColStep": 22.56,
+      "nearSeamRowStep": 89.8,
+      "farCliffBands": {
+        "rows": 2.345,
+        "cols": 2.455
+      },
+      "farSlopeBands": {
+        "rows": 1.009,
+        "cols": 2.466
+      }
+    }
+  },
+  "wide_after": {
+    "day": {
+      "farRightColStep": 37.55,
+      "nearSeamRowStep": 107.4,
+      "farCliffBands": {
+        "rows": 1.943,
+        "cols": 2.318
+      },
+      "farSlopeBands": {
+        "rows": 1.059,
+        "cols": 2.087
+      }
+    },
+    "dusk": {
+      "farRightColStep": 21.26,
+      "nearSeamRowStep": 89.6,
+      "farCliffBands": {
+        "rows": 2.24,
+        "cols": 2.587
+      },
+      "farSlopeBands": {
+        "rows": 1.068,
+        "cols": 2.408
+      }
+    }
+  },
+  "falls": {
+    "stat": {
+      "streams": 54,
+      "rimRadius": 21.6,
+      "rimCovered": 0.266,
+      "widestRunDeg": 12.5,
+      "hwMin": 0.05,
+      "hwMedian": 0.1,
+      "hwMax": 2.17,
+      "rate": 1.014
+    }
+  }
+}

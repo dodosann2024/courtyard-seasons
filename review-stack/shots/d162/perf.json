@@ -1,0 +1,58 @@
+{
+  "what": "tools/e2e/perf.mjs, same run, alternating rounds: this branch (pr, desert.4f66580832.js) vs main 4e9d5fe (desert.35f9adfbba.js); iPhone 13 emulation, 4x CPU throttle, clear day, JS ms per rAF over 20 s",
+  "rounds": [
+    {
+      "build": "pr",
+      "frames": 51,
+      "jsMean": 13,
+      "jsP95": 44,
+      "max": 47,
+      "over200": 0
+    },
+    {
+      "build": "main",
+      "frames": 48,
+      "jsMean": 14.6,
+      "jsP95": 49.5,
+      "max": 52,
+      "over200": 0
+    },
+    {
+      "build": "pr",
+      "frames": 51,
+      "jsMean": 13.8,
+      "jsP95": 49.5,
+      "max": 68,
+      "over200": 0
+    },
+    {
+      "build": "main",
+      "frames": 45,
+      "jsMean": 15.6,
+      "jsP95": 52.7,
+      "max": 68,
+      "over200": 0
+    }
+  ],
+  "checks": [
+    {
+      "ok": true,
+      "check": "clear-day JS per frame within +15% of main",
+      "pr": 13.4,
+      "main": 15.1,
+      "limit": 17.4
+    },
+    {
+      "ok": true,
+      "check": "no frame over 200 ms after load",
+      "over200": [
+        0,
+        0
+      ],
+      "max": [
+        47,
+        68
+      ]
+    }
+  ]
+}

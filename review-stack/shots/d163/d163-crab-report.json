@@ -1,0 +1,192 @@
+{
+  "note": "tools/e2e/d163-proof.mjs crslip, same harness for both; main = origin/main e2d997e",
+  "main": [
+    {
+      "mode": "walk",
+      "dir": "+x",
+      "body": 0.1,
+      "clip": "walk_sideways",
+      "ts": -0.66,
+      "thr1_5mm": {
+        "n": 932,
+        "mean": 0.028,
+        "median": 0.0104
+      },
+      "thr0_4mm": {
+        "n": 348,
+        "mean": 0.0055,
+        "median": 0.0049
+      },
+      "tipAlong": -0.0007
+    },
+    {
+      "mode": "walk",
+      "dir": "-x",
+      "body": 0.1,
+      "clip": "walk_sideways",
+      "ts": 0.66,
+      "thr1_5mm": {
+        "n": 894,
+        "mean": 0.0282,
+        "median": 0.0085
+      },
+      "thr0_4mm": {
+        "n": 354,
+        "mean": 0.006,
+        "median": 0.0052
+      },
+      "tipAlong": -0.0008
+    },
+    {
+      "mode": "run",
+      "dir": "+x",
+      "body": 0.42,
+      "clip": "scuttle_sideways",
+      "ts": -0.828,
+      "thr1_5mm": {
+        "n": 319,
+        "mean": 0.0785,
+        "median": 0.047
+      },
+      "thr0_4mm": {
+        "n": 87,
+        "mean": 0.0344,
+        "median": 0.0266
+      },
+      "tipAlong": -0.0007
+    },
+    {
+      "mode": "run",
+      "dir": "-x",
+      "body": 0.42,
+      "clip": "scuttle_sideways",
+      "ts": 0.828,
+      "thr1_5mm": {
+        "n": 342,
+        "mean": 0.0779,
+        "median": 0.0467
+      },
+      "thr0_4mm": {
+        "n": 82,
+        "mean": 0.0356,
+        "median": 0.0291
+      },
+      "tipAlong": 0.0015
+    }
+  ],
+  "branch": [
+    {
+      "mode": "walk",
+      "dir": "+x",
+      "body": 0.1,
+      "clip": "walk_sideways",
+      "ts": -0.66,
+      "thr1_5mm": {
+        "n": 932,
+        "mean": 0.0257,
+        "median": 0.0074
+      },
+      "thr0_4mm": {
+        "n": 348,
+        "mean": 0.0015,
+        "median": 0.0009
+      },
+      "tipAlong": -0.0006
+    },
+    {
+      "mode": "walk",
+      "dir": "-x",
+      "body": 0.1,
+      "clip": "walk_sideways",
+      "ts": 0.66,
+      "thr1_5mm": {
+        "n": 894,
+        "mean": 0.0259,
+        "median": 0.0064
+      },
+      "thr0_4mm": {
+        "n": 354,
+        "mean": 0.0018,
+        "median": 0.0009
+      },
+      "tipAlong": -0.0009
+    },
+    {
+      "mode": "run",
+      "dir": "+x",
+      "body": 0.4208,
+      "clip": "scuttle_sideways",
+      "ts": -0.838,
+      "thr1_5mm": {
+        "n": 332,
+        "mean": 0.0545,
+        "median": 0.0342
+      },
+      "thr0_4mm": {
+        "n": 83,
+        "mean": 0.0124,
+        "median": 0.0097
+      },
+      "tipAlong": 0.0018
+    },
+    {
+      "mode": "run",
+      "dir": "-x",
+      "body": 0.4165,
+      "clip": "scuttle_sideways",
+      "ts": 0.838,
+      "thr1_5mm": {
+        "n": 320,
+        "mean": 0.0689,
+        "median": 0.0382
+      },
+      "thr0_4mm": {
+        "n": 82,
+        "mean": 0.0131,
+        "median": 0.0093
+      },
+      "tipAlong": 0.0035
+    }
+  ],
+  "branch_orientation_fix_only_run": [
+    {
+      "dir": "+x",
+      "thr1_5mm_mean": 0.0743,
+      "thr0_4mm_mean": 0.0268,
+      "tipAlong": -0.0005
+    },
+    {
+      "dir": "-x",
+      "thr1_5mm_mean": 0.0724,
+      "thr0_4mm_mean": 0.0259,
+      "tipAlong": 0.0014
+    }
+  ],
+  "plantedTipAboveSandMm": {
+    "main": {
+      "walk": 1.06,
+      "run": 6.7
+    },
+    "branch": {
+      "walk": 1.06,
+      "run": 0.34
+    }
+  },
+  "scuttlePace": {
+    "scuttle_sideways": {
+      "min": 0.71,
+      "max": 1.1,
+      "mean": 0.4547
+    }
+  },
+  "crabRequested": [
+    "crab_v6c"
+  ],
+  "clip": {
+    "frames": 40,
+    "clips": [
+      "walk_sideways",
+      "scuttle_sideways"
+    ]
+  }
+}

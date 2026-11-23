@@ -299,6 +299,66 @@ try {
     console.log("tent", JSON.stringify(report.tent));
     await cap("");
   }
+  /* ---------------- crab_v6c: planted-tip slip for walk and run (same measure as d161/d162), then a low tracking close-up ---------------- */
+  if (want("crslip") || want("crwalk")) {
+    report.crab = await page.evaluate(() => {
+      const q = window.__desQA(), R = q.CR, c = R.list.slice().sort((a, b) => q.pN(b.bx, b.bz) - q.pN(a.bx, a.bz))[0]; R._proof = R.list.indexOf(c);
+      for (const o of R.list) if (o !== c) { o.mode = "in"; o.t = 999; }
+      R.calm = true; R.gapePin = null; R.clawIdle = false; window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day");
+      const P = q.CRP || {}, pr = {}; for (const k in P) pr[k] = {min: +Math.min(...P[k].p).toFixed(2), max: +Math.max(...P[k].p).toFixed(2), mean: +P[k].m.toFixed(4)};
+      return {sel: R._proof, glb: q.crGlb(), crG: q.crG, s: +c.s.toFixed(3), pace: pr};
+    });
+    report.crab.requested = [...crReq];
+    if (!report.crab.glb || [...crReq].some(k => k !== "crab_v6c")) fails.push("crab in use is not crab_v6c alone: " + [...crReq]);
+  }
+  if (want("crslip")) {
+    /* skinned vertices under 1.5 mm or 0.4 mm (the tips bearing weight) in the crab's own frame on both of two steps 1/60 s apart:
+       their speed in island metres per second; tipAlong is the mean of the 0.4 mm ones along the way it walks */
+    report.crab.footSlip = await page.evaluate(() => {
+      const q = window.__desQA(), c = q.CR.list[q.CR._proof], V = c.g.position.constructor, C = window.__C(), y = q.hTop(c.bx, c.bz);
+      q.lookAt(c.bx + Math.sin(c.yaw) * .6, y + .2, c.bz + Math.cos(c.yaw) * .6, c.bx, y, c.bz); C.De.fov = 40; C.De.updateProjectionMatrix();
+      let sk = null; c.g.traverse(o => { if (o.isSkinnedMesh && !sk) sk = o; });
+      const grab = () => { c.g.updateMatrixWorld(true); const v = new V(), out = [], n = sk.geometry.attributes.position.count;
+        for (let i = 0; i < n; i++) { sk.getVertexPosition(i, v); const h = v.y; v.applyMatrix4(sk.matrixWorld); q.W.worldToLocal(v); out.push([v.x, h, v.z]); } return out; };
+      const run = N => { const S = {a: [], b: [], s: []}; let bd = 0, a = grab(), dx = c.tx - c.x, dz = c.tz - c.z; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+        for (let k = 0; k < N; k++) { const b0 = [c.x, c.z]; q.step(1, 1 / 60); const b = grab(); bd += Math.hypot(c.x - b0[0], c.z - b0[1]) * 60;
+          for (let i = 0; i < a.length; i++) { const d = Math.hypot(b[i][0] - a[i][0], b[i][2] - a[i][2]) * 60;
+            if (a[i][1] < .0015 && b[i][1] < .0015) S.a.push(d); if (a[i][1] < .0004 && b[i][1] < .0004) { S.b.push(d); S.s.push(((b[i][0] - a[i][0]) * dx + (b[i][2] - a[i][2]) * dz) * 60); } }
+          a = b; }
+        const st = v => { v.sort((x, y) => x - y); return {n: v.length, mean: +(v.reduce((s, x) => s + x, 0) / Math.max(1, v.length)).toFixed(4), median: +(v[v.length >> 1] || 0).toFixed(4)}; };
+        return {body: +(bd / N).toFixed(4), clip: c.rb.cur, ts: +c.rb.acts[c.rb.cur].timeScale.toFixed(3), thr1_5mm: st(S.a), thr0_4mm: st(S.b), tipAlong: +(S.s.reduce((x, y) => x + y, 0) / Math.max(1, S.s.length)).toFixed(4)}; };
+      const out = [];
+      for (const [mode, vt, dir, N] of [["walk", .1, 1, 96], ["walk", .1, -1, 96], ["run", .42, 1, 30], ["run", .42, -1, 30]]) { const rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
+        Object.assign(c, {x: c.bx, z: c.bz, mode, vt, v: vt, walk: 1, go: null, sk: 0, up: 0, t: 999, tx: c.bx + dir * rt[0] * 1.2, tz: c.bz + dir * rt[1] * 1.2});
+        q.step(18, 1 / 60); out.push({mode, dir: dir > 0 ? "+x" : "-x", ...run(N)}); }
+      Object.assign(c, {x: c.bx, z: c.bz, mode: "out", v: 0, walk: 0, tx: c.bx, tz: c.bz, t: 999}); q.step(10, 1 / 30);
+      return out;
+    });
+    console.log("crab foot slip", JSON.stringify(report.crab.footSlip));
+  }
+  if (want("crwalk")) {
+    /* low on the sand (CRH metres above the sand under the camera), CRD metres off on its land side, the camera following it so its 12 cm span stays about
+       a third of the frame width; it walks one way at 0.1 m/s, then runs back at 0.42 m/s. 12 frames a second, each 1/24 s (half speed) */
+    const CN = +(process.env.CN || 48);
+    await page.evaluate(v => { const q = window.__desQA(), C = window.__C(), c = q.CR.list[q.CR._proof], rt = [Math.cos(c.yaw), -Math.sin(c.yaw)];
+      window.__crDH = v; window.__crYaw = c.yaw; window.__ci = 0;
+      Object.assign(c, {x: c.bx - rt[0] * .1, z: c.bz - rt[1] * .1, mode: "walk", vt: .1, v: .1, walk: 1, go: null, sk: 0, up: 0, t: 999, tx: c.bx + rt[0] * 1.2, tz: c.bz + rt[1] * 1.2});
+      q.step(12, 1 / 60); C.De.fov = 30; C.De.near = .005; C.De.updateProjectionMatrix(); }, [+(process.env.CRD || .34), +(process.env.CRH || .05)]);
+    const r = await vid("crab_v6c-sideways-walk", CN, async () => page.evaluate((capIn, CN) => {
+      const q = window.__desQA(), C = window.__C(), c = q.CR.list[q.CR._proof], i = window.__ci++, yw = window.__crYaw, rt = [Math.cos(yw), -Math.sin(yw)], fw = [Math.sin(yw), Math.cos(yw)];
+      const half = Math.round(CN * .55);
+      if (i === half) Object.assign(c, {mode: "run", vt: .42, v: .2, walk: 1, go: null, sk: 0, up: 0, t: 999, tx: c.x - rt[0] * 1.5, tz: c.z - rt[1] * 1.5});
+      (new Function("t", capIn + "(t)"))(i < half ? "湖边蟹横着走（慢走 0.1 m/s，慢放 ½，镜头贴近沙面跟拍）" : "湖边蟹横着快跑（0.42 m/s，慢放 ½）：着地的脚尖踩住不打滑");
+      q.step(2, 1 / 48);
+      const [cd, ch] = window.__crDH; window.__cx = window.__cx == null ? c.x : window.__cx + (c.x - window.__cx) * .5; window.__cz = window.__cz == null ? c.z : window.__cz + (c.z - window.__cz) * .5;
+      const ex = window.__cx - fw[0] * cd, ez = window.__cz - fw[1] * cd; q.lookAt(ex, Math.max(q.lkY(ex, ez), c.y) + ch, ez, window.__cx, c.y + .025, window.__cz); C.De.updateMatrixWorld(true);
+      return {i, x: +c.x.toFixed(3), z: +c.z.toFixed(3), clip: c.rb.cur, mode: c.mode};
+    }, capIn, CN), true, 12);
+    report.crab.walkClip = {frames: r.log.length, clips: [...new Set(r.log.map(s => s.clip))]};
+    const h = Math.round(CN * .55);
+    await strip([4, h >> 1, h - 2, h + 3, (h + CN) >> 1, CN - 2].map(i => frameAt(r.dir, i)), "D_crab_v6c_sideways_strip.png", null, 426);
+    fs.rmSync(r.dir, {recursive: true, force: true}); await cap("");
+  }
 //@@SECTIONS@@
 } catch (e) {
   console.log("PROOF ERROR", String(e && e.stack || e).slice(0, 1500));

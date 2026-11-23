@@ -1,0 +1,81 @@
+{
+ "device": "iPhone 13 emulated, CPU 4x throttle, clear day, 20 s window 5 s after models loaded (tools/e2e/perf.mjs, ROUNDS=4)",
+ "order": "main and branch alternating in one browser session",
+ "runs": [
+  {
+   "build": "branch",
+   "frames": 48,
+   "jsMean": 15.5,
+   "jsP95": 52.9,
+   "max": 68,
+   "over200": 0
+  },
+  {
+   "build": "main",
+   "frames": 48,
+   "jsMean": 15.6,
+   "jsP95": 55.1,
+   "max": 63,
+   "over200": 0
+  },
+  {
+   "build": "branch",
+   "frames": 48,
+   "jsMean": 15.2,
+   "jsP95": 52.6,
+   "max": 58,
+   "over200": 0
+  },
+  {
+   "build": "main",
+   "frames": 45,
+   "jsMean": 16.7,
+   "jsP95": 58.3,
+   "max": 62,
+   "over200": 0
+  },
+  {
+   "build": "branch",
+   "frames": 48,
+   "jsMean": 16,
+   "jsP95": 52.9,
+   "max": 71,
+   "over200": 0
+  },
+  {
+   "build": "main",
+   "frames": 51,
+   "jsMean": 16.3,
+   "jsP95": 53.9,
+   "max": 67,
+   "over200": 0
+  },
+  {
+   "build": "branch",
+   "frames": 51,
+   "jsMean": 15.3,
+   "jsP95": 51.1,
+   "max": 71,
+   "over200": 0
+  },
+  {
+   "build": "main",
+   "frames": 51,
+   "jsMean": 16,
+   "jsP95": 57.7,
+   "max": 58,
+   "over200": 0
+  }
+ ],
+ "jsMean": {
+  "branch": 15.5,
+  "main": 16.1
+ },
+ "limit": 18.6,
+ "limitRule": "main mean × 1.15",
+ "pass": true,
+ "log": [
+  "ok   clear-day JS per frame within +15% of main {\"pr\":15.5,\"main\":16.1,\"limit\":18.6}",
+  "ok   no frame over 200 ms after load {\"over200\":[0,0,0,0],\"max\":[68,58,71,71]}"
+ ]
+}

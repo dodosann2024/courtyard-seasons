@@ -1263,9 +1263,12 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
     fW=(u,x)=>{let a=u-x*.06+FL.wave*bw(u)*(2*(vn2(x*1.8+ph[2],u*.6+3.7)-.5)+.8*(vn2(x*3.5+ph[3],u*1.2+9.1)-.5)+.5*(vn2(x*4.5+ph[4],u*.8+1.3)-.5));
       for(const K of KX){const q=Math.exp(-(((x-K.x)/K.ex)**2));if(q<.003)continue;const d=wrapD(a,K.a),t=Math.abs(d);
         a+=Math.sign(d)*K.h2*q*(1-Math.exp(-t/.1))*Math.exp(-((t/K.s)**2))}return a};
-    for(let i=0;i<FL.n;i++){let u=c0+(i/(FL.n-1)-.5)*FL.band+rg(-.05,.05);
+    /* FL.irr: majors at random rather than every third, every line its own width, a little uneven spacing (FL.jit), so they do not
+       read as the teeth of a comb; the outermost lines stay fine, or their lips fold over at the bar's lower edge */
+    const IR=FL.irr,jt=FL.jit||0;
+    for(let i=0;i<FL.n;i++){const t=i/(FL.n-1)-.5;let u=c0+t*FL.band+(IR?rg(-1,1)*jt*sp0*(1-4*t*t):rg(-.05,.05));
       for(const K of KX){const d=wrapD(u,K.a);if(Math.abs(d)<.09)u=K.a+Math.sign(d||1)*.09}
-      const mj=i%3===1;FLL.push({u,D:(mj?rg(.85,1.1):rg(.45,.75))*FL.d,wf:mj?1.3:.85,s:rg(0,50),x0:i%3===2?rg(-.45,0)*L:-L})}
+      const mj=IR?rn()<.45&&i>1&&i<FL.n-2:i%3===1;FLL.push({u,D:(mj?rg(.85,1.1):IR?rg(.4,.75):rg(.45,.75))*FL.d,wf:IR?(mj?rg(1.15,1.45):rg(.6,1)):mj?1.3:.85,s:rg(0,50),x0:i%3===2?rg(-.45,0)*L:-L})}
     /* the rest angle that lands on each knot's centre at the knot */
     const uK=KX.map(K=>{let u=K.a;for(let k=0;k<6;k++)u+=wrapD(K.a,fW(u,K.x));return u});
     const pk=[...FLL.map(l=>[l.u,FL.lw,1]),...FLL.slice(1).map((l,i)=>[FLL[i].u+wrapD(l.u,FLL[i].u)/2,.02,FL.cw]),...CK.map(C=>[C.a,.03,FL.ck]),...SP.map(S=>[S.a,.035,FL.ck*.6]),...uK.map(u=>[u,.07,FL.kc])],NBU=720,du=new Float64Array(NBU+1);
@@ -1327,10 +1330,11 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
         if(K.big){kb=Math.max(kb,q);kbh=Math.max(kbh,q*K.h*(1-.3*Math.exp(-d2*6)));km+=K.moat*Math.exp(-3*(Math.sqrt(d2)-1.5)**2)}else kh=Math.max(kh,q*K.h)}}
       const sc=Math.pow(vn2(x*2.6/Kd+ph[3],an*1.8+ca),2);
       let dep=(o.scoop??.004)*Kd*ex*sc-kh;
-      let fu=0,fp=0,ck=0,fd=0;if(!P.cap)for(const G of GR){const q=Math.abs(wrapD(an,gA(G,x)))*R/G.w;if(q<1){const pr=(1-q*q)**2,dd=gD(G,x)*pr*(.5+.5*ex+.3*ss(.6,1,xe));dep+=dd;fu=Math.max(fu,pr*dd/G.d)}}
+      let fu=0,fp=0,ck=0,fd=0,gc=0;if(!P.cap)for(const G of GR){const q=Math.abs(wrapD(an,gA(G,x)))*R/G.w;if(q<1){const pr=(1-q*q)**2,dd=gD(G,x)*pr*(.5+.5*ex+.3*ss(.6,1,xe));dep+=dd;fu=Math.max(fu,pr*dd/G.d)}}
       /* the flow grooves: a rounded trough between sharp crests, each groove at its own depth that swells and fades along the piece */
       if(FL&&!P.cap)for(let g=0;g<FLL.length;g++){const l=FLL[g],q=Math.abs(wrapD(an,fl[g][0]))*R/fl[g][1];if(q>=1)continue;
-        const pr=.5+.5*Math.cos(Math.PI*q),qx=(.5+.5*ss(.2,.75,vn2(x*1.3+l.s,4.4)))*ss(l.x0,l.x0+.3,x),dd=l.D*qx*pr*(.8+.2*ex);fd+=dd;fu=Math.max(fu,dd/FL.d);fp=Math.max(fp,pr);
+        const pr=.5+.5*Math.cos(Math.PI*q),qx=(.5+.5*ss(.2,.75,vn2(x*1.3+l.s,4.4)))*ss(l.x0,l.x0+.3,x),
+          dd=l.D*qx*pr*(.8+.2*ex);fd+=dd;fu=Math.max(fu,dd/FL.d);fp=Math.max(fp,pr);gc=Math.max(gc,pr*pr*dd/FL.d);
         /* where a major furrow runs deepest the wind has opened a check along its bottom: a dark crevice light hardly reaches */
         if(l.wf>1){const cv=ss(.7,.92,qx)*ss(.55,.95,pr)*ss(.4,.6,vn2(x*.9+l.s,7.7));dep+=.0025*Kd*cv;ck=Math.max(ck,.75*cv)}}
       /* where furrows close up their depths add, but never past FL.cap: the bar is worn, not cut through */
@@ -1379,14 +1383,18 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
       if(WG.length&&!P.cap&&WG.some(w=>Math.cos(an-w.n)>.25)){r*=1.12;g*=1.1;b*=1.05}
       if(P.cap>=1){const ring=.8+.2*vn2(side*14+ph[4],an);r=mix(.18,.21,side)*ring;g=mix(.155,.195,side)*ring;b=mix(.12,.175,side)*ring}
       r=mix(r,.11,nk*.6);g=mix(g,.075,nk*.6);b=mix(b,.048,nk*.6);
-      if(FL){/* trough bottoms shaded brown, the sharp crests between them bleached paler */const v=ss(.03,.42,fu),cr=P.cap?0:bw(an)*(1-fp)*(.7+.3*ex);r*=(1-.72*v)*(1+.16*cr);g*=(1-.76*v)*(1+.16*cr);b*=(1-.8*v)*(1+.15*cr)}
+      if(FL&&FL.cav){/* trough bottoms darker still and cool grey (sky-lit, not sun-browned), the sharp crests between them bleached paler */const v=ss(.03,.42,fu),v2=ss(.3,.85,gc),cr=P.cap?0:bw(an)*(1-fp)*(.7+.3*ex);
+        const n=1-FL.bot*v2*ss(-.7,-.3,top);r*=(1-.78*v)*n*(1+FL.crest*cr);g*=(1-.78*v)*n*(1+FL.crest*cr);b*=(1-.76*v)*n*(1+(FL.crest-.02)*cr)}
+      else if(FL){/* trough bottoms shaded brown, the sharp crests between them bleached paler */const v=ss(.03,.42,fu),cr=P.cap?0:bw(an)*(1-fp)*(.7+.3*ex);r*=(1-.72*v)*(1+.16*cr);g*=(1-.76*v)*(1+.16*cr);b*=(1-.8*v)*(1+.15*cr)}
       else{r=mix(r,.1,fu*.5);g=mix(g,.085,fu*.5);b=mix(b,.066,fu*.5)}
       r=mix(r,.12,wr*.6);g=mix(g,.098,wr*.6);b=mix(b,.075,wr*.6);
       r=mix(r,.13,kn*.8);g=mix(g,.1,kn*.8);b=mix(b,.072,kn*.8);
       if(kb>0){const kr=.75+.25*Math.cos(kbh/Math.max(1e-4,kb)*1400);r=mix(r,.075*kr,kb*.85);g=mix(g,.05*kr,kb*.85);b=mix(b,.032*kr,kb*.85)}
-      const cm=Math.pow(ck,.45);r=mix(r,.022,cm);g=mix(g,.012,cm);b=mix(b,.006,cm);
+      const cm=Math.pow(ck,.45);if(FL&&FL.cav){r=mix(r,.02,cm);g=mix(g,.018,cm);b=mix(b,.016,cm)}else{r=mix(r,.022,cm);g=mix(g,.012,cm);b=mix(b,.006,cm)}
       col[k*3]=r;col[k*3+1]=g;col[k*3+2]=b;
-      aw[k*4]=ck;aw[k*4+1]=cl(sd,0,1);aw[k*4+2]=wr;aw[k*4+3]=Math.min(1,ex);
+      /* FL.cav: groove bottoms occluded by their own depth (wwMat shades aW.x as a cavity: less sky and sun reach down there); not on
+         the underside, where all that would be left is the orange bounce off the sand */
+      aw[k*4]=FL&&FL.cav&&!P.cap?Math.max(ck,FL.cav*ss(.03,.3,gc)*ss(-.7,-.3,top)):ck;aw[k*4+1]=cl(sd,0,1);aw[k*4+2]=wr;aw[k*4+3]=Math.min(1,ex);
       ab[k*4]=bk;ab[k*4+1]=Math.min(1,ch);ab[k*4+2]=R;ab[k*4+3]=gl}}
   const idx=[];for(let i=0;i<NP-1;i++)for(let j=0;j<NR;j++){const a=i*NR+j,b=i*NR+(j+1)%NR,c2=(i+1)*NR+j,d=(i+1)*NR+(j+1)%NR;idx.push(a,b,c2,b,d,c2)}
   const g=new T.BG();g.setAttribute("position",new T.BA(pos,3));g.setAttribute("color",new T.BA(col,3));g.setAttribute("aW",new T.BA(aw,4));g.setAttribute("aB",new T.BA(ab,4));
@@ -1470,7 +1478,7 @@ function wwMat(glow,gb){const m=new T.MSM({vertexColors:true,roughness:.93,metal
   const BY=1.82,TOP=1.771,PH=.36,PL=.34,PB=.16;
   part("rackBar",{seed:58163,L:3.6,R:.037,NR:60,NL:58,furrows:0,sag:-.02,sagW:1.6,rugs:true,sandTop:.35,checks:3,knots:0,nicks:0,splits:4,
     lobe:1.35,irreg:1,plane:.015,scoop:.0012,rc:.01,capR:[0,.6],capE:[Math.PI/6,Math.PI/3],splitD:.6,splitW:.6,capCrack:.45,capRough:.003,
-    flow:{n:15,band:3.3,c:.35,d:.017,cap:.013,wave:.25,lw:.045,cw:.75,ck:.5,kc:2.5,back:.1,bandC:.06,wmin:.0025,wmax:.0095,kx:5,part:1.25,rowL:.55,rowR:2,rx:.9,kr:12,krx:2.5},
+    flow:{n:15,band:3.3,c:.35,d:.017,cap:.013,wave:.25,irr:1,jit:.3,cav:1,crest:.28,bot:.5,lw:.045,cw:.75,ck:.5,kc:2.5,back:.1,bandC:.06,wmin:.0025,wmax:.0095,kx:5,part:1.25,rowL:.55,rowR:2,rx:.9,kr:12,krx:2.5},
     mob:{NR:40,NL:36,capR:[0,.6],capE:[Math.PI/4]},
     bigKnots:[{x:1.1,da:.3,r:.017,h:.011,moat:.0025},{x:-.55,da:-.8,r:.014,h:.007,moat:.002,kr:5}],
     chips:[{e:1,x:.018,da:.5,sx:.03,sa:.5,d:.007},{e:-1,x:.022,da:-.4,sx:.035,sa:.55,d:.008}],

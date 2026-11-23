@@ -1,0 +1,243 @@
+{
+ "note": "tools/e2e/d167-relief.py (same sampling as d167/d168: camera `bar`, 1280x720, x 230..650 px; this round adds dark10RGB/dark10Lum = mean sRGB/luminance of the darkest 10 % of bar pixels and ridgeP95 = 95th-percentile luminance, pooled over the same runs). d164 = desert.f1b14a2f7f.js, main = #168 desert.3eef4c54ac.js, new = this branch desert.c064423117.js; mainP/newP = the same camera with the iPhone user agent (phone mesh, 3,360 tris)",
+ "d164_R_bar_close_day.png": {
+  "std": 0.2061,
+  "hp": 0.1188,
+  "dark": 0.2494,
+  "lines": 9.1857,
+  "h": 147.7214,
+  "columns": 420,
+  "dark10RGB": [
+   0.1416,
+   0.1133,
+   0.0872
+  ],
+  "dark10Lum": 0.1174,
+  "ridgeP95": 0.7347
+ },
+ "d164_R_bar_close_dusk.png": {
+  "std": 0.2117,
+  "hp": 0.1226,
+  "dark": 0.2774,
+  "lines": 8.569,
+  "h": 123.9357,
+  "columns": 420,
+  "dark10RGB": [
+   0.1062,
+   0.0822,
+   0.068
+  ],
+  "dark10Lum": 0.0863,
+  "ridgeP95": 0.7058
+ },
+ "main_R_bar_close_day.png": {
+  "std": 0.2212,
+  "hp": 0.1437,
+  "dark": 0.2636,
+  "lines": 10.8,
+  "h": 139.4571,
+  "columns": 420,
+  "dark10RGB": [
+   0.1009,
+   0.0958,
+   0.092
+  ],
+  "dark10Lum": 0.0966,
+  "ridgeP95": 0.789
+ },
+ "main_R_bar_close_dusk.png": {
+  "std": 0.224,
+  "hp": 0.133,
+  "dark": 0.3054,
+  "lines": 12.5286,
+  "h": 151.2833,
+  "columns": 420,
+  "dark10RGB": [
+   0.1071,
+   0.0886,
+   0.0777
+  ],
+  "dark10Lum": 0.0917,
+  "ridgeP95": 0.7632
+ },
+ "new_R_bar_close_day.png": {
+  "std": 0.1958,
+  "hp": 0.1135,
+  "dark": 0.2595,
+  "lines": 9.5429,
+  "h": 135.3048,
+  "columns": 420,
+  "dark10RGB": [
+   0.172,
+   0.138,
+   0.1045
+  ],
+  "dark10Lum": 0.1428,
+  "ridgeP95": 0.7431
+ },
+ "new_R_bar_close_dusk.png": {
+  "std": 0.1936,
+  "hp": 0.1083,
+  "dark": 0.264,
+  "lines": 9.6619,
+  "h": 119.7214,
+  "columns": 420,
+  "dark10RGB": [
+   0.1471,
+   0.1159,
+   0.0923
+  ],
+  "dark10Lum": 0.1208,
+  "ridgeP95": 0.7173
+ },
+ "newP_R_bar_close_day.png": {
+  "std": 0.1953,
+  "hp": 0.0999,
+  "dark": 0.2666,
+  "lines": 6.5048,
+  "h": 106.231,
+  "columns": 420,
+  "dark10RGB": [
+   0.16,
+   0.1223,
+   0.0875
+  ],
+  "dark10Lum": 0.1278,
+  "ridgeP95": 0.7313
+ },
+ "newP_R_bar_close_dusk.png": {
+  "std": 0.1964,
+  "hp": 0.0945,
+  "dark": 0.2772,
+  "lines": 7.9405,
+  "h": 104.7429,
+  "columns": 420,
+  "dark10RGB": [
+   0.1205,
+   0.0904,
+   0.072
+  ],
+  "dark10Lum": 0.0955,
+  "ridgeP95": 0.6968
+ },
+ "mainP_R_bar_close_day.png": {
+  "std": 0.2213,
+  "hp": 0.161,
+  "dark": 0.2698,
+  "lines": 10.9167,
+  "h": 144.1405,
+  "columns": 420,
+  "dark10RGB": [
+   0.1354,
+   0.1189,
+   0.104
+  ],
+  "dark10Lum": 0.1213,
+  "ridgeP95": 0.7731
+ },
+ "mainP_R_bar_close_dusk.png": {
+  "std": 0.2172,
+  "hp": 0.1532,
+  "dark": 0.2638,
+  "lines": 12.0952,
+  "h": 147.4357,
+  "columns": 420,
+  "dark10RGB": [
+   0.118,
+   0.0956,
+   0.0823
+  ],
+  "dark10Lum": 0.0994,
+  "ridgeP95": 0.7436
+ },
+ "vsD164": {
+  "day": {
+   "std": 0.95,
+   "hp": 0.955,
+   "dark": 1.04,
+   "ridgeP95": 1.011
+  },
+  "dusk": {
+   "std": 0.915,
+   "hp": 0.883,
+   "dark": 0.952,
+   "ridgeP95": 1.016
+  }
+ },
+ "vsMain": {
+  "day": {
+   "std": 0.885,
+   "hp": 0.79,
+   "dark": 0.984,
+   "ridgeP95": 0.942
+  },
+  "dusk": {
+   "std": 0.864,
+   "hp": 0.814,
+   "dark": 0.864,
+   "ridgeP95": 0.94
+  }
+ },
+ "dark10Hue_G_over_R_B_over_R": {
+  "day": {
+   "d164": [
+    0.8,
+    0.616
+   ],
+   "main": [
+    0.949,
+    0.912
+   ],
+   "new": [
+    0.802,
+    0.608
+   ]
+  },
+  "dusk": {
+   "d164": [
+    0.774,
+    0.64
+   ],
+   "main": [
+    0.827,
+    0.725
+   ],
+   "new": [
+    0.788,
+    0.627
+   ]
+  }
+ },
+ "params": {
+  "main": {
+   "cav": 1,
+   "bot": 0.5,
+   "crest": 0.28,
+   "tv": [
+    0.78,
+    0.78,
+    0.76
+   ],
+   "ckc": [
+    0.02,
+    0.018,
+    0.016
+   ]
+  },
+  "new": {
+   "cav": 0.55,
+   "bot": 0.25,
+   "crest": 0,
+   "tv": [
+    0.68,
+    0.75,
+    0.83
+   ],
+   "ckc": [
+    0.022,
+    0.012,
+    0.006
+   ]
+  }
+ }
+}

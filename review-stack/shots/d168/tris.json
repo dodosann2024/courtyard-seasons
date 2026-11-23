@@ -1,0 +1,306 @@
+{
+ "note": "triangles per wooden part and campfire stones (instanced: triangles per stone x stones). desktop = 1280x720 Chrome, mobile = iPhone user agent. main = #167 (desert.7a7a539e7f.js), branch = this PR (desert.3eef4c54ac.js)",
+ "limits": {
+  "rackBar": {
+   "desktop": 8000,
+   "mobile": 3500
+  }
+ },
+ "rackBar": {
+  "main": {
+   "desktop": 7920,
+   "mobile": 3360
+  },
+  "branch": {
+   "desktop": 7920,
+   "mobile": 3360
+  }
+ },
+ "geometryUnchanged": {
+  "note": "vertex-data fingerprint (position, colour, aW, aB) of every other wooden part and stone is identical to main, desktop and mobile",
+  "desktopDiffer": [
+   "rackBar"
+  ],
+  "mobileDiffer": [
+   "rackBar"
+  ],
+  "partsCompared": 26
+ },
+ "textures": {
+  "note": "approach 2 only (vertex cavity + albedo): no baked texture shipped",
+  "count": 0,
+  "bytes": 0
+ },
+ "main": {
+  "desktop": {
+   "parts": {
+    "rackBar": 7920,
+    "rackPostL": 3072,
+    "rackForkL0": 504,
+    "rackForkL1": 504,
+    "rackPostR": 3072,
+    "rackForkR0": 504,
+    "rackForkR1": 504,
+    "fireLog0": 480,
+    "fireLog1": 480,
+    "fireLog2": 480,
+    "fireLog3": 480,
+    "fireLog4": 480,
+    "fireSeat0": 7296,
+    "fireSeat1": 7296,
+    "fireSeat2": 7296,
+    "fireWood0": 1232,
+    "fireWood1": 1232,
+    "fireWood2": 1232,
+    "fireWood3": 1232,
+    "fireWood4": 1232
+   },
+   "groups": {
+    "rackBar": 7920,
+    "rackPosts": 6144,
+    "rackForks": 2016,
+    "fireSeats": 21888,
+    "fireWood": 6160,
+    "fireLogs": 2400,
+    "allWood": 46528
+   },
+   "stones": {
+    "fireStoneR0": {
+     "trisEach": 1280,
+     "n": 5,
+     "tris": 6400
+    },
+    "fireStoneR1": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    },
+    "fireStoneR2": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    },
+    "fireStoneP0": {
+     "trisEach": 1280,
+     "n": 5,
+     "tris": 6400
+    },
+    "fireStoneP1": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    },
+    "fireStoneP2": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    }
+   },
+   "stonesTotal": 33280,
+   "mob": false
+  },
+  "mobile": {
+   "parts": {
+    "rackBar": 3360,
+    "rackPostL": 1176,
+    "rackForkL0": 208,
+    "rackForkL1": 208,
+    "rackPostR": 1176,
+    "rackForkR0": 208,
+    "rackForkR1": 208,
+    "fireLog0": 256,
+    "fireLog1": 256,
+    "fireLog2": 256,
+    "fireLog3": 256,
+    "fireLog4": 256,
+    "fireSeat0": 3120,
+    "fireSeat1": 3120,
+    "fireSeat2": 3120,
+    "fireWood0": 644,
+    "fireWood1": 644,
+    "fireWood2": 644,
+    "fireWood3": 644,
+    "fireWood4": 644
+   },
+   "groups": {
+    "rackBar": 3360,
+    "rackPosts": 2352,
+    "rackForks": 832,
+    "fireSeats": 9360,
+    "fireWood": 3220,
+    "fireLogs": 1280,
+    "allWood": 20404
+   },
+   "stones": {
+    "fireStoneR0": {
+     "trisEach": 320,
+     "n": 5,
+     "tris": 1600
+    },
+    "fireStoneR1": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    },
+    "fireStoneR2": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    },
+    "fireStoneP0": {
+     "trisEach": 320,
+     "n": 5,
+     "tris": 1600
+    },
+    "fireStoneP1": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    },
+    "fireStoneP2": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    }
+   },
+   "stonesTotal": 8320,
+   "mob": true
+  }
+ },
+ "branch": {
+  "desktop": {
+   "parts": {
+    "rackBar": 7920,
+    "rackPostL": 3072,
+    "rackForkL0": 504,
+    "rackForkL1": 504,
+    "rackPostR": 3072,
+    "rackForkR0": 504,
+    "rackForkR1": 504,
+    "fireLog0": 480,
+    "fireLog1": 480,
+    "fireLog2": 480,
+    "fireLog3": 480,
+    "fireLog4": 480,
+    "fireSeat0": 7296,
+    "fireSeat1": 7296,
+    "fireSeat2": 7296,
+    "fireWood0": 1232,
+    "fireWood1": 1232,
+    "fireWood2": 1232,
+    "fireWood3": 1232,
+    "fireWood4": 1232
+   },
+   "groups": {
+    "rackBar": 7920,
+    "rackPosts": 6144,
+    "rackForks": 2016,
+    "fireSeats": 21888,
+    "fireWood": 6160,
+    "fireLogs": 2400,
+    "allWood": 46528
+   },
+   "stones": {
+    "fireStoneR0": {
+     "trisEach": 1280,
+     "n": 5,
+     "tris": 6400
+    },
+    "fireStoneR1": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    },
+    "fireStoneR2": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    },
+    "fireStoneP0": {
+     "trisEach": 1280,
+     "n": 5,
+     "tris": 6400
+    },
+    "fireStoneP1": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    },
+    "fireStoneP2": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    }
+   },
+   "stonesTotal": 33280,
+   "mob": false
+  },
+  "mobile": {
+   "parts": {
+    "rackBar": 3360,
+    "rackPostL": 1176,
+    "rackForkL0": 208,
+    "rackForkL1": 208,
+    "rackPostR": 1176,
+    "rackForkR0": 208,
+    "rackForkR1": 208,
+    "fireLog0": 256,
+    "fireLog1": 256,
+    "fireLog2": 256,
+    "fireLog3": 256,
+    "fireLog4": 256,
+    "fireSeat0": 3120,
+    "fireSeat1": 3120,
+    "fireSeat2": 3120,
+    "fireWood0": 644,
+    "fireWood1": 644,
+    "fireWood2": 644,
+    "fireWood3": 644,
+    "fireWood4": 644
+   },
+   "groups": {
+    "rackBar": 3360,
+    "rackPosts": 2352,
+    "rackForks": 832,
+    "fireSeats": 9360,
+    "fireWood": 3220,
+    "fireLogs": 1280,
+    "allWood": 20404
+   },
+   "stones": {
+    "fireStoneR0": {
+     "trisEach": 320,
+     "n": 5,
+     "tris": 1600
+    },
+    "fireStoneR1": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    },
+    "fireStoneR2": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    },
+    "fireStoneP0": {
+     "trisEach": 320,
+     "n": 5,
+     "tris": 1600
+    },
+    "fireStoneP1": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    },
+    "fireStoneP2": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    }
+   },
+   "stonesTotal": 8320,
+   "mob": true
+  }
+ }
+}

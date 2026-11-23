@@ -1,0 +1,80 @@
+{
+ "note": "tools/e2e/d167-relief.py unchanged, camera `bar` (d168-proof.mjs = d167 cameras), 1280x720, x 230..650 px. d164 = desert.f1b14a2f7f.js, main = #167 desert.7a7a539e7f.js, new = this branch desert.3eef4c54ac.js",
+ "d164_R_bar_close_day.png": {
+  "std": 0.2061,
+  "hp": 0.1188,
+  "dark": 0.2494,
+  "lines": 9.1833,
+  "h": 147.7095,
+  "columns": 420
+ },
+ "main_R_bar_close_day.png": {
+  "std": 0.171,
+  "hp": 0.1045,
+  "dark": 0.1476,
+  "lines": 11.7024,
+  "h": 143.1286,
+  "columns": 420
+ },
+ "new_R_bar_close_day.png": {
+  "std": 0.2212,
+  "hp": 0.1437,
+  "dark": 0.2636,
+  "lines": 10.8,
+  "h": 139.4571,
+  "columns": 420
+ },
+ "d164_R_bar_close_dusk.png": {
+  "std": 0.2117,
+  "hp": 0.1226,
+  "dark": 0.2774,
+  "lines": 8.569,
+  "h": 123.9357,
+  "columns": 420
+ },
+ "main_R_bar_close_dusk.png": {
+  "std": 0.1823,
+  "hp": 0.0994,
+  "dark": 0.2015,
+  "lines": 15.0119,
+  "h": 151.5619,
+  "columns": 420
+ },
+ "new_R_bar_close_dusk.png": {
+  "std": 0.224,
+  "hp": 0.133,
+  "dark": 0.3054,
+  "lines": 12.5262,
+  "h": 151.2833,
+  "columns": 420
+ },
+ "vsD164": {
+  "day": {
+   "std": 1.073,
+   "hp": 1.21,
+   "dark": 1.057
+  },
+  "dusk": {
+   "std": 1.058,
+   "hp": 1.085,
+   "dark": 1.101
+  }
+ },
+ "vsMain": {
+  "day": {
+   "std": 1.294,
+   "hp": 1.375,
+   "dark": 1.786
+  },
+  "dusk": {
+   "std": 1.229,
+   "hp": 1.338,
+   "dark": 1.516
+  }
+ },
+ "target": {
+  "dayDarkMin": 0.1995,
+  "dayDark": 0.2636,
+  "pass": true
+ }
+}

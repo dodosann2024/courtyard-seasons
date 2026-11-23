@@ -1,0 +1,356 @@
+{
+ "cams": {
+  "bar": [
+   "rack",
+   [
+    0.86,
+    1.97,
+    0.56
+   ],
+   [
+    1.4,
+    1.8,
+    0
+   ],
+   30
+  ],
+  "barEnd": [
+   "rack",
+   [
+    2.2,
+    1.97,
+    0.5
+   ],
+   [
+    1.74,
+    1.81,
+    0
+   ],
+   28
+  ],
+  "barKnot": [
+   "rack",
+   [
+    0.98,
+    1.93,
+    0.3
+   ],
+   [
+    1.12,
+    1.81,
+    0
+   ],
+   22
+  ],
+  "flog": [
+   "fire",
+   [
+    0.75,
+    1.05,
+    -0.55
+   ],
+   [
+    0.15,
+    0.18,
+    1.45
+   ],
+   42
+  ],
+  "wclose": [
+   "fire",
+   [
+    -0.4,
+    0.5,
+    -0.95
+   ],
+   [
+    -0.93,
+    0.08,
+    -1.6
+   ],
+   34
+  ],
+  "wall": [
+   "fire",
+   [
+    -3.6,
+    2.6,
+    4.6
+   ],
+   [
+    3.2,
+    0.6,
+    -2.2
+   ],
+   52
+  ],
+  "flogEnd": [
+   "fire",
+   [
+    -1.3,
+    0.42,
+    1.95
+   ],
+   [
+    0.19,
+    0.1,
+    1.61
+   ],
+   30
+  ],
+  "stones": [
+   "fire",
+   [
+    0.62,
+    0.5,
+    0.78
+   ],
+   [
+    -0.05,
+    0.02,
+    0.05
+   ],
+   40
+  ],
+  "sfMid": [
+   "world",
+   [
+    36,
+    1.5,
+    25
+   ],
+   [
+    7,
+    -7.5,
+    4.5
+   ],
+   38
+  ],
+  "sfFull": [
+   "world",
+   [
+    84,
+    -6,
+    60
+   ],
+   [
+    2,
+    -16,
+    0
+   ],
+   40
+  ],
+  "sfPhone": [
+   "world",
+   [
+    74,
+    -8,
+    54
+   ],
+   [
+    2,
+    -17,
+    0
+   ],
+   62
+  ]
+ },
+ "trisDesktop": {
+  "parts": {
+   "rackBar": 7920,
+   "rackPostL": 3072,
+   "rackForkL0": 504,
+   "rackForkL1": 504,
+   "rackPostR": 3072,
+   "rackForkR0": 504,
+   "rackForkR1": 504,
+   "fireLog0": 480,
+   "fireLog1": 480,
+   "fireLog2": 480,
+   "fireLog3": 480,
+   "fireLog4": 480,
+   "fireSeat0": 7296,
+   "fireSeat1": 7296,
+   "fireSeat2": 7296,
+   "fireWood0": 1232,
+   "fireWood1": 1232,
+   "fireWood2": 1232,
+   "fireWood3": 1232,
+   "fireWood4": 1232
+  },
+  "groups": {
+   "rackBar": 7920,
+   "rackPosts": 6144,
+   "rackForks": 2016,
+   "fireSeats": 21888,
+   "fireWood": 6160,
+   "fireLogs": 2400,
+   "allWood": 46528
+  },
+  "stones": {
+   "fireStoneR0": {
+    "trisEach": 1280,
+    "n": 5,
+    "tris": 6400
+   },
+   "fireStoneR1": {
+    "trisEach": 1280,
+    "n": 4,
+    "tris": 5120
+   },
+   "fireStoneR2": {
+    "trisEach": 1280,
+    "n": 4,
+    "tris": 5120
+   },
+   "fireStoneP0": {
+    "trisEach": 1280,
+    "n": 5,
+    "tris": 6400
+   },
+   "fireStoneP1": {
+    "trisEach": 1280,
+    "n": 4,
+    "tris": 5120
+   },
+   "fireStoneP2": {
+    "trisEach": 1280,
+    "n": 4,
+    "tris": 5120
+   }
+  },
+  "stonesTotal": 33280,
+  "mob": false
+ },
+ "trisMobile": {
+  "parts": {
+   "rackBar": 3360,
+   "rackPostL": 1176,
+   "rackForkL0": 208,
+   "rackForkL1": 208,
+   "rackPostR": 1176,
+   "rackForkR0": 208,
+   "rackForkR1": 208,
+   "fireLog0": 256,
+   "fireLog1": 256,
+   "fireLog2": 256,
+   "fireLog3": 256,
+   "fireLog4": 256,
+   "fireSeat0": 3120,
+   "fireSeat1": 3120,
+   "fireSeat2": 3120,
+   "fireWood0": 644,
+   "fireWood1": 644,
+   "fireWood2": 644,
+   "fireWood3": 644,
+   "fireWood4": 644
+  },
+  "groups": {
+   "rackBar": 3360,
+   "rackPosts": 2352,
+   "rackForks": 832,
+   "fireSeats": 9360,
+   "fireWood": 3220,
+   "fireLogs": 1280,
+   "allWood": 20404
+  },
+  "stones": {
+   "fireStoneR0": {
+    "trisEach": 320,
+    "n": 5,
+    "tris": 1600
+   },
+   "fireStoneR1": {
+    "trisEach": 320,
+    "n": 4,
+    "tris": 1280
+   },
+   "fireStoneR2": {
+    "trisEach": 320,
+    "n": 4,
+    "tris": 1280
+   },
+   "fireStoneP0": {
+    "trisEach": 320,
+    "n": 5,
+    "tris": 1600
+   },
+   "fireStoneP1": {
+    "trisEach": 320,
+    "n": 4,
+    "tris": 1280
+   },
+   "fireStoneP2": {
+    "trisEach": 320,
+    "n": 4,
+    "tris": 1280
+   }
+  },
+  "stonesTotal": 8320,
+  "mob": true
+ },
+ "geoDesktop": {
+  "rackBar": "3c1fbc3f.-2646331f.23760",
+  "rackPostL": "15788cb5.-706a925d.9216",
+  "rackForkL0": "6a9f37f5.-4d4905fb.1512",
+  "rackForkL1": "68be0290.-7144f691.1512",
+  "rackPostR": "7d972a50.-6d0ccfa4.9216",
+  "rackForkR0": "68d362e8.-7df7b048.1512",
+  "rackForkR1": "69ef237c.-1365d16a.1512",
+  "fireStoneR0": "1107a669.-6f78f846.3840",
+  "fireStoneR1": "243e8285.-3e267e9c.3840",
+  "fireStoneR2": "11501063.-24ca8759.3840",
+  "fireLog0": "241c4fff.-155ac03a.1440",
+  "fireLog1": "15c03ecf.-2cfbe781.1440",
+  "fireLog2": "21dc5738.-3b431712.1440",
+  "fireLog3": "19cc908d.-3998398.1440",
+  "fireLog4": "1a3348f7.-6ef6eeb0.1440",
+  "fireSeat0": "29e968a.-16b0af90.21888",
+  "fireSeat1": "59877692.-3efecdc9.21888",
+  "fireSeat2": "3639cab.-29f00392.21888",
+  "fireWood0": "620247ca.-6375444b.3696",
+  "fireWood1": "211962c4.-309ba5bb.3696",
+  "fireWood2": "312f8192.-1b8ca8c1.3696",
+  "fireWood3": "459dcdb5.-701b40c7.3696",
+  "fireWood4": "20c4224e.-786b1474.3696",
+  "fireStoneP0": "1cfaed94.-6d1c98e9.3840",
+  "fireStoneP1": "1e66553e.-35921854.3840",
+  "fireStoneP2": "143c1ad4.-d3c56fa.3840"
+ },
+ "geoMobile": {
+  "rackBar": "79c232dc.-1758c7f1.10080",
+  "rackPostL": "60233b5d.-5dbba5d8.3528",
+  "rackForkL0": "2f399c04.-1b551b6e.624",
+  "rackForkL1": "2b2eea32.-59647d9e.624",
+  "rackPostR": "535fd8cc.-7d81db2d.3528",
+  "rackForkR0": "2c2f9a14.-6c271797.624",
+  "rackForkR1": "2aa9cf68.-4c089743.624",
+  "fireStoneR0": "6d92517.-70679371.960",
+  "fireStoneR1": "bf1ce94.-3463c9be.960",
+  "fireStoneR2": "720b29d.-41c15c97.960",
+  "fireLog0": "607ae86b.-b306c88.768",
+  "fireLog1": "612cc0b6.-523323f.768",
+  "fireLog2": "5a168ead.-530ac77.768",
+  "fireLog3": "537562de.-27af5163.768",
+  "fireLog4": "5a1c7804.-6db99b61.768",
+  "fireSeat0": "2cc59ce3.-6d246fc3.9360",
+  "fireSeat1": "4f0ad27b.-1b2de88d.9360",
+  "fireSeat2": "17792fa1.-10a37ee4.9360",
+  "fireWood0": "3cd6e9f9.-23c0e0b6.1932",
+  "fireWood1": "1918804d.-9c9b9d5.1932",
+  "fireWood2": "220effee.-114f6a18.1932",
+  "fireWood3": "6acaa146.-9f6579a.1932",
+  "fireWood4": "2049732b.-60eae1e2.1932",
+  "fireStoneP0": "a8e6acb.-7f5c719d.960",
+  "fireStoneP1": "adf259f.-63111c63.960",
+  "fireStoneP2": "836140d.-60dfecb2.960"
+ },
+ "ver": {
+  "text": "版本 3eef4c",
+  "bundle": "assets/desert.3eef4c54ac.js",
+  "visible": true,
+  "match": true
+ },
+ "ostrich": [],
+ "fails": []
+}

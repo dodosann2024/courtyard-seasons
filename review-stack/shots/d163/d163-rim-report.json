@@ -1,0 +1,5 @@
+{
+ "metric": "lilac/blue pixels (b >= r-8, r > 120, sky excluded) in the sand strip y 120-320 of the 1280x720 frame, same framing, same build of the scene otherwise",
+ "near": {"main": 2211, "branch": 1728, "branchMirageOff": 1686, "mirageShareMain": 525, "mirageShareBranch": 42},
+ "mid": {"main": 1810, "branch": 1610}
+}

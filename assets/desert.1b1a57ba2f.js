@@ -261,6 +261,9 @@ function sandMat(){
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
       varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;varying vec2 vDn;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uPitK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;float mkO=0.;
       uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}
+      /* the island's rim shape (sN in JS): 1 on the rim line */
+      float rimN(vec2 p){vec2 q=p/vec2(${AX}.,${AZ}.);float th=atan(q.y,q.x);
+        return length(q)/(1.+.06*sin(2.*th+.7)+.05*sin(3.*th-1.2)+.03*sin(5.*th+2.1)+.018*sin(8.*th+.4)+.01*sin(13.*th+1.3));}
       float pondN(vec2 p){vec2 q=(p-uPond.xy)/uPond.zw;float th=atan(q.y,q.x);
         return length(q)/(1.+.09*sin(2.*th+1.1)+.06*sin(3.*th-.4)+.04*sin(5.*th+2.3));}
       /* wind ripples are not a ruled pattern: the spacing drifts from patch to patch and from one crest to the next (no two gaps alike),
@@ -369,6 +372,9 @@ function sandMat(){
           /* grazing against the sand itself, not the horizontal: a dune foot or rim slope tilted toward the eye is seen too steeply
              for a mirage, and drew white streaks up the slope */
           float vg=max(V.y,dot(normalize(normalMatrix*vSN),normalize((viewMatrix*vec4(V,0.)).xyz)));
+          /* none near the rim, nor where the line of sight runs on past the edge soon after: the pass would mirror the open sky
+             and cloud sea beyond the island into the sand as lilac-blue pools */
+          {vec2 bd=-normalize(V.xz+vec2(1e-5));fl*=smoothstep(.9,.78,rimN(vSP.xz))*smoothstep(1.,.88,max(max(rimN(vSP.xz+bd*8.),rimN(vSP.xz+bd*18.)),max(rimN(vSP.xz+bd*30.),rimN(vSP.xz+bd*44.))));}
           float gz=smoothstep(.16,.035,vg)*smoothstep(4.,12.,dM)*fl,gf=smoothstep(.3,.2,vg)*smoothstep(38.,55.,dM)*fl*.45;
           vec2 vh=normalize(V.xz+vec2(1e-5));float ax=dot(vSP.xz,vec2(-vh.y,vh.x)),ay=dot(vSP.xz,vh);
           float sh=dn2(vec2(ax*.6,ay*2.4-uTm*1.6))*.6+dn2(vec2(ax*1.9,ay*5.-uTm*2.9))*.4;

@@ -107,7 +107,16 @@ try {
     for (const [n, v] of JSON.parse(process.env.XCAMS || "[]")) { await tod("day"); await rackCam(...v); await shot(`${TAG}x_${n}.png`); }
     for (const [n, k, wx, v, t] of set.filter(s => !process.env.ONLY || process.env.ONLY.split(",").includes(s[0]))) {
       await page.evaluate(wx => { window.__set(Object.assign({wind: .4}, wx)); window.__desQA().sim(wx.weather === "hrain" ? 60 : 3); }, wx);
-      await tod(k); await rackCam(...v); await cap(t); await shot(`${TAG}${n}.png`);
+      await tod(k); await rackCam(...v);
+      /* the mid shot is about the tent and the bar: ostriches are put on open sand out of frame (their model and behaviour untouched) */
+      if (v === MID) report.osInMid = await page.evaluate(() => { const q = window.__desQA(), C = window.__C(), T = q.TENT;
+        const inFrame = (x, z) => { const g = q.hTop(x, z); for (const ox of [-.8, .8]) for (const oz of [-.8, .8]) for (const y of [g, g + 2.5]) { const p = q.toW(x + ox, y, z + oz); p.project(C.De);
+          if (p.z < 1 && Math.abs(p.x) < 1.3 && Math.abs(p.y) < 1.3) return true; } return false; };
+        const out = []; for (let x = -40; x <= 40; x += 2) for (let z = -40; z <= 40; z += 2) if (q.sN(x, z) < .8 && Math.hypot(x - T.x, z - T.z) > 10 && !inFrame(x, z)) out.push({x, z});
+        q.PA.os.forEach((o, i) => { const p = out[(i * 37) % out.length]; q.osPlace(o, p.x, p.z, 0); o.mode = "graze"; o.t = 20; o.path = null; });
+        q.sim(.5, 1 / 24); return q.PA.os.filter(o => inFrame(o.x, o.z)).length; });
+      if (v === MID) await rackCam(...v);
+      await cap(t); await shot(`${TAG}${n}.png`);
       if (wx.weather === "hrain") report.wet = await page.evaluate(() => +window.__desQA().tentU.uWetC.value.toFixed(2));
     }
     await page.evaluate(() => { window.__set({weather: "sun", ct: "clear", wind: .3}); window.__desQA().sim(2); }); await tod("day"); await cap("");
@@ -115,20 +124,24 @@ try {
 
   if (want("ver")) {
     await page.evaluate(() => { document.body.classList.remove("col"); for (const s of ["#fab", "#sbtn", "#tp"]) { const n = document.querySelector(s); if (n) n.style.display = ""; } });
-    await sleep(2500); await frames(4);
+    await page.evaluate(() => { const q = window.__desQA(); q.lookAt(-4.16, 11.13, 19.58, 0, 0, 0); });
+    await sleep(2500); await page.evaluate(() => { const v = document.getElementById("ver"); if (v) v.scrollIntoView({block: "center"}); }); await sleep(800); await frames(4);
     report.ver = await page.evaluate(() => { const v = document.getElementById("ver"), r = v && v.getBoundingClientRect(); return {text: v && v.textContent, bundle: window.CY && window.CY.desert, visible: !!r && r.width > 0 && r.bottom > 0 && r.top < innerHeight}; });
     const m = /desert\.(\w{6})/.exec(report.ver.bundle || "");
     report.ver.match = !!m && report.ver.text === "版本 " + m[1];
     console.log("ver", JSON.stringify(report.ver));
     if (!report.ver.match || !report.ver.visible) fails.push("version label does not match the bundle hash");
     await shot(`${TAG}C_panel_version.png`);
+    const r = await page.evaluate(() => { const q = document.getElementById("ver").closest(".info").getBoundingClientRect(); return {x: q.x - 12, y: q.y - 8, width: q.width + 24, height: q.height + 16}; });
+    await page.screenshot({path: path.join(OUT, `${TAG}C_panel_version_zoom.png`), clip: Object.assign(r, {scale: 3})});
     await hideUI();
   }
 
   if (want("agama")) {
     const pick = await page.evaluate(() => {
       const q = window.__desQA(), L = q.AG.list; window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day");
-      let a = null; for (let i = 0; i < 120 && !a; i++) { q.sim(3); a = L.find(o => o.mode === "bask" && !o.palm) || (i > 80 && L.find(o => o.mode === "bask")); }
+      let a = null; for (let i = 0; i < 120 && !a; i++) { q.sim(3); const lone = o => L.every(b => b === o || Math.hypot(b.x - o.x, b.z - o.z) > .8);
+        a = L.find(o => o.mode === "bask" && !o.palm && lone(o)) || (i > 80 && L.find(o => o.mode === "bask" && lone(o))) || (i > 110 && L.find(o => o.mode === "bask")); }
       window.__ag = L.indexOf(a); return a ? {i: L.indexOf(a), male: a.male, palm: !!a.palm, mode: a.mode} : null;
     });
     report.agama = pick;
@@ -142,7 +155,7 @@ try {
           for (let s = .05; s < 1; s += .05) { const x = ex + (p.x - ex) * s, z = ez + (p.z - ez) * s, y = ey + (p.y + .03 - ey) * s; if (y < q.hTop(x, z) + .025) { ok = false; break; } }
           if (ok) e = [ex, ey, ez]; }
         e = e || [p.x + Math.sin(b) * .62, p.y + .5, p.z + Math.cos(b) * .62];
-        q.lookAt(e[0], e[1], e[2], p.x, p.y + .025, p.z); C.De.fov = 30; C.De.near = .02; C.De.updateProjectionMatrix(); });
+        q.lookAt(e[0], e[1], e[2], p.x, p.y + .025, p.z); C.De.fov = 24; C.De.near = .02; C.De.updateProjectionMatrix(); });
       await cap("西奈飞蜥：晴天在沙上晒太阳（本轮未改动）"); await shot(`${TAG}D_agama_bask.png`); await cap("");
     }
   }

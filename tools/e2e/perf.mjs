@@ -71,13 +71,17 @@ async function run(origin) {
 
 const PR = await serve(ROOT), MAIN = await serve(BASE);
 const R = {pr: [], main: []};
+/* ORDER=rotate: main goes first on odd rounds, so neither build always runs first */
+const order = [];
 for (let i = 0; i < ROUNDS; i++) {
-  for (const [k, o] of [["pr", PR], ["main", MAIN]]) {
+  const ab = [["pr", PR], ["main", MAIN]];
+  for (const [k, o] of process.env.ORDER === "rotate" && i % 2 ? ab.reverse() : ab) {
     let r = await run(o); console.log(k, JSON.stringify(r));
     if (k === "pr" && r.over200) { r = await run(o); console.log(k, "rerun", JSON.stringify(r)); }
-    R[k].push(r);
+    R[k].push(r); order.push(k);
   }
 }
+if (process.env.PERF_JSON) fs.writeFileSync(process.env.PERF_JSON, JSON.stringify({order, R}, null, 1));
 const mean = a => a.reduce((s, r) => s + r.jsMean, 0) / a.length;
 const mPR = mean(R.pr), mMain = mean(R.main), stalls = R.pr.reduce((s, r) => s + r.over200, 0);
 const ok1 = mPR <= mMain * 1.15, ok2 = stalls === 0;

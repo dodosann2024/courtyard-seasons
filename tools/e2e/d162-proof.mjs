@@ -56,7 +56,9 @@ const browser = await puppeteer.launch({executablePath: CHROME, headless: "new",
 const HIDE = [".t", "#fab", "#sbtn", "#tp", "#ld"];
 const page = await browser.newPage();
 const crReq = new Set(), osReq = new Set();
-page.on("request", r => { const k = /\/(crab_[a-z0-9_]+)\.glb/.exec(r.url()); if (k) crReq.add(k[1]); const m = /\/(ostrich_v2[a-z0-9]+)\.glb/.exec(r.url()); if (m) osReq.add(m[1]); });
+page.on("request", r => { const k = /\/(crab_[a-z0-9_]+)\.glb/.exec(r.url()); if (k) crReq.add(k[1]); const m = /\/(ostrich_v2[a-z0-9]+)\.glb/.exec(r.url());
+  /* ui.js's desPre prefetches every model in the size table, the unused ostrich versions too: only the desert's own loads count */
+  const i = r.initiator(), pre = i && i.stack && i.stack.callFrames.some(f => f.functionName === "desPre"); if (m && !pre) osReq.add(m[1]); });
 page.on("console", m => { const t = m.type(); if (t === "error" || t === "warning") console.log("PAGE", t, m.text().slice(0, 240)); });
 page.on("pageerror", e => console.log("PAGEERR", String(e).slice(0, 300)));
 await page.setViewport({width: W, height: H, deviceScaleFactor: 1});
@@ -90,6 +92,7 @@ async function vid(name, N, each, keep, fps = 24) {
     await frames(1);
     await page.screenshot({path: path.join(dir, String(i).padStart(4, "0") + ".png")});
     if (s && s.stop) break;
+    if (i % 5 === 4) console.log("frame", name, i + 1, "/", N);
   }
   await ffmpeg(["-framerate", String(fps), "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", path.join(OUT, name + ".mp4")]);
   console.log("encoded", name, log.length);
@@ -191,7 +194,7 @@ try {
   /* ---------------- tent in rain from eye level, no ostrich inside the tent's silhouette ---------------- */
   /* TC(az): the eye-level camera on the tent from azimuth az (eye 1.55 m over the sand, 6.8 m from the tent's centre).
      silh(): the tent's screen rectangle (its footprint and 2.2 m height, poles and ropes allowed for) and each ostrich's (feet to head,
-     its body width either side), with whether the bird is further from the eye than the tent's nearest corner. An ostrich "in the
+     its body width either side), with whether the bird stands further from the eye than the tent's centre (a 6 x 4 m tent's near corner is closer than a bird at its door). An ostrich "in the
      silhouette" is one behind the tent whose rectangle overlaps the tent's: that is the frame where it can seem to stand on the roof. */
   const tentJS = `(() => { const q = window.__desQA(), C = window.__C(), T = q.TENT, gy = q.hTop(T.x, T.z), c = Math.cos(T.yaw), s = Math.sin(T.yaw);
     const TC = (az, dist = 6.8, eh = 1.55) => { q.lookAt(T.x + Math.sin(az) * dist, gy + eh, T.z + Math.cos(az) * dist, T.x, gy + 1.15, T.z);
@@ -204,16 +207,17 @@ try {
     const ov = (a, b, m = 0) => a[0] - m < b[2] && b[0] - m < a[2] && a[1] - m < b[3] && b[1] - m < a[3];
     const onScr = r => r[2] > -1 && r[0] < 1 && r[3] > -1 && r[1] < 1;
     const silh = (ahead = 0, m = 0) => { const t = tent(); return q.os().map(o => { const x = o.x + Math.sin(o.yaw) * o.v * ahead, z = o.z + Math.cos(o.yaw) * o.v * ahead, b = bird(o, x, z);
-      return {behind: b.dm > t.dm, on: onScr(b.r), hit: b.dm > t.dm && ov(b.r, t.r, m)}; }); };
+      const bk = Math.hypot(x - T.x, z - T.z) > 1e-3 && P(x, gy, z)[2] > P(T.x, gy, T.z)[2];
+      return {behind: bk, on: onScr(b.r), hit: bk && ov(b.r, t.r, m)}; }); };
     return {TC, silh, tent, bird, P}; })()`;
   if (want("tent")) {
     await cap(" ");
     /* where the ostriches go over a long day: for each azimuth, the share of one-second samples with a bird inside the silhouette */
-    report.tent = Object.assign(report.tent || {}, {pick: await page.evaluate(js => {
+    report.tent = Object.assign(report.tent || {}, {pick: process.env.TAZ ? {preset: +process.env.TAZ, share: [{az: +process.env.TAZ, share: null}]} : await page.evaluate(js => {
       const q = window.__desQA(), K = (new Function("return " + js))(), AZ = Array.from({length: 16}, (_, i) => i / 16 * Math.PI * 2), hits = AZ.map(() => 0);
       window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day"); let n = 0;
       for (const w of [{weather: "sun", ct: "clear", wind: .3}, {weather: "hrain", ct: "overcast", wind: .5}, {weather: "sun", ct: "clear", wind: .5}]) {
-        window.__set(w); for (let i = 0; i < 300; i++) { q.sim(1, .1); n++; AZ.forEach((a, k) => { K.TC(a); if (K.silh().some(b => b.hit)) hits[k]++; }); } }
+        window.__set(w); for (let i = 0; i < 60; i++) { q.sim(1, .1); n++; AZ.forEach((a, k) => { K.TC(a); if (K.silh().some(b => b.hit)) hits[k]++; }); } }
       return {samples: n, share: AZ.map((a, k) => ({az: +a.toFixed(3), share: +(hits[k] / n).toFixed(3)}))};
     }, tentJS)});
     /* the clearest azimuth that also looks at the tent's front quarter (its door and the fire), not straight at its back */
@@ -221,41 +225,43 @@ try {
     const front = a => Math.cos(a - tyaw) > -.2;
     const best = P.share.filter(s => front(s.az)).sort((a, b) => a.share - b.share)[0];
     P.chosen = best; console.log("tent azimuths", JSON.stringify(P));
-    /* the ostriches start out in view on the camera's side, one each side of the tent, standing on the sand in front of it */
+    /* the ostriches start out in view between the tent and the camera, one each side, nearer the eye than any corner of the tent */
     await page.evaluate(az => { const q = window.__desQA(), T = q.TENT, PA = q.PA;
       window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day");
       const fx = Math.sin(az), fz = Math.cos(az), rx = Math.cos(az), rz = -Math.sin(az);
-      PA.os.forEach((A, k) => { const sd = k ? 1 : -1, x = T.x + fx * 3.9 + rx * sd * 3.6, z = T.z + fz * 3.9 + rz * sd * 3.6;
+      PA.os.forEach((A, k) => { const sd = k ? 1 : -1, x = T.x + fx * 3.7 + rx * sd * 1.9, z = T.z + fz * 3.7 + rz * sd * 1.9;
         q.osPlace(A, x, z, Math.atan2(rx * sd, rz * sd) + (k ? .6 : -.6)); A.mode = "graze"; A.t = 12; A.path = null; });
       q.sim(2, 1 / 24); window.__wi = 0; window.__steer = 0; window.__az = az; }, best.az);
     /* each frame: if a bird is heading into the silhouette (where it would be in the next 2.5 s, with a margin), it is sent off to
        open sand on the camera's side; the frame is then checked as drawn */
-    const r = await vid("tent-rain", 12 * 6, async () => page.evaluate((capIn, js, clr) => {
+    /* TN frames at TFPS: a dry tenth, a third as a timelapse of 48 s of rain, the rest in real time */
+    const TN = +(process.env.TN || 40), TFPS = +(process.env.TFPS || 8), D0 = Math.max(3, Math.round(TN * .1)), D1 = D0 + Math.round(TN / 3), TLDT = 48 / (D1 - D0);
+    const r = await vid("tent-rain", TN, async () => page.evaluate((capIn, js, clr, D0, D1, TLDT, TFPS) => {
       const q = window.__desQA(), i = window.__wi++, K = (new Function("return " + js))(), az = window.__az;
-      if (i === 8) window.__set({weather: "hrain", ct: "overcast"});
-      (new Function("t", capIn + "(t)"))(i < 8 ? "帐篷：晴天，布面干燥；鸵鸟站在帐篷前的沙地上" : i < 32 ? "下雨：布面逐渐湿透变深（缩时，每帧 2 s）" : "雨中（实时）：雨点溅起、雨水顺着布面流下（附场景雨声）");
-      const tl = i >= 8 && i < 32, dt = tl ? 2 : 1 / 12;
+      if (i === D0) window.__set({weather: "hrain", ct: "overcast"});
+      (new Function("t", capIn + "(t)"))(i < D0 ? "帐篷：晴天，布面干燥；鸵鸟站在帐篷前的沙地上" : i < D1 ? `下雨：布面逐渐湿透变深（缩时，每帧 ${TLDT.toFixed(1)} s）` : "雨中（实时）：雨点溅起、雨水顺着布面流下（附场景雨声）");
+      const tl = i >= D0 && i < D1, dt = tl ? TLDT : 1 / TFPS;
       for (let k = 0; k < (tl ? 8 : 1); k++) {
         K.TC(az); const pr = K.silh(tl ? 2.5 : 1.2, .12);
         pr.forEach((b, j) => { if (!b.hit) return; const A = q.PA.os[j], T = q.TENT, sd = (Math.sin(az) * (A.z - T.z) - Math.cos(az) * (A.x - T.x)) > 0 ? 1 : -1;
           const fx = Math.sin(az), fz = Math.cos(az), rx = Math.cos(az), rz = -Math.sin(az);
           for (const [f, s] of [[4.2, 3.8], [4.8, 4.6], [3.4, 5.2], [5.5, 3.2]]) { if (q.osGo(A, {x: T.x + fx * f - rx * sd * s, z: T.z + fz * f - rz * sd * s}, false)) { window.__steer++; break; } } });
-        if (tl) q.sim(dt / 8, 1 / 24); else q.step(2, 1 / 24);
+        if (tl) q.sim(dt / 8, 1 / 24); else q.step(Math.round(24 / TFPS), 1 / 24);
       }
       K.TC(az);
       return {i, tentWet: +q.tentU.uWetC.value.toFixed(3), silh: K.silh(), clear: (new Function("return " + clr))()(), steer: window.__steer, os: q.os().map(o => [+o.x.toFixed(2), +o.z.toFixed(2), o.mode])};
-    }, capIn, tentJS, osClearJS), true, 12);
+    }, capIn, tentJS, osClearJS, D0, D1, TLDT, TFPS), true, TFPS);
     const s = r.log;
-    report.tent = Object.assign(report.tent, {frames: s.length, fps: 12, dry: s[7].tentWet, wet: s[s.length - 1].tentWet,
+    report.tent = Object.assign(report.tent, {frames: s.length, fps: TFPS, dry: s[D0 - 1].tentWet, wet: s[s.length - 1].tentWet,
       inSilhouetteFrames: s.filter(v => v.silh.some(b => b.hit)).length, birdOnScreenFrames: s.filter(v => v.silh.some(b => b.on)).length,
       birdBehindOnScreenFrames: s.filter(v => v.silh.some(b => b.on && b.behind)).length, steered: s[s.length - 1].steer,
       osMinClearance: Math.min(...s.flatMap(v => v.clear))});
     if (!(report.tent.dry < .1 && report.tent.wet > .3)) fails.push("tent clip: cloth did not go from dry to wet");
     if (report.tent.inSilhouetteFrames) fails.push("tent clip: an ostrich inside the tent silhouette in " + report.tent.inSilhouetteFrames + " frames");
     if (!(report.tent.osMinClearance > 0)) fails.push("tent clip: ostrich on the tent");
-    await strip([2, 14, 22, 30, 44, 64].filter(i => i < s.length).map(i => frameAt(r.dir, i)), "B_tent_rain_eye_level_strip.png", null, 426);
-    await ffmpeg(["-i", frameAt(r.dir, 4), "-frames:v", "1", "-update", "1", path.join(OUT, "B_tent_rain_eye_level_dry.png")]);
-    await ffmpeg(["-i", frameAt(r.dir, Math.min(s.length - 1, 50)), "-frames:v", "1", "-update", "1", path.join(OUT, "B_tent_rain_eye_level_wet.png")]);
+    await strip([1, D0 + 2, (D0 + D1) >> 1, D1 - 1, (D1 + TN) >> 1, TN - 1].map(i => frameAt(r.dir, i)), "B_tent_rain_eye_level_strip.png", null, 426);
+    await ffmpeg(["-i", frameAt(r.dir, D0 - 2), "-frames:v", "1", "-update", "1", path.join(OUT, "B_tent_rain_eye_level_dry.png")]);
+    await ffmpeg(["-i", frameAt(r.dir, TN - 3), "-frames:v", "1", "-update", "1", path.join(OUT, "B_tent_rain_eye_level_wet.png")]);
     fs.rmSync(r.dir, {recursive: true, force: true});
     /* the same moment from above: where the ostriches really are */
     await page.evaluate(() => { const q = window.__desQA(), C = window.__C(), T = q.TENT, y = q.hTop(T.x, T.z);
@@ -289,7 +295,10 @@ try {
       if (!vol || +vol[1] < -60) fails.push("tent clip: rain sound silent");
     } else fails.push("tent clip: no rain sound recorded");
     report.tent.osRequested = [...osReq];
-    if ([...osReq].some(k => k !== "ostrich_v2ag")) fails.push("ostrich file other than v2ag requested: " + [...osReq]);
+    /* desert.js deletes a prefetched buffer from window.__desPre once it parses it: those gone are the ones in use */
+    report.tent.osParsed = await page.evaluate(() => Object.keys(window.CY.ms || {}).filter(k => /^ostrich_v2/.test(k) && window.__desPre && !(k in window.__desPre)));
+    const osUsed = [...new Set([...osReq, ...report.tent.osParsed])];
+    if (osUsed.length !== 1 || osUsed[0] !== "ostrich_v2ag") fails.push("ostrich in use is not exactly v2ag: " + osUsed);
     console.log("tent", JSON.stringify({...report.tent, pick: undefined}));
   }
 } catch (e) {

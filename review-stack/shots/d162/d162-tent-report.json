@@ -1,0 +1,40 @@
+{
+  "live": {
+    "desert": "assets/desert.60282df679.js",
+    "crab": 709404,
+    "os": 2777816
+  },
+  "tent": {
+    "pick": {
+      "preset": 5.105,
+      "share": [
+        {
+          "az": 5.105,
+          "share": null
+        }
+      ],
+      "chosen": {
+        "az": 5.105,
+        "share": null
+      }
+    },
+    "frames": 36,
+    "fps": 6,
+    "dry": 0,
+    "wet": 1,
+    "inSilhouetteFrames": 0,
+    "birdOnScreenFrames": 36,
+    "birdBehindOnScreenFrames": 0,
+    "steered": 0,
+    "osMinClearance": 1.11,
+    "sound": {
+      "mime": "audio/webm;codecs=opus",
+      "bytes": 104624,
+      "meanDb": -20.9
+    },
+    "osRequested": [],
+    "osParsed": [
+      "ostrich_v2ag"
+    ]
+  }
+}

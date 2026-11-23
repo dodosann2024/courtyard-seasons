@@ -1461,17 +1461,85 @@ function wwMat(glow,gb){const m=new T.MSM({vertexColors:true,roughness:.93,metal
   const skin=new T.Mesh(new T.Sphere(.16,10,8),new T.MSM({color:"#5a3a22",roughness:.7}));skin.scale.set(1,1.35,.8);skin.position.set(1.35,1.45,0);skin.castShadow=true;g.add(skin);
   const pot=new T.Mesh(new T.Lathe([[0,0],[.14,.02],[.2,.12],[.18,.24],[.1,.3],[.11,.36]].map(p=>new T.V2(p[0],p[1])),12),new T.MSM({color:"#9a5a34",roughness:.85}));pot.position.set(-2.1,0,.5);pot.castShadow=true;g.add(pot);
   RACK.g=g})();
+/* ---------------- campfire stones: old desert stone, years in the wind ----------------
+   Irregular lumps whose fracture faces the blown sand has worn round at the edges, one or two cracks cut right across, and
+   a few shallow hollows where the softer grains have weathered out. Same footprint and flattening as the boulders they replace, so
+   every stone sits where it did. Own seed per shape: the island's shared random sequence is untouched. Phones get a quarter of the
+   triangles. Per pixel (fireStoneMat): honeycomb weathering in patches, pitting, hairline cracks, desert varnish from tan to
+   near black, iron stains, and soot on the side toward the fire. */
+function fireStoneGeo(k,fl){let s0=4127+k*7919;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.imul(s0^s0>>>15,1|s0);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},rg=(a,b)=>a+(b-a)*rn();
+  const{v,f}=icoSphere(MOB?2:3),ph=[rg(0,50),rg(0,50)],dir=(y0,y1)=>{const a=rg(0,TAU),b=rg(y0,y1);return[Math.cos(a)*Math.cos(b),Math.sin(b),Math.sin(a)*Math.cos(b)]};
+  const PL=Array.from({length:5},()=>[...dir(-.5,1.1),rg(.5,.74),rg(.07,.14)]);
+  const CR=Array.from({length:1+k%2},()=>[...dir(-.25,.25),rg(-.35,.35),rg(.035,.06),rg(.05,.09)]);
+  const PT=Array.from({length:3},()=>[...dir(-.15,.7),rg(.2,.34),rg(.05,.1)]);
+  const vv=v.map(p=>{let[x,y,z]=p;const n=1+.36*(fbm3(x*1.1+ph[0],y*1.1,z*1.1)-.5)+.12*(fbm3(x*2.9,y*2.9+ph[1],z*2.9)-.5);x*=n;y*=n;z*=n;
+    for(const q of PL){const e=x*q[0]+y*q[1]+z*q[2]-q[3];if(e>0){const m=e-q[4]*(1-Math.exp(-e/q[4]));x-=m*q[0];y-=m*q[1];z-=m*q[2]}}
+    const l=Math.hypot(x,y,z)||1;let dd=0;
+    for(const c of CR){const d=x*c[0]+y*c[1]+z*c[2]-c[3]+.05*(vn3(x*4+ph[0],y*4,z*4)-.5),w=c[4];if(Math.abs(d)<w)dd+=c[5]*(1-(d/w)**2)**2*ss(-.75,-.2,y)}
+    for(const P of PT){const g=Math.hypot(x/l-P[0],y/l-P[1],z/l-P[2]);if(g<P[3])dd+=P[4]*(1-(g/P[3])**2)**2}
+    x-=x/l*dd;y-=y/l*dd;z-=z/l*dd;return[x,y*fl+.12,z]});
+  return geoFrom(vv,f)}
+function fireStoneMat(){const m=new T.MSM({color:"#ffffff",roughness:.92,metalness:0});
+  m.onBeforeCompile=sh=>{sh.uniforms.uFire={value:new V3(FIRE.x,hTop(FIRE.x,FIRE.z)+.12,FIRE.z)};sh.uniforms.uWetC=tentU.uWetC;
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nvarying vec3 vSP,vSW,vSN;").replace("#include <begin_vertex>",`#include <begin_vertex>
+      {mat4 sM=modelMatrix;
+      #ifdef USE_INSTANCING
+      sM=sM*instanceMatrix;vSP=position+instanceMatrix[3].xyz*7.3;
+      #else
+      vSP=position;
+      #endif
+      vSW=(sM*vec4(position,1.)).xyz;vSN=normalize(mat3(sM)*normal);}`);
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
+      uniform vec3 uFire;uniform float uWetC;varying vec3 vSP,vSW,vSN;
+      float sH(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+      float sN(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+        return mix(mix(mix(sH(i),sH(i+vec3(1,0,0)),f.x),mix(sH(i+vec3(0,1,0)),sH(i+vec3(1,1,0)),f.x),f.y),mix(mix(sH(i+vec3(0,0,1)),sH(i+vec3(1,0,1)),f.x),mix(sH(i+vec3(0,1,1)),sH(i+vec3(1,1,1)),f.x),f.y),f.z);}
+      vec2 sC(vec3 p){vec3 i=floor(p),f=fract(p);float d1=8.,d2=8.;
+        for(int z=-1;z<=1;z++)for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec3 g=vec3(float(x),float(y),float(z)),o=g+vec3(sH(i+g),sH(i+g+19.1),sH(i+g+41.7))*.8+.1-f;float d=dot(o,o);
+          if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;}return vec2(sqrt(d1),sqrt(d2));}`)
+      .replace("#include <color_fragment>",`#include <color_fragment>
+      float sPx=length(fwidth(vSP)),sHt=0.;vec3 sQ=vSP;
+      /* honeycomb in patches on the sides and in the hollows, its cells deepest in the middle; fades out before it aliases */
+      float sHm=smoothstep(.66,.86,sN(sQ*1.6+3.)+.18*(1.-abs(vSN.y))-.25*max(vSN.y,0.))*(1.-smoothstep(.05,.16,sPx*7.));
+      vec2 sCe=sHm>.01?sC(sQ*11.+.4*sN(sQ*4.)):vec2(0.,1.);float sCell=smoothstep(.03,.28,sCe.y-sCe.x);sHt-=sHm*sCell*(.3+.7*smoothstep(.1,.5,sCe.x))*.7;
+      /* pits, and hairline cracks wandering over it */
+      float sPA=1.-smoothstep(.01,.03,sPx),sPit=smoothstep(.78,.9,sN(sQ*34.)+.15*sN(sQ*3.))*sPA;sHt-=.35*sPit;
+      float sCrN=abs(sN(sQ*3.3+7.)+.35*sN(sQ*9.)-.67),sCr=(1.-smoothstep(.0,.018,sCrN))*smoothstep(.6,.72,sN(sQ*1.3+11.))*(1.-smoothstep(.02,.06,sPx));sHt-=.6*sCr;
+      float sGr=sN(sQ*16.)*.6+sN(sQ*45.)*.4;sHt+=.15*sGr*sPA;
+      /* stone from grey-tan to a warm brown, darkened by varnish on the open faces, iron-stained in places; the weathered-out cells are fresher and paler */
+      float sT1=sN(sQ*2.1),sT2=sN(sQ*5.3+2.);
+      vec3 sAl=mix(vec3(.075,.064,.052),vec3(.15,.13,.105),sT1)*(.85+.3*sT2);
+      float sVr=smoothstep(.38,.75,sN(sQ*2.7+5.)+.35*max(vSN.y,0.)-.2*sHm);sAl=mix(sAl,vec3(.032,.021,.014)*(.8+.4*sT2),sVr*.8);
+      sAl=mix(sAl,vec3(.16,.075,.035),smoothstep(.62,.8,sN(sQ*1.9+9.))*.5);
+      sAl=mix(sAl,vec3(.17,.15,.12)*(.85+.3*sGr),sHm*sCell*.35);
+      sAl*=1.-.3*sPit-.5*sCr;
+      /* soot: on the side that has faced the fire and low down close to it, blotchy */
+      vec3 sFd=uFire-vSW;float sFl=length(sFd.xz),sFf=dot(vSN,normalize(sFd));
+      float sSoot=smoothstep(-.35,.35,sFf+.35*(sN(sQ*3.+1.)-.5))*smoothstep(1.,.5,sFl)*(.7+.3*sN(sQ*8.));
+      sAl=mix(sAl,vec3(.014,.012,.011),sSoot*.92);
+      diffuseColor.rgb*=sAl;
+      diffuseColor.rgb*=1.-.45*uWetC;`)
+      .replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
+      roughnessFactor=mix(roughnessFactor,.72,sVr*.6*(1.-sSoot));roughnessFactor=mix(roughnessFactor,.98,sSoot);roughnessFactor=mix(roughnessFactor,.42,uWetC*.8);`)
+      .replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
+      {vec3 sP=-vViewPosition,sx=dFdx(sP),sy=dFdy(sP),r1=cross(sy,normal),r2=cross(normal,sx);float dt=dot(sx,r1),h=sHt*.0045;
+       vec3 gd=sign(dt)*(dFdx(h)*r1+dFdy(h)*r2);normal=normalize(abs(dt)*normal-gd);}`)};
+  m.customProgramCacheKey=()=>"desFireStone166";frostMat(m);return m}
+/* stones into instanced meshes, one per shape, dealt out in turn */
+function fireStones(list,fl,parent){const M=new T.M4(),c=new C3(),geos=[0,1,2].map(k=>fireStoneGeo(k+(fl>.6?3:0),fl)),mt=fireStoneMat();
+  geos.forEach((g,k)=>{const L=list.filter((_,i)=>i%3===k);if(!L.length)return;const im=new T.IM(g,mt,L.length);
+    L.forEach((o,i)=>{im.setMatrixAt(i,o.m);im.setColorAt(i,c.setRGB(...o.c))});im.castShadow=im.receiveShadow=true;im.name="fireStone"+(fl>.6?"P":"R")+k;parent.add(im)})}
 /* ---------------- campfire: 0.8 m stone ring, logs, shader flames, embers, light ---------------- */
 const fireG=new T.Group();fireG.position.set(FIRE.x,hTop(FIRE.x,FIRE.z),FIRE.z);W.add(fireG);
 const fireU={uT:{value:0},uNight:{value:0}};
 let fireL=null;
 (function campfire(){
   /* ring of unequal stones, some sunk deeper, the ones nearest the coals blackened with soot */
-  const NS=13,im=new T.IM(ROCK_GEOS[1],stM,NS),m=new T.M4(),q=new T.Quat(),sc=new C3();
+  const NS=13,ring=[],m=new T.M4(),q=new T.Quat();
   for(let i=0;i<NS;i++){const a=i/NS*TAU+rr(-.12,.12),s=rr(.1,.21),r=rr(.37,.45);q.setFromAxisAngle(new V3(rr(-.3,.3),1,rr(-.3,.3)).normalize(),rnd()*TAU);
-    m.compose(new V3(Math.cos(a)*r,.01-rr(0,.04),Math.sin(a)*r),q,new V3(s*rr(.9,1.2),s*rr(1.05,1.4),s*rr(.9,1.15)));im.setMatrixAt(i,m);
-    const k=rr(.75,1.1),soot=rnd()<.5?rr(.3,.55):1;im.setColorAt(i,sc.setRGB(k*soot,k*.97*soot,k*.94*soot))}
-  im.castShadow=im.receiveShadow=true;fireG.add(im);
+    m.compose(new V3(Math.cos(a)*r,.01-rr(0,.04),Math.sin(a)*r),q,new V3(s*rr(.9,1.2),s*rr(1.05,1.4),s*rr(.9,1.15)));
+    const k=rr(.75,1.1),soot=rnd()<.5?rr(.3,.55):1;ring.push({m:m.clone(),c:[k*mix(1,soot,.5),k*.97*mix(1,soot,.5),k*.94*mix(1,soot,.5)]})}
+  fireStones(ring,.5,fireG);
   /* split and round logs leaned into a cone over the coals: the same old grey wood, bark hanging on at the foot on the sand,
      charred and crazed higher up, the cracks between the charcoal blocks glowing where they meet in the flames */
   const charM=wwMat(true);fireG.userData.charM=charM;fireG.updateMatrix();
@@ -1561,10 +1629,10 @@ let fireL=null;
   for(const P of FIRE_KIT.piles){const q=fireAt(P.a,P.r);let n=0;
     for(let l=0;l<3&&n<P.n;l++){const cnt=[4,2,1][l];for(let i=0;i<cnt&&n<P.n;i++,n++){const a=i/cnt*TAU+rr(-.3,.3)+l,r=[.17,.08,0][l]+rr(-.02,.02),s=rr(.09,.14)*(1-.15*l);
       sp.push({x:q.x+Math.cos(a)*r,z:q.z+Math.sin(a)*r,y:.02+l*.085,s:[s*rr(1,1.3),s*rr(.75,1),s*rr(.9,1.2)],ry:rr(0,TAU),k:rr(1.05,1.4)})}}}
-  const im=new T.IM(ROCK_GEOS[2],stM,sp.length),M=new T.M4(),Q=new T.Quat(),cc=new C3();
-  sp.forEach((o,i)=>{Q.setFromAxisAngle(new V3(rr(-.25,.25),1,rr(-.25,.25)).normalize(),o.ry);M.compose(new V3(o.x,hTop(o.x,o.z)+o.y-o.s[1]*.05,o.z),Q,new V3(...o.s));im.setMatrixAt(i,M);
-    im.setColorAt(i,cc.setRGB(o.k*1.08,o.k,o.k*.92))});
-  im.castShadow=im.receiveShadow=true;W.add(im);
+  const M=new T.M4(),Q=new T.Quat(),pile=[];
+  sp.forEach(o=>{Q.setFromAxisAngle(new V3(rr(-.25,.25),1,rr(-.25,.25)).normalize(),o.ry);M.compose(new V3(o.x,hTop(o.x,o.z)+o.y-o.s[1]*.05,o.z),Q,new V3(...o.s));
+    pile.push({m:M.clone(),c:[o.k*1.08,o.k,o.k*.92]})});
+  fireStones(pile,.72,W);
   /* ash and charcoal crumbs spilled out of the ring, the sand round it scuffed darker by feet */
   const ashM=new T.MSM({color:"#c08f55",transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,roughness:1,metalness:0});
   ashM.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nvarying vec2 vA;").replace("#include <begin_vertex>","#include <begin_vertex>\nvA=uv;");

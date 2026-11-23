@@ -144,7 +144,9 @@ def main():
         vh.update(os.path.relpath(p, ROOT).replace(os.sep, "/").encode() + b"\0")
         with open(p, "rb") as f:
             vh.update(hashlib.sha256(f.read()).digest())
-    version = vh.hexdigest()[:10]
+    # the cache is named after the desert bundle (the hash the panel shows) plus everything else that was written
+    dh = re.search(r"desert\.(\w{6})", desert_rel).group(1)
+    version = dh + "-" + vh.hexdigest()[:10]
     sw = rd("sw.js").replace("{{VERSION}}", version).replace("{{CORE}}", json.dumps(core))
     write("sw.js", sw)
 

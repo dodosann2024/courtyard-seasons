@@ -1792,9 +1792,19 @@ const skyM=new T.SM({uniforms:skyU,side:1,depthWrite:false,depthTest:true,fog:fa
         rgb+=(rc*.17+sky*(inside-alex))*uRb*smoothstep(-1.25,-.7,el);}
       gl_FragColor=vec4(rgb,a);}`});
 const skyDome=new T.Mesh(new T.Sphere(150,64,40),skyM);skyDome.renderOrder=-200;skyDome.frustumCulled=false;root.add(skyDome);
-(()=>{const c=document.createElement("canvas");c.width=c.height=4;const x=c.getContext("2d");x.fillStyle="#e8a878";x.fillRect(0,0,4,4);
-  const t=new T.CTex(c);skyU.map.value=t})();
-loadTex("assets/tex/sky_cloudsea_pano.jpg").then(t=>{t.colorSpace="";t.generateMipmaps=false;t.minFilter=1006;t.magFilter=1006;t.wrapS=t.wrapT=1001;t.needsUpdate=true;skyU.map.value=t}).catch(()=>{});
+/* until the photograph arrives (or if it never does) the deck is drawn from billows painted here, so the cloud sea is never missing */
+let SKYTEX="procedural";
+(()=>{const w=256,h=144,c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");let sd=7;const r=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  x.fillStyle="#5f6886";x.fillRect(0,0,w,h);
+  for(let i=0;i<520;i++){const v=Math.sqrt(r()),y=h*(.04+.96*v),rad=(3+22*v*v)*(.6+.8*r()),px=r()*w;
+    for(const dx of [0,-w,w]){x.save();x.translate(px+dx,y);x.scale(1.9,1);const g=x.createRadialGradient(0,-rad*.35,0,0,0,rad);
+      g.addColorStop(0,"rgba(250,246,240,.95)");g.addColorStop(.5,"rgba(214,214,224,.6)");g.addColorStop(1,"rgba(120,130,160,0)");
+      x.fillStyle=g;x.beginPath();x.arc(0,0,rad,0,6.2832);x.fill();x.restore()}}
+  const t=new T.CTex(c);t.generateMipmaps=false;t.minFilter=t.magFilter=1006;t.wrapS=t.wrapT=1001;skyU.map.value=t})();
+const skyLoad=()=>{if(SKYTEX==="photo"||SKYTEX==="loading")return;SKYTEX="loading";
+  loadTex("assets/tex/sky_cloudsea_pano.jpg").then(t=>{t.colorSpace="";t.generateMipmaps=false;t.minFilter=1006;t.magFilter=1006;t.wrapS=t.wrapT=1001;t.needsUpdate=true;skyU.map.value=t;SKYTEX="photo"})
+    .catch(()=>{SKYTEX="procedural";console.warn("[desert] cloud-sea photo failed to load; drawing procedural clouds, retrying when the page is shown or back online")})};
+skyLoad();addEventListener("online",skyLoad);document.addEventListener("visibilitychange",()=>{if(!document.hidden)skyLoad()});
 let _appSky;
 function appSkyMesh(){if(_appSky!==undefined)return _appSky;_appSky=X.vd||null;if(_appSky)return _appSky;
   Jt.traverse(o=>{if(!_appSky&&o.isMesh&&o.material&&o.material.uniforms&&o.material.uniforms.uMoonVis&&o.material.uniforms.top)_appSky=o});return _appSky}
@@ -5357,7 +5367,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={rq:()=>0,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,osOffTent,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={rq:()=>0,skyTex:()=>SKYTEX,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,osOffTent,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

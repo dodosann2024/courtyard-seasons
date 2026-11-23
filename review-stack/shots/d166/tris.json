@@ -1,0 +1,235 @@
+{
+ "note": "triangles per wooden part and campfire stones (instanced: triangles per stone × stones). desktop = 1280×720 Chrome, mobile = iPhone user agent",
+ "main": {
+  "desktop": {
+   "parts": {
+    "rackBar": 7296,
+    "rackPostL": 3072,
+    "rackForkL0": 504,
+    "rackForkL1": 504,
+    "rackPostR": 3072,
+    "rackForkR0": 504,
+    "rackForkR1": 504,
+    "fireLog0": 480,
+    "fireLog1": 480,
+    "fireLog2": 480,
+    "fireLog3": 480,
+    "fireLog4": 480,
+    "fireSeat0": 6912,
+    "fireSeat1": 6912,
+    "fireSeat2": 6912,
+    "fireWood0": 792,
+    "fireWood1": 792,
+    "fireWood2": 792,
+    "fireWood3": 792,
+    "fireWood4": 792
+   },
+   "groups": {
+    "rackBar": 7296,
+    "rackPosts": 6144,
+    "rackForks": 2016,
+    "fireSeats": 20736,
+    "fireWood": 3960,
+    "fireLogs": 2400,
+    "allWood": 42552
+   },
+   "stones": {
+    "fireStoneOld0": {
+     "trisEach": 1280,
+     "n": 13,
+     "tris": 16640
+    },
+    "fireStoneOld1": {
+     "trisEach": 1280,
+     "n": 13,
+     "tris": 16640
+    }
+   },
+   "stonesTotal": 33280,
+   "mob": false
+  },
+  "mobile": {
+   "parts": {
+    "rackBar": 2960,
+    "rackPostL": 1176,
+    "rackForkL0": 208,
+    "rackForkL1": 208,
+    "rackPostR": 1176,
+    "rackForkR0": 208,
+    "rackForkR1": 208,
+    "fireLog0": 256,
+    "fireLog1": 256,
+    "fireLog2": 256,
+    "fireLog3": 256,
+    "fireLog4": 256,
+    "fireSeat0": 2880,
+    "fireSeat1": 2880,
+    "fireSeat2": 2880,
+    "fireWood0": 408,
+    "fireWood1": 408,
+    "fireWood2": 408,
+    "fireWood3": 408,
+    "fireWood4": 408
+   },
+   "groups": {
+    "rackBar": 2960,
+    "rackPosts": 2352,
+    "rackForks": 832,
+    "fireSeats": 8640,
+    "fireWood": 2040,
+    "fireLogs": 1280,
+    "allWood": 18104
+   },
+   "stones": {
+    "fireStoneOld0": {
+     "trisEach": 1280,
+     "n": 13,
+     "tris": 16640
+    },
+    "fireStoneOld1": {
+     "trisEach": 1280,
+     "n": 13,
+     "tris": 16640
+    }
+   },
+   "stonesTotal": 33280,
+   "mob": true
+  }
+ },
+ "branch": {
+  "desktop": {
+   "parts": {
+    "rackBar": 7840,
+    "rackPostL": 3072,
+    "rackForkL0": 504,
+    "rackForkL1": 504,
+    "rackPostR": 3072,
+    "rackForkR0": 504,
+    "rackForkR1": 504,
+    "fireLog0": 480,
+    "fireLog1": 480,
+    "fireLog2": 480,
+    "fireLog3": 480,
+    "fireLog4": 480,
+    "fireSeat0": 7296,
+    "fireSeat1": 7296,
+    "fireSeat2": 7296,
+    "fireWood0": 1232,
+    "fireWood1": 1232,
+    "fireWood2": 1232,
+    "fireWood3": 1232,
+    "fireWood4": 1232
+   },
+   "groups": {
+    "rackBar": 7840,
+    "rackPosts": 6144,
+    "rackForks": 2016,
+    "fireSeats": 21888,
+    "fireWood": 6160,
+    "fireLogs": 2400,
+    "allWood": 46448
+   },
+   "stones": {
+    "fireStoneR0": {
+     "trisEach": 1280,
+     "n": 5,
+     "tris": 6400
+    },
+    "fireStoneR1": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    },
+    "fireStoneR2": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    },
+    "fireStoneP0": {
+     "trisEach": 1280,
+     "n": 5,
+     "tris": 6400
+    },
+    "fireStoneP1": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    },
+    "fireStoneP2": {
+     "trisEach": 1280,
+     "n": 4,
+     "tris": 5120
+    }
+   },
+   "stonesTotal": 33280,
+   "mob": false
+  },
+  "mobile": {
+   "parts": {
+    "rackBar": 3168,
+    "rackPostL": 1176,
+    "rackForkL0": 208,
+    "rackForkL1": 208,
+    "rackPostR": 1176,
+    "rackForkR0": 208,
+    "rackForkR1": 208,
+    "fireLog0": 256,
+    "fireLog1": 256,
+    "fireLog2": 256,
+    "fireLog3": 256,
+    "fireLog4": 256,
+    "fireSeat0": 3120,
+    "fireSeat1": 3120,
+    "fireSeat2": 3120,
+    "fireWood0": 644,
+    "fireWood1": 644,
+    "fireWood2": 644,
+    "fireWood3": 644,
+    "fireWood4": 644
+   },
+   "groups": {
+    "rackBar": 3168,
+    "rackPosts": 2352,
+    "rackForks": 832,
+    "fireSeats": 9360,
+    "fireWood": 3220,
+    "fireLogs": 1280,
+    "allWood": 20212
+   },
+   "stones": {
+    "fireStoneR0": {
+     "trisEach": 320,
+     "n": 5,
+     "tris": 1600
+    },
+    "fireStoneR1": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    },
+    "fireStoneR2": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    },
+    "fireStoneP0": {
+     "trisEach": 320,
+     "n": 5,
+     "tris": 1600
+    },
+    "fireStoneP1": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    },
+    "fireStoneP2": {
+     "trisEach": 320,
+     "n": 4,
+     "tris": 1280
+    }
+   },
+   "stonesTotal": 8320,
+   "mob": true
+  }
+ }
+}

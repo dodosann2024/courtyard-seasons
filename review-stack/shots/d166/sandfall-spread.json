@@ -1,0 +1,885 @@
+{
+ "note": "per stream at the bottom of its fall (fb=1), wind 0.4 (uWM 2.88 m). bottomHalf = half-width across the stream; lipHalf = half-width at the lip; sideDrift = sideways carry of the whole stream (main: wind push + sway); maxSpread = bottomHalf - lipHalf + sideDrift; outward = distance moved away from the cliff along the fall",
+ "main": {
+  "n": 54,
+  "oldShader": true,
+  "wm": 2.8824698350864195,
+  "F": [
+   {
+    "hw": 0.074,
+    "lipHalf": 0.074,
+    "bottomHalf": 0.725,
+    "sideDrift": 4.197,
+    "outward": 0.033,
+    "maxSpread": 4.848
+   },
+   {
+    "hw": 0.113,
+    "lipHalf": 0.113,
+    "bottomHalf": 0.808,
+    "sideDrift": 4.197,
+    "outward": 0.06,
+    "maxSpread": 4.892
+   },
+   {
+    "hw": 0.467,
+    "lipHalf": 0.467,
+    "bottomHalf": 1.574,
+    "sideDrift": 4.197,
+    "outward": 0.063,
+    "maxSpread": 5.304
+   },
+   {
+    "hw": 0.097,
+    "lipHalf": 0.097,
+    "bottomHalf": 0.775,
+    "sideDrift": 4.197,
+    "outward": 0.045,
+    "maxSpread": 4.874
+   },
+   {
+    "hw": 0.081,
+    "lipHalf": 0.081,
+    "bottomHalf": 0.739,
+    "sideDrift": 4.197,
+    "outward": 0.099,
+    "maxSpread": 4.855
+   },
+   {
+    "hw": 0.051,
+    "lipHalf": 0.051,
+    "bottomHalf": 0.673,
+    "sideDrift": 4.197,
+    "outward": 0.103,
+    "maxSpread": 4.82
+   },
+   {
+    "hw": 0.481,
+    "lipHalf": 0.481,
+    "bottomHalf": 1.605,
+    "sideDrift": 4.197,
+    "outward": 0.149,
+    "maxSpread": 5.321
+   },
+   {
+    "hw": 0.109,
+    "lipHalf": 0.109,
+    "bottomHalf": 0.8,
+    "sideDrift": 4.197,
+    "outward": 0.193,
+    "maxSpread": 4.888
+   },
+   {
+    "hw": 0.111,
+    "lipHalf": 0.111,
+    "bottomHalf": 0.805,
+    "sideDrift": 4.197,
+    "outward": 0.202,
+    "maxSpread": 4.891
+   },
+   {
+    "hw": 2.034,
+    "lipHalf": 2.034,
+    "bottomHalf": 4.962,
+    "sideDrift": 4.197,
+    "outward": 0.095,
+    "maxSpread": 7.125
+   },
+   {
+    "hw": 0.054,
+    "lipHalf": 0.054,
+    "bottomHalf": 0.681,
+    "sideDrift": 4.197,
+    "outward": 0.062,
+    "maxSpread": 4.824
+   },
+   {
+    "hw": 0.052,
+    "lipHalf": 0.052,
+    "bottomHalf": 0.676,
+    "sideDrift": 4.197,
+    "outward": 0.078,
+    "maxSpread": 4.821
+   },
+   {
+    "hw": 0.082,
+    "lipHalf": 0.082,
+    "bottomHalf": 0.742,
+    "sideDrift": 4.197,
+    "outward": 0.155,
+    "maxSpread": 4.857
+   },
+   {
+    "hw": 0.098,
+    "lipHalf": 0.098,
+    "bottomHalf": 0.776,
+    "sideDrift": 4.197,
+    "outward": 0.278,
+    "maxSpread": 4.875
+   },
+   {
+    "hw": 0.068,
+    "lipHalf": 0.068,
+    "bottomHalf": 0.71,
+    "sideDrift": 4.197,
+    "outward": 0.229,
+    "maxSpread": 4.84
+   },
+   {
+    "hw": 0.524,
+    "lipHalf": 0.524,
+    "bottomHalf": 1.696,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 5.37
+   },
+   {
+    "hw": 0.116,
+    "lipHalf": 0.116,
+    "bottomHalf": 0.816,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 4.896
+   },
+   {
+    "hw": 2.169,
+    "lipHalf": 2.169,
+    "bottomHalf": 5.254,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 7.282
+   },
+   {
+    "hw": 0.052,
+    "lipHalf": 0.052,
+    "bottomHalf": 0.676,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 4.822
+   },
+   {
+    "hw": 0.467,
+    "lipHalf": 0.467,
+    "bottomHalf": 1.574,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 5.304
+   },
+   {
+    "hw": 0.107,
+    "lipHalf": 0.107,
+    "bottomHalf": 0.795,
+    "sideDrift": 4.197,
+    "outward": 0.062,
+    "maxSpread": 4.886
+   },
+   {
+    "hw": 0.108,
+    "lipHalf": 0.108,
+    "bottomHalf": 0.797,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 4.887
+   },
+   {
+    "hw": 0.053,
+    "lipHalf": 0.053,
+    "bottomHalf": 0.678,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 4.823
+   },
+   {
+    "hw": 0.608,
+    "lipHalf": 0.608,
+    "bottomHalf": 1.879,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 5.468
+   },
+   {
+    "hw": 0.095,
+    "lipHalf": 0.095,
+    "bottomHalf": 0.769,
+    "sideDrift": 4.197,
+    "outward": 0.099,
+    "maxSpread": 4.872
+   },
+   {
+    "hw": 0.055,
+    "lipHalf": 0.055,
+    "bottomHalf": 0.682,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 4.825
+   },
+   {
+    "hw": 1.782,
+    "lipHalf": 1.782,
+    "bottomHalf": 4.418,
+    "sideDrift": 4.197,
+    "outward": 0.035,
+    "maxSpread": 6.832
+   },
+   {
+    "hw": 0.091,
+    "lipHalf": 0.091,
+    "bottomHalf": 0.762,
+    "sideDrift": 4.197,
+    "outward": 0.15,
+    "maxSpread": 4.867
+   },
+   {
+    "hw": 0.065,
+    "lipHalf": 0.065,
+    "bottomHalf": 0.705,
+    "sideDrift": 4.197,
+    "outward": 0.1,
+    "maxSpread": 4.837
+   },
+   {
+    "hw": 0.069,
+    "lipHalf": 0.069,
+    "bottomHalf": 0.713,
+    "sideDrift": 4.197,
+    "outward": 0.004,
+    "maxSpread": 4.841
+   },
+   {
+    "hw": 0.114,
+    "lipHalf": 0.114,
+    "bottomHalf": 0.81,
+    "sideDrift": 4.197,
+    "outward": 0.004,
+    "maxSpread": 4.893
+   },
+   {
+    "hw": 0.052,
+    "lipHalf": 0.052,
+    "bottomHalf": 0.677,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 4.822
+   },
+   {
+    "hw": 0.598,
+    "lipHalf": 0.598,
+    "bottomHalf": 1.856,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 5.456
+   },
+   {
+    "hw": 0.067,
+    "lipHalf": 0.067,
+    "bottomHalf": 0.709,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 4.839
+   },
+   {
+    "hw": 0.103,
+    "lipHalf": 0.103,
+    "bottomHalf": 0.786,
+    "sideDrift": 4.197,
+    "outward": 0.028,
+    "maxSpread": 4.88
+   },
+   {
+    "hw": 1.124,
+    "lipHalf": 1.124,
+    "bottomHalf": 2.994,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 6.067
+   },
+   {
+    "hw": 0.097,
+    "lipHalf": 0.097,
+    "bottomHalf": 0.774,
+    "sideDrift": 4.197,
+    "outward": 0.267,
+    "maxSpread": 4.874
+   },
+   {
+    "hw": 0.112,
+    "lipHalf": 0.112,
+    "bottomHalf": 0.806,
+    "sideDrift": 4.197,
+    "outward": 0.108,
+    "maxSpread": 4.891
+   },
+   {
+    "hw": 0.575,
+    "lipHalf": 0.575,
+    "bottomHalf": 1.808,
+    "sideDrift": 4.197,
+    "outward": 0.069,
+    "maxSpread": 5.43
+   },
+   {
+    "hw": 0.119,
+    "lipHalf": 0.119,
+    "bottomHalf": 0.821,
+    "sideDrift": 4.197,
+    "outward": 0.25,
+    "maxSpread": 4.899
+   },
+   {
+    "hw": 0.052,
+    "lipHalf": 0.052,
+    "bottomHalf": 0.676,
+    "sideDrift": 4.197,
+    "outward": 0.23,
+    "maxSpread": 4.821
+   },
+   {
+    "hw": 0.07,
+    "lipHalf": 0.07,
+    "bottomHalf": 0.715,
+    "sideDrift": 4.197,
+    "outward": 0.305,
+    "maxSpread": 4.842
+   },
+   {
+    "hw": 0.689,
+    "lipHalf": 0.689,
+    "bottomHalf": 2.055,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 5.562
+   },
+   {
+    "hw": 0.057,
+    "lipHalf": 0.057,
+    "bottomHalf": 0.686,
+    "sideDrift": 4.197,
+    "outward": 0.187,
+    "maxSpread": 4.827
+   },
+   {
+    "hw": 0.087,
+    "lipHalf": 0.087,
+    "bottomHalf": 0.752,
+    "sideDrift": 4.197,
+    "outward": 0.188,
+    "maxSpread": 4.862
+   },
+   {
+    "hw": 2.124,
+    "lipHalf": 2.124,
+    "bottomHalf": 5.155,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 7.229
+   },
+   {
+    "hw": 0.062,
+    "lipHalf": 0.062,
+    "bottomHalf": 0.698,
+    "sideDrift": 4.197,
+    "outward": 0,
+    "maxSpread": 4.833
+   },
+   {
+    "hw": 0.106,
+    "lipHalf": 0.106,
+    "bottomHalf": 0.793,
+    "sideDrift": 4.197,
+    "outward": 0.111,
+    "maxSpread": 4.884
+   },
+   {
+    "hw": 0.621,
+    "lipHalf": 0.621,
+    "bottomHalf": 1.906,
+    "sideDrift": 4.197,
+    "outward": 0.191,
+    "maxSpread": 5.483
+   },
+   {
+    "hw": 0.081,
+    "lipHalf": 0.081,
+    "bottomHalf": 0.74,
+    "sideDrift": 4.197,
+    "outward": 0.168,
+    "maxSpread": 4.856
+   },
+   {
+    "hw": 0.076,
+    "lipHalf": 0.076,
+    "bottomHalf": 0.728,
+    "sideDrift": 4.197,
+    "outward": 0.029,
+    "maxSpread": 4.849
+   },
+   {
+    "hw": 0.499,
+    "lipHalf": 0.499,
+    "bottomHalf": 1.644,
+    "sideDrift": 4.197,
+    "outward": 0.163,
+    "maxSpread": 5.342
+   },
+   {
+    "hw": 0.07,
+    "lipHalf": 0.07,
+    "bottomHalf": 0.716,
+    "sideDrift": 4.197,
+    "outward": 0.133,
+    "maxSpread": 4.843
+   },
+   {
+    "hw": 0.078,
+    "lipHalf": 0.078,
+    "bottomHalf": 0.732,
+    "sideDrift": 4.197,
+    "outward": 0.03,
+    "maxSpread": 4.852
+   }
+  ],
+  "maxSpreadAll": 7.282,
+  "maxOutward": 0.305
+ },
+ "branch": {
+  "n": 54,
+  "oldShader": false,
+  "wm": 2.8824698350864195,
+  "F": [
+   {
+    "hw": 0.074,
+    "lipHalf": 0.074,
+    "bottomHalf": 0.04,
+    "sideDrift": 0,
+    "outward": 0.033,
+    "maxSpread": -0.035
+   },
+   {
+    "hw": 0.113,
+    "lipHalf": 0.113,
+    "bottomHalf": 0.06,
+    "sideDrift": 0,
+    "outward": 0.06,
+    "maxSpread": -0.053
+   },
+   {
+    "hw": 0.467,
+    "lipHalf": 0.467,
+    "bottomHalf": 0.249,
+    "sideDrift": 0,
+    "outward": 0.063,
+    "maxSpread": -0.218
+   },
+   {
+    "hw": 0.097,
+    "lipHalf": 0.097,
+    "bottomHalf": 0.052,
+    "sideDrift": 0,
+    "outward": 0.045,
+    "maxSpread": -0.045
+   },
+   {
+    "hw": 0.081,
+    "lipHalf": 0.081,
+    "bottomHalf": 0.043,
+    "sideDrift": 0,
+    "outward": 0.099,
+    "maxSpread": -0.038
+   },
+   {
+    "hw": 0.051,
+    "lipHalf": 0.051,
+    "bottomHalf": 0.027,
+    "sideDrift": 0,
+    "outward": 0.103,
+    "maxSpread": -0.024
+   },
+   {
+    "hw": 0.481,
+    "lipHalf": 0.481,
+    "bottomHalf": 0.257,
+    "sideDrift": 0,
+    "outward": 0.149,
+    "maxSpread": -0.225
+   },
+   {
+    "hw": 0.109,
+    "lipHalf": 0.109,
+    "bottomHalf": 0.058,
+    "sideDrift": 0,
+    "outward": 0.193,
+    "maxSpread": -0.051
+   },
+   {
+    "hw": 0.111,
+    "lipHalf": 0.111,
+    "bottomHalf": 0.059,
+    "sideDrift": 0,
+    "outward": 0.202,
+    "maxSpread": -0.052
+   },
+   {
+    "hw": 2.034,
+    "lipHalf": 2.034,
+    "bottomHalf": 1.084,
+    "sideDrift": 0,
+    "outward": 0.095,
+    "maxSpread": -0.95
+   },
+   {
+    "hw": 0.054,
+    "lipHalf": 0.054,
+    "bottomHalf": 0.029,
+    "sideDrift": 0,
+    "outward": 0.062,
+    "maxSpread": -0.025
+   },
+   {
+    "hw": 0.052,
+    "lipHalf": 0.052,
+    "bottomHalf": 0.028,
+    "sideDrift": 0,
+    "outward": 0.078,
+    "maxSpread": -0.024
+   },
+   {
+    "hw": 0.082,
+    "lipHalf": 0.082,
+    "bottomHalf": 0.044,
+    "sideDrift": 0,
+    "outward": 0.155,
+    "maxSpread": -0.038
+   },
+   {
+    "hw": 0.098,
+    "lipHalf": 0.098,
+    "bottomHalf": 0.052,
+    "sideDrift": 0,
+    "outward": 0.278,
+    "maxSpread": -0.046
+   },
+   {
+    "hw": 0.068,
+    "lipHalf": 0.068,
+    "bottomHalf": 0.036,
+    "sideDrift": 0,
+    "outward": 0.229,
+    "maxSpread": -0.032
+   },
+   {
+    "hw": 0.524,
+    "lipHalf": 0.524,
+    "bottomHalf": 0.279,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.245
+   },
+   {
+    "hw": 0.116,
+    "lipHalf": 0.116,
+    "bottomHalf": 0.062,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.054
+   },
+   {
+    "hw": 2.169,
+    "lipHalf": 2.169,
+    "bottomHalf": 1.156,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -1.013
+   },
+   {
+    "hw": 0.052,
+    "lipHalf": 0.052,
+    "bottomHalf": 0.028,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.024
+   },
+   {
+    "hw": 0.467,
+    "lipHalf": 0.467,
+    "bottomHalf": 0.249,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.218
+   },
+   {
+    "hw": 0.107,
+    "lipHalf": 0.107,
+    "bottomHalf": 0.057,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.05
+   },
+   {
+    "hw": 0.108,
+    "lipHalf": 0.108,
+    "bottomHalf": 0.058,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.05
+   },
+   {
+    "hw": 0.053,
+    "lipHalf": 0.053,
+    "bottomHalf": 0.028,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.025
+   },
+   {
+    "hw": 0.608,
+    "lipHalf": 0.608,
+    "bottomHalf": 0.324,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.284
+   },
+   {
+    "hw": 0.095,
+    "lipHalf": 0.095,
+    "bottomHalf": 0.051,
+    "sideDrift": 0,
+    "outward": 0.099,
+    "maxSpread": -0.044
+   },
+   {
+    "hw": 0.055,
+    "lipHalf": 0.055,
+    "bottomHalf": 0.029,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.025
+   },
+   {
+    "hw": 1.782,
+    "lipHalf": 1.782,
+    "bottomHalf": 0.95,
+    "sideDrift": 0,
+    "outward": 0.035,
+    "maxSpread": -0.832
+   },
+   {
+    "hw": 0.091,
+    "lipHalf": 0.091,
+    "bottomHalf": 0.049,
+    "sideDrift": 0,
+    "outward": 0.072,
+    "maxSpread": -0.043
+   },
+   {
+    "hw": 0.065,
+    "lipHalf": 0.065,
+    "bottomHalf": 0.035,
+    "sideDrift": 0,
+    "outward": 0.1,
+    "maxSpread": -0.031
+   },
+   {
+    "hw": 0.069,
+    "lipHalf": 0.069,
+    "bottomHalf": 0.037,
+    "sideDrift": 0,
+    "outward": 0.004,
+    "maxSpread": -0.032
+   },
+   {
+    "hw": 0.114,
+    "lipHalf": 0.114,
+    "bottomHalf": 0.061,
+    "sideDrift": 0,
+    "outward": 0.004,
+    "maxSpread": -0.053
+   },
+   {
+    "hw": 0.052,
+    "lipHalf": 0.052,
+    "bottomHalf": 0.028,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.024
+   },
+   {
+    "hw": 0.598,
+    "lipHalf": 0.598,
+    "bottomHalf": 0.319,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.279
+   },
+   {
+    "hw": 0.067,
+    "lipHalf": 0.067,
+    "bottomHalf": 0.036,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.031
+   },
+   {
+    "hw": 0.103,
+    "lipHalf": 0.103,
+    "bottomHalf": 0.055,
+    "sideDrift": 0,
+    "outward": 0.028,
+    "maxSpread": -0.048
+   },
+   {
+    "hw": 1.124,
+    "lipHalf": 1.124,
+    "bottomHalf": 0.599,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.525
+   },
+   {
+    "hw": 0.097,
+    "lipHalf": 0.097,
+    "bottomHalf": 0.052,
+    "sideDrift": 0,
+    "outward": 0.128,
+    "maxSpread": -0.045
+   },
+   {
+    "hw": 0.112,
+    "lipHalf": 0.112,
+    "bottomHalf": 0.06,
+    "sideDrift": 0,
+    "outward": 0.1,
+    "maxSpread": -0.052
+   },
+   {
+    "hw": 0.575,
+    "lipHalf": 0.575,
+    "bottomHalf": 0.307,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.269
+   },
+   {
+    "hw": 0.119,
+    "lipHalf": 0.119,
+    "bottomHalf": 0.063,
+    "sideDrift": 0,
+    "outward": 0.12,
+    "maxSpread": -0.055
+   },
+   {
+    "hw": 0.052,
+    "lipHalf": 0.052,
+    "bottomHalf": 0.028,
+    "sideDrift": 0,
+    "outward": 0.118,
+    "maxSpread": -0.024
+   },
+   {
+    "hw": 0.07,
+    "lipHalf": 0.07,
+    "bottomHalf": 0.037,
+    "sideDrift": 0,
+    "outward": 0.146,
+    "maxSpread": -0.033
+   },
+   {
+    "hw": 0.689,
+    "lipHalf": 0.689,
+    "bottomHalf": 0.367,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.322
+   },
+   {
+    "hw": 0.057,
+    "lipHalf": 0.057,
+    "bottomHalf": 0.03,
+    "sideDrift": 0,
+    "outward": 0.187,
+    "maxSpread": -0.026
+   },
+   {
+    "hw": 0.087,
+    "lipHalf": 0.087,
+    "bottomHalf": 0.046,
+    "sideDrift": 0,
+    "outward": 0.144,
+    "maxSpread": -0.041
+   },
+   {
+    "hw": 2.124,
+    "lipHalf": 2.124,
+    "bottomHalf": 1.132,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.992
+   },
+   {
+    "hw": 0.062,
+    "lipHalf": 0.062,
+    "bottomHalf": 0.033,
+    "sideDrift": 0,
+    "outward": 0,
+    "maxSpread": -0.029
+   },
+   {
+    "hw": 0.106,
+    "lipHalf": 0.106,
+    "bottomHalf": 0.056,
+    "sideDrift": 0,
+    "outward": 0.111,
+    "maxSpread": -0.049
+   },
+   {
+    "hw": 0.621,
+    "lipHalf": 0.621,
+    "bottomHalf": 0.331,
+    "sideDrift": 0,
+    "outward": 0.191,
+    "maxSpread": -0.29
+   },
+   {
+    "hw": 0.081,
+    "lipHalf": 0.081,
+    "bottomHalf": 0.043,
+    "sideDrift": 0,
+    "outward": 0.168,
+    "maxSpread": -0.038
+   },
+   {
+    "hw": 0.076,
+    "lipHalf": 0.076,
+    "bottomHalf": 0.04,
+    "sideDrift": 0,
+    "outward": 0.029,
+    "maxSpread": -0.035
+   },
+   {
+    "hw": 0.499,
+    "lipHalf": 0.499,
+    "bottomHalf": 0.266,
+    "sideDrift": 0,
+    "outward": 0.163,
+    "maxSpread": -0.233
+   },
+   {
+    "hw": 0.07,
+    "lipHalf": 0.07,
+    "bottomHalf": 0.037,
+    "sideDrift": 0,
+    "outward": 0.133,
+    "maxSpread": -0.033
+   },
+   {
+    "hw": 0.078,
+    "lipHalf": 0.078,
+    "bottomHalf": 0.041,
+    "sideDrift": 0,
+    "outward": 0.03,
+    "maxSpread": -0.036
+   }
+  ],
+  "maxSpreadAll": -0.024,
+  "maxOutward": 0.278
+ }
+}

@@ -1727,12 +1727,12 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
        and never moving back in; s is fall time, the drop growing as s*s */
     let dp=P.lipD;const path=[];
     for(let j=0;j<=nv;j++){const s=Math.pow(j/nv,1.3),tau=s*SF.Tf,y=P.lipY+.05-.5*SF.G*tau*tau,c=req(y);
-      const d=Math.max(P.lipD+.04+f.v0*tau,c+.14,dp);dp=d;path.push([d,y]);
-      rows.push({d,y,s,w:hw*(1-.18*ss(0,.25,s)+.12*ss(.75,1,s)),sl:Math.max(0,d-c-.14)})}
+      const d=Math.max(P.lipD+.04+f.v0*Math.min(tau,sB*SF.Tf),c+.14,dp);dp=d;path.push([d,y]);
+      rows.push({d,y,s,w:hw*(1-.18*ss(0,.25,s)),sl:Math.max(0,d-c-.14)})}
     /* heavy falls hang a second, looser curtain just outside the first, so they have depth from afar (not on phones: it doubles the overdraw) */
     for(let ly=0;ly<(f.ty||MOB?1:2);ly++){const o=pos.length/3,R0=ly?rows.filter(r=>r.s>=0):rows;
-      for(const r of R0){const dd=r.d+ly*(.14+.22*r.s),cx=E.x+E.nx*dd,cz=E.z+E.nz*dd,w=r.w*(ly?1.18:1);
-        for(let i=0;i<=nu;i++){const u=i/nu,lat=(u*2-1)*w;pos.push(cx+E.tx*lat,r.y-ly*.12,cz+E.tz*lat);aU.push(u,r.s);aK.push(f.k,f.sd+ly*23,hw,ly);aN.push(E.nx,E.nz,r.sl+ly*(.14+.22*r.s));aT.push(E.tx*lat,E.tz*lat);aB.push(sB)}}
+      for(const r of R0){const dd=r.d+ly*.16,cx=E.x+E.nx*dd,cz=E.z+E.nz*dd,w=r.w*(ly?1.18:1);
+        for(let i=0;i<=nu;i++){const u=i/nu,lat=(u*2-1)*w;pos.push(cx+E.tx*lat,r.y-ly*.12,cz+E.tz*lat);aU.push(u,r.s);aK.push(f.k,f.sd+ly*23,hw,ly);aN.push(E.nx,E.nz,r.sl+ly*.16);aT.push(E.tx*lat,E.tz*lat);aB.push(sB)}}
       for(let j=0;j<R0.length-1;j++)for(let i=0;i<nu;i++){const q=o+j*(nu+1)+i,b=q+nu+1;idx.push(q,b,q+1,b,b+1,q+1)}}
     SF.F.push({E,k:f.k,hw,path,ty:f.ty,yb:P.yb,lipY:P.lipY,sB})}
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("aU",new T.BA(new Float32Array(aU),2));
@@ -1746,15 +1746,9 @@ const sfU={uT:{value:0},uFT:{value:0},uFR:{value:.6},uWet:{value:0},uDust:{value
         /* the downwind rim pours first; as the wind veers, falls on the rim it now blows across start and others ease off */
         float wl=length(uWV),k=aK.x+.22*(.5-.5*dot(n,uWV/max(wl,1e-4))),vis=smoothstep(k,k+.3,uFR);vVis=vis;vec3 p=position;
         p.xz-=aT*(1.-(.45+.55*vis)*(1.+.25*clamp(uFR-1.,0.,1.)));
-        /* free of the cliff the stream fans out as its grains scatter: a trickle into a wisp, a heavy fall into a broad plume */
-        p.xz+=aT/max(aK.z,.01)*(aK.z*1.3+.6)*pow(fb,.6);
-        if(s>0.){float f=pow(smoothstep(.45,1.,s),1.5);
-          /* the column hangs plumb; only its dissolving foot is carried off downwind and sways; it may lean in toward the cliff only as far as the clearance allows */
-          vec2 tg=vec2(-n.y,n.x),dr=uWV*f*(.6+.8*gustF(p.xz))*.9+tg*sin(uT*.8+aK.y)*.12*f;
-          float side=dot(dr,tg);dr-=tg*side*(1.-.8*smoothstep(.45,.9,s));
-          /* below the foot the loose sand is the wind's: carried off downwind as far as the wind is strong, billowing as it goes */
-          dr+=uWM*pow(fb,1.5)*(.7+.6*gustF(p.xz+uWM*uT*.3))+tg*sin(uT*.45+aK.y+s*5.)*.45*fb*fb;
-          float inw=dot(dr,n);dr-=n*(inw-max(inw,-aN.z-3.*fb));p.xz+=dr;}
+        /* the column hangs plumb all the way down, and free of the cliff it only thins as its grains scatter: it never fans out,
+           sways or is carried sideways; s is still the fall time */
+        float s=aU.y;p.xz-=aT*.35*pow(fb,.8);
         vec4 w=modelMatrix*vec4(p,1.);vW=w.xyz;
         vec3 Nl=s>0.?vec3(n.x,.2,n.y):vec3(0.,1.,0.),Nw=normalize(mat3(modelMatrix)*Nl);
         vLam=.5+.5*max(dot(Nw,uLd),0.);
@@ -1856,9 +1850,9 @@ const SFDP=[];{let ps=9127;const pr=()=>{ps=ps+0x6D2B79F5|0;let t=Math.imul(ps^p
 function sfDust(q){const F=SF.F,pr=SFD.pr;let f=F[q.f];
   /* heavier falls shed more dust */
   for(let k=0;k<5;k++){const c=F[Math.floor(pr()*F.length)];if(c.hw>f.hw||pr()<.15)f=c}
-  q.f=F.indexOf(f);q.s=.5+.55*Math.min(f.hw,2.2);const j=Math.floor((q.hz?.55+.4*pr():.25+.55*pr())*(f.path.length-1)),[d,y]=f.path[j],s=j/(f.path.length-1),lat=(pr()*2-1)*f.hw,dr=Math.pow(ss(.45,1,s),1.5)*.9*sfU.uWV.value.length();
-  q.x=f.E.x+f.E.nx*(d+.2)+f.E.tx*lat+WIND.x*dr;q.z=f.E.z+f.E.nz*(d+.2)+f.E.tz*lat+WIND.z*dr;q.y=y;
-  q.vx=WIND.x*(.12+.2*pr())+f.E.nx*.05;q.vz=WIND.z*(.12+.2*pr())+f.E.nz*.05;q.vy=-1.2-1.2*pr();q.life=0;q.dur=q.hz?6+4*pr():2.5+3*pr();if(q.hz){q.vx*=1.4;q.vz*=1.4;q.vy*=.5}}
+  q.f=F.indexOf(f);q.s=.5+.55*Math.min(f.hw,2.2);const j=Math.floor((q.hz?.55+.4*pr():.25+.55*pr())*(f.path.length-1)),[d,y]=f.path[j],lat=(pr()*2-1)*f.hw*.8;pr();
+  q.x=f.E.x+f.E.nx*(d+.2)+f.E.tx*lat;q.z=f.E.z+f.E.nz*(d+.2)+f.E.tz*lat;q.y=y;
+  q.vx=q.vz=0;q.vy=-1.2-1.2*pr();q.life=0;q.dur=q.hz?6+4*pr():2.5+3*pr();if(q.hz)q.vy*=.5}
 function sandFallsUpdate(dt,t,wn,nk){
   sfU.uWM.value.set(WIND.x,WIND.z).multiplyScalar((.4+6.5*wn)*(1+.8*WX.dust)*(1-.6*WX.wet));
   wn=Math.max(wn,.35+WX.dust*.7);
@@ -1872,7 +1866,7 @@ function sandFallsUpdate(dt,t,wn,nk){
     if(q.life>=1)sfDust(q);
     const f=SF.F[q.f],k=f.k+.22*(.5-.5*(f.E.nx*WIND.x+f.E.nz*WIND.z)),vis=ss(k,k+.3,R),sp=.5+wv;
     q.x+=q.vx*dt*sp;q.z+=q.vz*dt*sp;q.y+=q.vy*dt;q.vy*=Math.exp(-dt*.5);
-    const o=i*3;SFD.P[o]=q.x;SFD.P[o+1]=q.y;SFD.P[o+2]=q.z;SFD.Z[i]=q.z0*q.s*(q.hz?2.2*(1+1.6*q.life):1+3*q.life);
+    const o=i*3;SFD.P[o]=q.x;SFD.P[o+1]=q.y;SFD.P[o+2]=q.z;SFD.Z[i]=q.z0*q.s*(q.hz?1.6*(1+.4*q.life):1+.6*q.life);
     SFD.A[i]=Math.sin(q.life*Math.PI)*(q.hz?.028:.05)*vis*Math.min(1,f.hw/.35+.25)*(1+1.4*WX.dust)*(1-.85*WX.wet)}
   SFD.g.attributes.position.needsUpdate=SFD.g.attributes.a.needsUpdate=SFD.g.attributes.z.needsUpdate=true;SFD.m.uniforms.uH.value=innerHeight;
   /* sand dust, not cloud: a warm ochre a shade deeper than the lit sand, so it never reads as the white mist of the cloud sea */

@@ -95,7 +95,7 @@ async function vid(name, N, each, keep, fps = 24) {
     await frames(1);
     await page.screenshot({path: path.join(dir, String(i).padStart(4, "0") + ".png")});
     if (s && s.stop) break;
-    if (i % 5 === 4) console.log("frame", name, i + 1, "/", N);
+    if (i % 5 === 4) console.log("frame", name, i + 1, "/", N, ((Date.now() - (vid.t0 || (vid.t0 = Date.now()))) / 1000).toFixed(0) + "s");
   }
   await ffmpeg(["-framerate", String(fps), "-i", path.join(dir, "%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", path.join(OUT, name + ".mp4")]);
   console.log("encoded", name, log.length);
@@ -192,6 +192,111 @@ try {
       await page.evaluate(() => { const q = window.__desQA(); q.windPin(null); window.__set({wind: .5}); });
     }
     report.falls.statAfter = await fallsStat();
+    await cap("");
+  }
+  /* ---------------- tent in rain: a camera that sees the tent whole, the sand in front and the lake behind; no ostrich in frame ---------------- */
+  if (want("tent")) {
+    await cap(" ");
+    /* TCAM(k): k=0 the wide framing (tent right of centre, lake behind on the left), k=1 the push-in on the tent's front */
+    const tentJS = `(() => { const q = window.__desQA(), C = window.__C(), T = q.TENT || {x: 5.4, z: -3.9}, gy = q.hTop(T.x, T.z), P0 = {x: -7.2, z: 6.2};
+      const dx = T.x - P0.x, dz = T.z - P0.z, dl = Math.hypot(dx, dz), ux = dx / dl, uz = dz / dl, px = -uz, pz = ux;
+      /* from the open sand off the tent's flank away from the rug rack, the lake behind the tent */
+      const cam = k => { const s = 1 - .38 * k, h = 2.6 - .8 * k, ts = 1 - .5 * k;
+        const ex = T.x - 3.2 * s, ez = T.z - 6.4 * s, tx = T.x - 2.34 * ts, tz = T.z + 1.87 * ts;
+        q.lookAt(ex, gy + h, ez, tx, gy + .8 + .1 * k, tz); C.De.fov = 50 - 6 * k; C.De.near = .05; C.De.updateProjectionMatrix(); C.De.updateMatrixWorld(true);
+        return {ex, ez}; };
+      /* is a bird (feet to head, 0.7 m either side) anywhere in the frame, with a margin? */
+      const inFrame = (x, z, m = .15) => { const g = q.hTop(x, z); let hit = false;
+        for (const ox of [-.7, .7]) for (const oz of [-.7, .7]) for (const y of [g, g + 2.4]) { const v = q.toW(x + ox, y, z + oz); v.project(C.De);
+          if (v.z < 1 && v.x > -1 - m && v.x < 1 + m && v.y > -1 - m && v.y < 1 + m) hit = true; }
+        return hit; };
+      /* open sand out of both framings, farthest from the tent first */
+      const away = () => { if (window.__AW) return window.__AW; const out = [];
+        for (let x = -40; x <= 40; x += 2) for (let z = -40; z <= 40; z += 2) { if (q.sN(x, z) > .8 || Math.hypot(x - T.x, z - T.z) < 8) continue;
+          cam(1); if (inFrame(x, z, .35)) continue; cam(0); if (inFrame(x, z, .35)) continue; out.push({x, z, d: Math.hypot(x - T.x, z - T.z)}); }
+        cam(0); out.sort((a, b) => a.d - b.d);
+        const pick = []; for (const p of out) if (p.d > 10 && pick.every(o => Math.hypot(o.x - p.x, o.z - p.z) > 5)) { pick.push(p); if (pick.length === 4) break; }
+        return window.__AW = pick.length ? pick : out.slice(0, 4); };
+      return {cam, inFrame, away, T, gy}; })()`;
+    report.tent = {};
+    /* the birds start out of shot, behind the camera's side of the island */
+    report.tent.start = await page.evaluate(js => { const q = window.__desQA(), K = (new Function("return " + js))();
+      window.__set({weather: "sun", ct: "clear", wind: .35}); q.tod("day"); q.sim(2);
+      window.__AW = null; const A = K.away(); q.PA.os.forEach((o, k) => { const p = A[k % A.length]; q.osPlace(o, p.x, p.z, Math.random() * 6.28); o.mode = "graze"; o.t = 20; o.path = null; });
+      q.sim(1, 1 / 24); K.cam(0); window.__wi = 0; window.__steer = 0;
+      return {away: A.map(p => [+p.x.toFixed(1), +p.z.toFixed(1)]), os: q.os().map(o => [+o.x.toFixed(1), +o.z.toFixed(1)])}; }, tentJS);
+    /* TN frames at TFPS. Stages: clear and dry; the sky clouds over in steps (scattered, towering, overcast); a light shower sets in;
+       heavy rain as a timelapse (cloth soaks, puddles spread on the sand, the lake is pocked with rings); then real time with a slow push-in */
+    const TN = +(process.env.TN || 84), TFPS = +(process.env.TFPS || 12);
+    const ST = [[0, .12, "clear"], [.12, .4, "cloud"], [.4, .55, "light"], [.55, .78, "heavy"], [.78, 1, "real"]].map(([a, b, n]) => [Math.round(a * TN), Math.round(b * TN), n]);
+    const r = await vid("tent-rain", TN, async () => page.evaluate((capIn, js, ST, TFPS) => {
+      const q = window.__desQA(), i = window.__wi++, K = (new Function("return " + js))();
+      const [a, b, n] = ST.find(s => i >= s[0] && i < s[1]) || ST[ST.length - 1], f = (i - a) / Math.max(1, b - a);
+      let dt = 1 / TFPS, k = 0, txt;
+      if (n === "clear") { window.__set({weather: "sun", ct: "clear", wind: .35}); txt = "晴：帐篷布面干燥，沙地和湖面平静"; }
+      else if (n === "cloud") { const ct = f < .3 ? "scattered" : f < .65 ? "towering" : "overcast"; window.__set({weather: "sun", ct, wind: .35 + .3 * f}); dt = 2.5;
+        txt = f < .3 ? "天色渐变：先是片片云" : f < .65 ? "云越积越厚（缩时）" : "天转阴，风起（缩时）"; }
+      else if (n === "light") { window.__set({weather: "lrain", wind: .6}); dt = 1.5; txt = "小阵雨开始：雨丝落下，沙地出现深色湿斑（缩时）"; }
+      else if (n === "heavy") { window.__set({weather: "hrain", wind: .7}); dt = 3; txt = "大雨（缩时）：布面湿透变深、雨水顺布面流下，沙地积起水洼，湖面布满雨点涟漪"; }
+      else { window.__set({weather: "hrain", wind: .7}); k = Math.min(1, f * 1.4); txt = "大雨（实时，镜头推近）：雨点在布面溅起，水顺着布面和绳子往下淌"; }
+      (new Function("t", capIn + "(t)"))(txt);
+      const sub = dt > .2 ? Math.ceil(dt / .25) : 1;
+      for (let s = 0; s < sub; s++) {
+        K.cam(k);
+        q.PA.os.forEach((o, j) => { const x = o.x + Math.sin(o.yaw) * o.v * 2, z = o.z + Math.cos(o.yaw) * o.v * 2;
+          if (K.inFrame(o.x, o.z) || K.inFrame(x, z)) { for (const p of K.away()) if (q.osGo(o, p, false)) { window.__steer++; break; } } });
+        if (sub > 1) q.sim(dt / sub, 1 / 12); else q.step(Math.max(1, Math.round(24 / TFPS)), 1 / 24);
+      }
+      K.cam(k);
+      const inF = q.PA.os.map(o => K.inFrame(o.x, o.z, 0));
+      return {i, n, ct: window.__C ? null : null, tentWet: +q.tentU.uWetC.value.toFixed(3), wx: {wet: +q.WX.wet.toFixed(3), ovc: +(q.WX.ovc || 0).toFixed(3)}, inFrame: inF, steer: window.__steer};
+    }, capIn, tentJS, ST, TFPS), true, TFPS);
+    const s = r.log, at = nm => ST.find(v => v[2] === nm);
+    report.tent = Object.assign(report.tent, {frames: s.length, fps: TFPS, stages: ST,
+      ovc: s.filter((_, j) => j % 6 === 0).map(v => v.wx.ovc), wet: s.filter((_, j) => j % 6 === 0).map(v => v.wx.wet),
+      tentWet: s.filter((_, j) => j % 6 === 0).map(v => v.tentWet), ostrichInFrameFrames: s.filter(v => v.inFrame.some(Boolean)).length, steered: s[s.length - 1].steer});
+    if (report.tent.ostrichInFrameFrames) fails.push("tent clip: an ostrich in frame in " + report.tent.ostrichInFrameFrames + " frames");
+    if (!(s[at("light")[0] - 1].tentWet < .1 && s[s.length - 1].tentWet > .3)) fails.push("tent clip: cloth did not go from dry to wet");
+    const pick = [1, at("cloud")[0] + 3, at("cloud")[1] - 2, at("light")[1] - 1, at("heavy")[1] - 1, TN - 2];
+    await strip(pick.map(i => frameAt(r.dir, i)), "B_tent_rain_strip.png", null, 426);
+    for (const [i, nm] of [[at("clear")[1] - 1, "dry"], [at("heavy")[1] - 1, "wet"], [TN - 2, "close"]])
+      await ffmpeg(["-i", frameAt(r.dir, i), "-frames:v", "1", "-update", "1", path.join(OUT, `B_tent_rain_${nm}.png`)]);
+    fs.rmSync(r.dir, {recursive: true, force: true});
+    /* the rain sound off the scene's own bus, as d161/d162 recorded it */
+    await page.keyboard.press("F9");
+    await page.evaluate(() => { window.__desQA().freeze(false); });
+    await page.waitForFunction(() => { const A = window.__desQA().AU; return A.bus && A.lp.rain && window.__sound.ctx === "running"; }, {timeout: 120000, polling: 250}).catch(() => {});
+    const au = await page.evaluate(async () => {
+      const q = window.__desQA(), A = q.AU; if (!A.bus) return {err: "no bus"};
+      window.__set({weather: "hrain", ct: "overcast"}); q.sim(30, .5);
+      await new Promise(r => setTimeout(r, 3000));
+      const ctx = A.bus.context, dst = ctx.createMediaStreamDestination(); A.bus.connect(dst);
+      const rec = new MediaRecorder(dst.stream), ch = []; rec.ondataavailable = e => ch.push(e.data);
+      const done = new Promise(r => { rec.onstop = r; });
+      rec.start(); await new Promise(r => setTimeout(r, 7500)); rec.stop(); await done; A.bus.disconnect(dst);
+      const b = new Blob(ch, {type: rec.mimeType}), u8 = new Uint8Array(await b.arrayBuffer());
+      let bin = ""; for (let i = 0; i < u8.length; i += 32768) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 32768));
+      return {mime: rec.mimeType, bytes: u8.length, b64: btoa(bin)};
+    });
+    await page.evaluate(() => { const q = window.__desQA(); q.freeze(true); window.__set({weather: "sun", ct: "clear"}); q.sim(900, 1); });
+    report.tent.sound = {mime: au.mime, bytes: au.bytes, err: au.err};
+    if (au.b64) {
+      const af = path.join(OUT, "tent-rain-sound.webm"), v0 = path.join(OUT, "tent-rain.mp4"), v1 = path.join(OUT, "tent-rain-av.mp4");
+      fs.writeFileSync(af, Buffer.from(au.b64, "base64"));
+      /* the rain is heard from the first drops on: silence while it is dry, the recording faded in as the shower starts */
+      const t0 = (at("light")[0] / TFPS).toFixed(2);
+      await ffmpeg(["-i", v0, "-stream_loop", "-1", "-i", af, "-filter_complex", `[1:a]adelay=${Math.round(t0 * 1000)}|${Math.round(t0 * 1000)},afade=t=in:st=${t0}:d=1.5[a]`,
+        "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-shortest", v1]);
+      fs.renameSync(v1, v0); fs.rmSync(af);
+      const vol = await new Promise(r => execFile("ffmpeg", ["-i", v0, "-af", "volumedetect", "-f", "null", "-"], (e, o, se) => r(String(se).match(/mean_volume: (-?[\d.]+) dB/))));
+      report.tent.sound.meanDb = vol ? +vol[1] : null;
+      if (!vol || +vol[1] < -60) fails.push("tent clip: rain sound silent");
+    } else fails.push("tent clip: no rain sound recorded");
+    report.tent.osRequested = [...osReq];
+    report.tent.osParsed = await page.evaluate(() => Object.keys(window.CY.ms || {}).filter(k => /^ostrich_v2/.test(k) && window.__desPre && !(k in window.__desPre)));
+    const osUsed = [...new Set([...osReq, ...report.tent.osParsed])];
+    if (osUsed.length !== 1 || osUsed[0] !== "ostrich_v2ag") fails.push("ostrich in use is not exactly v2ag: " + osUsed);
+    console.log("tent", JSON.stringify(report.tent));
     await cap("");
   }
 //@@SECTIONS@@

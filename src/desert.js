@@ -151,11 +151,21 @@ function hRaw(x,z){
   h+=1.1*G2(x,z,-12,-11.5,6.5,4)+.7*G2(x,z,15,7,5.5,4)+.5*G2(x,z,-19,-8,4,5)+.35*G2(x,z,3,11.5,6.5,3);
   return h}
 PADS.forEach(p=>{p.h=hRaw(p.x,p.z)});
+/* sand drifted against the windward side of each seat log by the fire: banked up to about the log's middle at its face and
+   tailing off over half a metre, wrapping a little round the ends; nothing on the lee side, so no log stands on a ridge there */
+const DRIFT=SEATS.map(s=>{const th=s.yaw-Math.PI/2,nx=Math.sin(th),nz=Math.cos(th),wn=-(nx*WIND.x+nz*WIND.z),sg=wn<0?-1:1;
+  return{x:s.x,z:s.z,ax:Math.cos(th),az:-Math.sin(th),nx:nx*sg,nz:nz*sg,r:s.rad,hl:s.len*.5,A:s.rad*.62*Math.sqrt(Math.abs(wn))}});
+function driftH(x,z){const fx=x-FIRE.x,fz=z-FIRE.z;if(fx*fx+fz*fz>8.4)return 0;let h=0;
+  for(const s of DRIFT){const dx=x-s.x,dz=z-s.z,d=dx*s.nx+dz*s.nz,r=s.r;if(d<-r||d>r+.7)continue;
+    const a=Math.abs(dx*s.ax+dz*s.az);if(a>s.hl+.5)continue;
+    h+=ss(s.hl+.32,s.hl-.12,a)*s.A*(1+.12*Math.sin(a*7+s.x*3))*(d<0?ss(-r*.85,0,d):1-ss(r*.88,r+.55,d))}
+  return h}
 const hTop=(x,z)=>hTop0(x,z)+dDelta(x,z);
 function hTop0(x,z){
   let h=hRaw(x,z);
   for(const p of PADS){const c=Math.cos(p.yaw),s=Math.sin(p.yaw),dx=x-p.x,dz=z-p.z;
     const u=(dx*c-dz*s)/p.rx,v=(dx*s+dz*c)/p.rz,r=Math.hypot(u,v);if(r<1.6)h=mix(h,p.h,ss(1.6,.9,r))}
+  h+=driftH(x,z);
   const n=pN(x,z);
   if(n<2){const sh=POND.wy+.12;
     if(n<1)h=sh-.3*ss(1,.82,n)-1.25*ss(.85,.25,n);
@@ -1204,129 +1214,220 @@ function clothStep(m,F,push,gR,t,dt){const d=m.userData,tgt=push*Math.atan(.35*F
   for(let i=0;i<n;i++){const ac=-w1*w1*(d.th-tgt)-2*z1*w1*d.thV;d.thV+=ac*h;d.th+=d.thV*h;
     d.fiV+=(-w2*w2*d.fi-2*z2*w2*d.fiV-.75*ac)*h;d.fi+=d.fiV*h}
   clothPose(m,F,gR,t)}
-const woodM=new T.MSM({color:"#6e4a2c",roughness:.9});
 function stripeTex(cols){const c=document.createElement("canvas");c.width=64;c.height=128;const x=c.getContext("2d");
   let y=0;while(y<128){const h=4+Math.floor(rnd()*14);x.fillStyle=cols[Math.floor(rnd()*cols.length)];x.fillRect(0,y,64,h);y+=h}
   for(let i=0;i<900;i++){x.fillStyle=`rgba(0,0,0,${rnd()*.08})`;x.fillRect(rnd()*64,rnd()*128,1,1)}
   const t=new T.CTex(c);t.colorSpace="srgb";return t}
-/* the rack's cross-bar: an old pole left out in the deep desert for years. Along x, centred, local frame of the rack.
-   Sand carried on the prevailing wind has worn the soft earlywood out from between the hard latewood, so the grain stands in ridges
-   along the bar, deepest on the windward face and the up-wind end. Uneven, slightly oval and twisting cross-section, sagging between
-   the forks; ends worn round and split open; long seasoning checks and old nicks. Colour: sun-bleached silver-grey, browner on the
-   shaded underside, dark brown only down in the cracks, a little blown sand caught in the top grooves and the fork seats, and the
-   wood rubbed smooth and darker where it sits in the forks and where the rugs are thrown over it. Own seed: the island's shared
-   random sequence is not touched. aW = (crack, sand, wear, windward exposure). */
-function rackBarGeo(){let s0=58163;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.imul(s0^s0>>>15,1|s0);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},rg=(a,b)=>a+(b-a)*rn();
-  const L=3.6,R=.037,NR=112,NL=300,RC=.011,NG=22,c=Math.cos(RACK.yaw),s=Math.sin(RACK.yaw);
-  /* the wind blows from -wl: windward face and up-wind end */
-  const wlx=-(WIND.x*c-WIND.z*s),wlz=-(WIND.x*s+WIND.z*c),wn=Math.hypot(wlx,wlz),upEnd=wlx<0?-1:1;
-  const ph=[rg(0,TAU),rg(0,TAU),rg(0,50),rg(0,50),rg(0,50)];
-  /* seasoning checks: long, on the sun side; and splits running in from each end */
-  const CK=[{a:.15,x0:-1.25,x1:-.1,w:.0055,d:.015},{a:1.15,x0:.2,x1:1.45,w:.005,d:.014},{a:-.7,x0:-.55,x1:.75,w:.003,d:.009},{a:2.1,x0:-1.7,x1:-1.05,w:.0035,d:.01},{a:.5,x0:.95,x1:1.74,w:.0045,d:.013},{a:1.75,x0:-.9,x1:-.25,w:.003,d:.008}];
-  /* hard knots: they wear slowest, so they stand proud of the grooved wood and the grain parts round them */
-  const KN=[{x:-.62,a:.95,r:.016},{x:.74,a:.3,r:.013},{x:1.28,a:1.55,r:.011},{x:-1.45,a:-.35,r:.012}];
-  const SP=[{e:-1,a:.35,l:.42},{e:-1,a:2.6,l:.2},{e:-1,a:-1.9,l:.3},{e:1,a:.75,l:.38},{e:1,a:2.2,l:.18},{e:1,a:-2.3,l:.26}];
-  const NK=Array.from({length:9},()=>({x:rg(-1.7,1.7),a:rg(-1.2,2.4),sx:rg(.008,.016),sa:rg(.25,.5),d:rg(.0025,.005)}));
-  const wrapD=(a,b)=>{let d=a-b;d-=TAU*Math.round(d/TAU);return d};
-  /* profile from the left end's centre to the right end's: cap rings, the worn round edge, the length, the edge, the cap */
+/* ---------------- weathered desert wood: every procedural wooden prop on the island ----------------
+   The rack's posts, fork prongs and cross-bar, the seat logs round the fire, the firewood stack and the logs burning in the fire
+   are one set of old wood left out in the deep desert for years. Sand carried on the prevailing wind has worn the soft earlywood
+   out from between the hard latewood, so the grain stands in ridges, deepest on the windward face; the wood is sun-bleached
+   silver-grey, browner where it is shaded, dark brown only down in the cracks. The mesh carries only the big shapes: an uneven,
+   lobed, twisting cross-section, bow and sag, knots and branch stubs standing proud, broad wind-scoured hollows, a sand-blasted
+   waist just above the ground, deep checks and the V's of split ends (the vertex columns crowd into each crack, so it is cut
+   sharp with few triangles). Grain, wind grooves, fibres, hairline checks, end-grain rings, ragged bark edges, char crazing and
+   sand grains are drawn per pixel (wwMat). Each piece has its own seed: the island's shared random sequence is not touched.
+   Local frame: the piece runs along x, centred; angle an = atan2(z, y). o.M maps it into island metres.
+   aW = (crack, sand, wear, wind exposure), aB = (bark, char, nominal radius, glow). Phones get about a third of the triangles. */
+const WW_Q=MOB?.62:1;
+function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.imul(s0^s0>>>15,1|s0);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},rg=(a,b)=>a+(b-a)*rn();
+  const L=o.L,R=o.R,tap=o.taper||0,NR=Math.max(8,2*Math.round(o.NR*WW_Q/2)),NL=Math.max(4,Math.round(o.NL*WW_Q)),e=o.M.elements,Kd=Math.sqrt(R/.037);
+  const Rx=x=>R*(1-tap*x/L),toW=(x,y,z)=>[e[0]*x+e[4]*y+e[8]*z+e[12],e[1]*x+e[5]*y+e[9]*z+e[13],e[2]*x+e[6]*y+e[10]*z+e[14]],
+    dW=(x,y,z)=>[e[0]*x+e[4]*y+e[8]*z,e[1]*x+e[5]*y+e[9]*z,e[2]*x+e[6]*y+e[10]*z],wrapD=(a,b)=>{let d=a-b;d-=TAU*Math.round(d/TAU);return d};
+  /* the wind travels along +WIND: the windward face looks along -WIND */
+  const wdx=-WIND.x,wdz=-WIND.z;let aUp=0,bu=-9;for(let i=0;i<32;i++){const a=i/32*TAU,d=dW(0,Math.cos(a),Math.sin(a));if(d[1]>bu){bu=d[1];aUp=a}}
+  const ph=[rg(0,TAU),rg(0,TAU),rg(0,50),rg(0,50),rg(0,50)],lobe=o.lobe||1,E=o.ends||["worn","worn"];
+  /* checks: long, mostly on the sun side, wandering with the grain; splits running in from the worn ends */
+  const CK=Array.from({length:o.checks??3},(_,i)=>{const x0=rg(-.45,.2)*L,x1=Math.min(.47*L,x0+rg(.25,.65)*L);
+    return{a:(bu>.3?aUp:0)+rg(-1.4,1.4)+(i%3===2?Math.PI:0),x0,x1,w:rg(.003,.0055)*Kd,d:rg(.008,.016)*Kd,s:rg(0,9)}});
+  const cA=(C,x)=>C.a-x*.108+.12*(vn2(x*1.6+C.s,1.7)-.5);
+  /* deep wind furrows: a few grooves the sand has cut much deeper than the rest, wandering with the grain, deepest windward */
+  const GR=Array.from({length:o.furrows??0},(_,i)=>({a:rg(0,TAU),w:rg(.006,.0095)*Kd,d:rg(.0022,.0042)*Kd,s:rg(0,50),i}));
+  const gA=(G,x)=>G.a-x*.108+.5*(vn2(x*.9+G.s,2.3)-.5)+.25*(vn2(x*3.3+G.s,5.1)-.5)+.22*(vn2(x*7.5+G.s,8.7)-.5),gD=(G,x)=>G.d*(.25+.75*ss(.25,.65,vn2(x*1.4/Kd+G.s,4.4)));
+  const SP=[];for(const en of[-1,1])if(E[en<0?0:1]==="worn")for(let i=0;i<(o.splits??2);i++)SP.push({e:en,a:rg(0,TAU),l:rg(.5,1.1)*Math.min(.42,L*.12,9*R),s:rg(0,9)});
+  const KN=Array.from({length:o.knots??2},()=>({x:rg(-.4,.4)*L,a:(o.stubs?aUp+rg(-1.6,1.6):rg(0,TAU)),r:rg(.3,.45)*R*(o.stubs?1.5:1),h:o.stubs?rg(.12,.28)*R:.0032*Kd}));
+  const NK=Array.from({length:o.nicks??3},()=>({x:rg(-.45,.45)*L,a:rg(-1.2,2.4)+aUp,sx:rg(.008,.016)*Kd,sa:rg(.25,.5),d:rg(.0025,.005)*Kd}));
+  const SE=(o.seats||[]).map(s=>Object.assign({w:.05},s));
+  /* firewood: a split piece, two flat faces meeting at a ridge (normals a0 +- fa, at d from the axis), bark on the round back */
+  const WG=o.wedge?[o.wedge.a0+o.wedge.fa,o.wedge.a0-o.wedge.fa].map(n=>({n,d:o.wedge.d*R})):[];
+  const RC=Math.min(R*.3,.02);
+  /* rows along the piece crowd round knots, seats and the worn ends */
+  const xa=-L/2+(E[0]==="worn"?RC:0),xb=L/2-(E[1]==="worn"?RC:0),NB=400,cdf=new Float32Array(NB+1);
+  for(let b=0;b<NB;b++){const x=xa+(xb-xa)*(b+.5)/NB,we=.05*L+2*R;let d=1;for(const k of KN)d+=2.5*Math.exp(-(((x-k.x)/(k.r*2.2))**2));
+    for(const s of SE)d+=1.5*Math.exp(-(((x-s.x)/(s.w*1.5))**2));d+=2*Math.exp(-(((x-xa)/we)**2))+2*Math.exp(-(((x-xb)/we)**2));cdf[b+1]=cdf[b]+d}
+  const rows=[];for(let i=0;i<=NL;i++){const tg=i/NL*cdf[NB];let b=0;while(b<NB-1&&cdf[b+1]<tg)b++;rows.push(xa+(xb-xa)*(b+(tg-cdf[b])/Math.max(1e-6,cdf[b+1]-cdf[b]))/NB)}
+  /* columns round the piece crowd into the cracks, the split V's, round knots and onto the edges of split faces */
+  const NBA=240,dA=new Float32Array(NBA+1);
+  const cols=x=>{const F=[];
+    for(const C of CK){if(x<C.x0||x>C.x1)continue;const t=(x-C.x0)/(C.x1-C.x0);F.push([cA(C,x),Math.max(.05,C.w/R*1.1),2.4*Math.pow(Math.sin(Math.PI*t),.6)])}
+    for(const G of GR)F.push([gA(G,x),G.w/R*.75,1.6*gD(G,x)/G.d]);
+    for(const S of SP){const xd=L/2-x*S.e;if(xd<S.l)F.push([S.a,.06,2.2*ss(0,.25,1-xd/S.l)])}
+    for(const k of KN){const q=Math.exp(-(((x-k.x)/(k.r*1.6))**2));if(q>.05)F.push([k.a,k.r/R*.9,2*q])}
+    for(const w of WG){const c=Math.acos(cl(w.d/R,-1,1));F.push([w.n+c,.05,1.3],[w.n-c,.05,1.3])}
+    if(WG.length)F.push([o.wedge.a0,.05,1.3]);
+    let m=0;for(const f of F)m+=f[2];const sc=m>NR*.55?NR*.55/m:1,base=NR-m*sc;
+    for(let b=0;b<NBA;b++){const th=-Math.PI+(b+.5)/NBA*TAU;let d=base/TAU;for(const f of F){const u=wrapD(th,f[0])/f[1];if(u*u<16)d+=f[2]*sc*Math.exp(-.5*u*u)/(f[1]*2.5066)}dA[b+1]=dA[b]+d*TAU/NBA}
+    const out=new Float32Array(NR),k=NR/dA[NBA];let b=0;
+    for(let j=0;j<NR;j++){const tg=(j+.5)/k;while(b<NBA-1&&dA[b+1]<tg)b++;out[j]=-Math.PI+(b+(tg-dA[b])/Math.max(1e-6,dA[b+1]-dA[b]))/NBA*TAU}return out};
+  /* profile: left end (cap rings, worn round edge), the body rows, right end */
   const prof=[];
-  for(const e of[-1,1]){const side=[];
-    for(let i=0;i<=5;i++)side.push({rho:(R-RC)*i/5,dx:0,cap:1});
-    for(let i=1;i<=6;i++){const th=i/6*Math.PI/2;side.push({rho:R-RC+RC*Math.sin(th),dx:RC-RC*Math.cos(th),cap:i<3?.5:0})}
-    if(e<0)prof.push(...side.map(p=>({x:-L/2+p.dx,rho:p.rho,cap:p.cap,e:-1})));
-    else{for(let i=1;i<NL;i++){const u=i/NL,x=-L/2+RC+(L-2*RC)*u;prof.push({x,rho:R,cap:0,e:0})}
-      prof.push(...side.reverse().map(p=>({x:L/2-p.dx,rho:p.rho,cap:p.cap,e:1})))}}
-  const NP=prof.length,pos=new Float32Array(NP*NR*3),col=new Float32Array(NP*NR*3),aw=new Float32Array(NP*NR*4),ag=new Float32Array(NP*NR*4);
-  for(let i=0;i<NP;i++){const P=prof[i];
-    for(let j=0;j<NR;j++){const an=j/NR*TAU,ca=Math.cos(an),sa=Math.sin(an),x=P.x,xe=Math.abs(x)/(L/2),k=i*NR+j;
-      const side=P.rho/R;
-      /* shape: oval and lobed, the long axes twisting along the bar; tapering a little toward the right */
-      let sh=1+.075*Math.cos(2*(an-ph[0]-x*.35))+.035*Math.cos(3*(an-ph[1]+x*.22))+.05*(vn2(x*1.3+ca*.6+ph[2],sa*.6)-.5)-.05*(x/L);
-      const ex=(.2+.8*Math.max(0,sa*Math.sign(wlz))*Math.abs(wlz)/wn)*(1+.45*ss(.3,1,xe)*(x*upEnd>0?1:0));
-      sh-=.05*ex*ex;
-      /* wind grooves along the grain, spiralling a little; each groove its own depth, all deepest windward and on the worn ends */
-      let kd=0,kn=0;for(const K of KN){const dx=(x-K.x)/K.r,da=wrapD(an,K.a)*R/K.r,d2=dx*dx+da*da;if(d2<40){const e=Math.exp(-d2*.18);kd+=Math.sign(da)*e*1.1;kn=Math.max(kn,Math.exp(-d2*.9))}}
-      const gw=an/TAU*NG+x*.38+1.6*(vn2(x*.7+ph[3],2.3)-.5)+.9*(vn2(ca*1.3+x*.25+ph[2],sa*1.3)-.5)+.55*(vn2(x*3.1+ph[4],ca*.7+sa*.4)-.5)+kd,gi=Math.floor(gw+.5),
-        gh=Math.pow(Math.abs(Math.cos(Math.PI*gw)),2.5+4*vn2(gi*3.7,x*1.3)),dn=vn2(gi*7.31,x*2.4+ph[4]),dg=(.04+1.7*dn*dn*dn)*(1-.8*kn);
-      /* fork seats (x = ±1.6) and the rugs' top line: rubbed smooth and dark */
-      const fs=Math.max(Math.exp(-(((x-1.6)/.045)**2)),Math.exp(-(((x+1.6)/.045)**2))),rugZ=(x>-1.32&&x<-.18)||(x>.08&&x<1.02)?ss(.55,0,Math.abs(wrapD(an,.45))):0,
-        wr=Math.min(1,fs+.5*rugZ);
-      /* scour: broad shallow hollows the sand has cut into the windward face */
-      const sc=Math.pow(vn2(x*2.6+ph[3],an*1.8+ca),2);
-      let dep=(1-gh)*dg*(.0006+.0042*ex)*(1-.7*wr)+.0016*fs+.004*ex*sc-.0032*kn;
-      /* checks: narrow, deep, wandering with the grain */
+  for(const en of[-1,1]){const worn=E[en<0?0:1]==="worn",side=[];
+    if(worn){for(const r of[0,.42,.75])side.push({rho:(R-RC)*r/R,dx:0,cap:1});for(const th of[Math.PI/6,Math.PI/3])side.push({rho:(R-RC+RC*Math.sin(th))/R,dx:RC-RC*Math.cos(th),cap:.5})}
+    else side.push({rho:0,dx:0,cap:1});
+    if(en<0)prof.push(...side.map(p=>({x:-L/2+p.dx,rho:p.rho,cap:p.cap,e:-1,cx:xa})));
+    else{for(const x of rows)prof.push({x,rho:1,cap:0,e:0,cx:x});prof.push(...side.reverse().map(p=>({x:L/2-p.dx,rho:p.rho,cap:p.cap,e:1,cx:xb})))}}
+  const NP=prof.length,pos=new Float32Array(NP*NR*3),col=new Float32Array(NP*NR*3),aw=new Float32Array(NP*NR*4),ab=new Float32Array(NP*NR*4);
+  let lastCx=null,ang=null;
+  for(let i=0;i<NP;i++){const P=prof[i],x=P.x;if(P.cx!==lastCx){ang=cols(P.cx);lastCx=P.cx}
+    const xe=Math.abs(x)/(L/2),u=x/L+.5,ax=toW(x,0,0),Rr=Rx(x);
+    for(let j=0;j<NR;j++){const an=ang[j],ca=Math.cos(an),sa=Math.sin(an),k=i*NR+j,nW=dW(0,ca,sa),top=nW[1],
+        ex=Math.min(1,Math.max(0,nW[0]*wdx+nW[2]*wdz)+.6*Math.max(0,nW[1])),
+        sW=toW(x,Rr*ca,Rr*sa),hg=sW[1]-hTop(sW[0],sW[2]);
+      /* shape: oval and lobed, the long axes twisting along the piece; the windward face worn flatter */
+      let sh=1+lobe*(.075*Math.cos(2*(an-ph[0]-x*.35))+.035*Math.cos(3*(an-ph[1]+x*.22))+.05*(vn2(x*1.3/Kd+ca*.6+ph[2],sa*.6)-.5))-.05*ex*ex;
+      if(o.waist){const w=ss(.03,.14,hg)*ss(.65,.22,hg);sh-=w*(.04+.14*ex)}
+      if(o.seatTop)sh-=.05*ss(.75,.97,top)*ss(.48,.3,Math.abs(x/L));
+      let kh=0,kn=0;for(const K of KN){const dx=(x-K.x)/K.r,da=wrapD(an,K.a)*R/K.r,d2=dx*dx+da*da;if(d2<30){const q=Math.exp(-d2*.9);kn=Math.max(kn,q);kh=Math.max(kh,q*K.h)}}
+      const sc=Math.pow(vn2(x*2.6/Kd+ph[3],an*1.8+ca),2);
+      let dep=.004*Kd*ex*sc-kh;
+      let fu=0;if(!P.cap)for(const G of GR){const q=Math.abs(wrapD(an,gA(G,x)))*R/G.w;if(q<1){const pr=(1-q*q)**2,dd=gD(G,x)*pr*(.5+.5*ex+.3*ss(.6,1,xe));dep+=dd;fu=Math.max(fu,pr*dd/G.d)}}
       let ck=0;for(const C of CK){if(x<C.x0-.05||x>C.x1+.05)continue;const t=cl((x-C.x0)/(C.x1-C.x0),0,1),tp=Math.pow(Math.sin(Math.PI*t),.6),
-          da=Math.abs(wrapD(an,C.a-x*.38/NG*TAU+.12*(vn2(x*1.6+C.a*9,1.7)-.5)))*R,hw=Math.max(.0046,C.w*(.5+.5*tp)),m=ss(hw,hw*.2,da);
-        dep+=C.d*m*tp;ck=Math.max(ck,m*Math.sqrt(tp))}
-      /* end splits: open V's that widen toward the end; on the end face they run in toward the pith */
+          da=Math.abs(wrapD(an,cA(C,x)))*R,hw=Math.max(.0035*Kd,C.w*(.5+.5*tp)),m=ss(hw,hw*.15,da);dep+=C.d*m*tp;ck=Math.max(ck,m*Math.sqrt(tp))}
+      const side=P.rho;
       for(const S of SP){const xd=L/2-x*S.e;if(xd>S.l)continue;
-        const t=1-xd/S.l,da=Math.abs(wrapD(an,S.a+.1*(vn2(x*5+S.a,3.3)-.5)))*R*Math.max(side,.15),hw=.0032+.0065*t*t,m=ss(hw,hw*.15,da)*ss(0,.2,t);
-        dep+=(.003+.016*t*t)*m*(P.cap?0:1);ck=Math.max(ck,m*(P.cap?ss(.1,.5,side):1))}
-      /* old nicks */
+        const t=1-xd/S.l,da=Math.abs(wrapD(an,S.a+.1*(vn2(x*5/Kd+S.s,3.3)-.5)))*R*Math.max(side,.15),hw=(.003+.006*t*t)*Kd,m=ss(hw,hw*.15,da)*ss(0,.2,t);
+        dep+=(.003+.016*t*t)*Kd*m*(P.cap>=1?0:1);ck=Math.max(ck,m*(P.cap>=1?ss(.1,.5,side):1))}
       let nk=0;for(const N of NK){const d2=((x-N.x)/N.sx)**2+(wrapD(an,N.a)/N.sa)**2;if(d2<9){const m=Math.exp(-d2);dep+=N.d*m;nk=Math.max(nk,m)}}
-      const top=ss(.2,.85,ca);
-      const rho=P.rho*sh-dep*(P.cap?0:side>0?Math.min(1,side*1.2):0);
-      let px=x;if(P.cap){const capIn=ck*(.004+.01*(1-side))+.0015*(vn2(ca*3+ph[2],sa*3)-.5);px=x-P.e*capIn}
-      /* the end cut is a little out of square */
-      if(P.e)px+=.005*(ca*.8+sa*.6)*(P.e<0?1:-.6);
-      const sag=-.011*(1-Math.min(1,(x/1.6)**2));
-      pos[k*3]=px;pos[k*3+1]=rho*ca+sag;pos[k*3+2]=rho*sa;
-      /* linear albedo */
-      const grain=.86+.28*vn2(gw*1.7,x*6+ph[2]),blch=.9+.2*vn2(x*.9+ph[3],ca+sa*.5);
-      let r=.215*grain*blch,g=.205*grain*blch,b=.19*grain*blch;
-      const vly=Math.min(1,(1-gh)*dg*(.3+.7*ex)),crest=gh*(.4+.6*ex);r*=(1-.42*vly)*(1+.14*crest);g*=(1-.47*vly)*(1+.14*crest);b*=(1-.55*vly)*(1+.13*crest);
-      const und=ss(-.15,-.85,ca)*(1-.6*ex);r=mix(r,.15,und*.6);g=mix(g,.118,und*.6);b=mix(b,.082,und*.6);
-      if(P.cap>=1){const ring=.8+.2*vn2(side*14+ph[4],an);r=mix(.16,.2,side)*ring;g=mix(.13,.19,side)*ring;b=mix(.095,.175,side)*ring}
+      /* where the piece rests on, or carries, another: rubbed smooth and darker, a little worn away, and blown sand packed into the
+         grooves and cracks of the contact all round, the underside included */
+      let wr=0,sd=0;for(const S of SE){const fx=Math.exp(-(((x-S.x)/S.w)**2)),fy=Math.exp(-(((x-S.x)/(S.w*2.4))**2)),q=S.p,
+          dx=q[0]-ax[0],dy=q[1]-ax[1],dz=q[2]-ax[2],dl=Math.hypot(dx,dy,dz)||1,f=(nW[0]*dx+nW[1]*dy+nW[2]*dz)/dl;
+        wr=Math.max(wr,fx*ss(.15,.75,f));dep+=.0016*fx*ss(.15,.75,f);sd=Math.max(sd,fy*ss(-.55,.35,f)*(S.sand??1))}
+      if(o.rugs){const rz=(x>-1.32&&x<-.18)||(x>.08&&x<1.02)?ss(.55,0,Math.abs(wrapD(an,.45))):0;wr=Math.max(wr,.5*rz)}
+      if(o.seatTop)wr=Math.max(wr,.8*ss(.72,.95,top)*ss(.46,.28,Math.abs(x/L)));
+      /* bark: torn away by the wind and the sitters, it hangs on in patches on the lee and under side and toward the ends */
+      let bk=0;if(o.bark)bk=cl(o.bark+.6*(vn2(x*4/Kd+ph[2],an*1.6+ca)-.5)+.25*(vn2(x*13/Kd+ph[4],an*4)-.5)-.75*ex-.55*Math.max(0,top)+.3*ss(.6,1,xe)-1.2*wr,0,1);
+      if(WG.length){for(const w of WG)if(Math.cos(an-w.n)>.2)bk=0}
+      /* scorched on the side the fire has been toward: crazed charcoal low and in the middle, soot fading out above it */
+      let ch=0,gl=0;
+      if(o.fireLog){ch=cl(ss(.28,.8,u)+.3*(vn2(x*20+ph[3],an*2)-.5),0,1);
+        gl=ss(.6,.98,u)*(.55+.45*vn2(an*3+ph[2],u*9));bk*=1-ss(.2,.5,u)}
+      else if(o.fire){const fx=o.fire.x-ax[0],fz=o.fire.z-ax[2],fl=Math.hypot(fx,fz)||1,f=(nW[0]*fx+nW[2]*fz)/fl;
+        ch=cl(o.char*ss(.3,.9,f)*ss(.6,.05,top)*(.35+1.1*ss(.25,.7,vn2(x*2.2/Kd+ph[4],an*1.6)))*ss(.5,.32,Math.abs(x/L)),0,1)}
+      bk*=1-ss(.3,.7,ch);
+      /* sand: a dusting just above the ground, higher on the windward side, in the cracks on top and in the top grooves */
+      const tp=Math.max(0,top);
+      sd=Math.max(sd,ss(.03+.05*ex,0,hg)*(P.cap>=1?.5:1),.6*ck*tp*ss(.3,.7,vn2(x*4.5/Kd+ph[4],an*2)),(o.sandTop||0)*tp*ss(.45,.75,vn2(x*4.5/Kd+ph[3],an*2.5)));
+      if(o.heap&&P.cap>=1&&P.e>0)sd=1;
+      /* geometry */
+      const raise=.0035*Kd*ss(.4,.62,bk)*(P.cap>=1?0:1);
+      let rO=Rr*sh;for(const w of WG){const c=Math.cos(an-w.n);if(c>.02)rO=Math.min(rO,w.d/c+.002*(vn2(x*9,an*3)-.5))}
+      const rho=P.cap>=1?side*rO:P.rho*rO-dep*(P.cap?Math.min(1,side*1.2):1)+raise;
+      let px=x;if(P.cap>=1){const capIn=ck*(.004+.01*(1-side))*Kd+.0015*(vn2(ca*3+ph[2],sa*3)-.5);px=x-P.e*capIn;if(o.heap&&P.e>0)px+=o.heap*(1-side*side)*(.8+.4*vn2(ca*2,sa*2))}
+      if(P.e&&!o.heap)px+=.005*Kd*(ca*.8+sa*.6)*(P.e<0?1:-.6);
+      const sag=(o.sag||0)*(1-Math.min(1,(x/(o.sagW||L/2))**2))+(o.bend||0)*(1-(2*x/L)**2);
+      pos[k*3]=px;pos[k*3+1]=rho*ca+sag;pos[k*3+2]=rho*sa+(o.bend||0)*.6*(1-(2*x/L)**2);
+      /* linear albedo: bleached silver-grey, browner on the shaded underside, darker and smoother where rubbed, dark brown in cracks */
+      const grain=.86+.28*vn2(x*6/Kd+ph[2],an*3+ph[1]),blch=.9+.2*vn2(x*.9+ph[3],ca+sa*.5);
+      let r=.225*grain*blch,g=.207*grain*blch,b=.182*grain*blch;
+      const und=ss(-.15,-.85,top)*(1-.6*ex);r=mix(r,.15,und*.6);g=mix(g,.118,und*.6);b=mix(b,.082,und*.6);
+      if(WG.length&&!P.cap&&WG.some(w=>Math.cos(an-w.n)>.25)){r*=1.12;g*=1.1;b*=1.05}
+      if(P.cap>=1){const ring=.8+.2*vn2(side*14+ph[4],an);r=mix(.18,.21,side)*ring;g=mix(.155,.195,side)*ring;b=mix(.12,.175,side)*ring}
       r=mix(r,.11,nk*.6);g=mix(g,.075,nk*.6);b=mix(b,.048,nk*.6);
+      r=mix(r,.1,fu*.5);g=mix(g,.085,fu*.5);b=mix(b,.066,fu*.5);
       r=mix(r,.12,wr*.6);g=mix(g,.098,wr*.6);b=mix(b,.075,wr*.6);
       r=mix(r,.13,kn*.8);g=mix(g,.1,kn*.8);b=mix(b,.072,kn*.8);
-      const sp=ss(.35,.7,vn2(x*4.5+ph[4],an*2)),sand=cl(top*(vly*.55*sp+.45*fs)+.5*ck*top*sp,0,1)*(P.cap>=1?.2:1);
-      r=mix(r,.55,sand*.8);g=mix(g,.38,sand*.8);b=mix(b,.2,sand*.8);
-      const cm=Math.pow(ck,.45)*(1-.3*top*sp);r=mix(r,.022,cm);g=mix(g,.012,cm);b=mix(b,.006,cm);
-      /* groove phase as a unit vector (continuous all round, NG is even), groove strength and crest sharpness: the shader rebuilds
-         the crests per pixel */
-      ag[k*4]=Math.cos(Math.PI*gw);ag[k*4+1]=Math.sin(Math.PI*gw);ag[k*4+2]=P.cap>=1?0:Math.min(1,dg*(.35+.65*ex))*(1-.7*wr)*(1-kn);ag[k*4+3]=2.5+4*vn2(gi*3.7,x*1.3);
-      col[k*3]=r;col[k*3+1]=g;col[k*3+2]=b;aw[k*4]=ck;aw[k*4+1]=sand;aw[k*4+2]=wr;aw[k*4+3]=Math.min(1,ex)}}
+      const cm=Math.pow(ck,.45);r=mix(r,.022,cm);g=mix(g,.012,cm);b=mix(b,.006,cm);
+      col[k*3]=r;col[k*3+1]=g;col[k*3+2]=b;
+      aw[k*4]=ck;aw[k*4+1]=cl(sd,0,1);aw[k*4+2]=wr;aw[k*4+3]=Math.min(1,ex);
+      ab[k*4]=bk;ab[k*4+1]=Math.min(1,ch);ab[k*4+2]=R;ab[k*4+3]=gl}}
   const idx=[];for(let i=0;i<NP-1;i++)for(let j=0;j<NR;j++){const a=i*NR+j,b=i*NR+(j+1)%NR,c2=(i+1)*NR+j,d=(i+1)*NR+(j+1)%NR;idx.push(a,b,c2,b,d,c2)}
-  const g=new T.BG();g.setAttribute("position",new T.BA(pos,3));g.setAttribute("color",new T.BA(col,3));g.setAttribute("aW",new T.BA(aw,4));g.setAttribute("aG",new T.BA(ag,4));g.setIndex(idx);g.computeVertexNormals();return g}
-/* fine latewood ridges and hairline checks on the long faces and growth rings on the ends, as bump (they fade out before they
-   alias); rubbed and wet wood turn smoother; rain soaks the grey wood dark, least where sand fills the grooves */
-function rackBarMat(){const m=new T.MSM({vertexColors:true,roughness:.93,metalness:0});
+  const g=new T.BG();g.setAttribute("position",new T.BA(pos,3));g.setAttribute("color",new T.BA(col,3));g.setAttribute("aW",new T.BA(aw,4));g.setAttribute("aB",new T.BA(ab,4));
+  g.setIndex(idx);g.computeVertexNormals();return g}
+/* per pixel: wind grooves (~11 mm) and latewood ridges (~2.6 mm) along the grain, fibres and hairline checks, growth rings on the
+   ends, all as bump that fades out before it aliases; bark in fissured plates with ragged torn edges; charcoal crazed into small
+   blocks (their cracks glow on the logs in the fire); sand as loose grains filling grooves and cracks. Rubbed and wet wood turns
+   smoother; rain soaks the grey wood dark, least where sand fills it; light hardly reaches down a crack. */
+function wwMat(glow){const m=new T.MSM({vertexColors:true,roughness:.93,metalness:0});if(glow){m.emissive.set("#ff5a1a");m.emissiveIntensity=0}
   m.onBeforeCompile=sh=>{sh.uniforms.uWetC=tentU.uWetC;sh.uniforms.uBS={value:S};
-    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nattribute vec4 aW,aG;varying vec4 vW,vG;varying vec3 vOP,vON;")
-      .replace("#include <begin_vertex>","#include <begin_vertex>\nvW=aW;vG=aG;vOP=position;vON=normal;");
-    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uWetC,uBS;varying vec4 vW,vG;varying vec3 vOP,vON;"+GLSL_NOISE)
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nattribute vec4 aW,aB;varying vec4 vW,vB;varying vec3 vOP,vON;")
+      .replace("#include <begin_vertex>","#include <begin_vertex>\nvW=aW;vB=aB;vOP=position;vON=normal;");
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uWetC,uBS;varying vec4 vW,vB;varying vec3 vOP,vON;"+GLSL_NOISE)
       .replace("#include <color_fragment>",`#include <color_fragment>
-      float bCp=smoothstep(.75,.95,abs(normalize(vON).x)),bAn=atan(vOP.z,vOP.y),bPx=length(fwidth(vOP));
-      float bW=bAn/6.2832*88.+vOP.x*1.52+4.8*(dn2(vec2(vOP.x*.7+3.,2.3))-.5)+1.4*(dn2(vec2(vOP.x*4.,bAn*1.1+2.))-.5);
-      float bAA=(1.-smoothstep(.12,.4,bPx*88./.232))*(1.-bCp),bRid=pow(abs(cos(3.14159*bW)),4.),bPt=smoothstep(.35,.75,dn2(vec2(vOP.x*3.3,bW*.12)));
-      float bH=-(1.-bRid)*(.00018+.0006*vW.w)*mix(.35,1.,bPt)*(1.-.8*vW.z)*bAA;
-      float bFA=1.-smoothstep(.12,.4,bPx*88.*1.4/.232),bFib=.5*dn2(vec2(vOP.x*55.,bW*1.4))+.5*dn2(vec2(vOP.x*170.,bW*3.1+7.));
-      float bR=length(vOP.yz-vec2(.004,-.003)),bG=bR/.0024+1.2*dn2(vec2(bAn*2.,bR*30.)),bRA=(1.-smoothstep(.15,.5,bPx/.0024))*bCp,bRing=pow(abs(cos(3.14159*bG)),4.);
-      bH-=(1.-bRing)*.0004*bRA;
-      float bGA=1.-smoothstep(.7,1.8,length(fwidth(vG.xy))),bCr=pow(abs(vG.x)/max(length(vG.xy),1e-4),vG.w),bGs=vG.z*bGA;
-      bH+=(bCr-.6)*bGs*.0024;
-      diffuseColor.rgb*=mix(vec3(1.),mix(vec3(.66,.6,.52),vec3(1.16,1.15,1.13),bCr),bGs*.75);
-      float bCi=floor(bW+.5),bCs=vOP.x*2.6+dh2(vec2(bCi,1.))*3.,bChk=step(.78,dh2(vec2(bCi,floor(bCs))))*sin(3.14159*fract(bCs));
-      float bLine=bChk*smoothstep(.16,.02,abs(fract(bW)-.5))*bAA;
-            diffuseColor.rgb*=mix(1.,.82+.36*bFib,bFA*(1.-bCp)*(1.-.7*vW.x))*mix(1.,.6,smoothstep(.35,.85,vW.x))*mix(1.,.9+.2*bRid,bAA*mix(.5,1.,bPt))*mix(1.,.84+.24*bRing,bRA)*(1.-.45*bLine);
-      diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.5,.45,.4),uWetC*(1.-.35*vW.y));`)
+      float wCp=smoothstep(.75,.95,abs(normalize(vON).x)),wAn=atan(vOP.z,vOP.y),wRn=vB.z,wPx=length(fwidth(vOP));
+      vec2 wU=vec2(cos(wAn),sin(wAn));
+      float wNC=2.*floor(wRn*282.7+.5),wNF=2.*floor(wRn*1193.8+.5),wGA=1.-smoothstep(.15,.45,wPx*wNC/(6.2832*wRn)),wFA=1.-smoothstep(.15,.45,wPx*wNF/(6.2832*wRn));
+      float wCl=.5,wCl2=.5,wSA2=1.-smoothstep(.0012,.004,wPx),wSd=0.,wBk=0.,wChN=.5,wCh=0.,wSo=0.;
+      if(vW.y>.02){float wSdN=dn2(vec2(vOP.x*40.+wU.x*wRn*40.,wU.y*wRn*40.));wCl=dn2(vec2(vOP.x*520.+wU.x*wRn*520.,wU.y*wRn*520.));wCl2=dn2(vec2(vOP.x*150.+wU.x*wRn*150.+7.,wU.y*wRn*150.));
+        wSd=smoothstep(.4,.6,vW.y+.3*(wSdN-.5)+.18*(wCl2-.5));}
+      if(vB.x>.04)wBk=smoothstep(.46,.54,vB.x+.24*(dn2(vec2(vOP.x*9.+wU.x*wRn*14.,wU.y*wRn*14.))-.5)+.1*(dn2(vec2(vOP.x*45.+wU.x*wRn*60.,wU.y*wRn*60.))-.5));
+      if(vB.y>.01){wChN=dn2(vec2(vOP.x*12.+wU.x*wRn*12.,wU.y*wRn*12.));wCh=smoothstep(.35,.6,vB.y+.3*(wChN-.5));wSo=smoothstep(.04,.4,vB.y+.2*(wChN-.5));}
+      float wGw=wAn/6.2832*wNC+vOP.x*wNC/58.+1.6*(dn2(vec2(vOP.x*.7+3.,2.3))-.5)+.9*(dn2(vec2(vOP.x*.25+wU.x*.9,wU.y*.9+5.))-.5)+.9*(dn2(vec2(vOP.x*3.1+wU.x*.7,wU.y*.7))-.5)+.45*(dn2(vec2(vOP.x*8.5+wU.x*.5,wU.y*.5+9.))-.5);
+      float wGi=floor(wGw),wVw=.1+.22*dh2(vec2(wGi,3.7)),wCr=smoothstep(0.,wVw,abs(fract(wGw)-.5)),wDn=dn2(vec2(wGi*7.31,vOP.x*2.4)),wGd=min(1.,.04+1.7*wDn*wDn*wDn)*smoothstep(.15,.65,dn2(vec2(wGi*3.1,vOP.x*5.)));
+      wSd=max(wSd,smoothstep(.12,.4,vW.y)*(1.-wCr)*smoothstep(.15,.5,wGd)*(1.-wCp));
+      float wGs=wGd*(.35+.65*vW.w)*(1.-.8*vW.z)*(1.-wBk)*(1.-wCh)*(1.-wSd)*(1.-wCp)*wGA;
+      float wH=(wCr-1.)*wGs*.0045;
+      float wW=wAn/6.2832*wNF+vOP.x*wNF/58.+4.8*(dn2(vec2(vOP.x*.7+3.,2.3))-.5)+1.4*(dn2(vec2(vOP.x*4.+wU.x*1.1,wU.y*1.1+2.))-.5);
+      float wRid=pow(abs(cos(3.14159*wW)),4.),wPt=smoothstep(.35,.75,dn2(vec2(vOP.x*3.3+wU.x*2.,wU.y*2.))),wFm=wFA*(1.-wCp)*(1.-wBk)*(1.-wCh)*(1.-wSd);
+      wH-=(1.-wRid)*(.00012+.0004*vW.w)*mix(.35,1.,wPt)*(1.-.8*vW.z)*wFm;
+      float wFib=.5*dn2(vec2(vOP.x*55.,wW*1.4))+.5*dn2(vec2(vOP.x*170.,wW*3.1+7.));
+      float wRr=length(vOP.yz-vec2(.004,-.003)*wRn/.037),wRg=wRr/.0024+1.2*dn2(wU*2.+vec2(wRr*30.)),wRA=(1.-smoothstep(.15,.5,wPx/.0024))*wCp*(1.-wSd),wRing=pow(abs(cos(3.14159*wRg)),4.);
+      wH-=(1.-wRing)*.0004*wRA;
+      float wCi=floor(wW+.5),wCs=vOP.x*2.6+dh2(vec2(wCi,1.))*3.,wLine=step(.78,dh2(vec2(wCi,floor(wCs))))*sin(3.14159*fract(wCs))*smoothstep(.16,.02,abs(fract(wW)-.5))*wFm;
+      vec3 wBc=vec3(0.);
+      if(wBk>0.){float wNB=2.*floor(wRn*141.4+.5),wFv=wAn/6.2832*wNB+1.2*dn2(vec2(vOP.x*2.5+wU.x*2.,wU.y*2.)),wBA=1.-smoothstep(.2,.5,wPx*wNB/(6.2832*wRn));
+      float wFis=max(smoothstep(.3,.06,abs(fract(wFv)-.5)),.7*smoothstep(.12,.02,abs(fract(vOP.x*16.+dh2(vec2(floor(wFv),1.))*3.)-.5)))*wBA;
+      wH+=wBk*(.0016-.0026*wFis);
+      wBc=vec3(.075,.06,.047)*(.65+.55*dn2(vec2(vOP.x*25.,wFv*2.)))*(1.-.75*wFis);
+      wBc=mix(wBc,vec3(.15,.14,.128)*(.8+.3*dn2(vec2(vOP.x*9.,wFv))),.5*vW.w*(1.-wFis));}
+      float wAA2=1.-smoothstep(.2,.5,wPx*55.),wAl=0.;vec2 wAg=vec2(0.);
+      if(wCh>0.){float wD1=8.,wD2=8.;vec2 wQ=vec2(vOP.x*55.,wAn*wRn*48.),wQi=floor(wQ),wQf=fract(wQ);
+      for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 g=vec2(float(i),float(j)),pp=g+.1+.8*vec2(dh2(wQi+g),dh2(wQi+g+17.3))-wQf;float d=dot(pp,pp);
+        if(d<wD1){wD2=wD1;wD1=d;}else if(d<wD2)wD2=d;}
+      wAl=(1.-smoothstep(.02,.13,sqrt(wD2)-sqrt(wD1)))*wAA2;wAg=wQi;
+      wH+=wCh*((1.-wAl)*.0009-.0005);}
+      float wGn=.5,wSA=0.;
+      if(wSd>0.){wGn=dh2(floor(vec2(vOP.x*1600.,wAn*wRn*1600.)));wSA=1.-smoothstep(.0003,.0012,wPx);}
+      wH+=wSd*(.0003+.0007*wCl2+.0005*wCl*wSA2+.0003*wGn*wSA);
+      float wSt=dn2(vec2(vOP.x*2.2+wU.x*wRn*60.,wU.y*wRn*60.)),wSt2=dn2(vec2(vOP.x*6.+wU.x*wRn*170.,wU.y*wRn*170.));
+      diffuseColor.rgb*=mix(1.,(.66+.55*wSt)*(.84+.32*wSt2),(1.-wBk)*(1.-wCh)*(1.-wSd)*(1.-.6*wCp));
+      diffuseColor.rgb*=mix(vec3(1.),mix(vec3(.42,.36,.3),vec3(1.1,1.09,1.07),wCr),wGs*.9);
+      diffuseColor.rgb*=mix(1.,.86,(1.-wGA)*wGd*(.35+.65*vW.w)*(1.-wBk)*(1.-wCh)*(1.-wSd)*(1.-wCp));
+      diffuseColor.rgb*=mix(1.,.82+.36*wFib,wFm*(1.-.7*vW.x))*mix(1.,.6,smoothstep(.35,.85,vW.x))*mix(1.,.9+.2*wRid,wFm*mix(.5,1.,wPt))*mix(1.,.84+.24*wRing,wRA)*(1.-.3*wLine);
+      diffuseColor.rgb=mix(diffuseColor.rgb,wBc,wBk);
+      diffuseColor.rgb*=1.-.65*wSo*(1.-wCh);
+      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.021,.019,.018)*(1.-.7*wAl)*(.8+.4*dh2(floor(wAg))),wCh);
+      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.6,.36,.14)*(.8+.4*mix(.5,wGn,wSA))*(.84+.32*mix(.5,wCl,wSA2))*(.86+.28*wCl2),wSd);
+      diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.5,.45,.4),uWetC*(1.-.35*wSd));`)
       .replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
-      roughnessFactor=mix(roughnessFactor-.06*bRid*bAA,.6,vW.z*.75);roughnessFactor=mix(roughnessFactor,.4,uWetC*.85*(1.-.5*vW.x));`)
+      roughnessFactor=mix(roughnessFactor-.06*wRid*wFm,.6,vW.z*.75*(1.-wSd));roughnessFactor=mix(roughnessFactor,.74+.24*wAl,wCh);roughnessFactor=mix(roughnessFactor,1.,max(wSd,.6*wBk));
+      roughnessFactor=mix(roughnessFactor,.4,uWetC*.85*(1.-.5*vW.x));`)
       .replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
-      {vec3 sP=-vViewPosition,sx=dFdx(sP),sy=dFdy(sP),r1=cross(sy,normal),r2=cross(normal,sx);float dt=dot(sx,r1),h=bH*uBS;
+      {vec3 sP=-vViewPosition,sx=dFdx(sP),sy=dFdy(sP),r1=cross(sy,normal),r2=cross(normal,sx);float dt=dot(sx,r1),h=wH*uBS;
        vec3 gd=sign(dt)*(dFdx(h)*r1+dFdy(h)*r2);normal=normalize(abs(dt)*normal-gd);}`)
-      /* light hardly reaches down a crack: occluded, so it stays dark brown in full sun */
+      .replace("#include <emissivemap_fragment>",`#include <emissivemap_fragment>
+      totalEmissiveRadiance*=vB.w*wCh*(.2+1.5*mix(.55,wAl,wAA2));`)
       .replace("#include <lights_fragment_end>",`#include <lights_fragment_end>
-      {float oc=smoothstep(.15,.75,vW.x);reflectedLight.directDiffuse*=1.-.88*oc;reflectedLight.indirectDiffuse*=1.-.7*oc;reflectedLight.directSpecular*=1.-.9*oc;}`)};
-  m.customProgramCacheKey=()=>"des164bar";frostMat(m);return m}
+      {float oc=smoothstep(.15,.75,vW.x)*(1.-.75*wSd);reflectedLight.directDiffuse*=1.-.88*oc;reflectedLight.indirectDiffuse*=1.-.7*oc;reflectedLight.directSpecular*=1.-.9*oc;}`)};
+  m.customProgramCacheKey=()=>"des165wood";frostMat(m);return m}
 (function rack(){
-  const g=new T.Group();g.position.set(RACK.x,hTop(RACK.x,RACK.z),RACK.z);g.rotation.y=RACK.yaw;W.add(g);
-  const pole=(x,h,tilt)=>{const m=new T.Mesh(new T.Cyl(.045,.06,h,7),woodM);m.position.set(x,h/2-.1,0);m.rotation.z=tilt;m.castShadow=true;g.add(m);
-    const f1=new T.Mesh(new T.Cyl(.025,.035,.4,5),woodM);f1.position.set(x+.08,h-.05,0);f1.rotation.z=-.5;g.add(f1);
-    const f2=new T.Mesh(new T.Cyl(.025,.035,.4,5),woodM);f2.position.set(x-.08,h-.05,0);f2.rotation.z=.5;g.add(f2)};
-  pole(-1.6,2.0,.03);pole(1.6,1.95,-.04);
-  const bar=new T.Mesh(rackBarGeo(),rackBarMat());bar.name="rackBar";bar.position.y=1.82;bar.castShadow=true;g.add(bar);
+  const g=new T.Group();g.position.set(RACK.x,hTop(RACK.x,RACK.z),RACK.z);g.rotation.y=RACK.yaw;W.add(g);g.updateMatrix();
+  const wm=wwMat(false),inW=(x,y,z)=>new V3(x,y,z).applyMatrix4(g.matrix).toArray(),X1=new V3(1,0,0);
+  const part=(name,o,p,dir)=>{const m=new T.Mesh(new T.BG(),wm);m.name=name;m.position.copy(p);if(dir)m.quaternion.setFromUnitVectors(X1,dir);m.updateMatrix();
+    o.M=new T.M4().multiplyMatrices(g.matrix,m.matrix);m.geometry=wwGeo(o);m.castShadow=m.receiveShadow=true;g.add(m);return m};
+  /* the cross-bar lies across the crotch of each forked post: the prongs open across the bar, the post's worn top just under it
+     holds a little heap of blown sand, and the bar's underside, the prongs' inner faces and the crotch are rubbed and sanded */
+  const BY=1.82,TOP=1.771,PH=.36,PL=.34,PB=.16;
+  part("rackBar",{seed:58163,L:3.6,R:.037,NR:32,NL:104,furrows:5,sag:-.011,sagW:1.6,rugs:true,sandTop:.35,checks:6,knots:4,nicks:9,splits:3,
+    seats:[-1.6,1.6].map(x=>({x,p:inW(x,TOP-.05,0),w:.055}))},new V3(0,BY,0));
+  [[-1.6,.03,"L",61331],[1.6,-.04,"R",80713]].forEach(([sx,tl,nm,sd])=>{
+    const dir=new V3(-Math.sin(tl),Math.cos(tl),0),Lp=(TOP+.12)/Math.cos(tl),top=new V3(sx,TOP,0);
+    part("rackPost"+nm,{seed:sd,L:Lp,R:.052,taper:.3,NR:24,NL:58,lobe:1.6,furrows:3,bend:.012,ends:["hidden","worn"],heap:.012,waist:true,checks:3,knots:3,nicks:4,splits:2,
+      seats:[{x:Lp/2-.02,p:inW(sx,BY,0),w:.03,sand:.5}]},top.clone().addScaledVector(dir,-Lp/2),dir);
+    const base=top.clone().addScaledVector(dir,-PB);
+    [-1,1].forEach((k,i)=>{const p=PH+(i?.03:-.02)*(sx>0?1:-1),d=new V3(-Math.sin(tl)*Math.cos(p),Math.cos(tl)*Math.cos(p),k*Math.sin(p));
+      part("rackFork"+nm+i,{seed:sd+17+i*101,L:PL,R:.03,taper:.35,NR:14,NL:12,lobe:1.9,bend:.008,ends:["hidden","worn"],checks:2,knots:0,nicks:1,splits:2,
+        seats:[{x:-PL/2+.196,p:inW(sx,BY,0),w:.045,sand:1}]},base.clone().addScaledVector(d,PL/2),d)})});
   const cloth=(x,w,len,cols,ph)=>{const geo=new T.Plane(w,len,CL_NX,CL_NY);geo.translate(0,-len/2,0);
     const m=new T.Mesh(geo,new T.MSM({map:stripeTex(cols),roughness:.95,side:2}));
     m.position.set(x,1.84,.04);m.castShadow=true;m.receiveShadow=true;
@@ -1348,19 +1449,16 @@ let fireL=null;
     m.compose(new V3(Math.cos(a)*r,.01-rr(0,.04),Math.sin(a)*r),q,new V3(s*rr(.9,1.2),s*rr(1.05,1.4),s*rr(.9,1.15)));im.setMatrixAt(i,m);
     const k=rr(.75,1.1),soot=rnd()<.5?rr(.3,.55):1;im.setColorAt(i,sc.setRGB(k*soot,k*.97*soot,k*.94*soot))}
   im.castShadow=im.receiveShadow=true;fireG.add(im);
-  /* split logs leaned into a cone over the coals: bark at the foot on the sand, charred and glowing where they meet in the flames */
-  const charM=new T.MSM({vertexColors:true,roughness:.92,emissive:"#ff5a1a",emissiveIntensity:0});fireG.userData.charM=charM;
-  charM.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nattribute float aG;varying float vG;").replace("#include <begin_vertex>","#include <begin_vertex>\nvG=aG;");
-    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nvarying float vG;").replace("#include <emissivemap_fragment>","#include <emissivemap_fragment>\ntotalEmissiveRadiance*=vG;")};
-  charM.customProgramCacheKey=()=>"desFireLog";
-  const logGeo=(r0,len)=>{const g=new T.Cyl(r0*.85,r0,len,9,6),p=g.attributes.position,n=p.count,col=new Float32Array(n*3),gl=new Float32Array(n),bk=rr(0,9);
-    for(let i=0;i<n;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),t=y/len+.5,an=Math.atan2(z,x),j=1+.13*(vn2(an*2.2+bk,t*3)-.5)+.06*Math.sin(an*5+bk);
-      p.setXYZ(i,x*j,y+.025*Math.sin(t*3+bk),z*j);const ch=ss(.45,.95,t),bark=.75+.3*vn2(an*7+bk,t*14);
-      col[i*3]=mix(.045*bark,.006,ch);col[i*3+1]=mix(.022*bark,.005,ch);col[i*3+2]=mix(.01*bark,.0045,ch);gl[i]=ss(.68,1,t)*(.6+.4*vn2(an*4+bk,t*9))}
-    g.setAttribute("color",new T.BA(col,3));g.setAttribute("aG",new T.BA(gl,1));g.computeVertexNormals();return g};
-  for(let i=0;i<5;i++){const a=i/5*TAU+rr(-.2,.2)+.4,len=rr(.55,.72),r0=rr(.04,.06),tl=rr(.95,1.15),l=new T.Mesh(logGeo(r0,len),charM);
+  /* split and round logs leaned into a cone over the coals: the same old grey wood, bark hanging on at the foot on the sand,
+     charred and crazed higher up, the cracks between the charcoal blocks glowing where they meet in the flames */
+  const charM=wwMat(true);fireG.userData.charM=charM;fireG.updateMatrix();
+  const qz=new T.Quat().setFromAxisAngle(new V3(0,0,1),Math.PI/2);
+  for(let i=0;i<5;i++){const a=i/5*TAU+rr(-.2,.2)+.4,len=rr(.55,.72),r0=rr(.04,.06),tl=rr(.95,1.15),bk=rr(0,9),l=new T.Mesh(new T.BG(),charM);l.name="fireLog"+i;
     const c=Math.cos(tl),s2=Math.sin(tl);l.position.set(Math.cos(a)*(s2*len*.5-.06),c*len*.5*.85+.04,Math.sin(a)*(s2*len*.5-.06));
-    l.rotation.order="YZX";l.rotation.set(0,-a,tl*.88);l.castShadow=true;fireG.add(l)}
+    l.rotation.order="YZX";l.rotation.set(0,-a,tl*.88);l.quaternion.multiply(qz);l.updateMatrix();
+    l.geometry=wwGeo({seed:Math.floor(bk*1e5)+i,L:len,R:r0,taper:.15,NR:12,NL:10,M:new T.M4().multiplyMatrices(fireG.matrix,l.matrix),fireLog:true,bark:.55,lobe:1.3,
+      checks:1,knots:1,nicks:1,splits:2,wedge:i%2?{a0:bk,fa:1.05,d:.2}:null});
+    l.castShadow=true;fireG.add(l)}
   const glow=new T.Mesh(new T.Plane(.7,.7),new T.SM({transparent:true,depthWrite:false,blending:2,uniforms:fireU,
     vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`uniform float uT,uNight;varying vec2 vUv;void main(){float d=length(vUv-.5)*2.;float a=smoothstep(1.,0.,d);a*=a*(.75+.25*sin(uT*7.)*sin(uT*3.1))*mix(.3,1.,uNight);gl_FragColor=vec4(vec3(1.,.42,.12)*a*1.4,a);}`}));
@@ -1416,37 +1514,23 @@ let fireL=null;
   for(const d of disc)addOb(d[0],d[1],d[2],"fire");
   {const M=new T.M4(),Z=new T.M4().makeScale(0,0,0),e=M.elements;for(const im of VEG){let ch=0;for(let i=0;i<im.count;i++){im.getMatrixAt(i,M);
     if(disc.some(d=>Math.hypot(e[12]-d[0],e[14]-d[1])<d[2]+.2)){im.setMatrixAt(i,Z);ch=1}}if(ch)im.instanceMatrix.needsUpdate=true}}
-  const woodM=new T.MSM({vertexColors:true,roughness:.9,metalness:0});
-  /* a log along x: a slightly bent, knobbly cylinder; colour from bark (fissured grey-brown), the worn top band and the end grain */
-  const benchGeo=(len,r0,top)=>{const g=new T.Cyl(r0,r0,len,top?48:20,top?30:8,false),p=g.attributes.position,n=p.count,col=new Float32Array(n*3),bk=rr(0,50),bend=rr(-.04,.04);
-    const nrm=g.attributes.normal;
-    for(let i=0;i<n;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),u=y/len+.5,an=Math.atan2(z,x),rr0=Math.hypot(x,z)/r0,cap=Math.abs(nrm.getY(i))>.9;
-      const tap=1-.07*u;
-      const rid=Math.abs(Math.sin(an*6.5+2.2*vn2(an*1.3+bk,u*len*1.5)+bk)),knot=Math.exp(-((u-.27)**2+(an-1.1)**2*.01)/.0012)+Math.exp(-((u-.71)**2+(an+2)**2*.01)/.0009);
-      /* long fissures in the grey bark, wandering along the grain */
-      const fv=Math.abs(Math.sin(an*7+1.8*vn2(an*1.1+bk,u*len*.9)+bk*.3)),fiss=top?ss(.34,0,fv)*(.55+.45*vn2(an*4+bk,u*len*2.5)):0;
-      const j=cap?1:1+.05*(vn2(an*3+bk,u*6)-.5)+.035*rid-.13*fiss+.12*knot*(top?1:0);
-      p.setXYZ(i,x*j*tap,y+(cap?.008*Math.sin(an*3+bk):0),z*j*tap);
-      /* the log will lie with local +x up */
-      /* linear albedo: bark a dark grey-brown, darkest in the fissures; the seat band worn to silvery bare wood; end grain tan */
-      const upk=cap?0:ss(.55,.92,x/r0*(top?1:0)+.25*(vn2(an*3+bk,u*len*1.2)-.5)),grain=.72+.5*vn2(an*14+bk,u*len*.7),chk=ss(.07,0,Math.abs(Math.sin(an*9+2*vn2(an+bk,u*len*.6))))*ss(.15,.35,u)*ss(.9,.7,u),fis=vn2(an*11+bk,u*len*5),bark=(.42+.85*fis)*(.55+.45*rid)*(1-.88*fiss)*(1-.5*knot);
-      let c=[.05*bark,.036*bark,.025*bark];
-      const wk=grain*(1-.75*chk);c=[mix(c[0],.15*wk,upk),mix(c[1],.13*wk,upk),mix(c[2],.105*wk,upk)];
-      if(cap){const ck=ss(.75,1,rr0);c=[mix(.26,.05,ck),mix(.19,.038,ck),mix(.11,.028,ck)];
-        if(vn2(an*4+bk,1.7)>.72&&rr0>.25)c=c.map(v=>v*.4)}
-      col[i*3]=c[0];col[i*3+1]=c[1];col[i*3+2]=c[2]}
-    g.setAttribute("color",new T.BA(col,3));g.computeVertexNormals();
-    /* lie along x, slight bow */
-    g.rotateZ(Math.PI/2);const q=g.attributes.position;for(let i=0;i<q.count;i++){const x=q.getX(i);q.setY(i,q.getY(i)+bend*(1-(2*x/len)**2))}
-    g.computeVertexNormals();return g};
-  const put=(geo,x,z,yaw,sink,tilt)=>{const m=new T.Mesh(geo,woodM),y=hTop(x,z);m.position.set(x,y-sink,z);m.rotation.order="YXZ";m.rotation.set(0,yaw-Math.PI/2,tilt||0);
-    m.castShadow=m.receiveShadow=true;W.add(m);return m};
-  for(const s of SEATS){const c=Math.cos(s.yaw),n=Math.sin(s.yaw),h0=hTop(s.x+n*s.len*.5,s.z+c*s.len*.5),h1=hTop(s.x-n*s.len*.5,s.z-c*s.len*.5);
-    put(benchGeo(s.len,s.rad,true),s.x,s.z,s.yaw,-s.rad*.72,Math.atan2(h1-h0,s.len)*.8)}
-  /* firewood: split lengths stacked two layers crosswise */
-  {const w=fireAt(FIRE_KIT.wood.a,FIRE_KIT.wood.r),yw=FIRE_B+FIRE_KIT.wood.a;
+  /* the same weathered wood as the rack. The seat logs are bedded well into the sand (sand drifts against their windward side,
+     see driftH), keep scraps of bark on the lee and under side, are worn smooth on top where people sit, and are scorched with
+     crazed charcoal and soot on the side toward the fire. The draws the old round logs made are kept, so the stones stay put. */
+  const wm=wwMat(false),hB=(x,z)=>hTop(x,z)-driftH(x,z);
+  const wood=(m,o,x,y,z,yaw,tilt)=>{m.rotation.order="YXZ";m.rotation.set(0,yaw-Math.PI/2,tilt||0);m.position.set(x,y,z);m.updateMatrix();o.M=m.matrix.clone();
+    if(m.geometry)m.geometry.dispose();m.geometry=wwGeo(o);m.geometry.computeBoundingBox();return m};
+  const mesh=name=>{const m=new T.Mesh(new T.BG(),wm);m.name=name;m.castShadow=m.receiveShadow=true;W.add(m);return m};
+  SEATS.forEach((s,i)=>{const c=Math.cos(s.yaw),n=Math.sin(s.yaw),h0=hB(s.x+n*s.len*.5,s.z+c*s.len*.5),h1=hB(s.x-n*s.len*.5,s.z-c*s.len*.5),bk=rr(0,50),bend=rr(-.04,.04);
+    wood(mesh("fireSeat"+i),{seed:Math.floor(bk*1e4)+i,L:s.len,R:s.rad,taper:.1,NR:48,NL:62,furrows:5,bend,bark:.7,fire:FIRE,char:.9,seatTop:true,stubs:true,
+      knots:3,checks:10,nicks:5,splits:4,lobe:1.5},s.x,hB(s.x,s.z)+.4*s.rad,s.z,s.yaw,Math.atan2(h1-h0,s.len)*.8)});
+  /* firewood: split lengths, ridge up and bark on the round back, stacked two layers crosswise, each on the sand or on the layer below */
+  {const w=fireAt(FIRE_KIT.wood.a,FIRE_KIT.wood.r),yw=FIRE_B+FIRE_KIT.wood.a,g0=hTop(w.x,w.z);let top0=g0;
     for(let L=0;L<2;L++)for(let k=0;k<(L?2:3);k++){const r=rr(.045,.06),len=rr(.48,.6),a=yw+(L?Math.PI/2:0)+rr(-.08,.08),o=(k-(L?.5:1))*.13,
-      x=w.x+Math.cos(a)*o,z=w.z-Math.sin(a)*o,m=put(benchGeo(len,r,false),x,z,a,-(r+L*.1),rr(-.05,.05));m.position.y=hTop(w.x,w.z)+r*.9+L*.11}}
+      x=w.x+Math.cos(a)*o,z=w.z-Math.sin(a)*o,bk=rr(0,50),bend=rr(-.04,.04),tl=rr(-.05,.05),m=mesh("fireWood"+(L*3+k)),
+      oo={seed:Math.floor(bk*1e4)+L*3+k,L:len,R:r*1.1,NR:18,NL:12,bend:bend*.3,bark:.7,wedge:{a0:bend*6,fa:1.05,d:.12},knots:1,checks:2,nicks:2,splits:2,lobe:.7};
+      wood(m,oo,x,(L?top0:g0)+r,z,a,tl);let y=(L?top0-.006:g0-.01)-m.geometry.boundingBox.min.y;wood(m,oo,x,y,z,a,tl);
+      if(!L)top0=Math.max(top0,y+m.geometry.boundingBox.max.y)}}
   /* stones: the seat slab and the piles, sun-bleached rather than sooted */
   const stM=new T.MSM({color:"#4e463f",roughness:.95}),sp=[];
   {const q=fireAt(FIRE_KIT.seat.a,FIRE_KIT.seat.r);sp.push({x:q.x,z:q.z,y:.06,s:[.3,.2,.26],ry:FIRE_B+FIRE_KIT.seat.a,k:1.25})}

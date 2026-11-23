@@ -673,5 +673,42 @@
       "scuttled": true,
       "hiddenAfter": true
     }
+  },
+  "agama": {
+    "baskPick": {
+      "i": 1,
+      "male": false,
+      "palm": false
+    },
+    "bask": {
+      "frames": 72,
+      "modes": [
+        "bask"
+      ],
+      "warm": 0
+    },
+    "rain": [
+      {
+        "male": true,
+        "mode": "perch",
+        "onPalm": true,
+        "h": 7.6,
+        "belowTop": 0.5,
+        "target": 0.5,
+        "skirt": 1.027,
+        "under": true
+      },
+      {
+        "male": false,
+        "mode": "perch",
+        "onPalm": true,
+        "h": 11.8,
+        "belowTop": 0.7,
+        "target": 0.7,
+        "skirt": 1.54,
+        "under": true
+      }
+    ],
+    "rainUnder": true
   }
 }

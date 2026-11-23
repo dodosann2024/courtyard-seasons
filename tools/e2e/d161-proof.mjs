@@ -16,6 +16,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const OUT = process.env.OUT || "/tmp/d161";
 const CHROME = process.env.CHROME || ["/usr/bin/google-chrome-stable", "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/local/bin/google-chrome"].find(p => fs.existsSync(p));
 const WHICH = process.argv[2] || "all";
+if (fs.existsSync(`/tmp/d161skip-${WHICH}`)) { console.log("skipped", WHICH); process.exit(0); }
 const W = +(process.env.W || 1280), H = +(process.env.H || 720);
 fs.mkdirSync(OUT, {recursive: true});
 
@@ -291,13 +292,13 @@ try {
   if (want("agbask")) {
     const pick = await page.evaluate(() => {
       const q = window.__desQA(), L = q.AG.list; window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day");
-      let a = null; for (let i = 0; i < 120 && !a; i++) { q.sim(3); a = L.find(o => o.mode === "bask" && !o.palm) || (i > 80 && L.find(o => o.mode === "bask")); }
+      let a = null; for (let i = 0; i < 120 && !a; i++) { q.sim(3); a = L.find(o => o.mode === "bask" && !o.palm && o.male) || (i > 60 && L.find(o => o.mode === "bask" && !o.palm)) || (i > 100 && L.find(o => o.mode === "bask")); }
       window.__ag = L.indexOf(a); window.__agEye = null; return a ? {i: L.indexOf(a), male: a.male, palm: !!a.palm} : null;
     });
     report.agama = Object.assign(report.agama || {}, {baskPick: pick});
     if (!pick) fails.push("agama never basked");
     else {
-      await cap("西奈飞蜥：晴天趴在沙上晒太阳，身体压低、体色转蓝");
+      await cap(pick.male ? "西奈飞蜥（雄）：晴天趴在沙上晒太阳，身体压平，越晒体色越蓝" : "西奈飞蜥（雌）：晴天趴在沙上晒太阳，身体压平，体色沙褐");
       const r = await vid("agama-bask-close", 24 * 3, async () => {
         const s = await page.evaluate(js => { const q = window.__desQA(); q.step(1, 1 / 24); const o = (new Function("return " + js))()(.62, .16, 30, false), a = q.AG.list[window.__ag];
           return {mode: a.mode, palm: !!a.palm, warm: +a.warm.toFixed(2)}; }, agCamJS);

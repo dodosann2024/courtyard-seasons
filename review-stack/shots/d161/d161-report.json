@@ -672,7 +672,78 @@
       "goneAt": 29,
       "scuttled": true,
       "hiddenAfter": true
-    }
+    },
+    "footSlip": [
+      {
+        "mode": "walk",
+        "dir": "+x",
+        "body": 0.1,
+        "clip": "walk_sideways",
+        "ts": -0.65,
+        "thr1_5mm": {
+          "n": 484,
+          "mean": 0.0306,
+          "median": 0.0126
+        },
+        "thr0_4mm": {
+          "n": 175,
+          "mean": 0.0067,
+          "median": 0.0057
+        }
+      },
+      {
+        "mode": "walk",
+        "dir": "-x",
+        "body": 0.1,
+        "clip": "walk_sideways",
+        "ts": 0.65,
+        "thr1_5mm": {
+          "n": 494,
+          "mean": 0.0307,
+          "median": 0.0119
+        },
+        "thr0_4mm": {
+          "n": 176,
+          "mean": 0.0067,
+          "median": 0.0053
+        }
+      },
+      {
+        "mode": "run",
+        "dir": "+x",
+        "body": 0.42,
+        "clip": "scuttle_sideways",
+        "ts": -0.79,
+        "thr1_5mm": {
+          "n": 204,
+          "mean": 0.0802,
+          "median": 0.0532
+        },
+        "thr0_4mm": {
+          "n": 57,
+          "mean": 0.0305,
+          "median": 0.0226
+        }
+      },
+      {
+        "mode": "run",
+        "dir": "-x",
+        "body": 0.42,
+        "clip": "scuttle_sideways",
+        "ts": 0.79,
+        "thr1_5mm": {
+          "n": 226,
+          "mean": 0.0974,
+          "median": 0.0597
+        },
+        "thr0_4mm": {
+          "n": 58,
+          "mean": 0.0376,
+          "median": 0.0272
+        }
+      }
+    ],
+    "footSlipNote": "thr1_5mm is #160's measure (vertices within 1.5 mm of the sand, which also counts tips peeling off and touching down); thr0_4mm counts only tips bearing weight. #160 reported 0.027 m/s on the 1.5 mm measure."
   },
   "agama": {
     "baskPick": {
@@ -710,5 +781,15 @@
       }
     ],
     "rainUnder": true
+  },
+  "ostrich": {
+    "stress": {
+      "samples": 4800,
+      "minClearance": 1.31
+    },
+    "dropped": {
+      "minClearance": 0.7,
+      "pushedOut": 2
+    }
   }
 }

@@ -4405,26 +4405,14 @@ function crMats(s){matsOf(s,(m,c)=>{c.castShadow=false;c.receiveShadow=true;c.re
     n.metalness=0;n.metalnessMap=null;n.aoMapIntensity=.6;n.userData.U=CR.U;uwMat(n,"crg",".9",{head:"",nrm:"",pos:""})}
   c.material=n})}
 /* The planted tips of scuttle_sideways do not slide back at an even pace through its cycle (0.31 to 0.51 m/s; walk_sideways's
-   hold 0.14 throughout), so a body moving at a constant speed slides them. CRP[clip].p is the tips' stance speed at 48 phases over its cycle
-   mean .m, sampled once from the skinned clip; the body's step is scaled by it at the clip's current phase (crPace) and the clip
-   plays at the ground speed over .m, which keeps the weighted tips in place through the whole cycle. */
-const CRP={};
-function crProf(src,body){const s=VT.cloneSkinned(src.scene),mx=new VT.THREE.AnimationMixer(s),M=48,v=new V3();let sk=null;
-  s.traverse(o=>{if(o.isSkinnedMesh&&!sk)sk=o});if(!sk)return;const n=sk.geometry.attributes.position.count;
-  for(const nm of["scuttle_sideways"]){const clip=body.find(c=>c.name===nm);if(!clip)continue;const a=mx.clipAction(clip),D=clip.duration;a.play();
-    const pose=t=>{a.time=t;mx.update(0);s.updateMatrixWorld(true);const o=new Float32Array(n*2);
-      for(let i=0;i<n;i++){sk.getVertexPosition(i,v);const h=v.y;v.applyMatrix4(sk.matrixWorld);o[i*2]=v.x;o[i*2+1]=h}return o};
-    const P=[];for(let j=0;j<=M;j++)P.push(pose(D*(j%M)/M));
-    /* only the tips bearing weight (under 0.4 mm): feet lifting off or touching down move slower and are not planted */
-    const r=[];for(let j=0;j<M;j++){const A=P[j],B=P[j+1];let sx=0,w=0;
-      for(let i=0;i<n;i++)if(A[i*2+1]<.0004&&B[i*2+1]<.0004){sx+=B[i*2]-A[i*2];w++}r.push(w>0?sx/w:null)}
-    if(r.every(x=>x==null)){a.stop();continue}
-    /* the scuttle has instants with every foot in the air: the body carries on at the pace either side of them */
-    const f=r.slice();for(let j=0;j<M;j++)if(r[j]==null){let a=1,b=1;while(r[(j-a+M)%M]==null)a++;while(r[(j+b)%M]==null)b++;
-      f[j]=r[(j-a+M)%M]+(r[(j+b)%M]-r[(j-a+M)%M])*a/(a+b)}
-    const sm=f.map((x,j)=>(f[(j+M-1)%M]+2*x+f[(j+1)%M])/4),mean=sm.reduce((p,x)=>p+x,0)/M;
-    if(mean>1e-6)CRP[nm]={p:Float32Array.from(sm,x=>Math.max(.15,x/mean)),m:mean*M/D};a.stop()}
-  mx.uncacheRoot(s)}
+   hold 0.14 throughout), so a body moving at a constant speed slides them. CRP[clip].p is the speed of crab_v6c's tips bearing
+   weight (skinned vertices under 0.4 mm on both of two samples) at 48 even phases of the clip, over its cycle mean .m (m/s at
+   scale 1); the instants with every foot in the air are bridged from either side and the table smoothed 1-2-1. The body's step
+   is scaled by it at the clip's current phase (crPace) and the clip plays at the ground speed over .m, which keeps the tips in
+   place through the whole cycle. Re-sample it if the crab's gait clips change. */
+const CRP={scuttle_sideways:{m:.4547,p:[1.03,1.076,1.058,1.045,1.056,1.069,1.06,1.016,.894,.748,.711,.776,.863,.95,1.023,1.066,
+  1.071,1.038,1.016,1.05,1.098,1.101,1.071,1.061,1.062,1.071,1.095,1.092,1.052,1.021,1.033,1.061,1.064,1.041,1.004,.961,.939,.954,
+  .983,.998,1.016,1.055,1.07,.985,.87,.841,.861,.923]}};
 /* the body's pace along its own x at the gait clip's current phase, 1 being the clip's mean */
 function crPace(c,dt){if(!CR.glb||!c.rb)return 1;let s=0,w=0;
   for(const nm in CRP){const a=c.rb.acts[nm];if(!a||!a.isRunning())continue;const e=a.getEffectiveWeight();if(e<1e-3)continue;
@@ -4433,7 +4421,6 @@ function crPace(c,dt){if(!CR.glb||!c.rb)return 1;let s=0,w=0;
 function crLoad(){return glb(CR_FILE).then(src=>{const C=VT.THREE.AnimationClip,isF=t=>/^claw_finger/.test(t.name),isC=t=>/^claw_/.test(t.name)&&!isF(t),body=[],claw=[],fing=[];
   for(const a of src.animations){body.push(new C(a.name,a.duration,a.tracks.filter(t=>!isC(t)&&!isF(t))));claw.push(new C(a.name,a.duration,a.tracks.filter(isC)));
     if(a.name==="idle"||a.name==="claw_pinch")fing.push(new C(a.name,a.duration,a.tracks.filter(isF)))}
-  crProf(src,body);
   for(const c of CR.list){const s=VT.cloneSkinned(src.scene),g=new T.Group();g.rotation.order="YXZ";g.add(s);W.add(g);onDes(g);crMats(s);
     const b=rigUp(s,body),k={mx:b.mx,acts:{},cur:null},f={mx:b.mx,acts:{},cur:null};for(const a of claw)k.acts[a.name]=b.mx.clipAction(a);for(const a of fing)f.acts[a.name]=b.mx.clipAction(a);
     /* a crab down its burrow keeps its 36 bones out of the per-frame matrix walk; shown again, its own matrix update forces the subtree */

@@ -1,0 +1,50 @@
+{
+ "d164_R_bar_close_day.png": {
+  "std": 0.2061,
+  "hp": 0.1188,
+  "dark": 0.2494,
+  "lines": 9.1857,
+  "h": 147.7095,
+  "columns": 420
+ },
+ "main_R_bar_close_day.png": {
+  "std": 0.162,
+  "hp": 0.0556,
+  "dark": 0.1388,
+  "lines": 7.6619,
+  "h": 149.0786,
+  "columns": 420
+ },
+ "new_R_bar_close_day.png": {
+  "std": 0.171,
+  "hp": 0.1045,
+  "dark": 0.1476,
+  "lines": 11.7024,
+  "h": 143.1286,
+  "columns": 420
+ },
+ "d164_R_bar_close_dusk.png": {
+  "std": 0.2117,
+  "hp": 0.1226,
+  "dark": 0.2774,
+  "lines": 8.5667,
+  "h": 123.9357,
+  "columns": 420
+ },
+ "main_R_bar_close_dusk.png": {
+  "std": 0.1855,
+  "hp": 0.0596,
+  "dark": 0.1836,
+  "lines": 8.7571,
+  "h": 155.5286,
+  "columns": 420
+ },
+ "new_R_bar_close_dusk.png": {
+  "std": 0.1823,
+  "hp": 0.0994,
+  "dark": 0.2015,
+  "lines": 15.0119,
+  "h": 151.5619,
+  "columns": 420
+ }
+}

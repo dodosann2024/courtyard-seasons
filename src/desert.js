@@ -1231,7 +1231,7 @@ function stripeTex(cols){const c=document.createElement("canvas");c.width=64;c.h
    aW = (crack, sand, wear, wind exposure), aB = (bark, char, nominal radius, glow). Phones get about a third of the triangles. */
 const WW_Q=MOB?.62:1;
 function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.imul(s0^s0>>>15,1|s0);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},rg=(a,b)=>a+(b-a)*rn();
-  const L=o.L,R=o.R,tap=o.taper||0,NR=Math.max(8,2*Math.round(o.NR*WW_Q/2)),NL=Math.max(4,Math.round(o.NL*WW_Q)),e=o.M.elements,Kd=Math.sqrt(R/.037);
+  const Q=MOB&&o.mob,L=o.L,R=o.R,tap=o.taper||0,NR=Q?Q.NR:Math.max(8,2*Math.round(o.NR*WW_Q/2)),NL=Q?Q.NL:Math.max(4,Math.round(o.NL*WW_Q)),e=o.M.elements,Kd=Math.sqrt(R/.037);
   const Rx=x=>R*(1-tap*x/L),toW=(x,y,z)=>[e[0]*x+e[4]*y+e[8]*z+e[12],e[1]*x+e[5]*y+e[9]*z+e[13],e[2]*x+e[6]*y+e[10]*z+e[14]],
     dW=(x,y,z)=>[e[0]*x+e[4]*y+e[8]*z,e[1]*x+e[5]*y+e[9]*z,e[2]*x+e[6]*y+e[10]*z],wrapD=(a,b)=>{let d=a-b;d-=TAU*Math.round(d/TAU);return d};
   /* the wind travels along +WIND: the windward face looks along -WIND */
@@ -1242,24 +1242,41 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
   /* checks: long, mostly on the sun side, wandering with the grain; splits running in from the worn ends */
   const CK=Array.from({length:o.checks??3},(_,i)=>{const x0=rg(-.45,.2)*L,x1=Math.min(.47*L,x0+rg(.25,.65)*L);
     return{a:(bu>.3?aUp:0)+rg(-1.4,1.4)+(i%3===2?Math.PI:0),x0,x1,w:rg(.003,.0055)*Kd,d:rg(.008,.016)*Kd,s:rg(0,9)}});
-  const cA=(C,x)=>C.a-x*.108+.12*(vn2(x*1.6+C.s,1.7)-.5);
+  const cA=(C,x)=>FL?fW(C.a,x):C.a-x*.108+.12*(vn2(x*1.6+C.s,1.7)-.5);
   /* deep wind furrows: a few grooves the sand has cut much deeper than the rest, wandering with the grain, deepest windward */
   const GR=Array.from({length:o.furrows??0},(_,i)=>({a:rg(0,TAU),w:rg(.006,.0095)*Kd,d:rg(.0022,.0042)*Kd,s:rg(0,50),i}));
-  /* scoured grooves (o.scour): a few broad, deep ones cut into the windward band only, wandering and meeting, dying out and starting
-     again along the piece, and parting round the knots. Their own draws come after all the others, so other pieces are unchanged */
-  const SC=o.scour,KX=o.bigKnots||[];
-  const gA0=(G,x)=>G.a-x*.108+.5*(vn2(x*.9+G.s,2.3)-.5)+.25*(vn2(x*3.3+G.s,5.1)-.5)+.22*(vn2(x*7.5+G.s,8.7)-.5),gD0=(G,x)=>G.d*(.25+.75*ss(.25,.65,vn2(x*1.4/Kd+G.s,4.4)));
-  const gA=(G,x)=>{if(!G.sc)return gA0(G,x);let a=G.a-x*.06+G.wv*(vn2(x*1.05+G.s,2.3)-.5)+.45*G.wv*(vn2(x*2.9+G.s,5.1)-.5);
-      for(const K of KX){const d=wrapD(a,K.a)*R,q=Math.exp(-(((x-K.x)/(K.r*2.6))**2));if(q>.01)a+=Math.sign(d||1)*K.r*1.25*q*Math.exp(-((d/(K.r*1.9))**2))/R}return a},
-    gD=(G,x)=>{if(!G.sc)return gD0(G,x);const t=cl(Math.min(x-G.x0,G.x1-x)/.22,0,1);return G.d*ss(0,1,t)*(.45+.55*ss(.2,.7,vn2(x*1.2+G.s,4.4)))};
+  const KX=o.bigKnots||[];
+  const gA=(G,x)=>G.a-x*.108+.5*(vn2(x*.9+G.s,2.3)-.5)+.25*(vn2(x*3.3+G.s,5.1)-.5)+.22*(vn2(x*7.5+G.s,8.7)-.5),gD=(G,x)=>G.d*(.25+.75*ss(.25,.65,vn2(x*1.4/Kd+G.s,4.4)));
   const SP=[];for(const en of[-1,1])if(E[en<0?0:1]==="worn")for(let i=0;i<(o.splits??2);i++)SP.push({e:en,a:rg(0,TAU),l:rg(.5,1.1)*Math.min(.42,L*.12,9*R),s:rg(0,9)});
   const KN=Array.from({length:o.knots??2},()=>({x:rg(-.4,.4)*L,a:(o.stubs?aUp+rg(-1.6,1.6):rg(0,TAU)),r:rg(.3,.45)*R*(o.stubs?1.5:1),h:o.stubs?rg(.12,.28)*R:.0032*Kd}));
   const NK=Array.from({length:o.nicks??3},()=>({x:rg(-.45,.45)*L,a:rg(-1.2,2.4)+aUp,sx:rg(.008,.016)*Kd,sa:rg(.25,.5),d:rg(.0025,.005)*Kd}));
-  if(SC)for(let i=0;i<SC.n;i++){const f=SC.n>1?i/(SC.n-1)-.5:0,full=i%3!==1,x0=full?-L:rg(-.5,.1)*L,x1=full?L:x0+rg(.3,.6)*L;
-    GR.push({sc:1,a:aWd+f*SC.band+rg(-.08,.08),w:rg(.75,1.25)*SC.w,d:rg(.7,1.15)*SC.d,wv:SC.wave*rg(.7,1.3),s:rg(0,50),x0,x1,i})}
-  
   /* big hard knots (o.bigKnots): they wear slowest, so they stand well proud, a little dished at the core, in a scoured hollow */
   for(const K of KX){K.a=K.a??aWd+(K.da||0);KN.push({x:K.x,a:K.a,r:K.r,h:K.h,big:1,moat:K.moat||0})}
+  /* flow-aligned grid (o.flow, the cross-bar). The windward grooves, the checks and the end splits are lines laid out at rest angles u
+     and carried along the piece by one smooth warp: a slow twist, a wander that differs from line to line (so grooves close up, part
+     and run on at their own depth), and a parting round each big knot that opens without tearing. The columns are placed once, in u,
+     crowded onto the lines, the knots and the windward band and thin on the underside, and ride the same warp: every groove keeps its
+     own columns from end to end, and the loops round a knot open evenly instead of stepping from row to row */
+  const FL=o.flow,FLL=[];let fW=null,fCols=null,fAt=null,bw=null;
+  if(FL){const c0=aWd+(FL.c||0),sp0=FL.band/(FL.n-1);bw=u=>ss(FL.band/2+.7,FL.band/2,Math.abs(wrapD(u,c0)));
+    for(const K of KX){K.ex=K.r*FL.kx;K.h2=K.r*FL.part/R;K.s=Math.max(.6,1.25*K.h2)}
+    fW=(u,x)=>{let a=u-x*.06+FL.wave*bw(u)*(2*(vn2(x*1.8+ph[2],u*.6+3.7)-.5)+.8*(vn2(x*3.5+ph[3],u*1.2+9.1)-.5)+.5*(vn2(x*4.5+ph[4],u*.8+1.3)-.5));
+      for(const K of KX){const q=Math.exp(-(((x-K.x)/K.ex)**2));if(q<.003)continue;const d=wrapD(a,K.a),t=Math.abs(d);
+        a+=Math.sign(d)*K.h2*q*(1-Math.exp(-t/.1))*Math.exp(-((t/K.s)**2))}return a};
+    for(let i=0;i<FL.n;i++){let u=c0+(i/(FL.n-1)-.5)*FL.band+rg(-.05,.05);
+      for(const K of KX){const d=wrapD(u,K.a);if(Math.abs(d)<.09)u=K.a+Math.sign(d||1)*.09}
+      const mj=i%3===1;FLL.push({u,D:(mj?rg(.85,1.1):rg(.45,.75))*FL.d,wf:mj?1.3:.85,s:rg(0,50),x0:i%3===2?rg(-.45,0)*L:-L})}
+    /* the rest angle that lands on each knot's centre at the knot */
+    const uK=KX.map(K=>{let u=K.a;for(let k=0;k<6;k++)u+=wrapD(K.a,fW(u,K.x));return u});
+    const pk=[...FLL.map(l=>[l.u,FL.lw,1]),...FLL.slice(1).map((l,i)=>[FLL[i].u+wrapD(l.u,FLL[i].u)/2,.02,FL.cw]),...CK.map(C=>[C.a,.03,FL.ck]),...SP.map(S=>[S.a,.035,FL.ck*.6]),...uK.map(u=>[u,.07,FL.kc])],NBU=720,du=new Float64Array(NBU+1);
+    let pm=0;for(const p of pk)pm+=p[2];
+    for(let b=0;b<NBU;b++){const u=-Math.PI+(b+.5)/NBU*TAU;let d=FL.back/TAU+FL.bandC*bw(u)/(FL.band+.7);
+      for(const p of pk){const v=wrapD(u,p[0])/p[1];if(v*v<16)d+=(1-FL.back-FL.bandC)*p[2]/pm*Math.exp(-.5*v*v)/(p[1]*2.5066)}du[b+1]=du[b]+d*TAU/NBU}
+    fCols=new Float64Array(NR);{let b=0;for(let j=0;j<NR;j++){const tg=(j+.5)/NR*du[NBU];while(b<NBU-1&&du[b+1]<tg)b++;fCols[j]=-Math.PI+(b+(tg-du[b])/Math.max(1e-9,du[b+1]-du[b]))/NBU*TAU}}
+    /* each line where it is at x, and its half-width: a little over half the gap to its neighbours, so neighbours meet in a sharp crest
+       (every third line is a major furrow, deeper and wider than the finer ones either side of it) */
+    fAt=x=>{const th=FLL.map(l=>fW(l.u,x));return th.map((t,i)=>{const gl=i?wrapD(t,th[i-1]):sp0,gr=i<th.length-1?wrapD(th[i+1],t):sp0;
+      return[t,cl(.58*FLL[i].wf*Math.min(gl,gr)*R,FL.wmin,FL.wmax)]})}}
   for(const C of o.chips||[])NK.push({x:C.e*(L/2-C.x),a:aWd+C.da,sx:C.sx,sa:C.sa,d:C.d});
   const SE=(o.seats||[]).map(s=>Object.assign({w:.05},s));
   /* firewood: a split piece, two flat faces meeting at a ridge (normals a0 +- fa, at d from the axis), bark on the round back */
@@ -1267,12 +1284,15 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
   const RC=o.rc||Math.min(R*.3,.02);
   /* rows along the piece crowd round knots, seats and the worn ends */
   const xa=-L/2+(E[0]==="worn"?RC:0),xb=L/2-(E[1]==="worn"?RC:0),NB=400,cdf=new Float32Array(NB+1);
-  for(let b=0;b<NB;b++){const x=xa+(xb-xa)*(b+.5)/NB,we=.05*L+2*R;let d=1;for(const k of KN)d+=(k.big?6:2.5)*Math.exp(-(((x-k.x)/(k.r*2.2))**2));
+  for(let b=0;b<NB;b++){const x=xa+(xb-xa)*(b+.5)/NB,we=.05*L+2*R;let d=1;
+    if(FL){d=FL.rowL+(1+FL.rowR-FL.rowL)*ss(FL.rx-.15,FL.rx+.05,x);for(const K of KX)d+=(K.kr??FL.kr)*Math.exp(-(((x-K.x)/(K.r*FL.krx))**2))}
+    else for(const k of KN)d+=(k.big?6:2.5)*Math.exp(-(((x-k.x)/(k.r*2.2))**2));
     for(const s of SE)d+=1.5*Math.exp(-(((x-s.x)/(s.w*1.5))**2));d+=2*Math.exp(-(((x-xa)/we)**2))+2*Math.exp(-(((x-xb)/we)**2));cdf[b+1]=cdf[b]+d}
   const rows=[];for(let i=0;i<=NL;i++){const tg=i/NL*cdf[NB];let b=0;while(b<NB-1&&cdf[b+1]<tg)b++;rows.push(xa+(xb-xa)*(b+(tg-cdf[b])/Math.max(1e-6,cdf[b+1]-cdf[b]))/NB)}
   /* columns round the piece crowd into the cracks, the split V's, round knots and onto the edges of split faces */
   const NBA=240,dA=new Float32Array(NBA+1);
-  const cols=x=>{const F=[];
+  const cols=x=>{if(FL){const out=new Float32Array(NR);for(let j=0;j<NR;j++){out[j]=fW(fCols[j],x);if(j&&wrapD(out[j],out[j-1])<.002)out[j]=out[j-1]+.002}return out}
+    const F=[];
     for(const C of CK){if(x<C.x0||x>C.x1)continue;const t=(x-C.x0)/(C.x1-C.x0);F.push([cA(C,x),Math.max(.05,C.w/R*1.1),2.4*Math.pow(Math.sin(Math.PI*t),.6)])}
     for(const G of GR)F.push([gA(G,x),G.w/R*(G.sc?.6:.75),(G.sc?3.2:1.6)*gD(G,x)/G.d]);
     for(const S of SP){const xd=L/2-x*S.e;if(xd<S.l)F.push([S.a,.06,2.2*ss(0,.25,1-xd/S.l)])}
@@ -1286,13 +1306,14 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
   /* profile: left end (cap rings, worn round edge), the body rows, right end */
   const prof=[];
   for(const en of[-1,1]){const worn=E[en<0?0:1]==="worn",side=[];
-    if(worn){for(const r of o.rc?[0,.5,.82,.96]:[0,.42,.75])side.push({rho:(R-RC)*r/R,dx:0,cap:1});for(const th of o.rc?[Math.PI/8,Math.PI/4,3*Math.PI/8]:[Math.PI/6,Math.PI/3])side.push({rho:(R-RC+RC*Math.sin(th))/R,dx:RC-RC*Math.cos(th),cap:.5})}
+    if(worn){const cr=(Q&&Q.capR)||o.capR||(o.rc?[0,.5,.82,.96]:[0,.42,.75]),ce=(Q&&Q.capE)||o.capE||(o.rc?[Math.PI/8,Math.PI/4,3*Math.PI/8]:[Math.PI/6,Math.PI/3]);
+      for(const r of cr)side.push({rho:(R-RC)*r/R,dx:0,cap:1});for(const th of ce)side.push({rho:(R-RC+RC*Math.sin(th))/R,dx:RC-RC*Math.cos(th),cap:.5})}
     else side.push({rho:0,dx:0,cap:1});
     if(en<0)prof.push(...side.map(p=>({x:-L/2+p.dx,rho:p.rho,cap:p.cap,e:-1,cx:xa})));
     else{for(const x of rows)prof.push({x,rho:1,cap:0,e:0,cx:x});prof.push(...side.reverse().map(p=>({x:L/2-p.dx,rho:p.rho,cap:p.cap,e:1,cx:xb})))}}
   const NP=prof.length,pos=new Float32Array(NP*NR*3),col=new Float32Array(NP*NR*3),aw=new Float32Array(NP*NR*4),ab=new Float32Array(NP*NR*4);
-  let lastCx=null,ang=null;
-  for(let i=0;i<NP;i++){const P=prof[i],x=P.x;if(P.cx!==lastCx){ang=cols(P.cx);lastCx=P.cx}
+  let lastCx=null,ang=null,fl=null;
+  for(let i=0;i<NP;i++){const P=prof[i],x=P.x;if(P.cx!==lastCx){ang=cols(P.cx);if(FL)fl=fAt(P.cx);lastCx=P.cx}
     const xe=Math.abs(x)/(L/2),u=x/L+.5,ax=toW(x,0,0),Rr=Rx(x);
     for(let j=0;j<NR;j++){const an=ang[j],ca=Math.cos(an),sa=Math.sin(an),k=i*NR+j,nW=dW(0,ca,sa),top=nW[1],
         ex=Math.min(1,Math.max(0,nW[0]*wdx+nW[2]*wdz)+.6*Math.max(0,nW[1])),
@@ -1306,12 +1327,19 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
         if(K.big){kb=Math.max(kb,q);kbh=Math.max(kbh,q*K.h*(1-.3*Math.exp(-d2*6)));km+=K.moat*Math.exp(-3*(Math.sqrt(d2)-1.5)**2)}else kh=Math.max(kh,q*K.h)}}
       const sc=Math.pow(vn2(x*2.6/Kd+ph[3],an*1.8+ca),2);
       let dep=(o.scoop??.004)*Kd*ex*sc-kh;
-      let fu=0;if(!P.cap)for(const G of GR){const q=Math.abs(wrapD(an,gA(G,x)))*R/G.w;if(q<1){const pr=G.sc?ss(1,.3,q):(1-q*q)**2,dd=gD(G,x)*pr*(G.sc?.7+.3*ex:.5+.5*ex+.3*ss(.6,1,xe));dep+=dd;fu=Math.max(fu,pr*dd/G.d)}}
-      let ck=0;for(const C of CK){if(x<C.x0-.05||x>C.x1+.05)continue;const t=cl((x-C.x0)/(C.x1-C.x0),0,1),tp=Math.pow(Math.sin(Math.PI*t),.6),
+      let fu=0,fp=0,ck=0,fd=0;if(!P.cap)for(const G of GR){const q=Math.abs(wrapD(an,gA(G,x)))*R/G.w;if(q<1){const pr=(1-q*q)**2,dd=gD(G,x)*pr*(.5+.5*ex+.3*ss(.6,1,xe));dep+=dd;fu=Math.max(fu,pr*dd/G.d)}}
+      /* the flow grooves: a rounded trough between sharp crests, each groove at its own depth that swells and fades along the piece */
+      if(FL&&!P.cap)for(let g=0;g<FLL.length;g++){const l=FLL[g],q=Math.abs(wrapD(an,fl[g][0]))*R/fl[g][1];if(q>=1)continue;
+        const pr=.5+.5*Math.cos(Math.PI*q),qx=(.5+.5*ss(.2,.75,vn2(x*1.3+l.s,4.4)))*ss(l.x0,l.x0+.3,x),dd=l.D*qx*pr*(.8+.2*ex);fd+=dd;fu=Math.max(fu,dd/FL.d);fp=Math.max(fp,pr);
+        /* where a major furrow runs deepest the wind has opened a check along its bottom: a dark crevice light hardly reaches */
+        if(l.wf>1){const cv=ss(.7,.92,qx)*ss(.55,.95,pr)*ss(.4,.6,vn2(x*.9+l.s,7.7));dep+=.0025*Kd*cv;ck=Math.max(ck,.75*cv)}}
+      /* where furrows close up their depths add, but never past FL.cap: the bar is worn, not cut through */
+      if(FL)dep+=FL.cap*Math.tanh(fd/FL.cap);
+      for(const C of CK){if(x<C.x0-.05||x>C.x1+.05)continue;const t=cl((x-C.x0)/(C.x1-C.x0),0,1),tp=Math.pow(Math.sin(Math.PI*t),.6),
           da=Math.abs(wrapD(an,cA(C,x)))*R,hw=Math.max(.0035*Kd,C.w*(.5+.5*tp)),m=ss(hw,hw*.15,da);dep+=C.d*m*tp;ck=Math.max(ck,m*Math.sqrt(tp))}
       const side=P.rho;
       for(const S of SP){const xd=L/2-x*S.e;if(xd>S.l)continue;
-        const t=1-xd/S.l,da=Math.abs(wrapD(an,S.a+.1*(vn2(x*5/Kd+S.s,3.3)-.5)))*R*Math.max(side,.15),hw=(.003+.006*t*t)*Kd*(o.splitW||1),m=ss(hw,hw*.15,da)*ss(0,.2,t);
+        const t=1-xd/S.l,da=Math.abs(wrapD(an,FL?fW(S.a,x):S.a+.1*(vn2(x*5/Kd+S.s,3.3)-.5)))*R*Math.max(side,.15),hw=(.003+.006*t*t)*Kd*(o.splitW||1),m=ss(hw,hw*.15,da)*ss(0,.2,t);
         dep+=(.003+.016*t*t)*Kd*(o.splitD||1)*m*(P.cap>=1?0:1);ck=Math.max(ck,m*(P.cap>=1?ss(.1,.5,side):1))}
       let nk=0;for(const N of NK){const d2=((x-N.x)/N.sx)**2+(wrapD(an,N.a)/N.sa)**2;if(d2<9){const m=Math.exp(-d2);dep+=N.d*m;nk=Math.max(nk,m)}}
       /* where the piece rests on, or carries, another: rubbed smooth and darker, a little worn away, and blown sand packed into the
@@ -1351,7 +1379,8 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
       if(WG.length&&!P.cap&&WG.some(w=>Math.cos(an-w.n)>.25)){r*=1.12;g*=1.1;b*=1.05}
       if(P.cap>=1){const ring=.8+.2*vn2(side*14+ph[4],an);r=mix(.18,.21,side)*ring;g=mix(.155,.195,side)*ring;b=mix(.12,.175,side)*ring}
       r=mix(r,.11,nk*.6);g=mix(g,.075,nk*.6);b=mix(b,.048,nk*.6);
-      const fk=o.scour?.8:.5;r=mix(r,.1,fu*fk);g=mix(g,.085,fu*fk);b=mix(b,.066,fu*fk);
+      if(FL){/* trough bottoms shaded brown, the sharp crests between them bleached paler */const v=ss(.03,.42,fu),cr=P.cap?0:bw(an)*(1-fp)*(.7+.3*ex);r*=(1-.72*v)*(1+.16*cr);g*=(1-.76*v)*(1+.16*cr);b*=(1-.8*v)*(1+.15*cr)}
+      else{r=mix(r,.1,fu*.5);g=mix(g,.085,fu*.5);b=mix(b,.066,fu*.5)}
       r=mix(r,.12,wr*.6);g=mix(g,.098,wr*.6);b=mix(b,.075,wr*.6);
       r=mix(r,.13,kn*.8);g=mix(g,.1,kn*.8);b=mix(b,.072,kn*.8);
       if(kb>0){const kr=.75+.25*Math.cos(kbh/Math.max(1e-4,kb)*1400);r=mix(r,.075*kr,kb*.85);g=mix(g,.05*kr,kb*.85);b=mix(b,.032*kr,kb*.85)}
@@ -1439,11 +1468,13 @@ function wwMat(glow,gb){const m=new T.MSM({vertexColors:true,roughness:.93,metal
      face and parting round two hard knots that stand proud, and ends battered blunt and split open. Its own material keeps only a
      trace of the per-pixel grooves, so they do not draw a regular ribbing over the mesh ones; fibres and hairline checks stay. */
   const BY=1.82,TOP=1.771,PH=.36,PL=.34,PB=.16;
-  part("rackBar",{seed:58163,L:3.6,R:.037,NR:40,NL:84,furrows:0,sag:-.02,sagW:1.6,rugs:true,sandTop:.35,checks:3,knots:2,nicks:6,splits:4,
-    lobe:1.35,irreg:1,plane:.015,scoop:.0012,colCap:.7,rc:.01,splitD:.6,splitW:.6,capCrack:.45,capRough:.003,scour:{n:5,band:1.75,w:.0042,d:.009,wave:.35},
-    bigKnots:[{x:1.1,da:.3,r:.017,h:.011,moat:.0025},{x:-.55,da:-.8,r:.014,h:.007,moat:.002}],
+  part("rackBar",{seed:58163,L:3.6,R:.037,NR:60,NL:58,furrows:0,sag:-.02,sagW:1.6,rugs:true,sandTop:.35,checks:3,knots:0,nicks:0,splits:4,
+    lobe:1.35,irreg:1,plane:.015,scoop:.0012,rc:.01,capR:[0,.6],capE:[Math.PI/6,Math.PI/3],splitD:.6,splitW:.6,capCrack:.45,capRough:.003,
+    flow:{n:15,band:3.3,c:.35,d:.017,cap:.013,wave:.25,lw:.045,cw:.75,ck:.5,kc:2.5,back:.1,bandC:.06,wmin:.0025,wmax:.0095,kx:5,part:1.25,rowL:.55,rowR:2,rx:.9,kr:12,krx:2.5},
+    mob:{NR:40,NL:36,capR:[0,.6],capE:[Math.PI/4]},
+    bigKnots:[{x:1.1,da:.3,r:.017,h:.011,moat:.0025},{x:-.55,da:-.8,r:.014,h:.007,moat:.002,kr:5}],
     chips:[{e:1,x:.018,da:.5,sx:.03,sa:.5,d:.007},{e:-1,x:.022,da:-.4,sx:.035,sa:.55,d:.008}],
-    seats:[-1.6,1.6].map(x=>({x,p:inW(x,TOP-.05,0),w:.055}))},new V3(0,BY,0),null,wwMat(false,.3));
+    seats:[-1.6,1.6].map(x=>({x,p:inW(x,TOP-.05,0),w:.055}))},new V3(0,BY,0),null,wwMat(false,.15));
   [[-1.6,.03,"L",61331],[1.6,-.04,"R",80713]].forEach(([sx,tl,nm,sd])=>{
     const dir=new V3(-Math.sin(tl),Math.cos(tl),0),Lp=(TOP+.12)/Math.cos(tl),top=new V3(sx,TOP,0);
     part("rackPost"+nm,{seed:sd,L:Lp,R:.052,taper:.3,NR:24,NL:58,lobe:1.6,furrows:3,bend:.012,ends:["hidden","worn"],heap:.012,waist:true,checks:3,knots:3,nicks:4,splits:2,

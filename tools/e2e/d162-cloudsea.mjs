@@ -26,12 +26,23 @@ const page = await browser.newPage();
 page.on("pageerror", e => console.log("PAGEERR", String(e).slice(0, 300)));
 const missing = new Set();
 page.on("response", r => { if (r.status() >= 400) missing.add(new URL(r.url()).pathname); });
-if (DEV === "iphone") await page.emulate(KnownDevices["iPhone 13"]); else await page.setViewport({width: 1280, height: 720, deviceScaleFactor: 1});
+if (DEV === "iphone") await page.emulate(KnownDevices["iPhone 13"]);
+else if (DEV === "phone1x") await page.emulate({...KnownDevices["iPhone 13"], viewport: {...KnownDevices["iPhone 13"].viewport, deviceScaleFactor: 1}}); else await page.setViewport({width: 1280, height: 720, deviceScaleFactor: 1});
+/* SWITCH=sea: the way a visitor gets there, from the home page through the scene panel (sea first, then desert) */
+if (process.env.SWITCH) {
+  await page.goto(`http://127.0.0.1:${server.address().port}/?nosw=1&debug=1`, {waitUntil: "domcontentloaded", timeout: 120000});
+  await page.waitForFunction(() => window.__ready, {timeout: 300000, polling: 500});
+  for (const y of process.env.SWITCH.split(",").concat("desert")) {
+    await page.evaluate(y => { const b = document.querySelector(`#gy [data-y="${y}"]`); if (b) b.click(); }, y);
+    await page.waitForFunction(y => (y !== "desert" || window.__desReady) && (document.querySelector("#gy [data-y].on") || {dataset: {}}).dataset.y === y, {timeout: 300000, polling: 500}, y);
+    await new Promise(r => setTimeout(r, 4000));
+  }
+} else
 await page.goto(`http://127.0.0.1:${server.address().port}/desert/?nosw=1&debug=1`, {waitUntil: "domcontentloaded", timeout: 120000});
 await page.waitForFunction(() => window.__ready && window.__desReady && window.__desQA && window.__desQA().ready, {timeout: 400000, polling: 500});
 await page.evaluate(() => { const q = window.__desQA(), C = window.__C(); document.body.classList.add("col", "snc");
   for (const s of [".t", "#fab", "#sbtn", "#tp", "#ld"]) { const n = document.querySelector(s); if (n) n.style.display = "none"; }
-  q.freeze(true); C.Ce.enabled = false; });
+  q.freeze(true); C.Ce.enabled = false; window.__def = [C.De.position.clone(), C.Ce.target.clone(), C.De.fov]; });
 const info = await page.evaluate(() => ({desert: window.CY && window.CY.desert, mob: navigator.userAgent.includes("iPhone")}));
 const frames = n => page.evaluate(n => new Promise(r => { let k = 0; const f = () => (++k >= n ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
 /* lower half of the frame: share of pixels that read as cloud deck (bright and close to grey), sand and sky excluded */
@@ -47,6 +58,7 @@ for (const tod of TODS) {
     await page.evaluate(v => { const q = window.__desQA(), C = window.__C();
       if (v === "edge") { const [ex, ez] = q.edgeXZ(.6, 1), y = q.hTop(ex, ez); q.lookAt(ex * .9, y + 1.7, ez * .9, ex * 1.6, y - 12, ez * 1.6); C.De.fov = 60; }
       else if (v === "far") { q.lookAt(58, 6, 40, 4, -10, 2); C.De.fov = 36; }
+      else if (v === "def") { if (!window.__def) window.__def = [C.De.position.clone(), C.Ce.target.clone(), C.De.fov]; C.De.position.copy(window.__def[0]); C.De.lookAt(window.__def[1]); C.De.fov = window.__def[2]; }
       else if (v === "ov") { C.De.position.set(-4.16, 11.13, 19.58); C.Ce.target.set(0, 0, 0); C.De.lookAt(C.Ce.target); C.De.fov = 40; }
       else { q.lookAt(40, -9, 30, 0, -16, 0); C.De.fov = 50; }
       C.De.near = .1; C.De.updateProjectionMatrix(); }, v);

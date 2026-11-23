@@ -43,3 +43,9 @@
 - `E_sandfall_day_full.png`、`E_sandfall_dusk_full.png`、`E_sandfall_day_mid.png`、`E_sandfall_dusk_mid.png`：沙瀑是崖边一股股分开的竖直沙流，中间露出石崖和天空，不是整圈沙帘或纱墙。
 - `sandfall-streams.mp4`：1280×720，12 fps，3 秒，镜头绕岛慢慢转，分开的沙流随风摆动。
 - `d162-wide-falls-report.json`：沙瀑共 54 股，覆盖崖边一周的 26.6%，最长一段连续覆盖只有 12.5°（整圈沙帘是 100% / 360°）。
+
+## 性能与回归
+
+- `perf.json`：`tools/e2e/perf.mjs` 同一次运行中本分支与 main 4e9d5fe 交替测量（iPhone 13 模拟、CPU 降速 4 倍、晴天，每帧 JS 时间）。本分支平均 13.4 ms，main 15.1 ms（上限 17.4 ms）；两边都没有超过 200 ms 的帧。
+- `tools/e2e/desert.mjs` 回归：24 项全部通过（风吹沙、沙丘随时间变形、雨落在沙地/帐篷/湖面、雨声、雾、雪、冰雹、各种动物行为）。
+- 打水漂石头保持暂停，本轮没有改动。没有新增场景元素。

@@ -138,7 +138,13 @@ def main():
         write("index.html" if y is None else f"{y}/index.html", html)
 
     core = [app_rel, ui_rel] + list(thumbs.values())
-    version = hashlib.sha256("|".join(sorted(core + [sea_rel, desert_rel] + list(audio.values()))).encode()).hexdigest()[:10]
+    # textures, models and vendor files keep fixed names, so the cache version follows every file's content, not just the hashed names
+    vh = hashlib.sha256()
+    for p in sorted(written):
+        vh.update(os.path.relpath(p, ROOT).replace(os.sep, "/").encode() + b"\0")
+        with open(p, "rb") as f:
+            vh.update(hashlib.sha256(f.read()).digest())
+    version = vh.hexdigest()[:10]
     sw = rd("sw.js").replace("{{VERSION}}", version).replace("{{CORE}}", json.dumps(core))
     write("sw.js", sw)
 

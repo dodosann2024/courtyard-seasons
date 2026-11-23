@@ -170,8 +170,11 @@ const toW=(x,y,z)=>W.localToWorld(_v.set(x,y,z)).clone();
 const ROOT=()=>(window.CY&&CY.root)||"";
 
 /* ---------------- textures + Tripo GLBs (self-hosted three GLTFLoader, no CDN) ---------------- */
-function loadTex(rel){
-  return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const t=new T.CTex(img);t.colorSpace="srgb";t.wrapS=t.wrapT=1000;t.anisotropy=MOB?4:8;t.needsUpdate=true;res(t)};img.onerror=rej;img.src=ROOT()+rel})}
+/* an interrupted load (Safari drops image requests when the tab is backgrounded or memory is short) is retried with a fresh URL,
+   else the sky would keep its flat placeholder and the cloud sea would be gone until a reload */
+function loadTex(rel,k=0){
+  return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{if(!img.naturalWidth)return img.onerror();const t=new T.CTex(img);t.colorSpace="srgb";t.wrapS=t.wrapT=1000;t.anisotropy=MOB?4:8;t.needsUpdate=true;res(t)};
+    img.onerror=()=>k<4?setTimeout(()=>loadTex(rel,k+1).then(res,rej),1500<<k):rej(0);img.src=ROOT()+rel+(k?"?r="+k:"")})}
 let _gltf=null,VT=null;
 function gltfMod(){if(_gltf)return _gltf;
   const r=ROOT(),url=r?r+"assets/vendor/des-gltf.js":new URL("../assets/vendor/des-gltf.js",location.href).href;

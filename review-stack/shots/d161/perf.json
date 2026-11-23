@@ -1,0 +1,40 @@
+{
+  "method": "tools/e2e/perf.mjs (the CI clear-day-perf harness): default day desert, emulated iPhone 13, CPU throttled 4x, JS time per requestAnimationFrame callback over 20 s from 5 s after models done; runs alternate PR / base",
+  "branch_vs_main": {
+    "pr": "this branch at ffaa528 (bundle desert.35f9adfbba.js)",
+    "base": "main e9275f4 (#160, desert.9175365e00.js)",
+    "rounds": [
+      {"pr": 13.1, "main": 14.8},
+      {"pr": 13.6, "main": 13.7},
+      {"pr": 13.6, "main": 14.3},
+      {"pr": 16.5, "main": 16.1}
+    ],
+    "meanMs": {"pr": 14.2, "main": 14.7, "limit": 16.9},
+    "over200ms": [0, 0, 0, 0],
+    "maxFrameMs": {"pr": [58, 54, 52, 69]}
+  },
+  "d160_vs_d158": {
+    "why": "where #159/#160's extra cost was: #160 against #158 (before #159), same harness",
+    "pr": "main e9275f4 (#160)",
+    "base": "b6dbb90 (#158)",
+    "rounds": [
+      {"pr": 14.7, "base": 16.5},
+      {"pr": 13.8, "base": 14.7},
+      {"pr": 14.6, "base": 14.0}
+    ],
+    "meanMs": {"pr": 14.4, "base": 15.1}
+  },
+  "ci_history": {
+    "why": "the CI runner's spread on identical code: the push run of #160 on main compares main with itself",
+    "run_45077586451_main_vs_main": [{"a": 25.4, "b": 25.0}, {"a": 27.6, "b": 29.6}],
+    "pr160_reported": {"pr": 25.4, "main": 22.8}
+  },
+  "profile": {
+    "method": "CPU profile over 30 s of the same run (tools/e2e/_prof.mjs, scratch), ms per frame inclusive",
+    "crUpdate": {"d158": 0, "d160": 0.012, "branch": 0.008},
+    "sandFallsUpdate": {"d158": 0.027, "d160": 0.045, "branch": 0.035},
+    "updateMatrixWorld_three": {"d158": 0.396, "d160": 0.596},
+    "sceneObjects": {"d158": 3769, "d160": 3963, "bones": {"d158": 902, "d160": 1082}},
+    "finding": "#160 added five 36-bone crab rigs (180 bones) that three walks every frame even while the crabs are hidden down their burrows; the crab and sand-stream updates themselves cost ~0.01 and ~0.04 ms. A hidden crab now skips that walk. The 25.4 vs 22.8 of #160's CI run is inside the runner's spread (main against itself: 25.0 vs 29.6)."
+  }
+}

@@ -650,6 +650,12 @@
       "clips": [
         "claw_pinch/claw_pinch"
       ]
+    },
+    "idleClip": {
+      "frames": 96,
+      "fingers": [
+        "idle"
+      ]
     }
   }
 }

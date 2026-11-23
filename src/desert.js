@@ -153,12 +153,12 @@ function hRaw(x,z){
 PADS.forEach(p=>{p.h=hRaw(p.x,p.z)});
 /* sand drifted against the windward side of each seat log by the fire: banked up to about the log's middle at its face and
    tailing off over half a metre, wrapping a little round the ends; nothing on the lee side, so no log stands on a ridge there */
-function driftH(x,z){if(Math.abs(x-FIRE.x)>2.9||Math.abs(z-FIRE.z)>2.9)return 0;let h=0;
-  for(const s of SEATS){const th=s.yaw-Math.PI/2,ax=Math.cos(th),az=-Math.sin(th),nx=Math.sin(th),nz=Math.cos(th),dx=x-s.x,dz=z-s.z,a=dx*ax+dz*az,
-      wn=-(nx*WIND.x+nz*WIND.z),d=(dx*nx+dz*nz)*(wn<0?-1:1),r=s.rad;
-    if(d<-r||d>r+.7||Math.abs(a)>s.len*.5+.5)continue;
-    const A=r*.62*Math.sqrt(Math.abs(wn))*(1+.12*Math.sin(a*7+s.x*3)),al=ss(s.len*.5+.32,s.len*.5-.12,Math.abs(a));
-    h+=al*A*(d<0?ss(-r*.85,0,d):1-ss(r*.88,r+.55,d))}
+const DRIFT=SEATS.map(s=>{const th=s.yaw-Math.PI/2,nx=Math.sin(th),nz=Math.cos(th),wn=-(nx*WIND.x+nz*WIND.z),sg=wn<0?-1:1;
+  return{x:s.x,z:s.z,ax:Math.cos(th),az:-Math.sin(th),nx:nx*sg,nz:nz*sg,r:s.rad,hl:s.len*.5,A:s.rad*.62*Math.sqrt(Math.abs(wn))}});
+function driftH(x,z){const fx=x-FIRE.x,fz=z-FIRE.z;if(fx*fx+fz*fz>8.4)return 0;let h=0;
+  for(const s of DRIFT){const dx=x-s.x,dz=z-s.z,d=dx*s.nx+dz*s.nz,r=s.r;if(d<-r||d>r+.7)continue;
+    const a=Math.abs(dx*s.ax+dz*s.az);if(a>s.hl+.5)continue;
+    h+=ss(s.hl+.32,s.hl-.12,a)*s.A*(1+.12*Math.sin(a*7+s.x*3))*(d<0?ss(-r*.85,0,d):1-ss(r*.88,r+.55,d))}
   return h}
 const hTop=(x,z)=>hTop0(x,z)+dDelta(x,z);
 function hTop0(x,z){
@@ -1241,6 +1241,9 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
   const CK=Array.from({length:o.checks??3},(_,i)=>{const x0=rg(-.45,.2)*L,x1=Math.min(.47*L,x0+rg(.25,.65)*L);
     return{a:(bu>.3?aUp:0)+rg(-1.4,1.4)+(i%3===2?Math.PI:0),x0,x1,w:rg(.003,.0055)*Kd,d:rg(.008,.016)*Kd,s:rg(0,9)}});
   const cA=(C,x)=>C.a-x*.108+.12*(vn2(x*1.6+C.s,1.7)-.5);
+  /* deep wind furrows: a few grooves the sand has cut much deeper than the rest, wandering with the grain, deepest windward */
+  const GR=Array.from({length:o.furrows??0},(_,i)=>({a:rg(0,TAU),w:rg(.006,.0095)*Kd,d:rg(.0022,.0042)*Kd,s:rg(0,50),i}));
+  const gA=(G,x)=>G.a-x*.108+.5*(vn2(x*.9+G.s,2.3)-.5)+.25*(vn2(x*3.3+G.s,5.1)-.5)+.22*(vn2(x*7.5+G.s,8.7)-.5),gD=(G,x)=>G.d*(.25+.75*ss(.25,.65,vn2(x*1.4/Kd+G.s,4.4)));
   const SP=[];for(const en of[-1,1])if(E[en<0?0:1]==="worn")for(let i=0;i<(o.splits??2);i++)SP.push({e:en,a:rg(0,TAU),l:rg(.5,1.1)*Math.min(.42,L*.12,9*R),s:rg(0,9)});
   const KN=Array.from({length:o.knots??2},()=>({x:rg(-.4,.4)*L,a:(o.stubs?aUp+rg(-1.6,1.6):rg(0,TAU)),r:rg(.3,.45)*R*(o.stubs?1.5:1),h:o.stubs?rg(.12,.28)*R:.0032*Kd}));
   const NK=Array.from({length:o.nicks??3},()=>({x:rg(-.45,.45)*L,a:rg(-1.2,2.4)+aUp,sx:rg(.008,.016)*Kd,sa:rg(.25,.5),d:rg(.0025,.005)*Kd}));
@@ -1257,6 +1260,7 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
   const NBA=240,dA=new Float32Array(NBA+1);
   const cols=x=>{const F=[];
     for(const C of CK){if(x<C.x0||x>C.x1)continue;const t=(x-C.x0)/(C.x1-C.x0);F.push([cA(C,x),Math.max(.05,C.w/R*1.1),2.4*Math.pow(Math.sin(Math.PI*t),.6)])}
+    for(const G of GR)F.push([gA(G,x),G.w/R*.75,1.6*gD(G,x)/G.d]);
     for(const S of SP){const xd=L/2-x*S.e;if(xd<S.l)F.push([S.a,.06,2.2*ss(0,.25,1-xd/S.l)])}
     for(const k of KN){const q=Math.exp(-(((x-k.x)/(k.r*1.6))**2));if(q>.05)F.push([k.a,k.r/R*.9,2*q])}
     for(const w of WG){const c=Math.acos(cl(w.d/R,-1,1));F.push([w.n+c,.05,1.3],[w.n-c,.05,1.3])}
@@ -1286,6 +1290,7 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
       let kh=0,kn=0;for(const K of KN){const dx=(x-K.x)/K.r,da=wrapD(an,K.a)*R/K.r,d2=dx*dx+da*da;if(d2<30){const q=Math.exp(-d2*.9);kn=Math.max(kn,q);kh=Math.max(kh,q*K.h)}}
       const sc=Math.pow(vn2(x*2.6/Kd+ph[3],an*1.8+ca),2);
       let dep=.004*Kd*ex*sc-kh;
+      let fu=0;if(!P.cap)for(const G of GR){const q=Math.abs(wrapD(an,gA(G,x)))*R/G.w;if(q<1){const pr=(1-q*q)**2,dd=gD(G,x)*pr*(.5+.5*ex+.3*ss(.6,1,xe));dep+=dd;fu=Math.max(fu,pr*dd/G.d)}}
       let ck=0;for(const C of CK){if(x<C.x0-.05||x>C.x1+.05)continue;const t=cl((x-C.x0)/(C.x1-C.x0),0,1),tp=Math.pow(Math.sin(Math.PI*t),.6),
           da=Math.abs(wrapD(an,cA(C,x)))*R,hw=Math.max(.0035*Kd,C.w*(.5+.5*tp)),m=ss(hw,hw*.15,da);dep+=C.d*m*tp;ck=Math.max(ck,m*Math.sqrt(tp))}
       const side=P.rho;
@@ -1329,6 +1334,7 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
       if(WG.length&&!P.cap&&WG.some(w=>Math.cos(an-w.n)>.25)){r*=1.12;g*=1.1;b*=1.05}
       if(P.cap>=1){const ring=.8+.2*vn2(side*14+ph[4],an);r=mix(.18,.21,side)*ring;g=mix(.155,.195,side)*ring;b=mix(.12,.175,side)*ring}
       r=mix(r,.11,nk*.6);g=mix(g,.075,nk*.6);b=mix(b,.048,nk*.6);
+      r=mix(r,.1,fu*.5);g=mix(g,.085,fu*.5);b=mix(b,.066,fu*.5);
       r=mix(r,.12,wr*.6);g=mix(g,.098,wr*.6);b=mix(b,.075,wr*.6);
       r=mix(r,.13,kn*.8);g=mix(g,.1,kn*.8);b=mix(b,.072,kn*.8);
       const cm=Math.pow(ck,.45);r=mix(r,.022,cm);g=mix(g,.012,cm);b=mix(b,.006,cm);
@@ -1351,40 +1357,43 @@ function wwMat(glow){const m=new T.MSM({vertexColors:true,roughness:.93,metalnes
       float wCp=smoothstep(.75,.95,abs(normalize(vON).x)),wAn=atan(vOP.z,vOP.y),wRn=vB.z,wPx=length(fwidth(vOP));
       vec2 wU=vec2(cos(wAn),sin(wAn));
       float wNC=2.*floor(wRn*282.7+.5),wNF=2.*floor(wRn*1193.8+.5),wGA=1.-smoothstep(.15,.45,wPx*wNC/(6.2832*wRn)),wFA=1.-smoothstep(.15,.45,wPx*wNF/(6.2832*wRn));
-      float wSdN=dn2(vec2(vOP.x*40.+wU.x*wRn*40.,wU.y*wRn*40.)),wCl=dn2(vec2(vOP.x*520.+wU.x*wRn*520.,wU.y*wRn*520.)),wCl2=dn2(vec2(vOP.x*150.+wU.x*wRn*150.+7.,wU.y*wRn*150.));
-      float wSA2=1.-smoothstep(.0012,.004,wPx),wSd=smoothstep(.4,.6,vW.y+.3*(wSdN-.5)+.18*(wCl2-.5));
-      float wBk=smoothstep(.46,.54,vB.x+.24*(dn2(vec2(vOP.x*9.+wU.x*wRn*14.,wU.y*wRn*14.))-.5)+.1*(dn2(vec2(vOP.x*45.+wU.x*wRn*60.,wU.y*wRn*60.))-.5));
-      float wChN=dn2(vec2(vOP.x*12.+wU.x*wRn*12.,wU.y*wRn*12.)),wCh=smoothstep(.35,.6,vB.y+.3*(wChN-.5)),wSo=smoothstep(.04,.4,vB.y+.2*(wChN-.5));
-      float wGw=wAn/6.2832*wNC+vOP.x*wNC/58.+1.6*(dn2(vec2(vOP.x*.7+3.,2.3))-.5)+.9*(dn2(vec2(vOP.x*.25+wU.x*.9,wU.y*.9+5.))-.5)+.55*(dn2(vec2(vOP.x*3.1+wU.x*.7,wU.y*.7))-.5);
+      float wCl=.5,wCl2=.5,wSA2=1.-smoothstep(.0012,.004,wPx),wSd=0.,wBk=0.,wChN=.5,wCh=0.,wSo=0.;
+      if(vW.y>.02){float wSdN=dn2(vec2(vOP.x*40.+wU.x*wRn*40.,wU.y*wRn*40.));wCl=dn2(vec2(vOP.x*520.+wU.x*wRn*520.,wU.y*wRn*520.));wCl2=dn2(vec2(vOP.x*150.+wU.x*wRn*150.+7.,wU.y*wRn*150.));
+        wSd=smoothstep(.4,.6,vW.y+.3*(wSdN-.5)+.18*(wCl2-.5));}
+      if(vB.x>.04)wBk=smoothstep(.46,.54,vB.x+.24*(dn2(vec2(vOP.x*9.+wU.x*wRn*14.,wU.y*wRn*14.))-.5)+.1*(dn2(vec2(vOP.x*45.+wU.x*wRn*60.,wU.y*wRn*60.))-.5));
+      if(vB.y>.01){wChN=dn2(vec2(vOP.x*12.+wU.x*wRn*12.,wU.y*wRn*12.));wCh=smoothstep(.35,.6,vB.y+.3*(wChN-.5));wSo=smoothstep(.04,.4,vB.y+.2*(wChN-.5));}
+      float wGw=wAn/6.2832*wNC+vOP.x*wNC/58.+1.6*(dn2(vec2(vOP.x*.7+3.,2.3))-.5)+.9*(dn2(vec2(vOP.x*.25+wU.x*.9,wU.y*.9+5.))-.5)+.9*(dn2(vec2(vOP.x*3.1+wU.x*.7,wU.y*.7))-.5)+.45*(dn2(vec2(vOP.x*8.5+wU.x*.5,wU.y*.5+9.))-.5);
       float wGi=floor(wGw),wVw=.1+.22*dh2(vec2(wGi,3.7)),wCr=smoothstep(0.,wVw,abs(fract(wGw)-.5)),wDn=dn2(vec2(wGi*7.31,vOP.x*2.4)),wGd=min(1.,.04+1.7*wDn*wDn*wDn)*smoothstep(.15,.65,dn2(vec2(wGi*3.1,vOP.x*5.)));
       wSd=max(wSd,smoothstep(.12,.4,vW.y)*(1.-wCr)*smoothstep(.15,.5,wGd)*(1.-wCp));
       float wGs=wGd*(.35+.65*vW.w)*(1.-.8*vW.z)*(1.-wBk)*(1.-wCh)*(1.-wSd)*(1.-wCp)*wGA;
       float wH=(wCr-1.)*wGs*.0045;
       float wW=wAn/6.2832*wNF+vOP.x*wNF/58.+4.8*(dn2(vec2(vOP.x*.7+3.,2.3))-.5)+1.4*(dn2(vec2(vOP.x*4.+wU.x*1.1,wU.y*1.1+2.))-.5);
       float wRid=pow(abs(cos(3.14159*wW)),4.),wPt=smoothstep(.35,.75,dn2(vec2(vOP.x*3.3+wU.x*2.,wU.y*2.))),wFm=wFA*(1.-wCp)*(1.-wBk)*(1.-wCh)*(1.-wSd);
-      wH-=(1.-wRid)*(.00018+.0006*vW.w)*mix(.35,1.,wPt)*(1.-.8*vW.z)*wFm;
+      wH-=(1.-wRid)*(.00012+.0004*vW.w)*mix(.35,1.,wPt)*(1.-.8*vW.z)*wFm;
       float wFib=.5*dn2(vec2(vOP.x*55.,wW*1.4))+.5*dn2(vec2(vOP.x*170.,wW*3.1+7.));
       float wRr=length(vOP.yz-vec2(.004,-.003)*wRn/.037),wRg=wRr/.0024+1.2*dn2(wU*2.+vec2(wRr*30.)),wRA=(1.-smoothstep(.15,.5,wPx/.0024))*wCp*(1.-wSd),wRing=pow(abs(cos(3.14159*wRg)),4.);
       wH-=(1.-wRing)*.0004*wRA;
       float wCi=floor(wW+.5),wCs=vOP.x*2.6+dh2(vec2(wCi,1.))*3.,wLine=step(.78,dh2(vec2(wCi,floor(wCs))))*sin(3.14159*fract(wCs))*smoothstep(.16,.02,abs(fract(wW)-.5))*wFm;
-      float wNB=2.*floor(wRn*141.4+.5),wFv=wAn/6.2832*wNB+1.2*dn2(vec2(vOP.x*2.5+wU.x*2.,wU.y*2.)),wBA=1.-smoothstep(.2,.5,wPx*wNB/(6.2832*wRn));
+      vec3 wBc=vec3(0.);
+      if(wBk>0.){float wNB=2.*floor(wRn*141.4+.5),wFv=wAn/6.2832*wNB+1.2*dn2(vec2(vOP.x*2.5+wU.x*2.,wU.y*2.)),wBA=1.-smoothstep(.2,.5,wPx*wNB/(6.2832*wRn));
       float wFis=max(smoothstep(.3,.06,abs(fract(wFv)-.5)),.7*smoothstep(.12,.02,abs(fract(vOP.x*16.+dh2(vec2(floor(wFv),1.))*3.)-.5)))*wBA;
       wH+=wBk*(.0016-.0026*wFis);
-      float wAA2=1.-smoothstep(.2,.5,wPx*55.),wD1=8.,wD2=8.;
-      vec2 wQ=vec2(vOP.x*55.,wAn*wRn*48.),wQi=floor(wQ),wQf=fract(wQ);
+      wBc=vec3(.075,.06,.047)*(.65+.55*dn2(vec2(vOP.x*25.,wFv*2.)))*(1.-.75*wFis);
+      wBc=mix(wBc,vec3(.15,.14,.128)*(.8+.3*dn2(vec2(vOP.x*9.,wFv))),.5*vW.w*(1.-wFis));}
+      float wAA2=1.-smoothstep(.2,.5,wPx*55.),wAl=0.;vec2 wAg=vec2(0.);
+      if(wCh>0.){float wD1=8.,wD2=8.;vec2 wQ=vec2(vOP.x*55.,wAn*wRn*48.),wQi=floor(wQ),wQf=fract(wQ);
       for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 g=vec2(float(i),float(j)),pp=g+.1+.8*vec2(dh2(wQi+g),dh2(wQi+g+17.3))-wQf;float d=dot(pp,pp);
         if(d<wD1){wD2=wD1;wD1=d;}else if(d<wD2)wD2=d;}
-      float wAl=(1.-smoothstep(.02,.13,sqrt(wD2)-sqrt(wD1)))*wAA2;vec2 wAg=wQi;
-      wH+=wCh*((1.-wAl)*.0009-.0005);
-      float wGn=dh2(floor(vec2(vOP.x*1600.,wAn*wRn*1600.))),wSA=1.-smoothstep(.0003,.0012,wPx);
+      wAl=(1.-smoothstep(.02,.13,sqrt(wD2)-sqrt(wD1)))*wAA2;wAg=wQi;
+      wH+=wCh*((1.-wAl)*.0009-.0005);}
+      float wGn=.5,wSA=0.;
+      if(wSd>0.){wGn=dh2(floor(vec2(vOP.x*1600.,wAn*wRn*1600.)));wSA=1.-smoothstep(.0003,.0012,wPx);}
       wH+=wSd*(.0003+.0007*wCl2+.0005*wCl*wSA2+.0003*wGn*wSA);
       float wSt=dn2(vec2(vOP.x*2.2+wU.x*wRn*60.,wU.y*wRn*60.)),wSt2=dn2(vec2(vOP.x*6.+wU.x*wRn*170.,wU.y*wRn*170.));
       diffuseColor.rgb*=mix(1.,(.66+.55*wSt)*(.84+.32*wSt2),(1.-wBk)*(1.-wCh)*(1.-wSd)*(1.-.6*wCp));
       diffuseColor.rgb*=mix(vec3(1.),mix(vec3(.42,.36,.3),vec3(1.1,1.09,1.07),wCr),wGs*.9);
       diffuseColor.rgb*=mix(1.,.86,(1.-wGA)*wGd*(.35+.65*vW.w)*(1.-wBk)*(1.-wCh)*(1.-wSd)*(1.-wCp));
       diffuseColor.rgb*=mix(1.,.82+.36*wFib,wFm*(1.-.7*vW.x))*mix(1.,.6,smoothstep(.35,.85,vW.x))*mix(1.,.9+.2*wRid,wFm*mix(.5,1.,wPt))*mix(1.,.84+.24*wRing,wRA)*(1.-.3*wLine);
-      vec3 wBc=vec3(.075,.06,.047)*(.65+.55*dn2(vec2(vOP.x*25.,wFv*2.)))*(1.-.75*wFis);
-      wBc=mix(wBc,vec3(.15,.14,.128)*(.8+.3*dn2(vec2(vOP.x*9.,wFv))),.5*vW.w*(1.-wFis));
       diffuseColor.rgb=mix(diffuseColor.rgb,wBc,wBk);
       diffuseColor.rgb*=1.-.65*wSo*(1.-wCh);
       diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.021,.019,.018)*(1.-.7*wAl)*(.8+.4*dh2(floor(wAg))),wCh);
@@ -1409,11 +1418,11 @@ function wwMat(glow){const m=new T.MSM({vertexColors:true,roughness:.93,metalnes
   /* the cross-bar lies across the crotch of each forked post: the prongs open across the bar, the post's worn top just under it
      holds a little heap of blown sand, and the bar's underside, the prongs' inner faces and the crotch are rubbed and sanded */
   const BY=1.82,TOP=1.771,PH=.36,PL=.34,PB=.16;
-  part("rackBar",{seed:58163,L:3.6,R:.037,NR:28,NL:118,sag:-.011,sagW:1.6,rugs:true,sandTop:.35,checks:6,knots:4,nicks:9,splits:3,
+  part("rackBar",{seed:58163,L:3.6,R:.037,NR:32,NL:104,furrows:5,sag:-.011,sagW:1.6,rugs:true,sandTop:.35,checks:6,knots:4,nicks:9,splits:3,
     seats:[-1.6,1.6].map(x=>({x,p:inW(x,TOP-.05,0),w:.055}))},new V3(0,BY,0));
   [[-1.6,.03,"L",61331],[1.6,-.04,"R",80713]].forEach(([sx,tl,nm,sd])=>{
     const dir=new V3(-Math.sin(tl),Math.cos(tl),0),Lp=(TOP+.12)/Math.cos(tl),top=new V3(sx,TOP,0);
-    part("rackPost"+nm,{seed:sd,L:Lp,R:.052,taper:.3,NR:22,NL:62,lobe:1.6,bend:.012,ends:["hidden","worn"],heap:.012,waist:true,checks:3,knots:3,nicks:4,splits:2,
+    part("rackPost"+nm,{seed:sd,L:Lp,R:.052,taper:.3,NR:24,NL:58,lobe:1.6,furrows:3,bend:.012,ends:["hidden","worn"],heap:.012,waist:true,checks:3,knots:3,nicks:4,splits:2,
       seats:[{x:Lp/2-.02,p:inW(sx,BY,0),w:.03,sand:.5}]},top.clone().addScaledVector(dir,-Lp/2),dir);
     const base=top.clone().addScaledVector(dir,-PB);
     [-1,1].forEach((k,i)=>{const p=PH+(i?.03:-.02)*(sx>0?1:-1),d=new V3(-Math.sin(tl)*Math.cos(p),Math.cos(tl)*Math.cos(p),k*Math.sin(p));
@@ -1513,7 +1522,7 @@ let fireL=null;
     if(m.geometry)m.geometry.dispose();m.geometry=wwGeo(o);m.geometry.computeBoundingBox();return m};
   const mesh=name=>{const m=new T.Mesh(new T.BG(),wm);m.name=name;m.castShadow=m.receiveShadow=true;W.add(m);return m};
   SEATS.forEach((s,i)=>{const c=Math.cos(s.yaw),n=Math.sin(s.yaw),h0=hB(s.x+n*s.len*.5,s.z+c*s.len*.5),h1=hB(s.x-n*s.len*.5,s.z-c*s.len*.5),bk=rr(0,50),bend=rr(-.04,.04);
-    wood(mesh("fireSeat"+i),{seed:Math.floor(bk*1e4)+i,L:s.len,R:s.rad,taper:.1,NR:44,NL:66,bend,bark:.7,fire:FIRE,char:.9,seatTop:true,stubs:true,
+    wood(mesh("fireSeat"+i),{seed:Math.floor(bk*1e4)+i,L:s.len,R:s.rad,taper:.1,NR:48,NL:62,furrows:5,bend,bark:.7,fire:FIRE,char:.9,seatTop:true,stubs:true,
       knots:3,checks:10,nicks:5,splits:4,lobe:1.5},s.x,hB(s.x,s.z)+.4*s.rad,s.z,s.yaw,Math.atan2(h1-h0,s.len)*.8)});
   /* firewood: split lengths, ridge up and bark on the round back, stacked two layers crosswise, each on the sand or on the layer below */
   {const w=fireAt(FIRE_KIT.wood.a,FIRE_KIT.wood.r),yw=FIRE_B+FIRE_KIT.wood.a,g0=hTop(w.x,w.z);let top0=g0;

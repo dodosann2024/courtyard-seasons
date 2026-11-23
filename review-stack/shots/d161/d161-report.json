@@ -747,8 +747,8 @@
   },
   "agama": {
     "baskPick": {
-      "i": 1,
-      "male": false,
+      "i": 0,
+      "male": true,
       "palm": false
     },
     "bask": {
@@ -756,7 +756,7 @@
       "modes": [
         "bask"
       ],
-      "warm": 0
+      "warm": 0.96
     },
     "rain": [
       {
@@ -790,6 +790,27 @@
     "dropped": {
       "minClearance": 0.7,
       "pushedOut": 2
+    },
+    "requested": [
+      "ostrich_v2af",
+      "ostrich_v2ag",
+      "ostrich_v2ah",
+      "ostrich_v2c",
+      "ostrich_v2d",
+      "ostrich_v2e",
+      "ostrich_v2g",
+      "ostrich_v2z2"
+    ]
+  },
+  "tent": {
+    "frames": 60,
+    "dry": 0,
+    "wet": 1,
+    "osMinClearance": 4.24,
+    "sound": {
+      "mime": "audio/webm;codecs=opus",
+      "bytes": 96896,
+      "meanDb": -20.3
     }
   }
 }

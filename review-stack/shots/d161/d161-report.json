@@ -662,6 +662,16 @@
       "clips": [
         "dig/dig/idle"
       ]
+    },
+    "burrow": {
+      "frames": 46,
+      "scareAt": 12,
+      "fps": 12,
+      "runAt": 12,
+      "downAt": 22,
+      "goneAt": 29,
+      "scuttled": true,
+      "hiddenAfter": true
     }
   }
 }

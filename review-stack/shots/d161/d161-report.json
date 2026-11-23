@@ -656,6 +656,12 @@
       "fingers": [
         "idle"
       ]
+    },
+    "dig": {
+      "frames": 72,
+      "clips": [
+        "dig/dig/idle"
+      ]
     }
   }
 }

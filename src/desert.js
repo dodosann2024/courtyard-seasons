@@ -1383,14 +1383,15 @@ function wwGeo(o){let s0=o.seed|0;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.im
       if(WG.length&&!P.cap&&WG.some(w=>Math.cos(an-w.n)>.25)){r*=1.12;g*=1.1;b*=1.05}
       if(P.cap>=1){const ring=.8+.2*vn2(side*14+ph[4],an);r=mix(.18,.21,side)*ring;g=mix(.155,.195,side)*ring;b=mix(.12,.175,side)*ring}
       r=mix(r,.11,nk*.6);g=mix(g,.075,nk*.6);b=mix(b,.048,nk*.6);
-      if(FL&&FL.cav){/* trough bottoms darker still and cool grey (sky-lit, not sun-browned), the sharp crests between them bleached paler */const v=ss(.03,.42,fu),v2=ss(.3,.85,gc),cr=P.cap?0:bw(an)*(1-fp)*(.7+.3*ex);
-        const n=1-FL.bot*v2*ss(-.7,-.3,top);r*=(1-.78*v)*n*(1+FL.crest*cr);g*=(1-.78*v)*n*(1+FL.crest*cr);b*=(1-.76*v)*n*(1+(FL.crest-.02)*cr)}
+      if(FL&&FL.cav){/* trough bottoms darker still, tinted per channel by FL.tv (the cavity leaves them mostly sky-lit, which cools them,
+        so a warm tint keeps the wood's own brown down there); the sharp crests between them bleached by FL.crest */const v=ss(.03,.42,fu),v2=ss(.3,.85,gc),cr=P.cap?0:bw(an)*(1-fp)*(.7+.3*ex),tv=FL.tv||[.78,.78,.76];
+        const n=1-FL.bot*v2*ss(-.7,-.3,top);r*=(1-tv[0]*v)*n*(1+FL.crest*cr);g*=(1-tv[1]*v)*n*(1+FL.crest*cr);b*=(1-tv[2]*v)*n*(1+Math.max(0,FL.crest-.02)*cr)}
       else if(FL){/* trough bottoms shaded brown, the sharp crests between them bleached paler */const v=ss(.03,.42,fu),cr=P.cap?0:bw(an)*(1-fp)*(.7+.3*ex);r*=(1-.72*v)*(1+.16*cr);g*=(1-.76*v)*(1+.16*cr);b*=(1-.8*v)*(1+.15*cr)}
       else{r=mix(r,.1,fu*.5);g=mix(g,.085,fu*.5);b=mix(b,.066,fu*.5)}
       r=mix(r,.12,wr*.6);g=mix(g,.098,wr*.6);b=mix(b,.075,wr*.6);
       r=mix(r,.13,kn*.8);g=mix(g,.1,kn*.8);b=mix(b,.072,kn*.8);
       if(kb>0){const kr=.75+.25*Math.cos(kbh/Math.max(1e-4,kb)*1400);r=mix(r,.075*kr,kb*.85);g=mix(g,.05*kr,kb*.85);b=mix(b,.032*kr,kb*.85)}
-      const cm=Math.pow(ck,.45);if(FL&&FL.cav){r=mix(r,.02,cm);g=mix(g,.018,cm);b=mix(b,.016,cm)}else{r=mix(r,.022,cm);g=mix(g,.012,cm);b=mix(b,.006,cm)}
+      const cm=Math.pow(ck,.45);if(FL&&FL.cav){const c=FL.ckc||[.02,.018,.016];r=mix(r,c[0],cm);g=mix(g,c[1],cm);b=mix(b,c[2],cm)}else{r=mix(r,.022,cm);g=mix(g,.012,cm);b=mix(b,.006,cm)}
       col[k*3]=r;col[k*3+1]=g;col[k*3+2]=b;
       /* FL.cav: groove bottoms occluded by their own depth (wwMat shades aW.x as a cavity: less sky and sun reach down there); not on
          the underside, where all that would be left is the orange bounce off the sand */
@@ -1478,7 +1479,7 @@ function wwMat(glow,gb){const m=new T.MSM({vertexColors:true,roughness:.93,metal
   const BY=1.82,TOP=1.771,PH=.36,PL=.34,PB=.16;
   part("rackBar",{seed:58163,L:3.6,R:.037,NR:60,NL:58,furrows:0,sag:-.02,sagW:1.6,rugs:true,sandTop:.35,checks:3,knots:0,nicks:0,splits:4,
     lobe:1.35,irreg:1,plane:.015,scoop:.0012,rc:.01,capR:[0,.6],capE:[Math.PI/6,Math.PI/3],splitD:.6,splitW:.6,capCrack:.45,capRough:.003,
-    flow:{n:15,band:3.3,c:.35,d:.017,cap:.013,wave:.25,irr:1,jit:.3,cav:1,crest:.28,bot:.5,lw:.045,cw:.75,ck:.5,kc:2.5,back:.1,bandC:.06,wmin:.0025,wmax:.0095,kx:5,part:1.25,rowL:.55,rowR:2,rx:.9,kr:12,krx:2.5},
+    flow:{n:15,band:3.3,c:.35,d:.017,cap:.013,wave:.25,irr:1,jit:.3,cav:.55,crest:0,bot:.25,tv:[.68,.75,.83],ckc:[.022,.012,.006],lw:.045,cw:.75,ck:.5,kc:2.5,back:.1,bandC:.06,wmin:.0025,wmax:.0095,kx:5,part:1.25,rowL:.55,rowR:2,rx:.9,kr:12,krx:2.5},
     mob:{NR:40,NL:36,capR:[0,.6],capE:[Math.PI/4]},
     bigKnots:[{x:1.1,da:.3,r:.017,h:.011,moat:.0025},{x:-.55,da:-.8,r:.014,h:.007,moat:.002,kr:5}],
     chips:[{e:1,x:.018,da:.5,sx:.03,sa:.5,d:.007},{e:-1,x:.022,da:-.4,sx:.035,sa:.55,d:.008}],

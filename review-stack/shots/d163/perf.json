@@ -1,0 +1,60 @@
+{
+  "tool": "tools/e2e/perf.mjs (BASE_DIR = origin/main e2d997e, same run, alternating rounds)",
+  "setup": "default clear-day desert, emulated iPhone 13, CPU throttled 4x, JS per rAF over 20 s",
+  "branchCommit": "654eda5",
+  "rounds": [
+    {
+      "build": "pr",
+      "frames": 48,
+      "jsMean": 14.2,
+      "jsP95": 46.6,
+      "max": 50,
+      "over200": 0
+    },
+    {
+      "build": "main",
+      "frames": 51,
+      "jsMean": 14.4,
+      "jsP95": 51.9,
+      "max": 68,
+      "over200": 0
+    },
+    {
+      "build": "pr",
+      "frames": 51,
+      "jsMean": 14.2,
+      "jsP95": 49.9,
+      "max": 53,
+      "over200": 0
+    },
+    {
+      "build": "main",
+      "frames": 51,
+      "jsMean": 14.3,
+      "jsP95": 50.8,
+      "max": 66,
+      "over200": 0
+    }
+  ],
+  "result": [
+    {
+      "status": "ok",
+      "check": "clear-day JS per frame within +15% of main",
+      "pr": 14.2,
+      "main": 14.4,
+      "limit": 16.5
+    },
+    {
+      "status": "ok",
+      "check": "no frame over 200 ms after load",
+      "over200": [
+        0,
+        0
+      ],
+      "max": [
+        50,
+        53
+      ]
+    }
+  ]
+}

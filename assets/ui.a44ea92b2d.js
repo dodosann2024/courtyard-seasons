@@ -12,6 +12,15 @@ const built=new Set();
 requestAnimationFrame(()=>setTimeout(()=>{const s=document.createElement("script");s.src=C.root+C.app;document.head.appendChild(s)},0));
 let cur=C.cur,busy=false,pending=null,idx=0,ready=false;try{const s=history.state;if(s&&typeof s.i=="number")idx=s.i}catch{}
 if(cur==="desert")desPre();
+/* the build tag in the panel: the desert bundle's hash, to tell which version a phone is really running */
+{const m=/desert\.(\w{6})/.exec(C.desert||""),v=$("#ver");if(v&&m)v.textContent="版本 "+m[1]}
+/* Safari brings tabs and home-screen apps back without navigating, so the worker is checked for an update whenever the page is
+   shown again; a new one takes over at once (skipWaiting), and the page reloads onto it the next time it is out of sight */
+function swReg(){const sw=navigator.serviceWorker,had=!!sw.controller;let stale=false;
+  sw.register(C.root+"sw.js").then(reg=>{const up=()=>{if(document.visibilityState==="visible")reg.update().catch(()=>{})};
+    addEventListener("visibilitychange",()=>{if(stale&&document.visibilityState==="hidden")location.reload();else up()});
+    addEventListener("pageshow",e=>{if(e.persisted)up()});addEventListener("online",up)}).catch(()=>{});
+  sw.addEventListener("controllerchange",()=>{if(!had)return;stale=true;if(document.visibilityState==="hidden")location.reload()})}
 
 /* ---------- snapshots of the live WebGL canvas ----------
    The copy is taken in a rAF callback registered after the renderer's own, so the
@@ -221,7 +230,7 @@ function panels(){
     /* the page-curl context is made while nothing else is happening, not inside the first scene switch */
     setTimeout(()=>idle(()=>{if(!busy&&!G)try{initGL()}catch{}},{timeout:8000}),5000);
     idle(()=>{
-      if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register(C.root+"sw.js").catch(()=>{});
+      if("serviceWorker" in navigator&&location.protocol==="https:")swReg();
       const cn=navigator.connection;if(cn&&(cn.saveData||/2g/.test(cn.effectiveType||"")))return;
       setTimeout(()=>[...Object.values(C.au||{}),C.sea].forEach(u=>u&&fetch(C.root+u,{priority:"low"}).catch(()=>{})),2500);
     },{timeout:4000});

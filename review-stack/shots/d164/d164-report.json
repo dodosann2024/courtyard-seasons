@@ -1,0 +1,46 @@
+{
+ "object": "晾毯架横梁 rackBar（src/desert.js rack() 内的 bar；晾毯架在帐篷右前方 RACK = TENT + 右5.1 m + 前0.9 m）",
+ "main": {
+  "bundle": "assets/desert.ccdc60ce67.js",
+  "bar": {
+   "name": "(unnamed cylinder)",
+   "verts": 40,
+   "size": [
+    0.061,
+    3.6,
+    0.07
+   ],
+   "material": "MeshStandardMaterial（与支杆共用 woodM #6e4a2c）"
+  },
+  "wetAfterRain": 1
+ },
+ "branch": {
+  "bundle": "assets/desert.f1b14a2f7f.js",
+  "bar": {
+   "name": "rackBar",
+   "verts": 36176,
+   "tris": 72128,
+   "size": [
+    3.608,
+    0.087,
+    0.079
+   ],
+   "material": "MeshStandardMaterial:des164bar"
+  },
+  "wetAfterRain": 1
+ },
+ "ver": {
+  "text": "版本 f1b14a",
+  "bundle": "assets/desert.f1b14a2f7f.js",
+  "visible": true,
+  "match": true
+ },
+ "agama": {
+  "i": 1,
+  "male": false,
+  "palm": false,
+  "mode": "bask"
+ },
+ "ostrichRequested": [],
+ "fails": []
+}

@@ -1209,13 +1209,124 @@ function stripeTex(cols){const c=document.createElement("canvas");c.width=64;c.h
   let y=0;while(y<128){const h=4+Math.floor(rnd()*14);x.fillStyle=cols[Math.floor(rnd()*cols.length)];x.fillRect(0,y,64,h);y+=h}
   for(let i=0;i<900;i++){x.fillStyle=`rgba(0,0,0,${rnd()*.08})`;x.fillRect(rnd()*64,rnd()*128,1,1)}
   const t=new T.CTex(c);t.colorSpace="srgb";return t}
+/* the rack's cross-bar: an old pole left out in the deep desert for years. Along x, centred, local frame of the rack.
+   Sand carried on the prevailing wind has worn the soft earlywood out from between the hard latewood, so the grain stands in ridges
+   along the bar, deepest on the windward face and the up-wind end. Uneven, slightly oval and twisting cross-section, sagging between
+   the forks; ends worn round and split open; long seasoning checks and old nicks. Colour: sun-bleached silver-grey, browner on the
+   shaded underside, dark brown only down in the cracks, a little blown sand caught in the top grooves and the fork seats, and the
+   wood rubbed smooth and darker where it sits in the forks and where the rugs are thrown over it. Own seed: the island's shared
+   random sequence is not touched. aW = (crack, sand, wear, windward exposure). */
+function rackBarGeo(){let s0=58163;const rn=()=>{s0=s0+0x6D2B79F5|0;let t=Math.imul(s0^s0>>>15,1|s0);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},rg=(a,b)=>a+(b-a)*rn();
+  const L=3.6,R=.037,NR=112,NL=300,RC=.011,NG=22,c=Math.cos(RACK.yaw),s=Math.sin(RACK.yaw);
+  /* the wind blows from -wl: windward face and up-wind end */
+  const wlx=-(WIND.x*c-WIND.z*s),wlz=-(WIND.x*s+WIND.z*c),wn=Math.hypot(wlx,wlz),upEnd=wlx<0?-1:1;
+  const ph=[rg(0,TAU),rg(0,TAU),rg(0,50),rg(0,50),rg(0,50)];
+  /* seasoning checks: long, on the sun side; and splits running in from each end */
+  const CK=[{a:.15,x0:-1.25,x1:-.1,w:.0055,d:.015},{a:1.15,x0:.2,x1:1.45,w:.005,d:.014},{a:-.7,x0:-.55,x1:.75,w:.003,d:.009},{a:2.1,x0:-1.7,x1:-1.05,w:.0035,d:.01},{a:.5,x0:.95,x1:1.74,w:.0045,d:.013},{a:1.75,x0:-.9,x1:-.25,w:.003,d:.008}];
+  /* hard knots: they wear slowest, so they stand proud of the grooved wood and the grain parts round them */
+  const KN=[{x:-.62,a:.95,r:.016},{x:.74,a:.3,r:.013},{x:1.28,a:1.55,r:.011},{x:-1.45,a:-.35,r:.012}];
+  const SP=[{e:-1,a:.35,l:.42},{e:-1,a:2.6,l:.2},{e:-1,a:-1.9,l:.3},{e:1,a:.75,l:.38},{e:1,a:2.2,l:.18},{e:1,a:-2.3,l:.26}];
+  const NK=Array.from({length:9},()=>({x:rg(-1.7,1.7),a:rg(-1.2,2.4),sx:rg(.008,.016),sa:rg(.25,.5),d:rg(.0025,.005)}));
+  const wrapD=(a,b)=>{let d=a-b;d-=TAU*Math.round(d/TAU);return d};
+  /* profile from the left end's centre to the right end's: cap rings, the worn round edge, the length, the edge, the cap */
+  const prof=[];
+  for(const e of[-1,1]){const side=[];
+    for(let i=0;i<=5;i++)side.push({rho:(R-RC)*i/5,dx:0,cap:1});
+    for(let i=1;i<=6;i++){const th=i/6*Math.PI/2;side.push({rho:R-RC+RC*Math.sin(th),dx:RC-RC*Math.cos(th),cap:i<3?.5:0})}
+    if(e<0)prof.push(...side.map(p=>({x:-L/2+p.dx,rho:p.rho,cap:p.cap,e:-1})));
+    else{for(let i=1;i<NL;i++){const u=i/NL,x=-L/2+RC+(L-2*RC)*u;prof.push({x,rho:R,cap:0,e:0})}
+      prof.push(...side.reverse().map(p=>({x:L/2-p.dx,rho:p.rho,cap:p.cap,e:1})))}}
+  const NP=prof.length,pos=new Float32Array(NP*NR*3),col=new Float32Array(NP*NR*3),aw=new Float32Array(NP*NR*4),ag=new Float32Array(NP*NR*4);
+  for(let i=0;i<NP;i++){const P=prof[i];
+    for(let j=0;j<NR;j++){const an=j/NR*TAU,ca=Math.cos(an),sa=Math.sin(an),x=P.x,xe=Math.abs(x)/(L/2),k=i*NR+j;
+      const side=P.rho/R;
+      /* shape: oval and lobed, the long axes twisting along the bar; tapering a little toward the right */
+      let sh=1+.075*Math.cos(2*(an-ph[0]-x*.35))+.035*Math.cos(3*(an-ph[1]+x*.22))+.05*(vn2(x*1.3+ca*.6+ph[2],sa*.6)-.5)-.05*(x/L);
+      const ex=(.2+.8*Math.max(0,sa*Math.sign(wlz))*Math.abs(wlz)/wn)*(1+.45*ss(.3,1,xe)*(x*upEnd>0?1:0));
+      sh-=.05*ex*ex;
+      /* wind grooves along the grain, spiralling a little; each groove its own depth, all deepest windward and on the worn ends */
+      let kd=0,kn=0;for(const K of KN){const dx=(x-K.x)/K.r,da=wrapD(an,K.a)*R/K.r,d2=dx*dx+da*da;if(d2<40){const e=Math.exp(-d2*.18);kd+=Math.sign(da)*e*1.1;kn=Math.max(kn,Math.exp(-d2*.9))}}
+      const gw=an/TAU*NG+x*.38+1.6*(vn2(x*.7+ph[3],2.3)-.5)+.9*(vn2(ca*1.3+x*.25+ph[2],sa*1.3)-.5)+.55*(vn2(x*3.1+ph[4],ca*.7+sa*.4)-.5)+kd,gi=Math.floor(gw+.5),
+        gh=Math.pow(Math.abs(Math.cos(Math.PI*gw)),2.5+4*vn2(gi*3.7,x*1.3)),dn=vn2(gi*7.31,x*2.4+ph[4]),dg=(.04+1.7*dn*dn*dn)*(1-.8*kn);
+      /* fork seats (x = ±1.6) and the rugs' top line: rubbed smooth and dark */
+      const fs=Math.max(Math.exp(-(((x-1.6)/.045)**2)),Math.exp(-(((x+1.6)/.045)**2))),rugZ=(x>-1.32&&x<-.18)||(x>.08&&x<1.02)?ss(.55,0,Math.abs(wrapD(an,.45))):0,
+        wr=Math.min(1,fs+.5*rugZ);
+      /* scour: broad shallow hollows the sand has cut into the windward face */
+      const sc=Math.pow(vn2(x*2.6+ph[3],an*1.8+ca),2);
+      let dep=(1-gh)*dg*(.0006+.0042*ex)*(1-.7*wr)+.0016*fs+.004*ex*sc-.0032*kn;
+      /* checks: narrow, deep, wandering with the grain */
+      let ck=0;for(const C of CK){if(x<C.x0-.05||x>C.x1+.05)continue;const t=cl((x-C.x0)/(C.x1-C.x0),0,1),tp=Math.pow(Math.sin(Math.PI*t),.6),
+          da=Math.abs(wrapD(an,C.a-x*.38/NG*TAU+.12*(vn2(x*1.6+C.a*9,1.7)-.5)))*R,hw=Math.max(.0046,C.w*(.5+.5*tp)),m=ss(hw,hw*.2,da);
+        dep+=C.d*m*tp;ck=Math.max(ck,m*Math.sqrt(tp))}
+      /* end splits: open V's that widen toward the end; on the end face they run in toward the pith */
+      for(const S of SP){const xd=L/2-x*S.e;if(xd>S.l)continue;
+        const t=1-xd/S.l,da=Math.abs(wrapD(an,S.a+.1*(vn2(x*5+S.a,3.3)-.5)))*R*Math.max(side,.15),hw=.0032+.0065*t*t,m=ss(hw,hw*.15,da)*ss(0,.2,t);
+        dep+=(.003+.016*t*t)*m*(P.cap?0:1);ck=Math.max(ck,m*(P.cap?ss(.1,.5,side):1))}
+      /* old nicks */
+      let nk=0;for(const N of NK){const d2=((x-N.x)/N.sx)**2+(wrapD(an,N.a)/N.sa)**2;if(d2<9){const m=Math.exp(-d2);dep+=N.d*m;nk=Math.max(nk,m)}}
+      const top=ss(.2,.85,ca);
+      const rho=P.rho*sh-dep*(P.cap?0:side>0?Math.min(1,side*1.2):0);
+      let px=x;if(P.cap){const capIn=ck*(.004+.01*(1-side))+.0015*(vn2(ca*3+ph[2],sa*3)-.5);px=x-P.e*capIn}
+      /* the end cut is a little out of square */
+      if(P.e)px+=.005*(ca*.8+sa*.6)*(P.e<0?1:-.6);
+      const sag=-.011*(1-Math.min(1,(x/1.6)**2));
+      pos[k*3]=px;pos[k*3+1]=rho*ca+sag;pos[k*3+2]=rho*sa;
+      /* linear albedo */
+      const grain=.86+.28*vn2(gw*1.7,x*6+ph[2]),blch=.9+.2*vn2(x*.9+ph[3],ca+sa*.5);
+      let r=.215*grain*blch,g=.205*grain*blch,b=.19*grain*blch;
+      const vly=Math.min(1,(1-gh)*dg*(.3+.7*ex)),crest=gh*(.4+.6*ex);r*=(1-.42*vly)*(1+.14*crest);g*=(1-.47*vly)*(1+.14*crest);b*=(1-.55*vly)*(1+.13*crest);
+      const und=ss(-.15,-.85,ca)*(1-.6*ex);r=mix(r,.15,und*.6);g=mix(g,.118,und*.6);b=mix(b,.082,und*.6);
+      if(P.cap>=1){const ring=.8+.2*vn2(side*14+ph[4],an);r=mix(.16,.2,side)*ring;g=mix(.13,.19,side)*ring;b=mix(.095,.175,side)*ring}
+      r=mix(r,.11,nk*.6);g=mix(g,.075,nk*.6);b=mix(b,.048,nk*.6);
+      r=mix(r,.12,wr*.6);g=mix(g,.098,wr*.6);b=mix(b,.075,wr*.6);
+      r=mix(r,.13,kn*.8);g=mix(g,.1,kn*.8);b=mix(b,.072,kn*.8);
+      const sp=ss(.35,.7,vn2(x*4.5+ph[4],an*2)),sand=cl(top*(vly*.55*sp+.45*fs)+.5*ck*top*sp,0,1)*(P.cap>=1?.2:1);
+      r=mix(r,.55,sand*.8);g=mix(g,.38,sand*.8);b=mix(b,.2,sand*.8);
+      const cm=Math.pow(ck,.45)*(1-.3*top*sp);r=mix(r,.022,cm);g=mix(g,.012,cm);b=mix(b,.006,cm);
+      /* groove phase as a unit vector (continuous all round, NG is even), groove strength and crest sharpness: the shader rebuilds
+         the crests per pixel */
+      ag[k*4]=Math.cos(Math.PI*gw);ag[k*4+1]=Math.sin(Math.PI*gw);ag[k*4+2]=P.cap>=1?0:Math.min(1,dg*(.35+.65*ex))*(1-.7*wr)*(1-kn);ag[k*4+3]=2.5+4*vn2(gi*3.7,x*1.3);
+      col[k*3]=r;col[k*3+1]=g;col[k*3+2]=b;aw[k*4]=ck;aw[k*4+1]=sand;aw[k*4+2]=wr;aw[k*4+3]=Math.min(1,ex)}}
+  const idx=[];for(let i=0;i<NP-1;i++)for(let j=0;j<NR;j++){const a=i*NR+j,b=i*NR+(j+1)%NR,c2=(i+1)*NR+j,d=(i+1)*NR+(j+1)%NR;idx.push(a,b,c2,b,d,c2)}
+  const g=new T.BG();g.setAttribute("position",new T.BA(pos,3));g.setAttribute("color",new T.BA(col,3));g.setAttribute("aW",new T.BA(aw,4));g.setAttribute("aG",new T.BA(ag,4));g.setIndex(idx);g.computeVertexNormals();return g}
+/* fine latewood ridges and hairline checks on the long faces and growth rings on the ends, as bump (they fade out before they
+   alias); rubbed and wet wood turn smoother; rain soaks the grey wood dark, least where sand fills the grooves */
+function rackBarMat(){const m=new T.MSM({vertexColors:true,roughness:.93,metalness:0});
+  m.onBeforeCompile=sh=>{sh.uniforms.uWetC=tentU.uWetC;sh.uniforms.uBS={value:S};
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nattribute vec4 aW,aG;varying vec4 vW,vG;varying vec3 vOP,vON;")
+      .replace("#include <begin_vertex>","#include <begin_vertex>\nvW=aW;vG=aG;vOP=position;vON=normal;");
+    sh.fragmentShader=sh.fragmentShader.replace("#include <common>","#include <common>\nuniform float uWetC,uBS;varying vec4 vW,vG;varying vec3 vOP,vON;"+GLSL_NOISE)
+      .replace("#include <color_fragment>",`#include <color_fragment>
+      float bCp=smoothstep(.75,.95,abs(normalize(vON).x)),bAn=atan(vOP.z,vOP.y),bPx=length(fwidth(vOP));
+      float bW=bAn/6.2832*88.+vOP.x*1.52+4.8*(dn2(vec2(vOP.x*.7+3.,2.3))-.5)+1.4*(dn2(vec2(vOP.x*4.,bAn*1.1+2.))-.5);
+      float bAA=(1.-smoothstep(.12,.4,bPx*88./.232))*(1.-bCp),bRid=pow(abs(cos(3.14159*bW)),4.),bPt=smoothstep(.35,.75,dn2(vec2(vOP.x*3.3,bW*.12)));
+      float bH=-(1.-bRid)*(.00018+.0006*vW.w)*mix(.35,1.,bPt)*(1.-.8*vW.z)*bAA;
+      float bFA=1.-smoothstep(.12,.4,bPx*88.*1.4/.232),bFib=.5*dn2(vec2(vOP.x*55.,bW*1.4))+.5*dn2(vec2(vOP.x*170.,bW*3.1+7.));
+      float bR=length(vOP.yz-vec2(.004,-.003)),bG=bR/.0024+1.2*dn2(vec2(bAn*2.,bR*30.)),bRA=(1.-smoothstep(.15,.5,bPx/.0024))*bCp,bRing=pow(abs(cos(3.14159*bG)),4.);
+      bH-=(1.-bRing)*.0004*bRA;
+      float bGA=1.-smoothstep(.7,1.8,length(fwidth(vG.xy))),bCr=pow(abs(vG.x)/max(length(vG.xy),1e-4),vG.w),bGs=vG.z*bGA;
+      bH+=(bCr-.6)*bGs*.0024;
+      diffuseColor.rgb*=mix(vec3(1.),mix(vec3(.66,.6,.52),vec3(1.16,1.15,1.13),bCr),bGs*.75);
+      float bCi=floor(bW+.5),bCs=vOP.x*2.6+dh2(vec2(bCi,1.))*3.,bChk=step(.78,dh2(vec2(bCi,floor(bCs))))*sin(3.14159*fract(bCs));
+      float bLine=bChk*smoothstep(.16,.02,abs(fract(bW)-.5))*bAA;
+            diffuseColor.rgb*=mix(1.,.82+.36*bFib,bFA*(1.-bCp)*(1.-.7*vW.x))*mix(1.,.6,smoothstep(.35,.85,vW.x))*mix(1.,.9+.2*bRid,bAA*mix(.5,1.,bPt))*mix(1.,.84+.24*bRing,bRA)*(1.-.45*bLine);
+      diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.5,.45,.4),uWetC*(1.-.35*vW.y));`)
+      .replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
+      roughnessFactor=mix(roughnessFactor-.06*bRid*bAA,.6,vW.z*.75);roughnessFactor=mix(roughnessFactor,.4,uWetC*.85*(1.-.5*vW.x));`)
+      .replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
+      {vec3 sP=-vViewPosition,sx=dFdx(sP),sy=dFdy(sP),r1=cross(sy,normal),r2=cross(normal,sx);float dt=dot(sx,r1),h=bH*uBS;
+       vec3 gd=sign(dt)*(dFdx(h)*r1+dFdy(h)*r2);normal=normalize(abs(dt)*normal-gd);}`)
+      /* light hardly reaches down a crack: occluded, so it stays dark brown in full sun */
+      .replace("#include <lights_fragment_end>",`#include <lights_fragment_end>
+      {float oc=smoothstep(.15,.75,vW.x);reflectedLight.directDiffuse*=1.-.88*oc;reflectedLight.indirectDiffuse*=1.-.7*oc;reflectedLight.directSpecular*=1.-.9*oc;}`)};
+  m.customProgramCacheKey=()=>"des164bar";frostMat(m);return m}
 (function rack(){
   const g=new T.Group();g.position.set(RACK.x,hTop(RACK.x,RACK.z),RACK.z);g.rotation.y=RACK.yaw;W.add(g);
   const pole=(x,h,tilt)=>{const m=new T.Mesh(new T.Cyl(.045,.06,h,7),woodM);m.position.set(x,h/2-.1,0);m.rotation.z=tilt;m.castShadow=true;g.add(m);
     const f1=new T.Mesh(new T.Cyl(.025,.035,.4,5),woodM);f1.position.set(x+.08,h-.05,0);f1.rotation.z=-.5;g.add(f1);
     const f2=new T.Mesh(new T.Cyl(.025,.035,.4,5),woodM);f2.position.set(x-.08,h-.05,0);f2.rotation.z=.5;g.add(f2)};
   pole(-1.6,2.0,.03);pole(1.6,1.95,-.04);
-  const bar=new T.Mesh(new T.Cyl(.035,.035,3.6,6),woodM);bar.rotation.z=Math.PI/2;bar.position.y=1.82;bar.castShadow=true;g.add(bar);
+  const bar=new T.Mesh(rackBarGeo(),rackBarMat());bar.name="rackBar";bar.position.y=1.82;bar.castShadow=true;g.add(bar);
   const cloth=(x,w,len,cols,ph)=>{const geo=new T.Plane(w,len,CL_NX,CL_NY);geo.translate(0,-len/2,0);
     const m=new T.Mesh(geo,new T.MSM({map:stripeTex(cols),roughness:.95,side:2}));
     m.position.set(x,1.84,.04);m.castShadow=true;m.receiveShadow=true;

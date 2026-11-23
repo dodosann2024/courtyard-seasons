@@ -1,0 +1,207 @@
+{
+  "tool": "tools/e2e/perf.mjs (BASE_DIR = origin/main 2814c60, same run, alternating rounds)",
+  "setup": "default clear-day desert, emulated iPhone 13, CPU throttled 4x, JS per rAF over 20 s",
+  "branchCommit": "bc29528",
+  "rounds": [
+    {
+      "build": "pr",
+      "frames": 45,
+      "jsMean": 19.2,
+      "jsP95": 68.7,
+      "max": 123,
+      "over200": 0
+    },
+    {
+      "build": "main",
+      "frames": 42,
+      "jsMean": 19.8,
+      "jsP95": 75,
+      "max": 96,
+      "over200": 0
+    },
+    {
+      "build": "pr",
+      "frames": 45,
+      "jsMean": 17.9,
+      "jsP95": 65.1,
+      "max": 75,
+      "over200": 0
+    },
+    {
+      "build": "main",
+      "frames": 42,
+      "jsMean": 15.4,
+      "jsP95": 50.4,
+      "max": 75,
+      "over200": 0
+    }
+  ],
+  "result": [
+    {
+      "check": "clear-day JS per frame within +15% of main",
+      "ok": true,
+      "pr": 18.5,
+      "main": 17.6,
+      "limit": 20.2
+    },
+    {
+      "check": "no frame over 200 ms after load",
+      "ok": true,
+      "over200": [
+        0,
+        0
+      ],
+      "max": [
+        123,
+        75
+      ]
+    }
+  ],
+  "tris": {
+    "note": "triangles per wooden mesh, counted in the live scene (desktop UA vs iPhone UA); main has no per-part names for posts/forks, counted by shape",
+    "branch": {
+      "desktop": {
+        "parts": {
+          "rackBar": 7296,
+          "rackPostL": 3072,
+          "rackForkL0": 504,
+          "rackForkL1": 504,
+          "rackPostR": 3072,
+          "rackForkR0": 504,
+          "rackForkR1": 504,
+          "fireLog0": 480,
+          "fireLog1": 480,
+          "fireLog2": 480,
+          "fireLog3": 480,
+          "fireLog4": 480,
+          "fireSeat0": 6912,
+          "fireSeat1": 6912,
+          "fireSeat2": 6912,
+          "fireWood0": 792,
+          "fireWood1": 792,
+          "fireWood2": 792,
+          "fireWood3": 792,
+          "fireWood4": 792
+        },
+        "groups": {
+          "rackBar": 7296,
+          "rackPosts": 6144,
+          "rackForks": 2016,
+          "fireSeats": 20736,
+          "fireWood": 3960,
+          "fireLogs": 2400,
+          "allWood": 42552
+        },
+        "mob": false,
+        "rendererTris": null
+      },
+      "mobile": {
+        "parts": {
+          "rackBar": 2960,
+          "rackPostL": 1176,
+          "rackForkL0": 208,
+          "rackForkL1": 208,
+          "rackPostR": 1176,
+          "rackForkR0": 208,
+          "rackForkR1": 208,
+          "fireLog0": 256,
+          "fireLog1": 256,
+          "fireLog2": 256,
+          "fireLog3": 256,
+          "fireLog4": 256,
+          "fireSeat0": 2880,
+          "fireSeat1": 2880,
+          "fireSeat2": 2880,
+          "fireWood0": 408,
+          "fireWood1": 408,
+          "fireWood2": 408,
+          "fireWood3": 408,
+          "fireWood4": 408
+        },
+        "groups": {
+          "rackBar": 2960,
+          "rackPosts": 2352,
+          "rackForks": 832,
+          "fireSeats": 8640,
+          "fireWood": 2040,
+          "fireLogs": 1280,
+          "allWood": 18104
+        },
+        "mob": true,
+        "rendererTris": null
+      }
+    },
+    "main": {
+      "desktop": {
+        "parts": {
+          "rackBar": 72128,
+          "rackPost0": 28,
+          "rackFork0": 20,
+          "rackFork1": 20,
+          "rackPost1": 28,
+          "rackFork2": 20,
+          "rackFork3": 20,
+          "fireLog0": 126,
+          "fireLog1": 126,
+          "fireLog2": 126,
+          "fireLog3": 126,
+          "fireLog4": 126,
+          "fireSeat0": 2976,
+          "fireSeat1": 2976,
+          "fireSeat2": 2976,
+          "fireWood0": 360,
+          "fireWood1": 360,
+          "fireWood2": 360,
+          "fireWood3": 360,
+          "fireWood4": 360
+        },
+        "groups": {
+          "rackBar": 72128,
+          "rackPosts": 56,
+          "rackForks": 80,
+          "fireSeats": 8928,
+          "fireWood": 1800,
+          "fireLogs": 630,
+          "allWood": 83622
+        },
+        "mob": false,
+        "rendererTris": null
+      },
+      "mobile": {
+        "parts": {
+          "rackBar": 72128,
+          "rackPost0": 28,
+          "rackFork0": 20,
+          "rackFork1": 20,
+          "rackPost1": 28,
+          "rackFork2": 20,
+          "rackFork3": 20,
+          "fireLog0": 126,
+          "fireLog1": 126,
+          "fireLog2": 126,
+          "fireLog3": 126,
+          "fireLog4": 126,
+          "fireSeat0": 2976,
+          "fireSeat1": 2976,
+          "fireSeat2": 2976,
+          "fireWood0": 360,
+          "fireWood1": 360,
+          "fireWood2": 360,
+          "fireWood3": 360,
+          "fireWood4": 360
+        },
+        "groups": {
+          "rackBar": 72128,
+          "rackPosts": 56,
+          "rackForks": 80,
+          "fireSeats": 8928,
+          "fireWood": 1800,
+          "fireLogs": 630,
+          "allWood": 83622
+        },
+        "mob": true,
+        "rendererTris": null
+      }
+    }
+  }
+}

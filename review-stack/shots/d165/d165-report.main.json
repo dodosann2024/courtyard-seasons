@@ -1,0 +1,74 @@
+{
+ "trisDesktop": {
+  "parts": {
+   "rackBar": 72128,
+   "rackPost0": 28,
+   "rackFork0": 20,
+   "rackFork1": 20,
+   "rackPost1": 28,
+   "rackFork2": 20,
+   "rackFork3": 20,
+   "fireLog0": 126,
+   "fireLog1": 126,
+   "fireLog2": 126,
+   "fireLog3": 126,
+   "fireLog4": 126,
+   "fireSeat0": 2976,
+   "fireSeat1": 2976,
+   "fireSeat2": 2976,
+   "fireWood0": 360,
+   "fireWood1": 360,
+   "fireWood2": 360,
+   "fireWood3": 360,
+   "fireWood4": 360
+  },
+  "groups": {
+   "rackBar": 72128,
+   "rackPosts": 56,
+   "rackForks": 80,
+   "fireSeats": 8928,
+   "fireWood": 1800,
+   "fireLogs": 630,
+   "allWood": 83622
+  },
+  "mob": false,
+  "rendererTris": null
+ },
+ "trisMobile": {
+  "parts": {
+   "rackBar": 72128,
+   "rackPost0": 28,
+   "rackFork0": 20,
+   "rackFork1": 20,
+   "rackPost1": 28,
+   "rackFork2": 20,
+   "rackFork3": 20,
+   "fireLog0": 126,
+   "fireLog1": 126,
+   "fireLog2": 126,
+   "fireLog3": 126,
+   "fireLog4": 126,
+   "fireSeat0": 2976,
+   "fireSeat1": 2976,
+   "fireSeat2": 2976,
+   "fireWood0": 360,
+   "fireWood1": 360,
+   "fireWood2": 360,
+   "fireWood3": 360,
+   "fireWood4": 360
+  },
+  "groups": {
+   "rackBar": 72128,
+   "rackPosts": 56,
+   "rackForks": 80,
+   "fireSeats": 8928,
+   "fireWood": 1800,
+   "fireLogs": 630,
+   "allWood": 83622
+  },
+  "mob": true,
+  "rendererTris": null
+ },
+ "ostrich": [],
+ "fails": []
+}

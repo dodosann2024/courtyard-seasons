@@ -815,6 +815,8 @@ function vegMat(opt){
          float A=${opt.sway.toFixed(3)};vec2 d=wl*(lean+.55*fl)*A*hh+vec2(-wl.y,wl.x)*fl*.3*A*hh;
          transformed.xz+=d;transformed.y-=length(d)*.4*h;}`)
       .replace("#include <beginnormal_vertex>","vec3 objectNormal=normalize(mix(normal,vec3(0.,1.,0.),"+opt.up.toFixed(2)+"));\n#ifdef USE_TANGENT\nvec3 objectTangent=vec3(tangent.xyz);\n#endif");
+    /* a blade is thin enough to pass light: both faces keep the sky-leaning normal instead of the back face turning it to the ground */
+    sh.fragmentShader=sh.fragmentShader.replace("#include <normal_fragment_begin>","#include <normal_fragment_begin>\nnormal*=faceDirection;");
   };
   m.customProgramCacheKey=()=>"des172veg"+opt.sway+opt.up;return m}
 /* a tuft: one to three tight base clumps from which the blades splay out and arch over, each tapering to a point and turning

@@ -3277,13 +3277,15 @@ function gaitUp(key,g,rig,clips,bones,band,mid){let G=GAIT[key];if(G)return G;G=
    moved on since its touchdown, a fraction of a frame ago; the print goes where it came down. */
 function gaitStep(o,rig,G,bones,tol,emit,v,sk){
   /* a foot set down waits for its sole to sit still on the sand (slower than a third of the body's pace; a seventh for the
-     ostrich's skating gait and the small hoppers) and prints there, a hopper (sk 2) where it landed; one that lifts again or
-     skates on for half a second (a fifth for the ostrich) leaves none */
+     ostrich's skating gait and the small hoppers) and prints there, a hopper (sk 2) where it landed unless it skidded on,
+     a camel (sk 3) once the hoof is right down; one that lifts again or skates on for half a second (a fifth for the
+     ostrich) leaves none */
   const Q=o.gtQ||(o.gtQ=[]),still=sk||tol<.02?.15:.33;
   for(let j=0;j<Q.length;j++){const P=Q[j];if(!P)continue;const sole=gaitSole(bones[j],P.k),dt=st.t-P.tl;
-    if(dt<=0)continue;if(_gw.y-hTop(_gw.x,_gw.z)>tol||st.t-P.t0>(sk===1?.2:.5)||!sole){Q[j]=null;continue}
+    if(dt<=0)continue;const lo=_gw.y-hTop(_gw.x,_gw.z);if(lo>tol||st.t-P.t0>(sk===1?.2:.5)||!sole){Q[j]=null;continue}
     const f=Math.hypot(_gw.x-P.x,_gw.z-P.z)/dt;P.x=_gw.x;P.z=_gw.z;P.tl=st.t;
-    if(f<=Math.max(still*Math.abs(v),.02)){const h=Math.atan2(_gw2.x-_gw.x,_gw2.z-_gw.z);sk===2?emit(j,P.x0,P.z0,h,P.k.mir):emit(j,_gw.x,_gw.z,h,P.k.mir);Q[j]=null}}
+    if(f<=Math.max(still*Math.abs(v),.02)&&(sk!==3||lo<tol*.6)){const h=Math.atan2(_gw2.x-_gw.x,_gw2.z-_gw.z);
+      if(sk!==2)emit(j,_gw.x,_gw.z,h,P.k.mir);else if(Math.hypot(_gw.x-P.x0,_gw.z-P.z0)<.03)emit(j,P.x0,P.z0,h,P.k.mir);Q[j]=null}}
   let n=null,w=.5;for(const k in G){const a=rig.acts[k];if(a&&a.isRunning()){const e=a.getEffectiveWeight();if(e>w){w=e;n=k}}}
   if(!n){o.gtN=null;return}const a=rig.acts[n],p=a.time/a.getClip().duration%1;
   /* after a spell unposed (out of sight and standing) the phase starts over rather than counting the gap as a step */
@@ -3456,7 +3458,7 @@ const _cmM=new T.M4(),_cmQ=new T.Quat(),_cmP=new V3(),_cmS=new V3(1,1,1);let _cm
 function camelMouth(a,x,z,yaw,out){const f=groundFrame(x,z,yaw,1.25,.45);_cmE=_cmE||new VT.THREE.Euler(0,0,0,"YXZ");_cmE.set(f.pitch,yaw,f.roll,"YXZ");
   return out.copy(a.mo).applyMatrix4(_cmM.compose(_cmP.set(x,f.y,z),_cmQ.setFromEuler(_cmE),_cmS))}
 function camelPrints(a){if(!a.gt)return;const bk=CAMEL_SLOTS[a.i]==="bact";
-  gaitStep(a,a.r,a.gt,a.fb,.05,(j,x,z,yaw)=>{const f=a.feet[j];prAdd(bk?PRK.bact:PRK.drom,x,z,yaw,f.hind,1,f.R)},a.spd)}
+  gaitStep(a,a.r,a.gt,a.fb,.05,(j,x,z,yaw)=>{const f=a.feet[j];prAdd(bk?PRK.bact:PRK.drom,x,z,yaw,f.hind,1,f.R)},a.spd,3)}
 /* the hollow it lay in, left as it gets up: centred under the chest and belly, a little ahead of the root */
 function camelLie(a){const bk=CAMEL_SLOTS[a.i]==="bact",f=.12*a.sc;prAdd(PRK.lie,a.x+Math.sin(a.yaw)*f,a.z+Math.cos(a.yaw)*f,a.yaw,bk?1:0,1,0,a.sc)}
 /* to.via: the stand is down the bank, off the walkable grid; the path runs to the bank top and then straight down to it */

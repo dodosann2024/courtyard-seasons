@@ -256,23 +256,24 @@ if (want("gwind")) {
         const sc = [Math.max(Math.hypot(...c0), 1e-5), Math.max(Math.hypot(...c1), 1e-5), Math.max(Math.hypot(...c2), 1e-5)];
         let wl = [(WD[0] * c0[0] + WD[1] * c0[2]) / sc[0] + 1e-6, (WD[0] * c2[0] + WD[1] * c2[2]) / sc[2]]; const wn = Math.hypot(...wl); wl = [wl[0] / wn, wl[1] / wn];
         const P = [p[0] * sc[0], p[1] * sc[1], p[2] * sc[2]];
-        const th = A * 3 * Math.pow(uW, 1.2) * (.45 + 1.1 * g) * (.86 + .28 * Math.sin(uT * .6 + tp));
+        const th = A * 3.6 * Math.pow(uW, 1.5) * (.3 + 1.5 * g) * (.86 + .28 * Math.sin(uT * .6 + tp));
         const fl = (Math.sin(uT * (2.2 + 1.6 * uW) + bp) * .65 + Math.sin(uT * (3.9 + 2 * uW) + bp * 1.7) * .35) * (.03 + .3 * uW) * (.45 + .8 * g) * calm * A * 1.25;
         let al = P[0] * wl[0] + P[2] * wl[1], ac = -P[0] * wl[1] + P[2] * wl[0]; const r = Math.hypot(al, P[1]), a0 = Math.atan2(al, Math.max(P[1], 1e-4));
         const ph = .5 * (th + fl) * Math.min(1.5, Math.max(0, P[1] / (sc[1] * .8)));
-        const a1 = ph > 0 ? a0 + Math.max(1.15 - a0, 0) * (1 - Math.exp(-ph / .9)) : a0 + .5 * ph, dd = a1 - a0, k = Math.abs(dd) > 1e-3 ? Math.max(Math.sin(dd) / dd, .85) : 1;
+        const a1 = ph > 0 ? a0 + Math.max(1.25 - a0, 0) * (1 - Math.exp(-ph / .9)) : a0 + .5 * ph, dd = a1 - a0, k = Math.abs(dd) > 1e-3 ? Math.max(Math.sin(dd) / dd, .85) : 1;
         al = r * k * Math.sin(a1); const y = r * k * Math.cos(a1); ac += fl * .12 * y;
         const nx = wl[0] * al - wl[1] * ac, nz = wl[1] * al + wl[0] * ac; return [nx / sc[0] - p[0], y / sc[1] - p[1], nz / sc[2] - p[2]]; };
       /* the tufts: every grass/clump/dry/reed instance 2-12 m from the camera's tuft (mid distance); the tips: each blade's top 30 % */
       const S = {grass: {d: [], ang: [], str: [], n: 0}, reed: {d: [], ang: [], str: [], n: 0}};
       const frames = 90;
       for (let f = 0; f < frames; f++) {
-        q.step(1, 1 / 30); const uT = q.st.t, uW = q.st.wn;
+        /* the gust clock swept over ~54 s so each level sees the gust field's whole spread, not whatever 3 s it was on */
+        if (f) G.t += .6; q.step(1, 1 / 30); const uT = q.st.t, uW = q.st.wn;
         q.VEG.slice(0, 12).forEach((im, vi) => { const Pg = im.geometry.attributes.position, A = SW[vi], K = vi < 9 ? S.grass : S.reed; let top = 0;
           for (let i = 0; i < Pg.count; i++) top = Math.max(top, Pg.getY(i));
           for (let k = 0; k < im.count; k++) { im.getMatrixAt(k, M); const c0 = [e[0], e[1], e[2]], c1 = [e[4], e[5], e[6]], c2 = [e[8], e[9], e[10]], ip = [e[12], e[13], e[14]];
             if (Math.hypot(...c0) < 1e-4) continue; const dd = Math.hypot(ip[0] - g.x, ip[2] - g.z); if (dd < 2 || dd > 12) continue;
-            const gg = gustF(ip[0], ip[2]); if (gk > .9 && gg < .75) continue;  // the gust row: only tufts the gust is on
+            const gg = gustF(ip[0], ip[2]); if ((gk > .9) !== (gg >= .75)) continue;  // the gust row: only tufts a gust is on; the others: only those in ordinary air
             for (let i = 0; i < Pg.count; i += 2) { const p = [Pg.getX(i), Pg.getY(i), Pg.getZ(i)]; if (p[1] < top * .7) continue;
               const d = bend(p, c0, c1, c2, ip, A, uT, uW, gg), w0 = [c0[0] * p[0] + c1[0] * p[1] + c2[0] * p[2], c0[1] * p[0] + c1[1] * p[1] + c2[1] * p[2], c0[2] * p[0] + c1[2] * p[1] + c2[2] * p[2]];
               const q1 = [p[0] + d[0], p[1] + d[1], p[2] + d[2]], w1 = [c0[0] * q1[0] + c1[0] * q1[1] + c2[0] * q1[2], c0[1] * q1[0] + c1[1] * q1[1] + c2[1] * q1[2], c0[2] * q1[0] + c1[2] * q1[1] + c2[2] * q1[2]];
@@ -284,11 +285,11 @@ if (want("gwind")) {
         if (!K.n) return null; const d = st(K.d), a = st(K.ang), s = st(K.str.map(Math.abs));
         return {tipSamples: K.n, downwindCm: {mean: +(100 * d.mean).toFixed(1), p50: +(100 * d.p50).toFixed(1), p90: +(100 * d.p90).toFixed(1)},
           leanDeg: {mean: +a.mean.toFixed(1), p90: +a.p90.toFixed(1)}, stretchPct: {mean: +(100 * s.mean).toFixed(1), p90: +(100 * s.p90).toFixed(1)}}; };
-      return {wind: +q.st.wn.toFixed(3), gustAtTufts: gk > .9 ? ">= 0.75 (gust field 0..1)" : "as it comes (0..1, mean ~0.5)", grassTips: sum(S.grass), reedTips: sum(S.reed)};
+      return {wind: +q.st.wn.toFixed(3), gustAtTufts: gk > .9 ? ">= 0.75 (gust field 0..1), clock swept over 54 s" : "< 0.75 (ordinary air), clock swept over 54 s", grassTips: sum(S.grass), reedTips: sum(S.reed)};
     }, [ver, g, gk]);
     res[name] = out; console.log(name, JSON.stringify(out));
   }
-  save("grass_wind", "Grass tip displacement per wind level. The bend is each build's own vertex-shader formula (src/desert.js vegMat, d172: shear d = wl*(lean..)*A*h^2; d173: rotation about the tuft root toward a shared 66-degree downwind lean, more the higher the point, chord-shortened as a curved stem), evaluated on the CPU on the live instance matrices, the scene's wind (st.wn), wind direction, gust clock and time, over 3 s (90 frames). Tips: the top 30 % (by height) of every blade of every grass/clump/dry tuft (sway 0.8) and reed (0.3) 2-12 m from the camera's tuft. downwindCm: horizontal tip shift along the wind; leanDeg: change of the tip's angle from the vertical about the tuft root, toward the wind; stretchPct: change of the tip's distance from the root (0 = no stretching). 'gust peak': the same at wind 1.0 counting only tip samples on tufts the gust field is on (>= 0.75, its clock set so the gust peaks at the camera's tuft).",
+  save("grass_wind", "Grass tip displacement per wind level. The bend is each build's own vertex-shader formula (src/desert.js vegMat, d172: shear d = wl*(lean..)*A*h^2; d173: rotation about the tuft root toward a shared 72-degree downwind lean, more the higher the point, chord-shortened as a curved stem), evaluated on the CPU on the live instance matrices, the scene's wind (st.wn), wind direction, gust clock and time, over 3 s (90 frames). Tips: the top 30 % (by height) of every blade of every grass/clump/dry tuft (sway 0.8) and reed (0.3) 2-12 m from the camera's tuft. downwindCm: horizontal tip shift along the wind; leanDeg: change of the tip's angle from the vertical about the tuft root, toward the wind; stretchPct: change of the tip's distance from the root (0 = no stretching). 'gust peak': the same at wind 1.0 counting only tip samples on tufts the gust field is on (>= 0.75, its clock set so the gust peaks at the camera's tuft).",
     {shader: ver, levels: res});
 }
 

@@ -810,7 +810,7 @@ function vegMat(opt){
          #endif
          float h=max(position.y,0.),hh=h*h,g=gustF(ip.xz),tp=fract(sin(dot(ip.xz,vec2(12.9898,78.233)))*43758.5453)*6.283;
          float bp=tp+position.x*9.+position.z*7.,calm=smoothstep(.03,.3,uWind);
-         float lean=uWind*(.2+.95*g)*(.85+.3*sin(uT*.6+tp));
+         float lean=uWind*(.25+1.1*g)*(.85+.3*sin(uT*.6+tp));
          float fl=(sin(uT*(2.2+1.6*uWind)+bp)*.65+sin(uT*(3.9+2.*uWind)+bp*1.7)*.35)*(.05+.45*uWind)*(.45+.8*g)*calm;
          float A=${opt.sway.toFixed(3)};vec2 d=wl*(lean+.55*fl)*A*hh+vec2(-wl.y,wl.x)*fl*.3*A*hh;
          transformed.xz+=d;transformed.y-=length(d)*.4*h;}`)
@@ -864,7 +864,7 @@ function scatter(geo,mat,list){const im=new T.IM(geo,mat,list.length),m=new T.M4
   const reedG=V3G(7,[.02,.16],.014,"#34441f","#7f8a48",13),clumpG=V3G(28,[.2,1.],.019,"#243c16","#748c48",14);
   /* desert shrubs: splayed, twiggy, sage-to-olive — same blade system, more blades and a wider, lopsided fan */
   const shrubG=[V3G(44,[.55,1.3],.021,"#2e3c1c","#748450",15),V3G(34,[.7,1.4],.019,"#433f24","#948a5c",16)];
-  const gm=vegMat({sway:.42,up:.65}),rm=vegMat({sway:.16,up:.5}),sm=vegMat({sway:.07,up:.55});
+  const gm=vegMat({sway:.8,up:.65}),rm=vegMat({sway:.3,up:.5}),sm=vegMat({sway:.07,up:.55});
   const L=[],C=[],D=[],R=[],SH=[[],[]];const N=MOB?0.55:1;
   const okW=(x,z)=>hTop(x,z)>=POND.wy+.04&&sN(x,z)<.93;
   /* waterline: dense, uneven clumps that thin out with distance from the water */

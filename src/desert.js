@@ -796,7 +796,7 @@ function renderPondReflection(){
 const vegU={uT:{value:0},uWind:{value:.35},uGT:sandU.uGT,uWD:sandU.uWD};
 /* wind in the grass: every blade bends downwind as a bent stem does, not sheared sideways. In true metres (the instance's own
    frame with its stretch taken out, so a squat tuft and a tall one bend alike) each point turns about the tuft's root in the
-   upright plane along the wind (uWD), more the higher it is, toward one shared downwind lean (66 degrees), so the blades of a
+   upright plane along the wind (uWD), more the higher it is, toward one shared downwind lean (72 degrees), so the blades of a
    tuft comb over together: one splayed upwind turns furthest, one already leaning downwind least, and none goes through the
    sand. Its distance from the root shrinks as the chord of a curved stem does (sin(a)/a), so nothing stretches. The bend
    grows with the wind (uWind = st.wn) and with the gust field rolling across the oasis (gustF), each tuft sways on its own
@@ -815,11 +815,11 @@ function vegMat(opt){
          vec3 P=transformed*sc;
          float g=gustF(ip.xz),tp=fract(sin(dot(ip.xz,vec2(12.9898,78.233)))*43758.5453)*6.283;
          float bp=tp+position.x*9.+position.z*7.,calm=smoothstep(.03,.3,uWind);
-         float th=${(opt.sway*3.).toFixed(4)}*pow(uWind,1.2)*(.45+1.1*g)*(.86+.28*sin(uT*.6+tp));
+         float th=${(opt.sway*3.6).toFixed(4)}*pow(uWind,1.5)*(.3+1.5*g)*(.86+.28*sin(uT*.6+tp));
          float fl=(sin(uT*(2.2+1.6*uWind)+bp)*.65+sin(uT*(3.9+2.*uWind)+bp*1.7)*.35)*(.03+.3*uWind)*(.45+.8*g)*calm*${(opt.sway*1.25).toFixed(4)};
          float al=dot(P.xz,wl),ac=dot(P.xz,vec2(-wl.y,wl.x)),r=length(vec2(al,P.y)),a0=atan(al,max(P.y,1e-4));
          float ph=.5*(th+fl)*clamp(P.y/(sc.y*.8),0.,1.5);
-         float a1=ph>0.?a0+max(1.15-a0,0.)*(1.-exp(-ph/.9)):a0+.5*ph,d=a1-a0,k=abs(d)>1e-3?max(sin(d)/d,.85):1.;
+         float a1=ph>0.?a0+max(1.25-a0,0.)*(1.-exp(-ph/.9)):a0+.5*ph,d=a1-a0,k=abs(d)>1e-3?max(sin(d)/d,.85):1.;
          al=r*k*sin(a1);P.y=r*k*cos(a1);ac+=fl*.12*P.y;
          P.xz=wl*al+vec2(-wl.y,wl.x)*ac;transformed=P/sc;}`)
       .replace("#include <beginnormal_vertex>","vec3 objectNormal=normalize(mix(normal,vec3(0.,1.,0.),"+opt.up.toFixed(2)+"));\n#ifdef USE_TANGENT\nvec3 objectTangent=vec3(tangent.xyz);\n#endif");

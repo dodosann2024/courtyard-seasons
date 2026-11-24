@@ -1,4 +1,4 @@
-const V="6cade1-a060dfd75a",CORE=["assets/app.5d2493064f.js", "assets/ui.a44ea92b2d.js", "assets/thumbs/def.81d03a6673.webp", "assets/thumbs/jp.f47a498518.webp", "assets/thumbs/cn.ee3d2450aa.webp", "assets/thumbs/kr.f3a9e00359.webp", "assets/thumbs/eu.5833743157.webp", "assets/thumbs/sea.9ec97c1685.webp", "assets/thumbs/desert.1382f4c8a1.webp"];
+const V="27a086-8f2b5f5638",CORE=["assets/app.5d2493064f.js", "assets/ui.a44ea92b2d.js", "assets/thumbs/def.81d03a6673.webp", "assets/thumbs/jp.f47a498518.webp", "assets/thumbs/cn.ee3d2450aa.webp", "assets/thumbs/kr.f3a9e00359.webp", "assets/thumbs/eu.5833743157.webp", "assets/thumbs/sea.9ec97c1685.webp", "assets/thumbs/desert.1382f4c8a1.webp"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open("cy-"+V).then(c=>c.addAll(CORE)).catch(()=>{}).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith("cy-")&&k!=="cy-"+V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 /* only whole, non-empty same-origin 200s are kept: a failed, partial or empty response must never be served again from the cache */

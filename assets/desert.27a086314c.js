@@ -3292,13 +3292,14 @@ function gaitStep(o,rig,G,bones,tol,emit,v,sk){
   /* after a spell unposed (out of sight and standing) the phase starts over rather than counting the gap as a step */
   if(o.gtN!==n||st.t-o.gtT>1){o.gtN=n;o.gtP=p;o.gtT=st.t;return}
   let adv=p-o.gtP;const p0=o.gtP,dur=a.getClip().duration,ts=Math.abs(a.getEffectiveTimeScale())||1,el=st.t-o.gtT;o.gtP=p;o.gtT=st.t;if(adv<0)adv+=1;
-  if(sk===1){const ac=o.gtV==null?0:(v-o.gtV)/Math.max(el,.001);o.gtV=v;o.gtA=(o.gtA||0)+(ac-(o.gtA||0))*Math.min(1,el*4)}
+  if(sk===1){const e=Math.max(el,.001),ac=o.gtV==null?0:(v-o.gtV)/e,wr=o.gtY==null?0:Math.atan2(Math.sin(o.yaw-o.gtY),Math.cos(o.yaw-o.gtY))/e,k=Math.min(1,el*4);
+    o.gtV=v;o.gtY=o.yaw;o.gtA=(o.gtA||0)+(ac-(o.gtA||0))*k;o.gtW=(o.gtW||0)+(wr-(o.gtW||0))*k}
   /* a clip played over again from its start jumps the phase without a step being taken */
   if(adv<=0||adv>el*ts/dur*1.5+.03)return;
   /* mid-blend (a walk setting off or pulling up) the pose is neither clip's and its feet scrape; sk (the ostrich): a gait
-     played slower or faster than the body goes, or while the body speeds up or slows down, skates its planted feet, and a
+     played slower or faster than the body goes, or while the body speeds up, slows down or turns, skates its planted feet, and a
      foot skating along never bears down */
-  if(w<.7||sk===1&&(Math.abs(o.gtA)>.25||G[n].some(k=>k&&k.u>0&&Math.abs(k.u*ts-v)>Math.max(.4*Math.abs(v),.03))))return;
+  if(w<.7||sk===1&&(Math.abs(o.gtA)>.25||Math.abs(o.gtW)>.35||G[n].some(k=>k&&k.u>0&&Math.abs(k.u*ts-v)>Math.max(.2*Math.abs(v),.03))))return;
   G[n].forEach((k,j)=>{if(!k)return;let x=k.c-p0;x-=Math.floor(x);if(x<=0||x>adv)return;gaitSole(bones[j],k);
     if(_gw.y-hTop(_gw.x,_gw.z)>tol)return;
     /* coarse steps (a fast-forwarded sim) see one pose per stance: print it where the touchdown was */

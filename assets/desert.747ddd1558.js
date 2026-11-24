@@ -3093,7 +3093,7 @@ function groundFrame(x,z,yaw,L,Wd){
    at birth, depth). ---- */
 const PRK={drom:0,bact:1,talon:2,wing:3,lie:4,ost:5,tort:6,gerb:7,scorp:8,pal:9,hole:10};
 const PR_SZ=[.28,.32,.2,.9,2.1,.25,.11,.065,.075,.5,.17];
-const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
+const PR=(()=>{const N=MOB?1000:2000,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
   const m=new T.SM({transparent:true,depthWrite:false,side:2,blending:5,blendSrc:208,blendDst:202,blendSrcAlpha:200,blendDstAlpha:201,
     polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,uniforms:{uE:{value:0},uKs:{value:.7},uSnw:{value:0},uLd:sandU.uLd,uWD:sandU.uWD},
     vertexShader:`uniform vec2 uWD;varying vec2 vQ,vWl;varying vec3 vK,vAx,vAz;varying float vS,vL,vSd,vG;
@@ -3145,13 +3145,17 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
         float h=-1.1*smoothstep(1.,.45,r)+.4*exp(-(r-1.18)*(r-1.18)*8.);
         for(int i=0;i<5;i++){if(hind>.5&&i==4)break;float n=hind>.5?3.:4.,a=(float(i)/n-.5)*1.5;vec2 d=p-vec2(sin(a)*2.5,cos(a)*2.4+.5);h-=.9*exp(-dot(d,d)/.16);}
         return h;}
-      /* gerbil hop set: the two long hind feet side by side and the small fore feet pressed between and ahead of them */
-      float gerb(vec2 p){float h=0.;for(int i=0;i<2;i++){float s=float(i)*2.-1.;vec2 q=(p-vec2(s*1.05,-.8))/vec2(.42,1.15);h-=exp(-dot(q,q)*1.6);
+      /* gerbil hop set: the two long hind feet side by side and the small fore feet pressed between and ahead of them;
+         variant 1 is one hind foot (its pad and three toes) and 2 one fore foot, each laid where that foot came down */
+      float gerb(vec2 p,float v){float h=0.;if(v>.5){if(v<1.5){vec2 q=p/vec2(.42,1.15);h-=exp(-dot(q,q)*1.6);
+          for(int t=0;t<3;t++){vec2 c=p-vec2((float(t)-1.)*.3,1.35+.1*(1.-abs(float(t)-1.)));h-=.55*exp(-dot(c,c)/.035);}}
+        else{vec2 q=p/vec2(.32,.36);h-=.85*exp(-dot(q,q)*1.6);}return 1.25*h;}
+        for(int i=0;i<2;i++){float s=float(i)*2.-1.;vec2 q=(p-vec2(s*1.05,-.8))/vec2(.42,1.15);h-=exp(-dot(q,q)*1.6);
         vec2 f=(p-vec2(s*.42,1.7))/vec2(.32,.36);h-=.85*exp(-dot(f,f)*1.6);
         for(int t=0;t<3;t++){vec2 c=p-vec2(s*1.05+(float(t)-1.)*.3,.55+.1*(1.-abs(float(t)-1.)));h-=.55*exp(-dot(c,c)/.035);}}
         return 1.25*h;}
-      /* scorpion: four leg tips each side, a short arc of pin-pricks */
-      float scorp(vec2 p){float h=0.;for(int i=0;i<4;i++){float f=float(i);for(int j=0;j<2;j++){float s=float(j)*2.-1.;
+      /* scorpion: four leg tips each side, a short arc of pin-pricks; variant 1 is the prick of one leg tip */
+      float scorp(vec2 p,float v){if(v>.5)return -exp(-dot(p,p)/.07);float h=0.;for(int i=0;i<4;i++){float f=float(i);for(int j=0;j<2;j++){float s=float(j)*2.-1.;
         vec2 d=p-vec2(s*(1.6+.4*f-.1*f*f),1.5-f*1.+.3*sin(vSd*9.+f*2.+s));h-=exp(-dot(d,d)/.07);}}return h;}
       /* a hollow scraped or sat into the sand: a tortoise's shade pallet, the dip where an ostrich sat, the spoil heaped ahead */
       float pal(vec2 p){float q=length(p/vec2(18.,23.))+(dn2(p*.12+vSd*4.)-.5)*.14;
@@ -3160,7 +3164,7 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
       float hole(vec2 p){float r=length(p/vec2(2.5,2.3))+(dn2(p*.9+vSd*3.)-.5)*.12;vec2 m=(p-vec2(0.,4.6))/vec2(4.2,3.4);
         return -5.*smoothstep(1.05,.25,r)+.9*exp(-(r-1.15)*(r-1.15)*6.)+1.5*exp(-dot(m,m))*(1.+.4*dn2(p*.7+vSd*5.));}
       float hgt(vec2 p,float k,float v){if(k>9.5)return hole(p);if(k<1.5)return camel(p,v,k)*(k<.5?1.4:1.);if(k<2.5)return talon(p);if(k<3.5)return wing(p);if(k<4.5)return lie(p,v);
-        if(k<5.5)return ost(p);if(k<6.5)return tort(p,v);if(k<7.5)return gerb(p);if(k<8.5)return scorp(p);return pal(p);}
+        if(k<5.5)return ost(p);if(k<6.5)return tort(p,v);if(k<7.5)return gerb(p,v);if(k<8.5)return scorp(p,v);return pal(p);}
       /* wear (w 0 fresh .. 1 gone): the heaped rims blow away first and the walls slump, while drifting sand fills the print
          from its upwind edge in a ragged front that creeps downwind */
       float hW(vec2 p,float k,float v,float w){float h=hgt(p,k,v);h*=h>0.?(1.-w)*(1.-w):1.-.35*w;
@@ -3189,7 +3193,11 @@ const PR=(()=>{const N=MOB?700:1400,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
   return{N,im,i:0,n:0,E:0,dirty:0,up:0,m4:new T.M4(),q:new T.Quat(),q2:new T.Quat(),v:new V3(),s:new V3(),c}})();
 const _up=new V3(0,1,0);
 /* kind, island-metre position, heading of the print's forward (+z), variant 0-3, depth (1 = typical), mirrored, scale */
-function prAdd(k,x,z,yaw,v,dep,mir,sc){if(pN(x,z)<1.02)return;const P=PR,i=P.i;P.i=(i+1)%P.N;P.n=Math.min(P.n+1,P.N);
+let PR_ROCK=null;
+function prAdd(k,x,z,yaw,v,dep,mir,sc){if(pN(x,z)<1.02)return;
+  /* nothing presses into stone */
+  if(!PR_ROCK)PR_ROCK=OBST.filter(o=>o.k==="rock");for(const o of PR_ROCK)if((x-o.x)*(x-o.x)+(z-o.z)*(z-o.z)<o.r*o.r*.81)return;
+  const P=PR,i=P.i;P.i=(i+1)%P.N;P.n=Math.min(P.n+1,P.N);
   P.q2.setFromUnitVectors(_up,nTop(x,z));P.q.setFromAxisAngle(_up,yaw).premultiply(P.q2);
   const s=PR_SZ[k]*(sc||1);P.s.set(mir?-s:s,1,s);P.v.set(x,hTop(x,z)+.003,z);P.m4.compose(P.v,P.q,P.s);P.im.setMatrixAt(i,P.m4);
   P.im.setColorAt(i,P.c.setRGB(k+(v||0)/4,P.E,dep==null?1:dep));P.dirty=1;P.im.count=P.n}
@@ -3197,12 +3205,76 @@ function prTick(dt){const P=PR;P.E+=dt*(1/240+st.wn*(1-.8*WX.sc)*.3/35+WX.dust/6
   P.im.material.uniforms.uSnw.value=ss(.05,.5,WX.sc);
   if(pi&&dc)P.im.material.uniforms.uKs.value=cl(pi.intensity/(pi.intensity+dc.intensity*1.4+1e-3),.12,.85);
   P.up+=dt;if(P.dirty&&P.up>.15){P.up=0;P.dirty=0;P.im.instanceMatrix.needsUpdate=true;P.im.instanceColor.needsUpdate=true}}
-/* a foot comes to rest: after a swing (moving faster than the body) it slows almost to a stop at the ground */
-const _pf=new V3();
-function footPlant(f,b,spd,dt,lift){if(dt<.004)return null;b.getWorldPosition(_pf);W.worldToLocal(_pf);let hit=null;
-  if(f.p){const v=Math.hypot(_pf.x-f.p.x,_pf.z-f.p.z)/Math.max(dt,1e-3);
-    if(v>spd*.6)f.sw=1;else if(f.sw&&v<spd*.25&&_pf.y-hTop(_pf.x,_pf.z)<lift){f.sw=0;hit=_pf}
-    f.p.copy(_pf)}else f.p=_pf.clone();return hit}
+/* where a foot is set down, from the model's own gait. Once per model each foot's touchdown in each gait clip is found by
+   playing the clip through in place: the phase where the foot, after its swing, is furthest forward (a hop that lands in
+   place: where it comes back down), with the sole point (the centroid of the foot's lowest skin) and the foot's forward
+   in the foot bone's own frame. In the scene a print is laid as the clip passes a foot's touchdown, at the sole point
+   where the pose then holds the foot, and only if that is on the sand. */
+const _pf=new V3(),_gw=new V3(),_gw2=new V3(),_gm=new T.M4(),_gm2=new T.M4(),GAIT={};
+function footVerts(root,b){const set=new Set();b.traverse(o=>{if(o.isBone)set.add(o)});const vs=[];
+  root.traverse(m=>{if(!m.isSkinnedMesh||m.material.transparent)return;const A=m.geometry.attributes,SI=A.skinIndex,SW=A.skinWeight;if(!SI)return;const sb=m.skeleton.bones.map(x=>set.has(x));
+    for(let i=0;i<SI.count;i++){let w=0;for(let j=0;j<4;j++)if(sb[SI.getComponent(i,j)])w+=SW.getComponent(i,j);if(w>.6)vs.push(m,i)}});
+  const n=vs.length/2,s=Math.max(1,Math.ceil(n/160)),o=[];for(let i=0;i<n;i+=s)o.push(vs[i*2],vs[i*2+1]);return o}
+/* the centroid of a foot's skin within band of its lowest point, in the space inv maps world into */
+function soleIn(vs,inv,band,out){const n=vs.length/2,P=new Float32Array(n*3);let lo=1e9;
+  for(let i=0;i<n;i++){const m=vs[i*2];m.getVertexPosition(vs[i*2+1],_gw).applyMatrix4(m.matrixWorld).applyMatrix4(inv);P[i*3]=_gw.x;P[i*3+1]=_gw.y;P[i*3+2]=_gw.z;if(_gw.y<lo)lo=_gw.y}
+  let x=0,z=0,c=0;for(let i=0;i<n;i++)if(P[i*3+1]<=lo+band){x+=P[i*3];z+=P[i*3+2];c++}return out.set(x/c,lo,z/c)}
+/* key: the model; g: the body's frame (+z ahead); bones: one per foot; band: the sole's depth in metres */
+function gaitUp(key,g,rig,clips,bones,band,mid){let G=GAIT[key];if(G)return G;G=GAIT[key]={};
+  const vs=bones.map(b=>footVerts(g,b)),inv=new T.M4(),N=40;if(vs.some(v=>!v.length))return G;
+  for(const n of clips){const a=rig.acts[n];if(!a)continue;const d=a.getClip().duration,S=bones.map(()=>[]);
+    for(const k in rig.acts)rig.acts[k].stop();a.reset();a.play();a.setEffectiveWeight(1);a.setEffectiveTimeScale(1);
+    const at=t=>{a.time=t*d;rig.mx.update(0);g.updateMatrixWorld(true);inv.copy(g.matrixWorld).invert()};
+    for(let i=0;i<N;i++){at(i/N);vs.forEach((v,j)=>{const s=soleIn(v,inv,band/g.scale.x,_gw);S[j].push([s.y,s.z])})}
+    G[n]=bones.map((b,j)=>{const ys=S[j].map(q=>q[0]),zs=S[j].map(q=>q[1]),yM=Math.max(...ys),zM=Math.max(...zs),yr=yM-Math.min(...ys),zr=zM-Math.min(...zs);
+      /* a foot this clip never lifts clear of the sand is never set down in it */
+      if(yr*g.scale.x<band*2)return null;
+      /* u: how fast the planted foot runs back under the body at timeScale 1 (m/s; ~0 for a hop in place) */
+      let i0=zs.indexOf(zM),u=0;
+      if(zr<.6*yr){const iM=ys.indexOf(yM),thr=yM-.8*yr;i0=iM;for(let k=1;k<N;k++){const i=(iM+k)%N;if(ys[i]<=thr){i0=i;break}}}
+      else{/* the stance runs from the furthest-forward phase to the furthest-back one; the foot is down once it runs back at the stance's pace */
+        const iB=zs.indexOf(Math.min(...zs)),L=(iB-i0+N)%N,sp=[];for(let k=0;k<L;k++)sp.push(zs[(i0+k)%N]-zs[(i0+k+1)%N]);
+        const md=[...sp].sort((p,q)=>p-q)[sp.length>>1]||0;u=md*N/d*g.scale.x;let k0=0;for(let k=0;k<L>>1;k++)if(sp[k]>=.7*md){k0=k;break}
+        /* mid: the gaits whose planted foot rolls or slides on (the camels' and the ostrich's walks) print where it bears down, halfway through the stance */
+        i0=(i0+(mid&&mid.includes(n)?(k0+L)>>1:k0))%N}
+      at(i0/N);const s=soleIn(vs[j],inv,band/g.scale.x,new V3()),side=s.x;s.applyMatrix4(g.matrixWorld);
+      b.updateWorldMatrix(true,false);const bi=_gm.copy(b.matrixWorld).invert(),off=s.clone().applyMatrix4(bi);
+      const ax=_gw2.set(0,0,1).transformDirection(g.matrixWorld).add(s).applyMatrix4(bi).sub(off).clone();
+      return{c:i0/N,off,ax,u,mir:side<0}});
+    /* air: how far every foot is off the sand through the clip, as a share of the mean (0 while any foot is down) */
+    const up=S.map(s=>{const y=s.map(q=>q[0]),lo=Math.min(...y),r=Math.max(...y)-lo;return y.map(v=>r>1e-5?ss(.12,.4,(v-lo)/r):1)}),air=[];
+    for(let i=0;i<N;i++)air.push(up.reduce((m,u)=>m*u[i],1));const am=air.reduce((x,y)=>x+y,0)/N;G[n].air=am>.15?air.map(x=>x/am):null}
+  for(const k in rig.acts)rig.acts[k].stop();rig.cur=null;rig.fd=null;return G}
+/* lay the prints of the feet whose touchdown the playing gait clip passed this frame: emit(foot, x, z, heading, mirrored).
+   v: the body's ground speed along its heading o.yaw. A foot the clip lets slide (body faster than the foot runs back) has
+   moved on since its touchdown, a fraction of a frame ago; the print goes where it came down. */
+function gaitStep(o,rig,G,bones,tol,emit,v,sk){
+  /* a foot set down waits for its sole to sit still on the sand (slower than a third of the body's pace) and prints there;
+     one that lifts again or skates on for half a second leaves none */
+  const Q=o.gtQ||(o.gtQ=[]);
+  for(let j=0;j<Q.length;j++){const P=Q[j];if(!P)continue;const sole=gaitSole(bones[j],P.k),dt=st.t-P.tl;
+    if(dt<=0)continue;if(_gw.y-hTop(_gw.x,_gw.z)>tol||st.t-P.t0>.5||!sole){Q[j]=null;continue}
+    const f=Math.hypot(_gw.x-P.x,_gw.z-P.z)/dt;P.x=_gw.x;P.z=_gw.z;P.tl=st.t;
+    if(f<=Math.max(.33*Math.abs(v),.02)){emit(j,_gw.x,_gw.z,Math.atan2(_gw2.x-_gw.x,_gw2.z-_gw.z),P.k.mir);Q[j]=null}}
+  let n=null,w=.5;for(const k in G){const a=rig.acts[k];if(a&&a.isRunning()){const e=a.getEffectiveWeight();if(e>w){w=e;n=k}}}
+  if(!n){o.gtN=null;return}const a=rig.acts[n],p=a.time/a.getClip().duration%1;
+  /* after a spell unposed (out of sight and standing) the phase starts over rather than counting the gap as a step */
+  if(o.gtN!==n||st.t-o.gtT>1){o.gtN=n;o.gtP=p;o.gtT=st.t;return}
+  let adv=p-o.gtP;const p0=o.gtP,dur=a.getClip().duration,ts=Math.abs(a.getEffectiveTimeScale())||1,el=st.t-o.gtT;o.gtP=p;o.gtT=st.t;if(adv<0)adv+=1;
+  /* a clip played over again from its start jumps the phase without a step being taken */
+  if(adv<=0||adv>el*ts/dur*1.5+.03)return;
+  /* mid-blend (a walk setting off or pulling up) the pose is neither clip's and its feet scrape; sk (the ostrich): a gait
+     played slower or faster than the body goes skates its planted feet, and a foot skating along never bears down */
+  if(w<.7||sk&&G[n].some(k=>k&&k.u>0&&Math.abs(k.u*ts-v)>Math.max(.4*Math.abs(v),.03)))return;
+  G[n].forEach((k,j)=>{if(!k)return;let x=k.c-p0;x-=Math.floor(x);if(x<=0||x>adv)return;gaitSole(bones[j],k);
+    if(_gw.y-hTop(_gw.x,_gw.z)>tol)return;
+    /* coarse steps (a fast-forwarded sim) see one pose per stance: print it where the touchdown was */
+    if(el>.1){const sl=cl((v-k.u*ts)*(adv-x)*dur/ts,-.1,.1);_gw.x-=Math.sin(o.yaw)*sl;_gw.z-=Math.cos(o.yaw)*sl;_gw2.x-=Math.sin(o.yaw)*sl;_gw2.z-=Math.cos(o.yaw)*sl;
+      emit(j,_gw.x,_gw.z,Math.atan2(_gw2.x-_gw.x,_gw2.z-_gw.z),k.mir);return}
+    Q[j]={k,x:_gw.x,z:_gw.z,t0:st.t,tl:st.t}})}
+/* a foot's sole (_gw) and a point ahead of it along the foot (_gw2), in W's frame */
+function gaitSole(b,k){b.updateWorldMatrix(true,false);_gm2.copy(W.matrixWorld).invert();
+  _gw.copy(k.off).applyMatrix4(b.matrixWorld).applyMatrix4(_gm2);_gw2.copy(k.off).add(k.ax).applyMatrix4(b.matrixWorld).applyMatrix4(_gm2);return true}
 
 /* ---- camels ---- */
 const REST=[{...tl(4.2,5.2),yaw:TENT.yaw+Math.PI/2+.15},{x:14.2,z:2.6,yaw:-Math.PI/2-.35}];
@@ -3337,11 +3409,12 @@ function camelSpawn(sc,anims,i,kind){smoothRoot(anims);
   sc.traverse(o=>{if(o.isBone)a.bones[o.name]=o});
   for(const k of["kneel_down","stand_up"]){const c=a.r.acts[k];if(c){c.setLoop(VT.THREE.LoopOnce,1);c.clampWhenFinished=true}}
   /* the four feet: the tip below each leg's last joint, fore or hind by where it stands in the bind pose */
-  a.feet=[];for(const n in a.bones){const m=n.match(/([01])_(Left|Right)_Limb_3$/);if(!m)continue;const b=a.bones[n];a.feet.push({b:b.children.find(c=>c.isBone)||b,R:m[2]==="Right",p:null,sw:0,hind:0})}
+  a.feet=[];for(const n in a.bones){const m=n.match(/([01])_(Left|Right)_Limb_3$/);if(!m)continue;const b=a.bones[n];a.feet.push({b:b.children.find(c=>c.isBone)||b,l3:b,R:m[2]==="Right",hind:0})}
   if(a.feet.length===4){g.updateMatrixWorld(true);const z=a.feet.map(f=>g.worldToLocal(f.b.getWorldPosition(new V3())).z),mid=[...z].sort((x,y)=>x-y).slice(1,3).reduce((x,y)=>x+y)/2;a.feet.forEach((f,i)=>{f.hind=z[i]<mid?1:0})}
+  if(a.feet.length===4){a.fb=a.feet.map(f=>f.l3);a.gt=gaitUp(kind.file,g,a.r,["walk","idle","drink"],a.fb,.02,["walk"])}
   furUp(a);ctUp(a);return a}
-function camelPrints(a,dt){if(a.spd<.05){for(const f of a.feet)f.p=null;return}const bk=CAMEL_SLOTS[a.i]==="bact";
-  for(const f of a.feet){const h=footPlant(f,f.b,a.spd,dt,.3);if(h)prAdd(bk?PRK.bact:PRK.drom,h.x,h.z,a.yaw+.06*Math.sin(h.x*7.1+h.z*3.3),f.hind,1,f.R)}}
+function camelPrints(a){if(!a.gt)return;const bk=CAMEL_SLOTS[a.i]==="bact";
+  gaitStep(a,a.r,a.gt,a.fb,.05,(j,x,z,yaw)=>{const f=a.feet[j];prAdd(bk?PRK.bact:PRK.drom,x,z,yaw,f.hind,1,f.R)},a.spd)}
 /* the hollow it lay in, left as it gets up: centred under the chest and belly, a little ahead of the root */
 function camelLie(a){const bk=CAMEL_SLOTS[a.i]==="bact",f=.12*a.sc;prAdd(PRK.lie,a.x+Math.sin(a.yaw)*f,a.z+Math.cos(a.yaw)*f,a.yaw,bk?1:0,1,0,a.sc)}
 function camelGo(a,to,job){
@@ -3418,7 +3491,7 @@ function camelUpdate(a,dt){
   if(a.gy==null||Math.abs(f.y-a.gy)>.6){a.gy=f.y;a.gp=f.pitch;a.gr=f.roll}
   const gk=ease(9,dt);a.gy+=(f.y-a.gy)*gk;a.gp+=(f.pitch-a.gp)*gk;a.gr+=(f.roll-a.gr)*gk;
   a.g.position.set(a.x,a.gy,a.z);a.g.rotation.set(a.gp*(1-.5*kk),a.yaw,a.gr*(1-.5*kk));
-  rigTick(a.r,dt);camelSettle(a,dt);camelPrints(a,dt);
+  rigTick(a.r,dt);camelSettle(a,dt);camelPrints(a);
   /* footsteps crunch in the snow, about one a stride per foot */
   if(WX.sc>.05&&a.spd>.08){a.stD=(a.stD||0)+a.spd*dt;if(a.stD>.75){a.stD=0;if(amb())shotS("dCrn",.42*ss(.05,.4,WX.sc)*cl(a.spd/.9,.5,1),_crP.set(a.x+Math.sin(a.yaw)*rr(-1,1),hTop(a.x,a.z),a.z+Math.cos(a.yaw)*rr(-1,1)),5,rr(.85,1.15))}}}
 
@@ -3452,8 +3525,8 @@ const PUFF=softPoints(MOB?24:44,"#e6d7bd",.1,false);PUFF.o.renderOrder=6;PUFF.o.
 const PUFFP=[];
 /* where it comes down on the beach (or pushes off it): both feet's talon prints, and each wing's primaries brushed into the sand */
 function eagleMarks(e,off){const yaw=e.spot.yaw,fx=Math.sin(yaw),fz=Math.cos(yaw);let cx=0,cz=0,n=0;
-  for(const nm of["Foot_L","Foot_R"]){const b=e.g.getObjectByName(nm);if(!b)continue;b.getWorldPosition(_pf);W.worldToLocal(_pf);cx+=_pf.x;cz+=_pf.z;n++;
-    prAdd(PRK.talon,_pf.x,_pf.z,yaw+(nm==="Foot_L"?-.12:.12),0,off?1.3:1,nm==="Foot_R")}
+  for(const nm of["Foot_L","Foot_R"]){const b=e.g.getObjectByName(nm);if(!b)continue;b.getWorldPosition(_pf);W.worldToLocal(_pf);cx+=_pf.x;cz+=_pf.z;n++}
+  if(!off)eagleFeetOn(e,0,3)
   if(!n){cx=e.spot.p.x;cz=e.spot.p.z}else{cx/=n;cz/=n}
   /* the beach curves with the shore, so a wingtip that would brush the water is moved out from it onto the sand */
   /* landing and take-off sweep the wings through the same arc, so a second brushing deepens the first instead of crossing it */
@@ -3479,7 +3552,14 @@ function soarVel(th,t,out){return out.set(-Math.sin(th)*8.5,1.6*.21*Math.cos(t*.
 function e_c(){return ANIM.eagle.c}
 /* take-off: the whole clip plays on the perch (crouch, push-off, first beats, 1.4 m of root travel); the path takes over at
    flap frame 0 from near rest. The join into the thermal is picked so the bird never drifts backward and peaks gently. */
-function eagleTakeoff(e){e.mode="rise";const a=e.r.acts.takeoff;e.hold=a?a.getClip().duration:0;e.yaw=e.spot.yaw;e.pit=0;e.pf=0;play(e.r,"takeoff",.3,1);e.cry=1}
+/* each talon print waits for its own foot's sole to be on the sand (landing), or is laid before that foot lifts (take-off) */
+function eagleFeetOn(e,off,T){e.fm=[0,0];e.fo=off;e.fT=T}
+function eagleFeet(e,dt){if((e.fT-=dt)<0||e.fm[0]&&e.fm[1]){e.fm=null;return}
+  if(!e.fv)e.fv=["Foot_L","Foot_R"].map(nm=>{const b=e.g.getObjectByName(nm);return b?footVerts(e.g,b):[]});
+  e.g.updateMatrixWorld(true);_gm.copy(W.matrixWorld).invert();
+  e.fv.forEach((vs,i)=>{if(e.fm[i]||!vs.length)return;const s=soleIn(vs,_gm,.015,_gw);if(s.y-hTop(s.x,s.z)>.025)return;e.fm[i]=1;
+    prAdd(PRK.talon,s.x,s.z,e.spot.yaw+(i?.12:-.12),0,e.fo?1.3:1,i===1)})}
+function eagleTakeoff(e){if(e.spot&&e.spot.k==="pond")eagleFeetOn(e,1,1.2);e.mode="rise";const a=e.r.acts.takeoff;e.hold=a?a.getClip().duration:0;e.yaw=e.spot.yaw;e.pit=0;e.pf=0;play(e.r,"takeoff",.3,1);e.cry=1}
 function herA(s,t,out){return out.set(0,0,0).addScaledVector(s.p0,12*t-6).addScaledVector(s.m0,6*t-4).addScaledVector(s.p1,6-12*t).addScaledVector(s.m1,6*t-2).divideScalar(s.T*s.T)}
 function eagleLaunch(e,over){
   const sp=e.spot,rt=e.rt;e.mode="takeoff";e.c.copy(e.c0);e.pend=null;
@@ -3512,6 +3592,7 @@ function eagleFinal(e){const spot=e.spot;e.final=true;const p1=spot.p.clone();
 function eagleUpdate(e,dt){
   const ph=st.phase,wantPerch=ph!=="day"||WX.shel>0||WX.rain>.4||WX.cold>0;puffTick(dt);
   {const L=e.r.acts.land;if(e.r.cur==="land"&&!e.pf&&L&&L.time>=1.96){e.pf=1;if(e.spot.k==="pond"){eaglePuff(e.spot.p);eagleMarks(e,0)}}}
+  if(e.fm)eagleFeet(e,dt);
   if(e.mode==="perch"){
     if(e.r.acts.perch)e.r.acts.perch.timeScale=ph==="night"?.35:1;
     if(e.settle>0){e.settle-=dt;if(e.settle<=0)play(e.r,e.spot.k==="pond"?"head_turn":"perch",.4,1)}
@@ -5133,7 +5214,8 @@ function paLimb(hp,pq,ub,lb,tgt,hint,qU,qL){const e=ik2(hp,tgt,ub.len,lb.len,hin
 /* a bone's head in the model frame, given its parent's head position pp and frame pq */
 function paHead(b,pp,pq,out){return out.copy(b.position).applyQuaternion(pq).add(pp)}
 /* small animals' prints share a budget so a busy gerbil can't wear out the camels' tracks */
-function paPrint(k,x,z,yaw,v,dep,mir,sc){if(PA.tok<1)return;PA.tok--;prAdd(k,x,z,yaw,v,dep,mir,sc)}
+/* each kind of print draws on its own budget, so a busy family of gerbils cannot use up the scorpions' share */
+function paPrint(k,x,z,yaw,v,dep,mir,sc,c){c=c||1;const t=PA.tok;if(!(k in t))t[k]=4;if(t[k]<c)return;t[k]-=c;prAdd(k,x,z,yaw,v,dep,mir,sc)}
 /* island metres <-> an animal's model frame (its group stands at (x,gy,z) turned by yaw) */
 function toM(A,p,out){const dx=p.x-A.x,dz=p.z-A.z,c=Math.cos(A.yaw),s=Math.sin(A.yaw),k=1/A.sc;return out.set((dx*c-dz*s)*k,(p.y-A.gy)*k,(dx*s+dz*c)*k)}
 function toI(A,p,out){const c=Math.cos(A.yaw),s=Math.sin(A.yaw),k=A.sc;return out.set(A.x+(p.x*c+p.z*s)*k,A.gy+p.y*k,A.z+(-p.x*s+p.z*c)*k)}
@@ -5166,7 +5248,7 @@ function movers(){MOV.length=0;for(const a of ANIM.camels)MOV.push({x:a.x+Math.s
   if(PA.dbg&&st.t<PA.dbg.until)MOV.push(PA.dbg)}
 /* the nearest of the given kinds, by edge distance */
 function nearMov(A,ks){let b=null,bd=1e9;for(const m of MOV){if(m.o===A||!ks.includes(m.k))continue;const d=Math.hypot(m.x-A.x,m.z-A.z)-m.r;if(d<bd){bd=d;b=m}}return b?{m:b,d:bd}:null}
-const PA={os:[],tt:[],gb:[],sc:[],dbg:null,ppm:1,tok:4};
+const PA={os:[],tt:[],gb:[],sc:[],dbg:null,ppm:1,tok:{}};
 /* ---- ostriches: a cock (black, white wings and tail, pink-grey neck and shins) with his head ~2.45 m up, over a camel's hump,
    and a grey-brown hen a tenth smaller. Two-toed feet on long bare legs: the knee is up under the plumage, the joint that bends
    backward halfway down is the ankle. They walk the open sand pecking at seed and shoots, every few pecks the head comes up
@@ -5240,7 +5322,7 @@ function osSpawn(male,src){let g,m=null,B,q=null,sc;
     P:{cr:0,pit:0,gr:0,al:0,run:0,sit:0,doze:0,look:0,peck:0,wing:0,tail:0},lookT:0,lookA:0,peckT:rr(.5,1.5),scanT:rr(4,9),runT:rr(90,200),thr:null,sat:0,
     F:[paFoot(.14*sc,.09*sc,0),paFoot(-.14*sc,.09*sc,.5)]};
   A.F[0].fy=A.F[1].fy=0;
-  if(q){Object.assign(A,{rig:q.rig,bn:q.bn,mdl:q.s,sw0:new V3(),sw1:new V3(),sw2:new V3(),pf:[{up:0,P:new V3(),fy:0,nx:1},{up:0,P:new V3(),fy:0,nx:-1}]});
+  if(q){Object.assign(A,{rig:q.rig,bn:q.bn,gt:q.gt,mdl:q.s,sw0:new V3(),sw1:new V3(),sw2:new V3()});
     /* the top of the head, carried by the head bone (the bone itself starts at the base of the skull) */
     g.updateMatrixWorld(true);A.cr=q.bn.head.worldToLocal(g.localToWorld(new V3(.03,2.45,.55)));play(q.rig,"idle",.01,1)}
   return A}
@@ -5353,7 +5435,7 @@ function osUpdate(A,dt){const P=A.P,ny=st.night>.6||(st.night>.3&&st.phase==="ni
   if(A.mode==="sit"&&P.sit>.3){for(const f of A.F)if(f.sw){f.sw=0;f.P.copy(f.cur)}}
   else{const v=A.v,freq=.55+.25*v,duty=mix(.62,.36,ss(1.5,5,v));
     for(const f of A.F)if(!f.sw)f.fy0=f.fy;
-    const land=paFeet(A,dt,A.F,{freq,duty,lift:.13+.05*ss(2,6,v),vRef:1.2,land:f=>{f.fy=A.yaw;if(!A.rig||!A.g.visible)osTrack(A,f)}});void land}
+    const land=paFeet(A,dt,A.F,{freq,duty,lift:.13+.05*ss(2,6,v),vRef:1.2,land:f=>{f.fy=A.yaw;if(!A.rig)osTrack(A,f)}});void land}
   A.g.position.set(A.x,A.gy,A.z);A.g.rotation.y=A.yaw;if(!A.rig)osPose(A,dt);else if(A.g.visible)osAnim(A,dt)}
 function osLoad(){return pgGet("os").then(src=>{const g=navGrid("ostrich",.9,1.25,.8);
   for(const male of[true,false]){const A=osSpawn(male,src);PA.os.push(A);const p=osSpot(A,false,13)||randFree(g,0,0,14)||{x:2,z:2};osPlace(A,p.x,p.z,rr(-3,3))}
@@ -5387,7 +5469,7 @@ function torGeo(){const G=paGeo(),X=TO_IX,w=(a,b)=>[[X[a],.5],[X[b],.5]],sk=[.5,
 function torSpawn(src){let g,m=null,B=null,q=null;
   if(src){q=pgModel(src,"tt",1,{shadow:1,once:["head_withdraw","head_out"]});g=q.g;play(q.rig,"idle",.01,1)}
   else{const G=torGeo(),R=paBones(TO_B);m=paMesh(G,R);g=new T.Group();g.add(m);W.add(g);onDes(g);B=R.B}
-  const A={g,m,B,rig:q&&q.rig,bn:q&&q.bn,hoT:0,sc:1,x:0,z:0,yaw:0,gy:0,v:0,yr:0,gph:0,mode:"graze",t:rr(5,10),path:null,pi:0,sink:0,
+  const A={g,m,B,rig:q&&q.rig,bn:q&&q.bn,gt:q&&q.gt,hoT:0,sc:1,x:0,z:0,yaw:0,gy:0,v:0,yr:0,gph:0,mode:"graze",t:rr(5,10),path:null,pi:0,sink:0,
     P:{wd:0,gr:0,bite:0,look:0,lift:0,dig:0,dr:0},bt:0,lookT:0,lookA:0,
     /* lateral sequence: left hind, left fore, right hind, right fore a quarter cycle apart */
     F:[paFoot(.128,.122,.25),paFoot(-.128,.122,.75),paFoot(.108,-.112,0),paFoot(-.108,-.112,.5)]};
@@ -5444,9 +5526,9 @@ function torUpdate(A,dt,cam){const P=A.P,ny=st.night>.55,hail=WX.hf>.05||WX.hcol
   A.x+=Math.sin(A.yaw)*A.v*dt;A.z+=Math.cos(A.yaw)*A.v*dt;A.gy+=(hTop(A.x,A.z)-.03*A.sink*(A.mode==="pallet"||A.mode==="dig"?1:0)-A.gy)*Math.min(1,dt*6);
   if(A.mode!=="dig"&&A.mode!=="pallet")A.sink=0;
   /* the feet: about .7 strides a second at its plod, each foot on the ground three quarters of the time */
-  if(P.wd<.3&&P.dig<.3)paFeet(A,dt,A.F,{freq:.35+6*A.v,duty:.75,lift:.022,vRef:.07,land:f=>paPrint(PRK.tort,f.P.x,f.P.z,A.yaw,f.hind,.9,f.nx<0,1)});
+  if(P.wd<.3&&P.dig<.3)paFeet(A,dt,A.F,{freq:.35+6*A.v,duty:.75,lift:.022,vRef:.07,land:f=>{if(!A.rig)paPrint(PRK.tort,f.P.x,f.P.z,A.yaw,f.hind,.9,f.nx<0,1)}});
   const D=Math.max(.05,cam.distanceTo(A.g.position));A.g.visible=.3*PA.ppm/D>2.5;
-  A.g.position.set(A.x,A.gy,A.z);A.g.rotation.y=A.yaw;if(A.g.visible)A.rig?torAnim(A,dt):torPose(A);
+  A.g.position.set(A.x,A.gy,A.z);A.g.rotation.y=A.yaw;if(A.rig?A.g.visible||A.v>.006||A.mode==="dig":A.g.visible)A.rig?torAnim(A,dt):torPose(A);
   /* its contact shadow under the plastron */
   if(A.g.visible){const k=sunCast();blobAdd(A.x,A.gy,A.z,A.yaw,.14,.17,.35+.25*k,.6,0)}}
 function torFollow(A,dt){const p=A.path[A.pi],dx=p.x-A.x,dz=p.z-A.z,d=Math.hypot(dx,dz);
@@ -5499,7 +5581,7 @@ function gbStamp(h){prAdd(PRK.hole,h.x,h.z,h.yaw,0,1,0,1);h.t=0}
 function gbSpawn(h,src){let g,m=null,B=null,q=null;
   if(src){q=pgModel(src,"gb",GB_SC,{});g=q.g;play(q.rig,"idle",.01,1)}
   else{const G=gbGeo(),R=paBones(GB_B);m=paMesh(G,R);g=new T.Group();g.add(m);W.add(g);onDes(g);B=R.B}
-  return{g,m,B,rig:q&&q.rig,bn:q&&q.bn,sc:1,h,x:h.x,z:h.z,yaw:h.yaw,gy:hTop(h.x,h.z),v:0,yr:0,hph:0,hop:0,mode:"in",t:rr(1,6),out:false,emerge:0,goal:null,
+  return{g,m,B,rig:q&&q.rig,bn:q&&q.bn,gt:q&&q.gt,sc:1,h,x:h.x,z:h.z,yaw:h.yaw,gy:hTop(h.x,h.z),v:0,yr:0,hph:0,hop:0,mode:"in",t:rr(1,6),out:false,emerge:0,goal:null,
     P:{up:0,nib:0,crouch:0,look:0,lp:0,in:1},lookT:0,lookA:0,nibT:0}}
 const _gq=new T.Quat(),_gq2=new T.Quat(),_gqb=new T.Quat(),_gqc=new T.Quat(),_gv=new V3();
 function gbPose(A){const B=A.B,P=A.P,hp=A.hph,air=A.v>.05?Math.sin(Math.PI*hp):0,up=P.up,kick=A.v>.05?1:0;
@@ -5541,12 +5623,15 @@ function gbUpdate(A,dt,cam){const P=A.P,h=A.h,calm=WX.rain<.08&&WX.hf<.02&&!WX.h
   if(A.mode==="in"&&h.dig&&act){h.dg=(h.dg||0)-dt;if(h.dg<0){h.dg=rr(.25,.6);spPuff(h.x+Math.sin(h.yaw)*.03,hTop(h.x,h.z),h.z+Math.cos(h.yaw)*.03,3,Math.sin(h.yaw),Math.cos(h.yaw),.4,.5,.01)}if(rnd()<dt*.15)h.dig=0}
   h.t+=dt;if(h.t>70)gbStamp(h);
   /* hops: about 7 a second at a dash, each landing leaving a hop set */
-  if(A.v>.05){const ph=A.hph+dt*(4+3*cl(A.v,0,1.5));if(ph>=1&&A.mode!=="dive")paPrint(PRK.gerb,A.x,A.z,A.yaw,0,.9,0,1);A.hph=ph%1}else A.hph=0;
-  A.x+=Math.sin(A.yaw)*A.v*dt;A.z+=Math.cos(A.yaw)*A.v*dt;A.gy=hTop(A.x,A.z);
+  if(A.v>.05){const ph=A.hph+dt*(4+3*cl(A.v,0,1.5));if(ph>=1&&A.mode!=="dive"&&!A.rig)paPrint(PRK.gerb,A.x,A.z,A.yaw,0,.9,0,1);A.hph=ph%1}else A.hph=0;
+  /* the rigged hop is played in place: the body carries forward while the feet are off the sand and holds while they are
+     down, so a landed foot stays where it came down; over a hop it covers A.v */
+  A.hv=A.v*gaitAir(A,"hop_run");A.x+=Math.sin(A.yaw)*A.hv*dt;A.z+=Math.cos(A.yaw)*A.hv*dt;A.gy=hTop(A.x,A.z);
   P.up+=((A.mode==="stand"?1:0)-P.up)*ease(7,dt);P.nib+=((A.mode==="nibble"?1:0)-P.nib)*ease(6,dt);P.crouch+=((A.mode==="peek"||A.mode==="nibble"?1:0)-P.crouch)*ease(5,dt);
   A.lookT-=dt;if(A.lookT<0){A.lookT=rr(.3,1.4);A.lookA=watched&&A.mode==="stand"?cl(wrapA(Math.atan2(vw.m.x-A.x,vw.m.z-A.z)-A.yaw),-.9,.9):rr(-.9,.9)}P.look+=(A.lookA-P.look)*ease(10,dt);
   const D=Math.max(.05,cam.distanceTo(A.g.position));A.g.visible=A.mode!=="in"&&.12*PA.ppm/D>2.5;
-  A.g.position.set(A.x,A.gy-(A.rig?.055*P.in:0),A.z);A.g.rotation.y=A.yaw;if(A.g.visible){A.rig?gbAnim(A,dt):gbPose(A);blobAdd(A.x,A.gy,A.z,A.yaw,.03,.05,.3+.2*sunCast(),.6,0)}}
+  A.g.position.set(A.x,A.gy-(A.rig?.055*P.in:0),A.z);A.g.rotation.y=A.yaw;if(A.g.visible){A.rig?gbAnim(A,dt):gbPose(A);blobAdd(A.x,A.gy,A.z,A.yaw,.03,.05,.3+.2*sunCast(),.6,0)}
+  else if(A.rig&&A.v>.05&&A.mode!=="in")gbAnim(A,dt)}
 /* a burrow's earthwork: a low collar round the mouth and the fan of fresh spoil thrown out behind it (-z), darker and coarser
    than the wind-sorted sand round it, with a few clods on top. Its edge is sunk just under the ground, so it grows out of the
    sand; the mouth itself is left open over the hole the ground already shows. Seeded on its own so the island's layout stays. */
@@ -5608,7 +5693,7 @@ function scGeo(){const G=paGeo(),X=SC_IX,w=(a,b)=>[[X[a],.5],[X[b],.5]],y=[.86,.
 function scSpawn(rk,src,glow){let g,m=null,B=null,q=null;
   if(src){q=pgModel(src,"sc",1,{glow});g=q.g;play(q.rig,"idle",.01,1)}
   else{const G=scGeo(),R=paBones(SC_B);m=paMesh(G,R);g=new T.Group();g.add(m);W.add(g);onDes(g);B=R.B}
-  return{g,m,B,rig:q&&q.rig,bn:q&&q.bn,sc:1,rk,x:rk.hx,z:rk.hz,yaw:rk.hy,gy:0,v:0,yr:0,gph:0,mode:"hide",t:rr(2,8),goal:null,trav:0,
+  return{g,m,B,rig:q&&q.rig,bn:q&&q.bn,gt:q&&q.gt,sc:1,rk,x:rk.hx,z:rk.hz,yaw:rk.hy,gy:0,v:0,yr:0,gph:0,mode:"hide",t:rr(2,8),goal:null,trav:0,
     P:{thr:0,raise:0,open:0,feel:0,look:0},thr:null}}
 /* rocks a scorpion can live under: its hiding place just inside the rock's shaded edge, its doorstep just outside */
 function scRocks(){const g=navGrid("scorp",.05,1.3,.84),L=OBST.filter(o=>o.k==="rock"&&o.r>=.35&&o.r<1.2&&pN(o.x,o.z)>1.5).sort((a,b)=>Math.hypot(a.x,a.z)-Math.hypot(b.x,b.z));const out=[];
@@ -5646,9 +5731,10 @@ function scUpdate(A,dt,cam){const P=A.P,rk=A.rk,dark=st.night>.55,dusk=st.phase=
   const thr=fear>.25&&A.mode!=="hide"&&A.mode!=="home";if(thr){A.v*=Math.exp(-dt*10);const dy=wrapA(Math.atan2(tx-A.x,tz-A.z)-A.yaw);A.yaw=wrapA(A.yaw+cl(dy,-dt*3,dt*3))}
   P.thr+=((thr?1:0)-P.thr)*ease(thr?6:1.5,dt);P.open+=((thr?1:A.mode==="roam"?.3:0)-P.open)*ease(4,dt);P.feel+=((A.mode==="roam"&&A.v>.01?1:0)-P.feel)*ease(2,dt);
   A.x+=Math.sin(A.yaw)*A.v*dt;A.z+=Math.cos(A.yaw)*A.v*dt;A.gy=hTop(A.x,A.z);
-  if(A.v>.004){A.gph=(A.gph+dt*(1.5+60*A.v))%1;A.trav+=A.v*dt;if(A.trav>.07){A.trav=0;paPrint(PRK.scorp,A.x,A.z,A.yaw,0,.7,0,1)}}
+  if(A.v>.004){A.gph=(A.gph+dt*(1.5+60*A.v))%1;A.trav+=A.v*dt;if(A.trav>.07&&!A.rig){A.trav=0;paPrint(PRK.scorp,A.x,A.z,A.yaw,0,.7,0,1)}}
   const D=Math.max(.05,cam.distanceTo(A.g.position));A.g.visible=A.mode!=="hide"&&.09*PA.ppm/D>2.5;
-  A.g.position.set(A.x,A.gy,A.z);A.g.rotation.y=A.yaw;if(A.g.visible){A.rig?scAnim(A,dt):scPose(A);blobAdd(A.x,A.gy,A.z,A.yaw,.035,.05,.25+.2*sunCast(),.7,0)}}
+  A.g.position.set(A.x,A.gy,A.z);A.g.rotation.y=A.yaw;if(A.g.visible){A.rig?scAnim(A,dt):scPose(A);blobAdd(A.x,A.gy,A.z,A.yaw,.035,.05,.25+.2*sunCast(),.7,0)}
+  else if(A.rig&&A.v>.004&&A.mode!=="hide")scAnim(A,dt)}
 /* a scorpion's scrape: a flat dark slot dug in under the rock's shaded lip, its spoil fanned out on the sand in front */
 const SC_MOUND={rh:.028,ex:2.2,ch:.005,fh:.011,fw:.06,fz:.055,fl:.07,peb:6,pr:.005,seed:9133,hole:[.01,.007,.005],sand:[.52,.27,.07],dug:[.33,.15,.04]};
 function scLoad(){return Promise.all([pgGet("sc"),pgGet("scUV")]).then(([src,uv])=>{let glow=null;
@@ -5689,7 +5775,18 @@ function pgModel(src,k,sc,o){const s=VT.cloneSkinned(src.scene),g=new T.Group();
     if(m)c.skeleton=m;else sks.push(a)});
   const bn={};s.traverse(c=>{if(c.isBone)bn[c.name]=c});const rig=rigUp(s,src.animations);
   for(const n of o.once||[]){const a=rig.acts[n];if(a){a.setLoop(VT.THREE.LoopOnce,1);a.clampWhenFinished=true}}
-  return{g,s,bn,rig}}
+  let gt=null;const gf=PG_FEET[k];if(gf){const bs=gf.feet.map(n=>bn[n]);if(bs.every(Boolean))gt={G:gaitUp(PG[k],g,rig,gf.clips,bs,gf.band,gf.mid),b:bs,fore:gf.fore}}
+  return{g,s,bn,rig,gt}}
+/* the feet that leave prints, the gait clips they walk in, and how deep a sole is */
+const PG_FEET={os:{clips:["slow_walk","fast_run","idle","peck"],feet:["footL","footR"],fore:[0,0],band:.015,mid:["slow_walk"]},
+  tt:{clips:["slow_crawl","idle"],feet:["handL","handR","footL","footR"],fore:[1,1,0,0],band:.006},
+  gb:{clips:["hop_run","idle","stand_lookout","dig"],feet:["footL","footR","handL","handR"],fore:[0,0,1,1],band:.004},
+  sc:{clips:["walk","idle","threat"],feet:["leg1Lfoot","leg1Rfoot","leg2Lfoot","leg2Rfoot","leg3Lfoot","leg3Rfoot","leg4Lfoot","leg4Rfoot"],fore:[1,1,1,1,0,0,0,0],band:.002}};
+/* prints of a rigged animal's feet, a fraction of a print token each (a hop's four feet or a scorpion's leg tips cost as one print did) */
+function pgPrints(A,tol,emit,sk){const q=A.gt;if(!q)return;gaitStep(A,A.rig,q.G,q.b,tol,emit,A.hv!=null?A.hv:A.v,sk)}
+/* a clip's air share at its current phase, eased by its weight (1 when it is not playing or has none) */
+function gaitAir(A,n){const a=A.rig&&A.rig.acts[n],G=A.gt&&A.gt.G[n];if(!a||!G||!G.air||!a.isRunning())return 1;const w=a.getEffectiveWeight(),L=G.air,N=L.length,f=a.time/a.getClip().duration%1*N,i=Math.floor(f)%N;
+  return 1+(L[i]+(L[(i+1)%N]-L[i])*(f-Math.floor(f))-1)*w}
 const _pgq=new T.Quat(),_pgq2=new T.Quat(),_pgv=new V3(),_pgv2=new V3(),_pgv3=new V3(),_pgY=new V3(0,1,0),_pgX=new V3(1,0,0);
 /* turn a bone about its own axis (y, along it) or across it (x), on top of the clip */
 function pgTurn(b,ax,a){if(b&&a)b.quaternion.multiply(_pgq.setFromAxisAngle(ax,a))}
@@ -5724,9 +5821,9 @@ function osAnim(A,dt){const P=A.P,v=A.v,R=A.rig,sitC=R.acts.sit,upC=R.acts.stand
         pgAim(th,kn,kT);pgAim(sh,ta.getWorldPosition(_ow[1]),aT);
         const fp=ft.getWorldPosition(_ow[2]),fT=_ow[3].copy(fp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.2,.07,.33)),s);pgAim(ta,fp,fT);
         const tp=to.getWorldPosition(_ow[2]),tT=_ow[3].copy(tp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.22,.04,.48)),s);pgAim(ft,tp,tT)}}}
-  /* prints where a toe actually comes down */
-  if(P.sit<.3&&v>.1)for(let i=0;i<2;i++){const to=A.bn[i?"toe_mainR":"toe_mainL"];if(!to)continue;const p=to.getWorldPosition(_ow[0]);W.worldToLocal(p);
-    const h=p.y-hTop(p.x,p.z),f=A.pf[i];if(h>.14)f.up=1;else if(h<.09&&f.up){f.up=0;f.P.set(p.x,0,p.z);f.P.y=hTop(p.x,p.z);f.fy=A.yaw;osTrack(A,f)}}}
+  /* prints where a foot actually comes down */
+  if(P.sit<.3)pgPrints(A,.03*A.sc,(j,x,z,yaw,mir)=>{const r=P.run>.5;prAdd(PRK.ost,x,z,yaw,0,r?1.35:1,mir,A.sc);
+    if(r||v>2)spPuff(x,hTop(x,z),z,r?5:2,-Math.sin(yaw),-Math.cos(yaw),r?1.2:.5,.8,.04)},1)}
 /* tortoise: idle, slow_crawl (~.058 m/s), head_withdraw and head_out (each with the withdraw morph), turned to the state */
 const TOR_V=.058;
 function torAnim(A,dt){const P=A.P,R=A.rig,inS=A.mode==="shell"||A.mode==="sleep";let c,ts=1;
@@ -5739,7 +5836,8 @@ function torAnim(A,dt){const P=A.P,R=A.rig,inS=A.mode==="shell"||A.mode==="sleep
   play(R,c,c==="head_out"||c==="head_withdraw"?.25:.5,ts);rigTick(R,dt);
   /* cropping, drinking and looking about, on top of the clip */
   const ho=c==="idle"||c==="slow_crawl"?1:0;pgTurn(A.bn.neck1,_pgX,ho*(.3*P.gr+.45*P.dr));pgTurn(A.bn.head,_pgX,ho*(.25*P.gr+.3*P.dr+.15*P.bite));
-  pgTurn(A.bn.neck2,_pgY,ho*P.look*.5)}
+  pgTurn(A.bn.neck2,_pgY,ho*P.look*.5);
+  if(P.wd<.3&&P.dig<.3)pgPrints(A,.025,(j,x,z,yaw,mir)=>paPrint(PRK.tort,x,z,yaw,A.gt.fore[j]?0:1,.9,mir,1))}
 /* gerbil v5 (v4d's 39 bones and clips on the Tripo fur): idle, stand_lookout (the upright hind-foot stand; played as authored),
    dig and hop_run (.36 m/s per 0.3 s hop). Every clip carries a lookout_fix weight track (1 in stand_lookout, 0 in the rest),
    so the chest corrective fades in and out with the crossfade. Extra bone pitch on top of stand_lookout tore the skin and
@@ -5749,19 +5847,20 @@ function gbAnim(A,dt){const P=A.P,R=A.rig;let c="idle",ts=1;
   if(A.v>.05){c="hop_run";ts=cl(A.v/(GB_VH*GB_SC),.8,2.4)}
   else if(A.mode==="stand"||A.mode==="look"||A.mode==="peek")c="stand_lookout";
   else if(A.mode==="nibble"){c="dig";ts=.8}
-  play(R,c,c==="hop_run"||R.cur==="hop_run"?.08:.2,ts);rigTick(R,dt);pgTurn(A.bn.head,_pgY,P.look*.5);pgTurn(A.bn.neck,_pgY,P.look*.3)}
+  play(R,c,c==="hop_run"||R.cur==="hop_run"?.08:.2,ts);rigTick(R,dt);pgTurn(A.bn.head,_pgY,P.look*.5);pgTurn(A.bn.neck,_pgY,P.look*.3);
+  if(A.mode!=="dive")pgPrints(A,.015,(j,x,z,yaw,mir)=>paPrint(PRK.gerb,x,z,yaw,A.gt.fore[j]?2:1,.9,mir,1,.25))}
 /* scorpion: idle, walk (.071 m/s) and the threat display; claws_raise and tail_raise are not used */
 const SC_VW=.071;
 function scAnim(A,dt){const P=A.P,R=A.rig;let c="idle",ts=1;
   if(P.thr>.35)c="threat";else if(A.v>.005){c="walk";ts=cl(A.v/SC_VW,.3,1.6)}
-  play(R,c,.25,ts);rigTick(R,dt)}
+  play(R,c,.25,ts);rigTick(R,dt);pgPrints(A,.015,(j,x,z,yaw,mir)=>paPrint(PRK.scorp,x,z,yaw,1,.7,mir,1,.25))}
 /* per frame: who is about, then each animal; an animal too small on screen to see is skipped (it stays where it was) */
 const _pac=new V3();
 function paUpdate(dt){movers();const c=_pac.copy(De.position);W.worldToLocal(c);PA.ppm=innerHeight*Math.min(devicePixelRatio||1,2)/(2*Math.tan(De.fov*Math.PI/360));
   paU.uWetA.value+=(ss(.05,.5,WX.rain)-paU.uWetA.value)*Math.min(1,dt*(WX.rain>.05?.5:.04));
   paU.uGlow.value=ss(.55,.95,st.night)*(1-.7*WX.rain);
   if(PG_GLOW)PG_GLOW.emissiveIntensity=.42*paU.uGlow.value;
-  PA.tok=Math.min(6,PA.tok+dt*4);
+  for(const k in PA.tok)PA.tok[k]=Math.min(6,PA.tok[k]+dt*4);
   for(const A of PA.tt)torUpdate(A,dt,c);
   for(const A of PA.gb)gbUpdate(A,dt,c);
   for(const A of PA.sc)scUpdate(A,dt,c);

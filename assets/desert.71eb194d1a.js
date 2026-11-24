@@ -794,34 +794,59 @@ function renderPondReflection(){
 
 /* ---------------- vegetation: grass tufts, reeds, shrubs ---------------- */
 const vegU={uT:{value:0},uWind:{value:.35},uGT:sandU.uGT,uWD:sandU.uWD};
+/* wind in the grass: every blade bends downwind (uWD, carried into each instance's own frame through its matrix columns) as
+   the square of its height, so the base stays put and the tips go furthest. The lean grows with the wind (uWind = st.wn) and
+   with the gust field that rolls across the oasis (gustF), and each tuft and blade flutters on its own phase; in still air
+   it all but stops. */
 function vegMat(opt){
   const m=new T.MSM({vertexColors:true,roughness:.88,metalness:0,side:2});
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,vegU);
     sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uT,uWind;"+GLSL_GUST)
       .replace("#include <begin_vertex>",`#include <begin_vertex>
-        {vec3 ip=vec3(0.);
+        {vec3 ip=vec3(0.);vec2 wl=vec2(1.,0.);
          #ifdef USE_INSTANCING
-         ip=instanceMatrix[3].xyz;
+         ip=instanceMatrix[3].xyz;vec3 c0=instanceMatrix[0].xyz,c2=instanceMatrix[2].xyz,wd=vec3(uWD.x,0.,uWD.y);
+         wl=vec2(dot(wd,c0)/dot(c0,c0),dot(wd,c2)/dot(c2,c2));
          #endif
-         float h=max(position.y,0.);float ph=ip.x*.37+ip.z*.61;
-         float sw=(sin(uT*1.9+ph)*.6+sin(uT*3.3+ph*1.7)*.25+.35)*uWind*(.5+.9*gustF(ip.xz))*${opt.sway.toFixed(3)};
-         transformed.x+=sw*h*h;transformed.z+=sw*.35*h*h;}`)
+         float h=max(position.y,0.),hh=h*h,g=gustF(ip.xz),tp=fract(sin(dot(ip.xz,vec2(12.9898,78.233)))*43758.5453)*6.283;
+         float bp=tp+position.x*9.+position.z*7.,calm=smoothstep(.03,.3,uWind);
+         float lean=uWind*(.2+.95*g)*(.85+.3*sin(uT*.6+tp));
+         float fl=(sin(uT*(2.2+1.6*uWind)+bp)*.65+sin(uT*(3.9+2.*uWind)+bp*1.7)*.35)*(.05+.45*uWind)*(.45+.8*g)*calm;
+         float A=${opt.sway.toFixed(3)};vec2 d=wl*(lean+.55*fl)*A*hh+vec2(-wl.y,wl.x)*fl*.3*A*hh;
+         transformed.xz+=d;transformed.y-=length(d)*.4*h;}`)
       .replace("#include <beginnormal_vertex>","vec3 objectNormal=normalize(mix(normal,vec3(0.,1.,0.),"+opt.up.toFixed(2)+"));\n#ifdef USE_TANGENT\nvec3 objectTangent=vec3(tangent.xyz);\n#endif");
   };
-  m.customProgramCacheKey=()=>"des45veg"+opt.sway+opt.up;return m}
-/* a tuft is 2–4 offset sub-clumps leaning mostly one way, with uneven blade lengths, so it never reads as a ball */
+  m.customProgramCacheKey=()=>"des172veg"+opt.sway+opt.up;return m}
+/* a tuft: one to three tight base clumps from which the blades splay out and arch over, each tapering to a point and turning
+   a little along its length; the blade count, length, lean and width vary from tuft to tuft. The colour runs from a dark
+   base through the leaf colour, the tips are sun-dried to straw by differing amounts and a few blades are dead all through. */
 function tuftGeo(nb,lean,wid,c0,c1,seed){
-  const pos=[],col=[],idx=[];sd=seed;
-  const nc=2+Math.floor(rnd()*3),bias=rnd()*TAU,subs=[];for(let k=0;k<nc;k++){const a=rnd()*TAU,r=rr(.04,.24);subs.push([Math.cos(a)*r,Math.sin(a)*r,rr(.55,1)])}
-  for(let b=0;b<nb;b++){const sb=subs[b%nc],a=rnd()<.6?bias+rr(-1.1,1.1):rnd()*TAU,ln=rr(lean[0],lean[1])*rr(.6,1.15),hh=sb[2]*rr(.45,1)*(rnd()<.15?1.25:1),w=wid*rr(.5,1),seg=4,base=pos.length/3;
-    const dx=Math.cos(a),dz=Math.sin(a),px=-dz,pz=dx,ox=sb[0]*hh,oz=sb[1]*hh;
-    for(let i=0;i<=seg;i++){const u=i/seg,bend=ln*u*u*1.3+ln*.3*u,y=hh*u*(1-.15*bend),r=bend*hh*.55+.02,ww=w*(1-u*.92);
-      const cx=ox+dx*r,cz=oz+dz*r;pos.push(cx-px*ww,y,cz-pz*ww,cx+px*ww,y,cz+pz*ww);
-      const k=Math.pow(u,.8),cc=[c0[0]+(c1[0]-c0[0])*k,c0[1]+(c1[1]-c0[1])*k,c0[2]+(c1[2]-c0[2])*k];col.push(...cc,...cc);
+  const pos=[],col=[],idx=[],nb0=nb;sd=seed;const straw=lin("#c4ae7c"),dead=lin("#a8925f");nb=Math.max(4,Math.round(nb*rr(.75,1.3)));
+  const nc=1+Math.floor(rnd()*3),bias=rnd()*TAU,subs=[];for(let k=0;k<nc;k++){const a=rnd()*TAU,r=k?rr(.06,.2):rr(0,.05);subs.push([Math.cos(a)*r,Math.sin(a)*r,rr(.6,1)])}
+  const mixc=(a,b,k)=>[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k];
+  for(let b=0;b<nb;b++){const sb=subs[b%nc],a=rnd()<.55?bias+rr(-1,1):rnd()*TAU,stalk=rnd()<.08,deadB=rnd()<.15,dry=Math.pow(rnd(),.9);
+    const tilt=rr(.08,.55)+(deadB?.35:0),cu=rr(lean[0],lean[1])*(deadB?1.4:1),hh=sb[2]*rr(.4,1)*(stalk?1.45:1),w=wid*rr(.45,.9)*(stalk?.45:1),tw=rr(-.7,.7),seg=5,base=pos.length/3;
+    const dx=Math.cos(a),dz=Math.sin(a),ox=sb[0]+rr(-.018,.018),oz=sb[1]+rr(-.018,.018);
+    for(let i=0;i<=seg;i++){const u=i/seg,r=hh*(Math.sin(tilt)*u+cu*u*u*.7),y=Math.max(hh*(Math.cos(tilt)*u-cu*u*u*.32),hh*.12*u);
+      const ww=w*(u<.15?.65+2.3*u:1-Math.pow((u-.15)/.85,1.35)),fa=a+Math.PI/2+tw*u,px=Math.cos(fa),pz=Math.sin(fa),cx=ox+dx*r,cz=oz+dz*r;
+      pos.push(cx-px*ww,y,cz-pz*ww,cx+px*ww,y,cz+pz*ww);
+      let cc=mixc(mixc(c0,[c0[0]*.9,c0[1]*.9,c0[2]*.85],1-ss(0,.2,u)),c1,Math.pow(u,.75)*.92);
+      cc=deadB?mixc(dead,straw,u):mixc(cc,straw,ss(1-.25-.6*dry,1,u)*(.6+.4*dry));col.push(...cc,...cc);
       if(i<seg){const o=base+i*2;idx.push(o,o+1,o+2,o+1,o+3,o+2)}}}
+  /* leave the shared generator where the earlier blade builder (2 + 3 a sub-clump + 7 a blade draws) left it, so every
+     tuft, shrub and rock placed after this keeps its place */
+  sd=seed;const nc0=2+Math.floor(rnd()*3);sd=(seed+Math.imul(2+3*nc0+7*nb0,0x6D2B79F5))|0;
   const g=new T.BG();g.setAttribute("position",new T.BA(new Float32Array(pos),3));g.setAttribute("color",new T.BA(new Float32Array(col),3));g.setIndex(idx);g.computeVertexNormals();return g}
 const lin=h=>{const c=new C3(h);return[c.r,c.g,c.b]};
 const VEG=[];
+/* the grass, tuft and reed instances an animal can crop (userData.eat), read back from the instance matrices so a tuft
+   cleared away (round the fire, the crab burrows) is never eaten */
+let EAT=null;
+function eatPts(){if(EAT&&st.t>=EAT.t&&st.t-EAT.t<5)return EAT.L;const L=[],M=new T.M4(),e=M.elements;
+  for(const im of VEG){if(!im.userData.eat)continue;for(let i=0;i<im.count;i++){im.getMatrixAt(i,M);const s2=e[0]*e[0]+e[1]*e[1]+e[2]*e[2];
+    if(s2>1e-6)L.push({x:e[12],z:e[14],s:Math.sqrt(s2)})}}
+  EAT={t:st.t,L};return L}
+function nearTuft(x,z){let b=1e9,o=null;for(const p of eatPts()){const d=(p.x-x)*(p.x-x)+(p.z-z)*(p.z-z);if(d<b){b=d;o=p}}return{p:o,d:Math.sqrt(b)}}
 /* where the green is thickest (reed beds, grass clumps, shrubs): the fireflies keep to it at night */
 const VEGP=[];
 /* per-instance tint (multiplies the vertex colours) so no two clumps share a hue */
@@ -837,7 +862,7 @@ function scatter(geo,mat,list){const im=new T.IM(geo,mat,list.length),m=new T.M4
   const reedG=V3G(7,[.02,.16],.014,"#34441f","#7f8a48",13),clumpG=V3G(28,[.2,1.],.019,"#243c16","#748c48",14);
   /* desert shrubs: splayed, twiggy, sage-to-olive — same blade system, more blades and a wider, lopsided fan */
   const shrubG=[V3G(44,[.55,1.3],.021,"#2e3c1c","#748450",15),V3G(34,[.7,1.4],.019,"#433f24","#948a5c",16)];
-  const gm=vegMat({sway:.07,up:.65}),rm=vegMat({sway:.05,up:.5}),sm=vegMat({sway:.025,up:.55});
+  const gm=vegMat({sway:.42,up:.65}),rm=vegMat({sway:.16,up:.5}),sm=vegMat({sway:.07,up:.55});
   const L=[],C=[],D=[],R=[],SH=[[],[]];const N=MOB?0.55:1;
   const okW=(x,z)=>hTop(x,z)>=POND.wy+.04&&sN(x,z)<.93;
   /* waterline: dense, uneven clumps that thin out with distance from the water */
@@ -865,8 +890,8 @@ function scatter(geo,mat,list){const im=new T.IM(geo,mat,list.length),m=new T.M4
   shrub(-16.5,-9,.8,.55,1);shrub(12.5,7.4,.7,.5,1);
   for(const p of R)VEGP.push({x:p.x,z:p.z,h:p.h*.8,w:1.3});for(const p of C)VEGP.push({x:p.x,z:p.z,h:p.h,w:1});
   for(const l of SH)for(const p of l)VEGP.push({x:p.x,z:p.z,h:p.h,w:2.2});
-  const scatterV=(gs,m,l)=>gs.forEach((g,k)=>scatter(g,m,l.filter((_,i)=>i%gs.length===k)));
-  scatterV(grassG,gm,L);scatterV(clumpG,gm,C);scatterV(dryG,gm,D);scatterV(reedG,rm,R);scatterV(shrubG[0],sm,SH[0]);scatterV(shrubG[1],sm,SH[1]);
+  const scatterV=(gs,m,l,eat)=>gs.forEach((g,k)=>{scatter(g,m,l.filter((_,i)=>i%gs.length===k)).userData.eat=eat||0});
+  scatterV(grassG,gm,L,1);scatterV(clumpG,gm,C,1);scatterV(dryG,gm,D,1);scatterV(reedG,rm,R,1);scatterV(shrubG[0],sm,SH[0]);scatterV(shrubG[1],sm,SH[1]);
 })();
 /* ---------------- rim boulders + scattered stones (0.3–2 m) ---------------- */
 (function rocks(){
@@ -2477,7 +2502,7 @@ UPD.push((dt,t)=>{
     cu.lerp(_c3.setRGB(lu,lu,lu),.45*wS).multiplyScalar(1-.2*wS);curU.uSheen.value.multiplyScalar(1-.55*wS)}
   curU.uT.value=t;curU.uNt.value=nk;curtainUpdate(t);
   const gT=gustAt(TENT.x,TENT.z);
-  vegU.uT.value=t;vegU.uWind.value=.4+wn;propU.uT.value=t;propU.uWind.value=(.4+wn)*(.55+.9*gT);cactusLod();
+  vegU.uT.value=t;vegU.uWind.value=wn;propU.uT.value=t;propU.uWind.value=(.4+wn)*(.55+.9*gT);cactusLod();
   pondU.uT.value=t;pondU.uWind.value=wn;pondU.uNight.value=nk;pondU.uCamL.value.copy(_cl);
   {const d=pi.position.clone().normalize();d.applyAxisAngle(new V3(0,1,0),-YAW);pondU.uSunL.value.copy(d);pondU.uSunCol.value.copy(pi.color)}
   pondU.uSkyA.value.set(nk>.5?"#1a2440":st.day>.5?"#a8c4dc":"#d4aab8");sandU.uHaze.value.copy(pondU.uSkyA.value);pondU.uSkyB.value.set(nk>.5?"#0c1428":st.day>.5?"#5c88c0":"#7a6eb0");
@@ -3411,20 +3436,48 @@ function camelSpawn(sc,anims,i,kind){smoothRoot(anims);
   /* the four feet: the tip below each leg's last joint, fore or hind by where it stands in the bind pose */
   a.feet=[];for(const n in a.bones){const m=n.match(/([01])_(Left|Right)_Limb_3$/);if(!m)continue;const b=a.bones[n];a.feet.push({b:b.children.find(c=>c.isBone)||b,l3:b,R:m[2]==="Right",hind:0})}
   if(a.feet.length===4){g.updateMatrixWorld(true);const z=a.feet.map(f=>g.worldToLocal(f.b.getWorldPosition(new V3())).z),mid=[...z].sort((x,y)=>x-y).slice(1,3).reduce((x,y)=>x+y)/2;a.feet.forEach((f,i)=>{f.hind=z[i]<mid?1:0})}
+  a.mo=mouthUp(g,a.r,"drink",a.bones.tripoHead_0);
   if(a.feet.length===4){a.fb=a.feet.map(f=>f.l3);a.gt=gaitUp(kind.file,g,a.r,["walk","idle","drink"],a.fb,.02,["walk"])}
   furUp(a);ctUp(a);return a}
+/* the lowest point of the head (the muzzle, where it meets the grass or the water) at the clip's deepest reach, in the
+   model's frame */
+function mouthUp(g,rig,n,b){const a=rig.acts[n],vs=b&&footVerts(g,b);if(!a||!vs||!vs.length)return null;
+  const inv=new T.M4(),d=a.getClip().duration,best=new V3(0,1e9,0),s=new V3();
+  for(const k in rig.acts)rig.acts[k].stop();a.reset();a.play();a.setEffectiveWeight(1);a.setEffectiveTimeScale(1);
+  for(let i=0;i<40;i++){a.time=i/40*d;rig.mx.update(0);g.updateMatrixWorld(true);inv.copy(g.matrixWorld).invert();soleIn(vs,inv,.01/g.scale.x,s);if(s.y<best.y)best.copy(s)}
+  a.stop();rig.cur=null;rig.fd=null;return best}
+/* where a camel standing at x,z facing yaw puts its muzzle once its head is down */
+const _cmM=new T.M4(),_cmQ=new T.Quat(),_cmP=new V3(),_cmS=new V3(1,1,1);let _cmE=null;
+function camelMouth(a,x,z,yaw,out){const f=groundFrame(x,z,yaw,1.25,.45);_cmE=_cmE||new VT.THREE.Euler(0,0,0,"YXZ");_cmE.set(f.pitch,yaw,f.roll,"YXZ");
+  return out.copy(a.mo).applyMatrix4(_cmM.compose(_cmP.set(x,f.y,z),_cmQ.setFromEuler(_cmE),_cmS))}
 function camelPrints(a){if(!a.gt)return;const bk=CAMEL_SLOTS[a.i]==="bact";
   gaitStep(a,a.r,a.gt,a.fb,.05,(j,x,z,yaw)=>{const f=a.feet[j];prAdd(bk?PRK.bact:PRK.drom,x,z,yaw,f.hind,1,f.R)},a.spd)}
 /* the hollow it lay in, left as it gets up: centred under the chest and belly, a little ahead of the root */
 function camelLie(a){const bk=CAMEL_SLOTS[a.i]==="bact",f=.12*a.sc;prAdd(PRK.lie,a.x+Math.sin(a.yaw)*f,a.z+Math.cos(a.yaw)*f,a.yaw,bk?1:0,1,0,a.sc)}
+/* to.via: the stand is down the bank, off the walkable grid; the path runs to the bank top and then straight down to it */
 function camelGo(a,to,job){
-  const g=navGrid("camel",1.05,1.12,.84),blk=ANIM.camels.filter(o=>o!==a&&o.spd<.05).map(o=>({x:o.x,z:o.z,r:2.6})),p=navPath(g,a.x,a.z,to.x,to.z,blk);
+  const g=navGrid("camel",1.05,1.12,.84),blk=ANIM.camels.filter(o=>o!==a&&o.spd<.05).map(o=>({x:o.x,z:o.z,r:2.6})),v=to.via;
+  let p=v&&Math.hypot(a.x-to.x,a.z-to.z)<1.6?[{x:a.x,z:a.z},{x:to.x,z:to.z}]:navPath(g,a.x,a.z,v?v.x:to.x,v?v.z:to.z,blk);if(p&&v&&p[p.length-1].x!==to.x)p.push({x:to.x,z:to.z});
   if(!p){a.mode="job";a.job="idle";a.timer=rr(3,6);play(a.r,"idle",1,1);return false}
   a.path=p;a.pi=1;a.face=to.yaw!=null?to.yaw:null;a.job=job;a.mode="walk";a.goal=to;return true}
 const roomy=(a,x,z)=>ANIM.camels.every(o=>o===a||(Math.hypot(o.x-x,o.z-z)>5.5&&(!o.goal||Math.hypot(o.goal.x-x,o.goal.z-z)>5.5)));
-function grazeSpot(a){const g=navGrid("camel",1.05,1.12,.84);
-  for(let t=0;t<60;t++){const th=rr(-.5,1.9),k=rr(1.25,1.65),[x,z]=pondEdge(th,k);if(navFree(g,x,z)&&(!a||roomy(a,x,z)))return{x,z,yaw:Math.atan2(POND.x-x,POND.z-z)+rr(-1.3,1.3)}}
-  return randFree(g,0,4,12)||{x:0,z:6}}
+/* a graze is planned from a tuft: the camel stands so that its lowered muzzle comes down on it (rule of thumb: within 0.3 m),
+   and with no tuft in reach it does not graze at all */
+const _gsM=new V3();
+function grazeSpot(a){const g=navGrid("camel",1.05,1.12,.84),L=eatPts().filter(p=>pN(p.x,p.z)>1.02);if(!a.mo||!L.length)return null;
+  for(let t=0;t<80;t++){const p=pick(L),yaw=rnd()*TAU,c=Math.cos(yaw),n=Math.sin(yaw),x=p.x-(a.mo.x*c+a.mo.z*n),z=p.z-(-a.mo.x*n+a.mo.z*c);
+    if(!navFree(g,x,z)||!roomy(a,x,z)||hTop(x,z)<POND.wy+.06)continue;camelMouth(a,x,z,yaw,_gsM);
+    if(Math.hypot(_gsM.x-p.x,_gsM.z-p.z)<.12)return{x,z,yaw,eat:p}}
+  return null}
+/* a drink is planned at the east beach: the stand just inside the waterline where the lowered muzzle meets the surface. The
+   body tilts onto its hooves (camelSettle), so the reach is measured rather than worked out: with the hooves on dry sand the
+   lowest the muzzle gets is ~0.26 m over the water; wading the forefeet in down the bank it touches the surface at these
+   stands (pondEdge k on the beach's axis) */
+const DRINK_K={drom:.929,bact:.925};
+function drinkSpot(a){const[x,z]=pondEdge(BEACH[0],DRINK_K[CAMEL_SLOTS[a.i]]||.928),[vx,vz]=pondEdge(BEACH[0],1.2);return{x,z,yaw:Math.atan2(POND.x-x,POND.z-z),via:{x:vx,z:vz}}}
+/* on reaching its stand, the muzzle it will lower is checked against the tuft or the water before the head goes down */
+function mouthOk(a){if(!a.mo)return true;const m=camelMouth(a,a.x,a.z,a.face!=null?a.face:a.yaw,_gsM);
+  return a.job==="drink"?pN(m.x,m.z)<.98&&(!a.goal||Math.hypot(a.goal.x-a.x,a.goal.z-a.z)<.06):nearTuft(m.x,m.z).d<.3}
 /* by day the two keep different jobs (one grazes while the other drinks or lies down); at night both kneel at their rest spots */
 function camelPlan(a){
   if(st.phase==="night"||WX.shel){camelGo(a,camelShelter(a),"kneel");return}
@@ -3436,12 +3489,13 @@ function camelPlan(a){
      Send them across the open snow so the walk is several strides long. */
   if(WX.sc>.08){const g=navGrid("camel",1.05,1.12,.84);
     for(let t=0;t<50;t++){const th=rnd()*TAU,d=rr(8,16),x=a.x+Math.sin(th)*d,z=a.z+Math.cos(th)*d;
-      if(navFree(g,x,z)&&sN(x,z)<.9&&roomy(a,x,z)&&camelGo(a,{x,z},"graze"))return}}
+      if(navFree(g,x,z)&&sN(x,z)<.9&&roomy(a,x,z)&&camelGo(a,{x,z},"idle"))return}}
   const busy=j=>ANIM.camels.some(o=>o!==a&&o.job===j),near=(p,r)=>ANIM.camels.some(o=>o!==a&&(Math.hypot(o.x-p.x,o.z-p.z)<r||(o.goal&&Math.hypot(o.goal.x-p.x,o.goal.z-p.z)<r)));
   const opts=[["drink",.3],["graze",.32],["kneel",.2],["idle",.18]].filter(([j])=>j==="idle"||!busy(j)&&(j!=="drink"||!near(DRINK,4.5)));
   let r=rnd()*opts.reduce((s,o)=>s+o[1],0),job="idle";for(const[j,w]of opts){if((r-=w)<0){job=j;break}}
-  if(job==="drink")camelGo(a,DRINK,"drink");
-  else if(job==="graze")camelGo(a,grazeSpot(a),"graze");
+  a.tries=0;const gs=job==="graze"&&grazeSpot(a),dk=job==="drink"&&drinkSpot(a);if((job==="graze"&&!gs)||(job==="drink"&&!dk))job="idle";
+  if(job==="drink")camelGo(a,dk,"drink");
+  else if(job==="graze")camelGo(a,gs,"graze");
   else if(job==="kneel")camelGo(a,REST[a.i],"kneel");
   else{const g=navGrid("camel",1.05,1.12,.84),p=randFree(g,0,2,20,(x,z)=>sN(x,z)<.72&&roomy(a,x,z));camelGo(a,p||REST[a.i],"idle")}}
 /* in a dust storm camels kneel with their backs to the wind; in a downpour they kneel where they rest at night */
@@ -3457,11 +3511,11 @@ function camelUpdate(a,dt){
   let dy=0,vT=0,ym=.75;
   if(a.mode==="walk"){
     /* still on lying snow: don't end the walk a stride from the goal, or a resumed crossing crunches once */
-    if(WX.sc>.08&&!camHold()&&!night&&(a.job==="graze"||a.job==="idle")){const lastP=a.path[a.path.length-1];
+    if(WX.sc>.08&&!camHold()&&!night&&a.job==="idle"){const lastP=a.path[a.path.length-1];
       if(lastP&&Math.hypot(lastP.x-a.x,lastP.z-a.z)<4){const g=navGrid("camel",1.05,1.12,.84),blk=ANIM.camels.filter(o=>o!==a&&o.spd<.05).map(o=>({x:o.x,z:o.z,r:2.6}));
         for(let t=0;t<24;t++){const th=rnd()*TAU,d=rr(8,14),x=a.x+Math.sin(th)*d,z=a.z+Math.cos(th)*d;
           if(!navFree(g,x,z)||!roomy(a,x,z))continue;const pth=navPath(g,a.x,a.z,x,z,blk)||navPath(g,a.x,a.z,x,z);
-          if(pth){a.path=pth;a.pi=1;a.face=null;a.job="graze";a.goal={x,z};break}}}}
+          if(pth){a.path=pth;a.pi=1;a.face=null;a.job="idle";a.goal={x,z};break}}}}
     let wp=a.path[a.pi],last=a.pi===a.path.length-1;
     if(!last&&Math.hypot(wp.x-a.x,wp.z-a.z)<1.1){a.pi++;wp=a.path[a.pi];last=a.pi===a.path.length-1}
     const dx=wp.x-a.x,dz=wp.z-a.z,d=Math.hypot(dx,dz);dy=wrapA(Math.atan2(dx,dz)-a.yaw);
@@ -3472,8 +3526,12 @@ function camelUpdate(a,dt){
       play(a.r,"walk",.6,Math.max(.2,a.spd/a.v)*a.gait)}}
   else if(a.mode==="turn"){
     dy=a.face==null?0:wrapA(a.face-a.yaw);ym=.5;
-    if(Math.abs(dy)<.04&&Math.abs(a.yr)<.06&&a.spd<.05){a.mode="job";
-      if(a.job==="drink"){a.timer=14;play(a.r,"drink",1.2,1)}
+    /* a walk ends up to 0.15 m short: a drink or graze stand is shuffled onto while it turns, so the muzzle comes down where planned */
+    const sh=(a.job==="drink"||a.job==="graze")&&a.goal;if(sh){const k=ease(3,dt);a.x+=(a.goal.x-a.x)*k;a.z+=(a.goal.z-a.z)*k}
+    if(Math.abs(dy)<.04&&Math.abs(a.yr)<.06&&a.spd<.05&&(!sh||Math.hypot(a.goal.x-a.x,a.goal.z-a.z)<.02)){a.mode="job";
+      /* short of the tuft or the water: step up to the stand again, and after a few tries give it up */
+      if((a.job==="drink"||a.job==="graze")&&!mouthOk(a)&&!(a.tries++<3&&a.goal&&camelGo(a,a.goal,a.job)))a.job="idle";
+      if(a.mode==="walk"){}else if(a.job==="drink"){a.timer=14;play(a.r,"drink",1.2,1)}
       else if(a.job==="graze"){a.timer=rr(9,18);play(a.r,"drink",1.2,.85)}
       else if(a.job==="kneel"){a.mode="down";play(a.r,"kneel_down",.5,1);if(rnd()<.8)camelCall(a,"down")}
       else{a.timer=rr(4,9);play(a.r,"idle",1.2,1)}}
@@ -5497,8 +5555,19 @@ function torShade(A){const g=navGrid("tort",.18,1.12,.82);let best=null;
   for(const c of cand){if(!navFree(g,c.x,c.z))continue;const d=Math.hypot(c.x-A.x,c.z-A.z)+(PA.tt.some(o=>o!==A&&o.home&&Math.hypot(o.home.x-c.x,o.home.z-c.z)<1)?50:0);if(!best||d<best.d)best={x:c.x,z:c.z,d}}
   return best}
 function torGo(A,p,mode){const g=navGrid("tort",.18,1.12,.82),path=navPath(g,A.x,A.z,p.x,p.z);if(!path)return false;A.path=path;A.pi=1;A.mode=mode||"walk";return true}
-function torFood(A){const L=PINS.filter(o=>Math.hypot(o.x-A.x,o.z-A.z)<9&&pN(o.x,o.z)>1.3);const o=L.length?pick(L):null;if(!o)return randFree(navGrid("tort",.18,1.12,.82),A.x,A.z,4);
-  return randFree(navGrid("tort",.18,1.12,.82),o.x,o.z,.8)||{x:o.x,z:o.z}}
+/* the head's world place (W's frame): the head bone when rigged, else a nose length ahead of the root */
+const _hdP=new V3();
+function headAt(A,f){if(A.bn&&A.bn.head){A.bn.head.getWorldPosition(_hdP);return W.worldToLocal(_hdP)}return _hdP.set(A.x+Math.sin(A.yaw)*f,A.gy,A.z+Math.cos(A.yaw)*f)}
+/* it walks up to a tuft and stops with its nose on it (its head reaches ~0.14 m past the root) */
+function torFood(A){const g=navGrid("tort",.18,1.12,.82),L=eatPts().filter(o=>pN(o.x,o.z)>1.05&&Math.hypot(o.x-A.x,o.z-A.z)<9&&Math.hypot(o.x-A.x,o.z-A.z)>.5);
+  for(let t=0;t<12&&L.length;t++){const o=pick(L),d=Math.hypot(o.x-A.x,o.z-A.z),x=o.x-(o.x-A.x)/d*.14,z=o.z-(o.z-A.z)/d*.14;if(navFree(g,x,z))return{x,z}}
+  return randFree(g,A.x,A.z,4)}
+/* in the rain it goes down to drink at the waterline if the pond is near enough: the stand whose nose is over the edge */
+function torDrink(A){const th=Math.atan2((A.z-POND.z)/POND.rz,(A.x-POND.x)/POND.rx);
+  for(let k=1.2;k>.85;k-=.01){const[x,z]=pondEdge(th,k),d=Math.hypot(x-A.x,z-A.z);if(d>8)return null;const ux=(POND.x-x),uz=(POND.z-z),u=Math.hypot(ux,uz),mx=x+ux/u*.14,mz=z+uz/u*.14;
+    if(hTop(mx,mz)<=POND.wy+.015&&hTop(x,z)>POND.wy+.01)return{x,z}}return null}
+/* the head goes down to crop or to drink only with a tuft under the nose or the water at it */
+function torEatOk(A){const m=headAt(A,.14);return A.mode==="drink"?hTop(m.x,m.z)<=POND.wy+.03&&pN(m.x,m.z)<1.02:nearTuft(m.x,m.z).d<.3}
 function torUpdate(A,dt,cam){const P=A.P,ny=st.night>.55,hail=WX.hf>.05||WX.hcold>0,hot=WX.heat>.55&&st.phase==="day",rain=WX.rain>.15;
   A.t-=dt;const th=nearMov(A,["camel","ost","snake","view","eagle","dbg"]);let fear=0;
   if(th){const k=th.m.k;fear=k==="camel"||k==="ost"?ss(1.2,.4,th.d):k==="eagle"?ss(3,1,th.d):ss(.8,.25,th.d)}
@@ -5515,11 +5584,12 @@ function torUpdate(A,dt,cam){const P=A.P,ny=st.night>.55,hail=WX.hf>.05||WX.hcol
       if(hot&&!A.inShade){let s=torShade(A);A.inShade=1;if(!s||s.d>6)s={x:A.x,z:A.z};A.home=s;if(Math.hypot(s.x-A.x,s.z-A.z)>.3){if(torGo(A,s,"walk"))A.then="dig"}else{A.mode="dig";A.sink=0}break}
       if(!hot)A.inShade=0;
       if(A.mode==="walk"){if(!A.path||!torFollow(A,dt)){A.path=null;A.mode=A.then||"graze";A.then=null;A.t=rr(6,14)}break}
-      if(A.mode==="graze"||A.mode==="drink"){A.v*=Math.exp(-dt*6);A.bt-=dt;if(A.bt<0){A.bt=rr(.8,2.2);A.bite=1}
-        if(A.t<0){const p=rain?randFree(navGrid("tort",.18,1.12,.82),A.x,A.z,1.5):torFood(A);if(p&&torGo(A,p,"walk"))A.then=rain?"drink":"graze";else A.t=rr(3,6)}}}}
+      if(A.mode==="graze"||A.mode==="drink"){A.v*=Math.exp(-dt*6);A.et=(A.et||0)-dt;if(A.et<0){A.et=.5;A.eat=torEatOk(A);if(!A.eat)A.t=Math.min(A.t,1)}
+        A.bt-=dt;if(A.bt<0){A.bt=rr(.8,2.2);if(A.eat)A.bite=1}
+        if(A.t<0){const w=rain&&torDrink(A),p=w||torFood(A);if(p&&torGo(A,p,"walk")){A.then=w?"drink":"graze";A.eat=0}else A.t=rr(3,6)}}}}
   /* pose targets */
   const wdT=A.mode==="shell"||A.mode==="sleep"?1:A.mode==="pallet"?.55:0;P.wd+=(wdT-P.wd)*ease(wdT>P.wd?5:.45,dt);
-  P.gr+=((A.mode==="graze"?1:0)-P.gr)*ease(2,dt);P.dr+=((A.mode==="drink"?1:0)-P.dr)*ease(2,dt);P.dig+=((A.mode==="dig"?1:0)-P.dig)*ease(2,dt);
+  P.gr+=((A.mode==="graze"&&A.eat?1:0)-P.gr)*ease(2,dt);P.dr+=((A.mode==="drink"&&A.eat?1:0)-P.dr)*ease(2,dt);P.dig+=((A.mode==="dig"?1:0)-P.dig)*ease(2,dt);
   A.bite*=Math.exp(-dt*5);P.bite=A.bite>.5?Math.sin((1-A.bite)*Math.PI*2):0;
   P.lift+=((A.mode==="walk"?1:0)-P.lift)*ease(1.5,dt);
   A.lookT-=dt;if(A.lookT<0){A.lookT=rr(2,6);A.lookA=rr(-.6,.6)}P.look+=(A.lookA*(1-P.wd)-P.look)*ease(1.2,dt);
@@ -5612,9 +5682,13 @@ function gbUpdate(A,dt,cam){const P=A.P,h=A.h,calm=WX.rain<.08&&WX.hf<.02&&!WX.h
     case"peek":A.out=true;A.v=0;P.in+=(.45-P.in)*ease(3,dt);if(!act||gbThreat(A)>.25){A.mode="in";A.t=rr(3,8);break}
       if(A.t<0){A.mode="forage";A.t=rr(8,20);A.goal=null}break;
     case"forage":{P.in*=Math.exp(-dt*8);if(!act){A.mode="bolt";break}
-      if(!A.goal||A.t<0&&A.v<.05){A.t=rr(.6,3);const r=rnd();if(r<(watched?.6:.25)){A.mode="stand";A.t=rr(1.2,3);break}if(r<.5){A.mode="nibble";A.t=rr(1.5,4);break}
+      if(!A.goal||A.t<0&&A.v<.05){A.t=rr(.6,3);const r=rnd();if(r<(watched?.6:.25)){A.mode="stand";A.t=rr(1.2,3);break}
+        /* it nibbles only at a tuft under its nose; otherwise it now and then runs to one near the burrow */
+        if(r<.5){const m=headAt(A,.06);if(nearTuft(m.x,m.z).d<.3){A.mode="nibble";A.t=rr(1.5,4);break}
+          const T=eatPts().filter(o=>Math.hypot(o.x-h.x,o.z-h.z)<2.6&&Math.hypot(o.x-A.x,o.z-A.z)>.2);if(T.length){const o=pick(T),d=Math.hypot(o.x-A.x,o.z-A.z);
+            A.goal={x:o.x-(o.x-A.x)/d*.07,z:o.z-(o.z-A.z)/d*.07,eat:1};A.spd=rr(.5,1.1);break}}
         const g=navGrid("gerb",.15,1.4,.8),p=randFree(g,h.x,h.z,2.6);A.goal=p;A.spd=rr(.5,1.4)}
-      if(A.goal&&go(A.spd,A.goal.x,A.goal.z)<.05){A.goal=null;A.t=rr(.2,1.2)}if(A.goal===null)A.v*=Math.exp(-dt*12);
+      if(A.goal&&go(A.spd,A.goal.x,A.goal.z)<.05){const e=A.goal.eat;A.goal=null;A.t=rr(.2,1.2);const m=headAt(A,.06);if(e&&nearTuft(m.x,m.z).d<.3){A.mode="nibble";A.t=rr(1.5,4);break}}if(A.goal===null)A.v*=Math.exp(-dt*12);
       if(Math.hypot(A.x-h.x,A.z-h.z)>3){A.goal={x:h.x,z:h.z}}break}
     case"stand":case"nibble":A.v*=Math.exp(-dt*14);if(A.t<0){A.mode="forage";A.t=0;A.goal=null}break;
     case"bolt":{const o=toH();if(go(2.2,h.x,h.z)<.06){A.mode="dive";A.t=.35;spPuff(h.x,hTop(h.x,h.z),h.z,8,-Math.sin(A.yaw),-Math.cos(A.yaw),.6,.5,.012)}break}
@@ -5869,7 +5943,7 @@ function paUpdate(dt){movers();const c=_pac.copy(De.position);W.worldToLocal(c);
 const animalsReady=propsReady.then(()=>{const big=[
   Promise.all(CAMEL_SLOTS.map((_,i)=>glb(camelKind(i).file))).then(ms=>{const used=new Set(),[c0,c1]=ms.map((m,i)=>{const s=used.has(m)?VT.cloneSkinned(m.scene):m.scene;used.add(m);return camelSpawn(s,m.animations,i,camelKind(i))});ANIM.camels.push(c0,c1);
     Object.assign(c1,{x:REST[1].x,z:REST[1].z,yaw:REST[1].yaw,mode:"rest",job:"kneel",k:1,timer:rr(20,40),goal:REST[1]});play(c1.r,"kneel_rest",.01,1);
-    const gs=grazeSpot(c0);Object.assign(c0,{x:gs.x,z:gs.z,yaw:gs.yaw,mode:"job",job:"graze",timer:rr(8,14)});play(c0.r,"drink",.01,.85)}).catch(()=>{}),
+    const gs=grazeSpot(c0);if(gs){Object.assign(c0,{x:gs.x,z:gs.z,yaw:gs.yaw,mode:"job",job:"graze",timer:rr(8,14)});play(c0.r,"drink",.01,.85)}}).catch(()=>{}),
   glb("bald_eagle_v1").then(({scene,animations})=>{const e=eagleSpawn(scene,animations);ANIM.eagle=e;
     const sp=eagleSpots();if(sp[0])eaglePerchAt(e,sp[0]);else{e.mode="soar";play(e.r,"glide",.01,1)}}).catch(()=>{}),
   ];
@@ -5924,7 +5998,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={rq:()=>0,skyTex:()=>SKYTEX,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,osOffTent,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={rq:()=>0,VEG,eatPts,nearTuft,camelMouth,grazeSpot,drinkSpot,mouthOk,skyTex:()=>SKYTEX,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,osOffTent,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

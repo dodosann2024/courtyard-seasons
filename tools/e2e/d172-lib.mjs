@@ -120,10 +120,13 @@ function installProbes() {
   /* ---- a camel's mouth: the lowest of the head's vertices ---- */
   D.mouthVs = a => a._mv || (a._mv = vertsOf(a.mdl, a.mdl.getObjectByName("tripoHead_0") ? desc(a.mdl.getObjectByName("tripoHead_0")) : [], 2000));
   D.mouth = a => { a.g.updateMatrixWorld(true); let lo = null; for (const [m, i] of D.mouthVs(a)) { m.getVertexPosition(i, v); v.applyMatrix4(m.matrixWorld); q.W.worldToLocal(v); if (!lo || v.y < lo.y) lo = {x: v.x, y: v.y, z: v.z}; } return lo; };
-  /* the edible tufts: every live instance of the oasis's grass, clump and dry-tuft meshes (VEG order: 3 grass, 3 clump, 3 dry) */
+  /* the other animals' mouths: the lowest of the head's vertices */
+  D.mouthPA = A => { const h = bn(A, "head"); if (!h) return null; const r = A.mdl || A.g; A._mv = A._mv || vertsOf(r, desc(h), 600); r.updateMatrixWorld(true); let lo = null;
+    for (const [m, i] of A._mv) { m.getVertexPosition(i, v); v.applyMatrix4(m.matrixWorld); q.W.worldToLocal(v); if (!lo || v.y < lo.y) lo = {x: v.x, y: v.y, z: v.z}; } return lo; };
+  /* the edible tufts: every live instance of the oasis's grass, clump, dry-tuft and reed meshes (VEG order: 3 grass, 3 clump, 3 dry, 3 reed) */
   D.tufts = () => { const L = [], e = m4.elements; const veg = q.VEG || null; let list = veg;
-    if (!list) { list = []; q.W.traverse(o => { if (o.isInstancedMesh && o.geometry.attributes.color && o.material && o.material.vertexColors && o.count > 5) list.push(o); }); list = list.slice(0, 9); }
-    else list = list.filter(im => im.userData.eat || (!veg.some(x => x.userData.eat) && veg.indexOf(im) < 9));
+    if (!list) { list = []; q.W.traverse(o => { if (o.isInstancedMesh && o.geometry.attributes.color && o.material && o.material.vertexColors && o.count > 5) list.push(o); }); list = list.slice(0, 12); }
+    else list = list.filter(im => im.userData.eat || (!veg.some(x => x.userData.eat) && veg.indexOf(im) < 12));
     for (const im of list) for (let i = 0; i < im.count; i++) { im.getMatrixAt(i, m4); if (Math.hypot(e[0], e[1], e[2]) > 1e-4) L.push({x: e[12], z: e[14], h: Math.hypot(e[4], e[5], e[6])}); }
     return L; };
 }

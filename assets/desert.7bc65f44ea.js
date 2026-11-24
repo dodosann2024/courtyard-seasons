@@ -3224,18 +3224,21 @@ const PR=(()=>{const N=MOB?1000:2000,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
         float sk=uSnw*a*clamp(max(-h0*1.3,(1.-F)*2.2),0.,1.)*smoothstep(.5,.42,max(abs(vQ.x),abs(vQ.y))/vG);
         if(abs(F-1.)<.004&&sk<.004)discard;gl_FragColor=vec4(.5*F*mix(vec3(1.),vec3(.78,.64,.5),sk*.8),1.);}`});
   const im=new T.IM(geo,m,N);im.count=0;im.frustumCulled=false;im.renderOrder=1;im.castShadow=im.receiveShadow=false;
-  const c=new C3(0,0,0);for(let i=0;i<N;i++)im.setColorAt(i,c);W.add(im);onDes(im);
-  return{N,im,i:0,n:0,E:0,dirty:0,up:0,m4:new T.M4(),q:new T.Quat(),q2:new T.Quat(),v:new V3(),s:new V3(),c}})();
+  const c=new C3(0,0,0),z0=new T.M4().makeScale(0,0,0);for(let i=0;i<N;i++){im.setColorAt(i,c);im.setMatrixAt(i,z0)}W.add(im);onDes(im);
+  /* gerbils land by the hundred at dusk: their prints cycle through their own last fifth of the ring (G), so they never wear
+     the larger tracks out early */
+  return{N,G:N/5|0,im,i:0,n:0,gi:0,gn:0,E:0,dirty:0,up:0,m4:new T.M4(),q:new T.Quat(),q2:new T.Quat(),v:new V3(),s:new V3(),c}})();
 const _up=new V3(0,1,0);
 /* kind, island-metre position, heading of the print's forward (+z), variant 0-3, depth (1 = typical), mirrored, scale */
 let PR_ROCK=null;
 function prAdd(k,x,z,yaw,v,dep,mir,sc){if(pN(x,z)<1.02)return;
   /* nothing presses into stone */
   if(!PR_ROCK)PR_ROCK=OBST.filter(o=>o.k==="rock");for(const o of PR_ROCK)if((x-o.x)*(x-o.x)+(z-o.z)*(z-o.z)<o.r*o.r*.81)return;
-  const P=PR,i=P.i;P.i=(i+1)%P.N;P.n=Math.min(P.n+1,P.N);
+  const P=PR,g=k===PRK.gerb,i=g?P.N-P.G+P.gi:P.i;
+  if(g){P.gi=(P.gi+1)%P.G;P.gn=Math.min(P.gn+1,P.G)}else{P.i=(i+1)%(P.N-P.G);P.n=Math.min(P.n+1,P.N-P.G)}
   P.q2.setFromUnitVectors(_up,nTop(x,z));P.q.setFromAxisAngle(_up,yaw).premultiply(P.q2);
   const s=PR_SZ[k]*(sc||1);P.s.set(mir?-s:s,1,s);P.v.set(x,hTop(x,z)+.003,z);P.m4.compose(P.v,P.q,P.s);P.im.setMatrixAt(i,P.m4);
-  P.im.setColorAt(i,P.c.setRGB(k+(v||0)/4,P.E,dep==null?1:dep));P.dirty=1;P.im.count=P.n}
+  P.im.setColorAt(i,P.c.setRGB(k+(v||0)/4,P.E,dep==null?1:dep));P.dirty=1;P.im.count=P.gn?P.N:P.n}
 function prTick(dt){const P=PR;P.E+=dt*(1/240+st.wn*(1-.8*WX.sc)*.3/35+WX.dust/6+WX.rain/9+WX.sf/40);P.im.material.uniforms.uE.value=P.E;
   P.im.material.uniforms.uSnw.value=ss(.05,.5,WX.sc);
   if(pi&&dc)P.im.material.uniforms.uKs.value=cl(pi.intensity/(pi.intensity+dc.intensity*1.4+1e-3),.12,.85);
@@ -4644,8 +4647,10 @@ const sunCast=()=>(1-st.night)*WX.sunK*(1-.85*WX.rain);
 const SPF=softPoints(MOB?70:140,"#dcc39b",.05,false);SPF.o.renderOrder=6;SPF.o.visible=false;W.add(SPF.o);
 const SPFP=Array.from({length:SPF.n},()=>({life:9,dur:1,x:0,y:0,z:0,vx:0,vy:0,vz:0}));SPF.k=0;
 /* n grains from (x,y,z), thrown toward (dx,dz) at about v m/s and up at vy, each sz across (island metres) */
-function spPuff(x,y,z,n,dx,dz,v,vy,sz){for(let j=0;j<n;j++){const i=SPF.k;SPF.k=(i+1)%SPF.n;const q=SPFP[i],a=Math.atan2(dx,dz)+rr(-.9,.9),u=v*rr(.4,1.2);
-    Object.assign(q,{x:x+rr(-.01,.01),y:y+.005,gy:y,z:z+rr(-.01,.01),vx:Math.sin(a)*u,vy:vy*rr(.5,1.3),vz:Math.cos(a)*u,life:-rr(0,.08),dur:rr(.5,1.1)});SPF.Z[i]=sz/.065*rr(.7,1.3)}
+/* puffs draw on their own stream, so how many feet kick sand never shifts the animals' choices */
+let spSd=7341;const prr=(a,b)=>{spSd^=spSd<<13;spSd^=spSd>>>17;spSd^=spSd<<5;return a+(b-a)*(spSd>>>8)/16777216};
+function spPuff(x,y,z,n,dx,dz,v,vy,sz){for(let j=0;j<n;j++){const i=SPF.k;SPF.k=(i+1)%SPF.n;const q=SPFP[i],a=Math.atan2(dx,dz)+prr(-.9,.9),u=v*prr(.4,1.2);
+    Object.assign(q,{x:x+prr(-.01,.01),y:y+.005,gy:y,z:z+prr(-.01,.01),vx:Math.sin(a)*u,vy:vy*prr(.5,1.3),vz:Math.cos(a)*u,life:-prr(0,.08),dur:prr(.5,1.1)});SPF.Z[i]=sz/.065*prr(.7,1.3)}
   SPF.o.visible=true}
 function spTick(dt){if(!SPF.o.visible)return;let any=0;
   for(let i=0;i<SPF.n;i++){const q=SPFP[i];if(q.life>=q.dur){SPF.A[i]=0;continue}q.life+=dt;const u=q.life/q.dur,o=i*3;any=1;

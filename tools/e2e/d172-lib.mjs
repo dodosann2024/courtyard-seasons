@@ -59,13 +59,16 @@ function installProbes() {
   /* ---- prints ---- */
   const KIND = ["dromedary", "bactrian", "eagle", "wing", "lie", "ostrich", "tortoise", "gerbil", "scorpion", "pallet", "hole"];
   D.KIND = KIND;
-  D.pr = {last: q.PR.i, list: []};
-  D.prPoll = () => { const P = q.PR, im = P.im, e = m4.elements, c = im.instanceColor.array;
-    for (let i = D.pr.last; i !== P.i; i = (i + 1) % P.N) { im.getMatrixAt(i, m4);
+  /* the ring's main part, and (d173 on) the gerbils' own last G slots */
+  D.pr = {last: q.PR.i, glast: q.PR.gi || 0, list: []};
+  D.prPoll = () => { const P = q.PR, im = P.im, e = m4.elements, c = im.instanceColor.array, G = P.G || 0;
+    const take = i => { im.getMatrixAt(i, m4);
       const k = Math.floor(c[i * 3] + .001), vv = Math.round((c[i * 3] - k) * 4), det = e[0] * e[10] - e[2] * e[8];
-      D.pr.list.push({k, sp: KIND[k], v: vv, x: e[12], z: e[14], hd: Math.atan2(e[8], e[10]), mir: det < 0 ? 1 : 0, t: q.st.t}); }
-    D.pr.last = P.i; };
-  D.prReset = () => { D.pr.last = q.PR.i; D.pr.list = []; };
+      D.pr.list.push({k, sp: KIND[k], v: vv, x: e[12], z: e[14], hd: Math.atan2(e[8], e[10]), mir: det < 0 ? 1 : 0, t: q.st.t}); };
+    for (let i = D.pr.last; i !== P.i; i = (i + 1) % (P.N - G)) take(i);
+    if (G) for (let i = D.pr.glast; i !== P.gi; i = (i + 1) % G) take(P.N - G + i);
+    D.pr.last = P.i; D.pr.glast = P.gi || 0; };
+  D.prReset = () => { D.pr.last = q.PR.i; D.pr.glast = q.PR.gi || 0; D.pr.list = []; };
   /* ---- feet ---- */
   const skins = root => { const L = []; root.traverse(o => { if (o.isSkinnedMesh && o.visible !== false) L.push(o); }); return L; };
   const vertsOf = (root, bones, cap) => { const out = [];

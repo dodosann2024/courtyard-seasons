@@ -85,7 +85,7 @@ async function course(sp, who, setup, stepFn, sec, dt) {
   if (process.env.ONLY && !process.env.ONLY.split(",").includes(sp)) return null;
   await E(`(${setup})()`);
   /* only the animal on the course is tracked: the parked ones fidget in place and their feet are not this course's contacts */
-  await E((sp, who) => { const q = window.__desQA(), D = window.__d172, A = eval(who); D.trackStart([sp]); D.track.on = D.track.on.filter(a => a.o === A); D.prReset(); }, sp, who);
+  await E((sp, who) => { const q = window.__desQA(), D = window.__d172, A = eval(who); D.trackStart([sp]); if (A.x != null || A.o) D.track.on = D.track.on.filter(a => a.o === A); D.prReset(); }, sp, who);
   const N = Math.round(sec / dt), CH = 150;
   /* this animal's prints: those laid within reach of its body at that moment (other animals of the species roam elsewhere) */
   const REACH = {dromedary: 2.5, bactrian: 2.5, ostrich: 1.5, tortoise: .4, gerbil: .3, scorpion: .25, eagle: 1e9}[sp];
@@ -168,6 +168,14 @@ if (want("prints")) {
   }
   save("footprints", "Each species walks a fixed course (d172's courses); only the animal on the course is tracked. Its contacts are measured on the skinned mesh itself (the foot bone and its children, skinned on the CPU every frame): a run of frames with the sole on the sand and still; for the gerbil each landing (the sole's lowest skin back within 5 mm of the sand after lifting 9 mm clear), placed where it first touches. Each print is matched to the nearest contact whose run covers the print's time ±0.25 s; a print with none within 10 cm has no matching contact. Offsets in cm.",
     {units: "offset in cm: horizontal distance from a print's centre to the measured sole contact it belongs to", perSpecies: R});
+}
+
+/* the whole gerbil colony at dusk, as it lives: every gerbil tracked, every gerbil print checked */
+if (want("colony")) {
+  const r = await course("gerbil", "({})", `(() => { const q = window.__desQA(); q.tod("sunset"); q.step(10, 1/30); })`, null, +(process.env.CSEC || 60), 1 / 30);
+  const o = stats("gerbil", r); delete o.sample;
+  save("gerbil_colony", "Every gerbil left to its own dusk routine (nothing parked or steered); all of them tracked on the skinned mesh, every gerbil print matched to a landing (same rule as footprints.json).", o);
+  console.log("colony", JSON.stringify(o).slice(0, 600));
 }
 
 /* ---------------- graze / drink placement (d172's method) ---------------- */

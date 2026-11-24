@@ -3276,29 +3276,32 @@ function gaitUp(key,g,rig,clips,bones,band,mid){let G=GAIT[key];if(G)return G;G=
    v: the body's ground speed along its heading o.yaw. A foot the clip lets slide (body faster than the foot runs back) has
    moved on since its touchdown, a fraction of a frame ago; the print goes where it came down. */
 function gaitStep(o,rig,G,bones,tol,emit,v,sk){
-  /* a foot set down waits for its sole to sit still on the sand (slower than a third of the body's pace) and prints there;
-     one that lifts again or skates on for half a second leaves none */
-  const Q=o.gtQ||(o.gtQ=[]);
+  /* a foot set down waits for its sole to sit still on the sand (slower than a third of the body's pace; a seventh for the
+     ostrich's skating gait and the small hoppers) and prints there, a hopper (sk 2) where it landed; one that lifts again or
+     skates on for half a second (a fifth for the ostrich) leaves none */
+  const Q=o.gtQ||(o.gtQ=[]),still=sk||tol<.02?.15:.33;
   for(let j=0;j<Q.length;j++){const P=Q[j];if(!P)continue;const sole=gaitSole(bones[j],P.k),dt=st.t-P.tl;
-    if(dt<=0)continue;if(_gw.y-hTop(_gw.x,_gw.z)>tol||st.t-P.t0>.5||!sole){Q[j]=null;continue}
+    if(dt<=0)continue;if(_gw.y-hTop(_gw.x,_gw.z)>tol||st.t-P.t0>(sk===1?.2:.5)||!sole){Q[j]=null;continue}
     const f=Math.hypot(_gw.x-P.x,_gw.z-P.z)/dt;P.x=_gw.x;P.z=_gw.z;P.tl=st.t;
-    if(f<=Math.max(.33*Math.abs(v),.02)){emit(j,_gw.x,_gw.z,Math.atan2(_gw2.x-_gw.x,_gw2.z-_gw.z),P.k.mir);Q[j]=null}}
+    if(f<=Math.max(still*Math.abs(v),.02)){const h=Math.atan2(_gw2.x-_gw.x,_gw2.z-_gw.z);sk===2?emit(j,P.x0,P.z0,h,P.k.mir):emit(j,_gw.x,_gw.z,h,P.k.mir);Q[j]=null}}
   let n=null,w=.5;for(const k in G){const a=rig.acts[k];if(a&&a.isRunning()){const e=a.getEffectiveWeight();if(e>w){w=e;n=k}}}
   if(!n){o.gtN=null;return}const a=rig.acts[n],p=a.time/a.getClip().duration%1;
   /* after a spell unposed (out of sight and standing) the phase starts over rather than counting the gap as a step */
   if(o.gtN!==n||st.t-o.gtT>1){o.gtN=n;o.gtP=p;o.gtT=st.t;return}
   let adv=p-o.gtP;const p0=o.gtP,dur=a.getClip().duration,ts=Math.abs(a.getEffectiveTimeScale())||1,el=st.t-o.gtT;o.gtP=p;o.gtT=st.t;if(adv<0)adv+=1;
+  if(sk===1){const ac=o.gtV==null?0:(v-o.gtV)/Math.max(el,.001);o.gtV=v;o.gtA=(o.gtA||0)+(ac-(o.gtA||0))*Math.min(1,el*4)}
   /* a clip played over again from its start jumps the phase without a step being taken */
   if(adv<=0||adv>el*ts/dur*1.5+.03)return;
   /* mid-blend (a walk setting off or pulling up) the pose is neither clip's and its feet scrape; sk (the ostrich): a gait
-     played slower or faster than the body goes skates its planted feet, and a foot skating along never bears down */
-  if(w<.7||sk&&G[n].some(k=>k&&k.u>0&&Math.abs(k.u*ts-v)>Math.max(.4*Math.abs(v),.03)))return;
+     played slower or faster than the body goes, or while the body speeds up or slows down, skates its planted feet, and a
+     foot skating along never bears down */
+  if(w<.7||sk===1&&(Math.abs(o.gtA)>.25||G[n].some(k=>k&&k.u>0&&Math.abs(k.u*ts-v)>Math.max(.4*Math.abs(v),.03))))return;
   G[n].forEach((k,j)=>{if(!k)return;let x=k.c-p0;x-=Math.floor(x);if(x<=0||x>adv)return;gaitSole(bones[j],k);
     if(_gw.y-hTop(_gw.x,_gw.z)>tol)return;
     /* coarse steps (a fast-forwarded sim) see one pose per stance: print it where the touchdown was */
     if(el>.1){const sl=cl((v-k.u*ts)*(adv-x)*dur/ts,-.1,.1);_gw.x-=Math.sin(o.yaw)*sl;_gw.z-=Math.cos(o.yaw)*sl;_gw2.x-=Math.sin(o.yaw)*sl;_gw2.z-=Math.cos(o.yaw)*sl;
       emit(j,_gw.x,_gw.z,Math.atan2(_gw2.x-_gw.x,_gw2.z-_gw.z),k.mir);return}
-    Q[j]={k,x:_gw.x,z:_gw.z,t0:st.t,tl:st.t}})}
+    Q[j]={k,x:_gw.x,z:_gw.z,x0:_gw.x,z0:_gw.z,t0:st.t,tl:st.t}})}
 /* a foot's sole (_gw) and a point ahead of it along the foot (_gw2), in W's frame */
 function gaitSole(b,k){b.updateWorldMatrix(true,false);_gm2.copy(W.matrixWorld).invert();
   _gw.copy(k.off).applyMatrix4(b.matrixWorld).applyMatrix4(_gm2);_gw2.copy(k.off).add(k.ax).applyMatrix4(b.matrixWorld).applyMatrix4(_gm2);return true}
@@ -5924,7 +5927,7 @@ function gbAnim(A,dt){const P=A.P,R=A.rig;let c="idle",ts=1;
   else if(A.mode==="stand"||A.mode==="look"||A.mode==="peek")c="stand_lookout";
   else if(A.mode==="nibble"){c="dig";ts=.8}
   play(R,c,c==="hop_run"||R.cur==="hop_run"?.08:.2,ts);rigTick(R,dt);pgTurn(A.bn.head,_pgY,P.look*.5);pgTurn(A.bn.neck,_pgY,P.look*.3);
-  if(A.mode!=="dive")pgPrints(A,.015,(j,x,z,yaw,mir)=>paPrint(PRK.gerb,x,z,yaw,A.gt.fore[j]?2:1,.9,mir,1,.25))}
+  if(A.mode!=="dive")pgPrints(A,.015,(j,x,z,yaw,mir)=>paPrint(PRK.gerb,x,z,yaw,A.gt.fore[j]?2:1,.9,mir,1,.25),2)}
 /* scorpion: idle, walk (.071 m/s) and the threat display; claws_raise and tail_raise are not used */
 const SC_VW=.071;
 function scAnim(A,dt){const P=A.P,R=A.rig;let c="idle",ts=1;

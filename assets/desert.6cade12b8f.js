@@ -3279,14 +3279,15 @@ function gaitStep(o,rig,G,bones,tol,emit,v,sk){
   /* a foot set down waits for its sole to sit still on the sand (slower than a third of the body's pace; a seventh for the
      ostrich's skating gait and the small hoppers) and prints there, a hopper (sk 2) where it landed unless it skidded on,
      a camel (sk 3) once the hoof is right down; one that lifts again or skates on for half a second (a fifth for the
-     ostrich) leaves none */
+     ostrich) leaves none, and nor does one still waiting when the clip blends into another and the feet scrape */
   const Q=o.gtQ||(o.gtQ=[]),still=sk||tol<.02?.15:.33;
+  let n=null,w=.5;for(const k in G){const a=rig.acts[k];if(a&&a.isRunning()){const e=a.getEffectiveWeight();if(e>w){w=e;n=k}}}
+  if(w<.7)Q.length=0;
   for(let j=0;j<Q.length;j++){const P=Q[j];if(!P)continue;const sole=gaitSole(bones[j],P.k),dt=st.t-P.tl;
     if(dt<=0)continue;const lo=_gw.y-hTop(_gw.x,_gw.z);if(lo>tol||st.t-P.t0>(sk===1?.2:.5)||!sole){Q[j]=null;continue}
     const f=Math.hypot(_gw.x-P.x,_gw.z-P.z)/dt;P.x=_gw.x;P.z=_gw.z;P.tl=st.t;
     if(f<=Math.max(still*Math.abs(v),.02)&&(sk!==3||lo<tol*.6)){const h=Math.atan2(_gw2.x-_gw.x,_gw2.z-_gw.z);
       if(sk!==2)emit(j,_gw.x,_gw.z,h,P.k.mir);else if(Math.hypot(_gw.x-P.x0,_gw.z-P.z0)<.03)emit(j,P.x0,P.z0,h,P.k.mir);Q[j]=null}}
-  let n=null,w=.5;for(const k in G){const a=rig.acts[k];if(a&&a.isRunning()){const e=a.getEffectiveWeight();if(e>w){w=e;n=k}}}
   if(!n){o.gtN=null;return}const a=rig.acts[n],p=a.time/a.getClip().duration%1;
   /* after a spell unposed (out of sight and standing) the phase starts over rather than counting the gap as a step */
   if(o.gtN!==n||st.t-o.gtT>1){o.gtN=n;o.gtP=p;o.gtT=st.t;return}

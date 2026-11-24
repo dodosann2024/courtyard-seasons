@@ -10,6 +10,7 @@
 //   pair     (no browser) OUT/main_<x>.png | OUT/new_<x>.png -> <x>_before_after.jpg, and main_/new_ json -> merged json
 // Usage: node tools/e2e/d172-proof.mjs <mode[,mode]>   (OUT=/tmp/d172/out DIR=<checkout> TAG=<prefix>)
 import fs from "node:fs";
+import {execFile} from "node:child_process";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {openScene, ffmpeg, sleep} from "./d172-lib.mjs";
@@ -215,13 +216,19 @@ const grassSpot = () => E(() => { const q = window.__desQA(), D = window.__d172,
   const ox = best.x - q.POND.x, oz = best.z - q.POND.z, d = Math.hypot(ox, oz); return {x: best.x, z: best.z, ux: ox / d, uz: oz / d, y: q.hTop(best.x, best.z)}; });
 const grassView = (g, eh, back) => E((g, eh, back) => { const q = window.__desQA(), side = .45;
   const ex = g.x + g.ux * back - g.uz * side * back, ez = g.z + g.uz * back + g.ux * side * back; q.lookAt(ex, g.y + eh, ez, g.x, g.y + Math.min(.25, eh * .3), g.z); }, g, eh, back);
+/* stills of the grass are taken with the whole UI hidden again (the version shot opens the panel) */
+/* and with every animal parked away from the tufts in view (camels at their rest spots) */
+const clearView = g => E(g => window.__park(g.x, g.z, 9, []), g);
+const hideUI = () => E(() => { document.body.classList.add("col", "snc"); for (const s of [".t", "#fab", "#sbtn", "#tp", "#ld"]) { const n = document.querySelector(s); if (n) n.style.display = "none"; } });
 if (want("grass")) {
+  await hideUI(); await cap("");
   const g = await grassSpot();
-  await E(() => { const q = window.__desQA(); window.__set({wind: .4}); q.tod("day"); q.PA.noView = 1; q.step(90, 1 / 30); });
+  await clearView(g); await E(() => { const q = window.__desQA(); window.__set({wind: .4}); q.tod("day"); q.PA.noView = 1; q.step(90, 1 / 30); });
   for (const [eh, back, n] of [[1.6, 3.2, "grass_1.6m"], [.5, 1.3, "grass_0.5m"]]) { await grassView(g, eh, back); await E(() => window.__desQA().step(2, 1 / 30)); await shot(path.join(OUT, `${TAG}${n}.png`)); }
 }
 if (want("wind")) {
-  const g = await grassSpot(), dir = path.join(OUT, `${TAG}windfr`); fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir);
+  await hideUI();
+  const g = await grassSpot(), dir = path.join(OUT, `${TAG}windfr`); fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir); await clearView(g);
   let k = 0;
   for (const [w, lab] of [[.05, "微风（wind 0.05）"], [1, "强风（wind 1.0）"]]) {
     await E(w => { const q = window.__desQA(); window.__set({wind: w}); q.step(150, 1 / 30); }, w);
@@ -231,6 +238,30 @@ if (want("wind")) {
   await S.cap("");
   await ffmpeg(["-framerate", "15", "-i", path.join(dir, "f%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-r", "30", path.join(OUT, `${TAG}wind_low_vs_strong.mp4`)]);
   console.log("wind video", k, "frames");
+}
+
+/* four stills from one close camera across the wind: wind 0.15 / 0.5 / 1.0 and, at 1.0, the moment of the 16 sampled
+   (half a second apart) whose grass differs most from the 0.15 frame, i.e. a gust going through */
+if (want("wstrip")) {
+  await hideUI(); await cap("");
+  const g = await grassSpot(), dir = path.join(OUT, `${TAG}wstrip`); fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir); await clearView(g);
+  /* one fixed camera, side-on to the wind as it blows when the strip starts */
+  const eye = await E(g => { const w = window.__desQA().rainU.uWD.value; return {x: g.x - w.y * 2.2, z: g.z + w.x * 2.2}; }, g);
+  const view = () => E(([g, e]) => window.__desQA().lookAt(e.x, g.y + .6, e.z, g.x, g.y + .15, g.z), [g, eye]);
+  await E(() => { const q = window.__desQA(); q.tod("day"); q.PA.noView = 1; });
+  const gray = f => new Promise((res, rej) => execFile("ffmpeg", ["-loglevel", "error", "-i", f, "-vf", "scale=320:-2", "-f", "rawvideo", "-pix_fmt", "gray", "-"], {encoding: "buffer", maxBuffer: 1e8}, (e, o) => e ? rej(e) : res(o)));
+  const F = [];
+  for (const w of [.15, .5, 1]) { await E(w => { window.__set({wind: w}); window.__desQA().step(150, 1 / 30); }, w); await view(); await E(() => window.__desQA().step(1, 1 / 30));
+    const f = path.join(dir, `w${w}.png`); await S.frames(2); await S.page.screenshot({path: f, type: "png"}); F.push(f); }
+  const base = await gray(F[0]); let best = null, bd = -1;
+  for (let i = 0; i < 16; i++) { await E(() => window.__desQA().step(15, 1 / 30)); await view(); await E(() => window.__desQA().step(1, 1 / 30));
+    const f = path.join(dir, `g${i}.png`); await S.frames(2); await S.page.screenshot({path: f, type: "png"}); const b = await gray(f); let d = 0;
+    for (let k = 0; k < b.length; k++) d += Math.abs(b[k] - base[k]); if (d > bd) { bd = d; best = f; } }
+  F.push(best);
+  const L = ["风 0.15", "风 0.5", "风 1.0", "风 1.0（阵风经过）"];
+  const fc = F.map((_, i) => `[${i}:v]scale=640:-2,${lab(L[i])}[c${i}]`).join(";") + ";" + F.map((_, i) => `[c${i}]`).join("") + "hstack=inputs=4";
+  await ffmpeg([...F.flatMap(f => ["-i", f]), "-filter_complex", fc, "-q:v", "3", path.join(OUT, `${TAG}wind_grass_strip.jpg`)]);
+  console.log("wstrip", path.basename(best));
 }
 
 /* ---------------- graze / drink placement ---------------- */

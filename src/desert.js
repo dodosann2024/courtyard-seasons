@@ -794,26 +794,34 @@ function renderPondReflection(){
 
 /* ---------------- vegetation: grass tufts, reeds, shrubs ---------------- */
 const vegU={uT:{value:0},uWind:{value:.35},uGT:sandU.uGT,uWD:sandU.uWD};
-/* wind in the grass: every blade bends downwind (uWD, carried into each instance's own frame through its matrix columns) as
-   the square of its height, so the base stays put and the tips go furthest. The lean grows with the wind (uWind = st.wn) and
-   with the gust field that rolls across the oasis (gustF), and each tuft and blade flutters on its own phase; in still air
-   it all but stops. */
+/* wind in the grass: every blade bends downwind as a bent stem does, not sheared sideways. In true metres (the instance's own
+   frame with its stretch taken out, so a squat tuft and a tall one bend alike) each point turns about the tuft's root in the
+   upright plane along the wind (uWD), more the higher it is, toward one shared downwind lean (66 degrees), so the blades of a
+   tuft comb over together: one splayed upwind turns furthest, one already leaning downwind least, and none goes through the
+   sand. Its distance from the root shrinks as the chord of a curved stem does (sin(a)/a), so nothing stretches. The bend
+   grows with the wind (uWind = st.wn) and with the gust field rolling across the oasis (gustF), each tuft sways on its own
+   phase and each blade flutters on its own. In still air it all but stops. */
 function vegMat(opt){
   const m=new T.MSM({vertexColors:true,roughness:.88,metalness:0,side:2});
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,vegU);
     sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nuniform float uT,uWind;"+GLSL_GUST)
       .replace("#include <begin_vertex>",`#include <begin_vertex>
-        {vec3 ip=vec3(0.);vec2 wl=vec2(1.,0.);
+        {vec3 ip=vec3(0.),sc=vec3(1.);vec2 wl=vec2(1.,0.);
          #ifdef USE_INSTANCING
          ip=instanceMatrix[3].xyz;vec3 c0=instanceMatrix[0].xyz,c2=instanceMatrix[2].xyz,wd=vec3(uWD.x,0.,uWD.y);
-         wl=vec2(dot(wd,c0)/dot(c0,c0),dot(wd,c2)/dot(c2,c2));
+         sc=max(vec3(length(c0),length(instanceMatrix[1].xyz),length(c2)),vec3(1e-5));
+         wl=normalize(vec2(dot(wd,c0)/sc.x,dot(wd,c2)/sc.z)+vec2(1e-6,0.));
          #endif
-         float h=max(position.y,0.),hh=h*h,g=gustF(ip.xz),tp=fract(sin(dot(ip.xz,vec2(12.9898,78.233)))*43758.5453)*6.283;
+         vec3 P=transformed*sc;
+         float g=gustF(ip.xz),tp=fract(sin(dot(ip.xz,vec2(12.9898,78.233)))*43758.5453)*6.283;
          float bp=tp+position.x*9.+position.z*7.,calm=smoothstep(.03,.3,uWind);
-         float lean=uWind*(1.+.5*uWind)*(.25+1.1*g)*(.85+.3*sin(uT*.6+tp));
-         float fl=(sin(uT*(2.2+1.6*uWind)+bp)*.65+sin(uT*(3.9+2.*uWind)+bp*1.7)*.35)*(.05+.45*uWind)*(.45+.8*g)*calm;
-         float A=${opt.sway.toFixed(3)};vec2 d=wl*(lean+.55*fl)*A*hh+vec2(-wl.y,wl.x)*fl*.3*A*hh;
-         transformed.xz+=d;transformed.y-=length(d)*.55*h;}`)
+         float th=${(opt.sway*3.).toFixed(4)}*pow(uWind,1.2)*(.45+1.1*g)*(.86+.28*sin(uT*.6+tp));
+         float fl=(sin(uT*(2.2+1.6*uWind)+bp)*.65+sin(uT*(3.9+2.*uWind)+bp*1.7)*.35)*(.03+.3*uWind)*(.45+.8*g)*calm*${(opt.sway*1.25).toFixed(4)};
+         float al=dot(P.xz,wl),ac=dot(P.xz,vec2(-wl.y,wl.x)),r=length(vec2(al,P.y)),a0=atan(al,max(P.y,1e-4));
+         float ph=.5*(th+fl)*clamp(P.y/(sc.y*.8),0.,1.5);
+         float a1=ph>0.?a0+max(1.15-a0,0.)*(1.-exp(-ph/.9)):a0+.5*ph,d=a1-a0,k=abs(d)>1e-3?max(sin(d)/d,.85):1.;
+         al=r*k*sin(a1);P.y=r*k*cos(a1);ac+=fl*.12*P.y;
+         P.xz=wl*al+vec2(-wl.y,wl.x)*ac;transformed=P/sc;}`)
       .replace("#include <beginnormal_vertex>","vec3 objectNormal=normalize(mix(normal,vec3(0.,1.,0.),"+opt.up.toFixed(2)+"));\n#ifdef USE_TANGENT\nvec3 objectTangent=vec3(tangent.xyz);\n#endif");
     /* a blade is thin enough to pass light: both faces keep the sky-leaning normal instead of the back face turning it to the ground */
     sh.fragmentShader=sh.fragmentShader.replace("#include <normal_fragment_begin>","#include <normal_fragment_begin>\nnormal*=faceDirection;");
@@ -3238,10 +3246,12 @@ function prTick(dt){const P=PR;P.E+=dt*(1/240+st.wn*(1-.8*WX.sc)*.3/35+WX.dust/6
    in the foot bone's own frame. In the scene a print is laid as the clip passes a foot's touchdown, at the sole point
    where the pose then holds the foot, and only if that is on the sand. */
 const _pf=new V3(),_gw=new V3(),_gw2=new V3(),_gm=new T.M4(),_gm2=new T.M4(),GAIT={};
-function footVerts(root,b){const set=new Set();b.traverse(o=>{if(o.isBone)set.add(o)});const vs=[];
-  root.traverse(m=>{if(!m.isSkinnedMesh||m.material.transparent)return;const A=m.geometry.attributes,SI=A.skinIndex,SW=A.skinWeight;if(!SI)return;const sb=m.skeleton.bones.map(x=>set.has(x));
-    for(let i=0;i<SI.count;i++){let w=0;for(let j=0;j<4;j++)if(sb[SI.getComponent(i,j)])w+=SW.getComponent(i,j);if(w>.6)vs.push(m,i)}});
-  const n=vs.length/2,s=Math.max(1,Math.ceil(n/160)),o=[];for(let i=0;i<n;i+=s)o.push(vs[i*2],vs[i*2+1]);return o}
+/* all: every skin the foot carries (mostly-foot vertices of every shown mesh, cards included), spread evenly over cap */
+function footVerts(root,b,cap,all){cap=cap||160;const set=new Set();b.traverse(o=>{if(o.isBone)set.add(o)});const vs=[];
+  root.traverse(m=>{if(!m.isSkinnedMesh||(all?m.visible===false:m.material.transparent))return;const A=m.geometry.attributes,SI=A.skinIndex,SW=A.skinWeight;if(!SI)return;const sb=m.skeleton.bones.map(x=>set.has(x));
+    for(let i=0;i<SI.count;i++){let w=0;for(let j=0;j<4;j++)if(sb[SI.getComponent(i,j)])w+=SW.getComponent(i,j);if(w>(all?.5:.6))vs.push(m,i)}});
+  const n=vs.length/2,o=[];if(all){const s=Math.max(1,n/cap);for(let j=0;j<Math.min(n,cap);j++){const i=Math.floor(j*s);o.push(vs[i*2],vs[i*2+1])}return o}
+  const s=Math.max(1,Math.ceil(n/cap));for(let i=0;i<n;i+=s)o.push(vs[i*2],vs[i*2+1]);return o}
 /* the centroid of a foot's skin within band of its lowest point, in the space inv maps world into */
 function soleIn(vs,inv,band,out){const n=vs.length/2,P=new Float32Array(n*3);let lo=1e9;
   for(let i=0;i<n;i++){const m=vs[i*2];m.getVertexPosition(vs[i*2+1],_gw).applyMatrix4(m.matrixWorld).applyMatrix4(inv);P[i*3]=_gw.x;P[i*3+1]=_gw.y;P[i*3+2]=_gw.z;if(_gw.y<lo)lo=_gw.y}
@@ -3267,7 +3277,10 @@ function gaitUp(key,g,rig,clips,bones,band,mid){let G=GAIT[key];if(G)return G;G=
       at(i0/N);const s=soleIn(vs[j],inv,band/g.scale.x,new V3()),side=s.x;s.applyMatrix4(g.matrixWorld);
       b.updateWorldMatrix(true,false);const bi=_gm.copy(b.matrixWorld).invert(),off=s.clone().applyMatrix4(bi);
       const ax=_gw2.set(0,0,1).transformDirection(g.matrixWorld).add(s).applyMatrix4(bi).sub(off).clone();
-      return{c:i0/N,off,ax,u,mir:side<0}});
+      /* the stance: the longest stretch of the cycle with the sole within 3 cm of its lowest (s0 its start, sl its share) */
+      const yL=Math.min(...ys),dn=ys.map(y=>(y-yL)*g.scale.x<=.03);let s0=0,sl=N;
+      if(dn.includes(false)){sl=0;for(let i=0;i<N;i++){if(!dn[i]||dn[(i+N-1)%N])continue;let n=0;while(n<N&&dn[(i+n)%N])n++;if(n>sl){sl=n;s0=i}}}
+      return{c:i0/N,off,ax,u,mir:side<0,s0:s0/N,sl:sl/N}});
     /* air: how far every foot is off the sand through the clip, as a share of the mean (0 while any foot is down) */
     const up=S.map(s=>{const y=s.map(q=>q[0]),lo=Math.min(...y),r=Math.max(...y)-lo;return y.map(v=>r>1e-5?ss(.12,.4,(v-lo)/r):1)}),air=[];
     for(let i=0;i<N;i++)air.push(up.reduce((m,u)=>m*u[i],1));const am=air.reduce((x,y)=>x+y,0)/N;G[n].air=am>.15?air.map(x=>x/am):null}
@@ -3306,6 +3319,33 @@ function gaitStep(o,rig,G,bones,tol,emit,v,sk){
     if(el>.1){const sl=cl((v-k.u*ts)*(adv-x)*dur/ts,-.1,.1);_gw.x-=Math.sin(o.yaw)*sl;_gw.z-=Math.cos(o.yaw)*sl;_gw2.x-=Math.sin(o.yaw)*sl;_gw2.z-=Math.cos(o.yaw)*sl;
       emit(j,_gw.x,_gw.z,Math.atan2(_gw2.x-_gw.x,_gw2.z-_gw.z),k.mir);return}
     Q[j]={k,x:_gw.x,z:_gw.z,x0:_gw.x,z0:_gw.z,t0:st.t,tl:st.t}})}
+/* the ostrich and the gerbil print from the skinned sole itself as it is posed this frame (the centroid of the foot's skin
+   within band of its lowest point), not from a point fixed in the foot bone: the ostrich's long sole rolls from heel to toe
+   through a stance, and a hop sets the gerbil's feet down wherever it lands.
+   land 0 (the ostrich): once a stance, from the middle of the clip's stance for that foot on, the first frame the sole is
+   down on the sand (within tol) and still prints at its centre then; a foot that skates through the rest of the stance leaves
+   none. land 1 (a hopper): each landing, a foot coming back within tol of the sand after the hop lifted it clear (lift),
+   prints where it first touches. A foot in the air never prints. Only while a gait clip carries the pose (weight >= .7). */
+const _sw=new V3();let _sP=new Float32Array(780);
+/* the centroid (_sw) of the skin within band of its lowest point over the sand, the band measured from the ground under the
+   foot (a plane through it, so a foot across a dune slope is not taken heel-down); returns that lowest gap */
+function soleOn(vs,band){const n=vs.length/2;if(_sP.length<n*3)_sP=new Float32Array(n*3);const P=_sP;let mx=0,mz=0;
+  for(let i=0;i<n;i++){const m=vs[i*2];m.getVertexPosition(vs[i*2+1],_gw).applyMatrix4(m.matrixWorld).applyMatrix4(_gm2);P[i*3]=_gw.x;P[i*3+1]=_gw.y;P[i*3+2]=_gw.z;mx+=_gw.x;mz+=_gw.z}
+  mx/=n;mz/=n;const e=.1,h0=hTop(mx,mz),gx=(hTop(mx+e,mz)-h0)/e,gz=(hTop(mx,mz+e)-h0)/e;let lo=1e9;
+  for(let i=0;i<n;i++){const g=P[i*3+1]-h0-gx*(P[i*3]-mx)-gz*(P[i*3+2]-mz);P[i*3+1]=g;if(g<lo)lo=g}
+  let x=0,z=0,c=0;for(let i=0;i<n;i++)if(P[i*3+1]<lo+band){x+=P[i*3];z+=P[i*3+2];c++}_sw.set(x/c,lo,z/c);return lo}
+function soleStep(A,G,bones,band,tol,lift,land,emit,v){
+  const R=A.rig,S=A.slS||(A.slS=bones.map(b=>({vs:footVerts(A.g,b,260,1),d:0,up:0,t:-1,x:0,z:0})));
+  let n=null,w=.5;for(const k in G){const a=R.acts[k];if(a&&a.isRunning()){const e=a.getEffectiveWeight();if(e>w){w=e;n=k}}}
+  if(!n||w<.7||(land&&n!==land)){for(const s of S){s.d=0;s.up=0;s.t=-1}return}
+  const a=R.acts[n],p=a.time/a.getClip().duration%1;let upd=0;
+  const sole=s=>{if(!upd){A.g.updateMatrixWorld(true);_gm2.copy(W.matrixWorld).invert();upd=1}return soleOn(s.vs,band)};
+  G[n].forEach((k,j)=>{const s=S[j];if(!k||!s.vs.length)return;
+    if(land){const lo=sole(s);if(lo>lift)s.up=1;else if(s.up&&lo<=tol){s.up=0;gaitSole(bones[j],k);emit(j,_sw.x,_sw.z,Math.atan2(_gw2.x-_gw.x,_gw2.z-_gw.z),k.mir)}return}
+    const u=(p-k.s0+1)%1;if(u>=k.sl){s.d=0;s.t=-1;return}
+    if(s.d||u<.4*k.sl)return;
+    const lo=sole(s),f=s.t>=0&&st.t>s.t?Math.hypot(_sw.x-s.x,_sw.z-s.z)/(st.t-s.t):1e9;s.x=_sw.x;s.z=_sw.z;s.t=st.t;
+    if(u>=.5*k.sl&&lo<=tol&&f<=Math.max(.25*Math.abs(v),.02)){s.d=1;gaitSole(bones[j],k);emit(j,s.x,s.z,Math.atan2(_gw2.x-_gw.x,_gw2.z-_gw.z),k.mir)}})}
 /* a foot's sole (_gw) and a point ahead of it along the foot (_gw2), in W's frame */
 function gaitSole(b,k){b.updateWorldMatrix(true,false);_gm2.copy(W.matrixWorld).invert();
   _gw.copy(k.off).applyMatrix4(b.matrixWorld).applyMatrix4(_gm2);_gw2.copy(k.off).add(k.ax).applyMatrix4(b.matrixWorld).applyMatrix4(_gm2);return true}
@@ -5905,8 +5945,8 @@ function osAnim(A,dt){const P=A.P,v=A.v,R=A.rig,sitC=R.acts.sit,upC=R.acts.stand
         const fp=ft.getWorldPosition(_ow[2]),fT=_ow[3].copy(fp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.2,.07,.33)),s);pgAim(ta,fp,fT);
         const tp=to.getWorldPosition(_ow[2]),tT=_ow[3].copy(tp).add(dU).lerp(A.g.localToWorld(_ow[4].set(sd*.22,.04,.48)),s);pgAim(ft,tp,tT)}}}
   /* prints where a foot actually comes down */
-  if(P.sit<.3)pgPrints(A,.03*A.sc,(j,x,z,yaw,mir)=>{const r=P.run>.5;prAdd(PRK.ost,x,z,yaw,0,r?1.35:1,mir,A.sc);
-    if(r||v>2)spPuff(x,hTop(x,z),z,r?5:2,-Math.sin(yaw),-Math.cos(yaw),r?1.2:.5,.8,.04)},1)}
+  if(P.sit<.3&&A.gt)soleStep(A,A.gt.G,A.gt.b,.015*A.sc,.03*A.sc,0,0,(j,x,z,yaw,mir)=>{const r=P.run>.5;prAdd(PRK.ost,x,z,yaw,0,r?1.35:1,mir,A.sc);
+    if(r||v>2)spPuff(x,hTop(x,z),z,r?5:2,-Math.sin(yaw),-Math.cos(yaw),r?1.2:.5,.8,.04)},v)}
 /* tortoise: idle, slow_crawl (~.058 m/s), head_withdraw and head_out (each with the withdraw morph), turned to the state */
 const TOR_V=.058;
 function torAnim(A,dt){const P=A.P,R=A.rig,inS=A.mode==="shell"||A.mode==="sleep";let c,ts=1;
@@ -5931,7 +5971,8 @@ function gbAnim(A,dt){const P=A.P,R=A.rig;let c="idle",ts=1;
   else if(A.mode==="stand"||A.mode==="look"||A.mode==="peek")c="stand_lookout";
   else if(A.mode==="nibble"){c="dig";ts=.8}
   play(R,c,c==="hop_run"||R.cur==="hop_run"?.08:.2,ts);rigTick(R,dt);pgTurn(A.bn.head,_pgY,P.look*.5);pgTurn(A.bn.neck,_pgY,P.look*.3);
-  if(A.mode!=="dive")pgPrints(A,.015,(j,x,z,yaw,mir)=>paPrint(PRK.gerb,x,z,yaw,A.gt.fore[j]?2:1,.9,mir,1,.25),2)}
+  /* every landing prints, so these skip the print tokens: a dash is a few landings a second, each a pair of hind feet and the forepaws */
+  if(A.mode!=="dive"&&A.gt)soleStep(A,A.gt.G,A.gt.b,.004,.005,.009,"hop_run",(j,x,z,yaw,mir)=>prAdd(PRK.gerb,x,z,yaw,A.gt.fore[j]?2:1,.9,mir,1),A.hv!=null?A.hv:A.v)}
 /* scorpion: idle, walk (.071 m/s) and the threat display; claws_raise and tail_raise are not used */
 const SC_VW=.071;
 function scAnim(A,dt){const P=A.P,R=A.rig;let c="idle",ts=1;

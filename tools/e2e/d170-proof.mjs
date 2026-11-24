@@ -77,7 +77,7 @@ const cap = text => E(text => {
   d.style.cssText = "position:fixed;left:18px;bottom:16px;right:18px;z-index:50;pointer-events:none;font:600 20px 'WenQuanYi Micro Hei','Droid Sans Fallback',sans-serif;color:#fff;letter-spacing:.02em;text-shadow:0 1px 2px #000,0 0 4px #000";
 }, text || "");
 /* frames are rendered one at a time with the scene frozen, stepped 1/24 s (or `each` advances it further) between them */
-async function vid(name, N, each, fps = 24) {
+async function vid(name, N, each, fps = 12) {
   const dir = path.join(OUT, name + "-frames");
   fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir);
   const log = [];
@@ -97,7 +97,7 @@ const CAM = {
     q.lookAt(px, q.hTop(px, pz) + 1.6, pz, cx, q.hTop(cx, cz) + .3, cz); C.De.fov = 50;`,
   flat: `const Y = .45, wx = Math.cos(Y), wz = -Math.sin(Y), x0 = 4, z0 = -9;
     q.lookAt(x0, q.hTop(x0, z0) + 1.6, z0, x0 + wx * 2 - wz * 8, q.hTop(x0, z0) + .2, z0 + wz * 2 + wx * 8); C.De.fov = 55;`,
-  down: `const x0 = 4, z0 = -6; q.lookAt(x0, q.hTop(x0, z0) + 2.6, z0 + 3.2, x0, q.hTop(x0, z0), z0 - .6); C.De.fov = 55;`,
+  down: `const x0 = 12, z0 = 10; q.lookAt(x0, q.hTop(x0, z0 + 3) + 2.4, z0 + 3, x0, q.hTop(x0, z0), z0 - 1); C.De.fov = 55;`,
   sand: `const x = 9, z = 9; q.lookAt(x, q.hTop(x, z) + 1.6, z, x - 2, q.hTop(x, z) + .3, z - 6); C.De.fov = 55;`,
   tent: `const T = q.TENT, x = T.x - 1, z = T.z + 6.5; q.lookAt(x, q.hTop(x, z) + 1.6, z, T.x, q.hTop(T.x, T.z) + 1, T.z); C.De.fov = 55;`,
   lake: `const P = q.POND, [ex, ez] = q.pondEdge(-.6, 1.15); q.lookAt(ex, q.hTop(ex, ez) + 1.6, ez, P.x, P.wy, P.z); C.De.fov = 55;`,
@@ -115,6 +115,16 @@ const osOut = () => E(() => { const q = window.__desQA(), C = window.__C(), T = 
 const set = (w, sec, dt) => E((w, sec, dt) => { window.__set(w); if (sec) window.__desQA().sim(sec, dt || .1); }, w, sec || 0, dt || .1);
 const tick = (n, dt) => E((n, dt) => window.__desQA().step(n, dt), n || 1, dt || 1 / 24);
 
+/* the camera on the lizard from d m off its side, up m above, moved round until the line to it clears the sand (d161) */
+const AGCAM = `(d, up, fov, palmOut) => { const q = window.__desQA(), C = window.__C(), a = q.AG.list[window.__ag];
+      a.g.updateMatrixWorld(true); const p = a.g.getWorldPosition(C.De.position.clone()); q.W.worldToLocal(p);
+      let base; if (a.palm && palmOut) { base = Math.atan2(p.x - a.palm.x, p.z - a.palm.z); } else base = (a.yaw || 0) + Math.PI / 2;
+      const clear = (ex, ey, ez) => { for (let s = .05; s < 1; s += .05) { const x = ex + (p.x - ex) * s, z = ez + (p.z - ez) * s, y = ey + (p.y + .03 - ey) * s; if (y < q.hTop(x, z) + .025) return false; } return true; };
+      let best = null; for (const off of [0, .35, -.35, .7, -.7, Math.PI, Math.PI + .5, Math.PI - .5]) { for (const u of [up, up * 1.6, up * 2.4]) {
+        const ex = p.x + Math.sin(base + off) * d, ez = p.z + Math.cos(base + off) * d, ey = p.y + u; if (clear(ex, ey, ez)) { best = [ex, ey, ez]; break; } } if (best) break; }
+      if (!best) best = [p.x + Math.sin(base) * d, p.y + up * 3, p.z + Math.cos(base) * d];
+      if (!window.__agFollow) window.__agEye = window.__agEye || best; else window.__agEye = best; const e = window.__agEye;
+      q.lookAt(e[0], e[1], e[2], p.x, p.y + .025, p.z); C.De.fov = fov; C.De.near = .02; C.De.updateProjectionMatrix(); return {p: [p.x, p.y, p.z]}; }`;
 const fails = [];
 const report = {};
 try {
@@ -149,18 +159,18 @@ try {
     await set({weather: "sun", ct: "clear", wind: 1}, 30);
     const base = await E(() => window.__desQA().wind().a);
     const H3 = [base, base + 1.4, base - 1.6];
-    for (const k of ["flat", "crest"]) {
+    for (const k of (process.env.WCAMS || "down,crest").split(",")) {
       const log = [];
-      const r = await vid(`V_wind_direction_${k}`, 3 * 60, async i => {
-        const j = Math.floor(i / 60);
-        if (i % 60 === 0) { await E(a => { const q = window.__desQA(); q.windPin(a); q.sim(6, .1); }, H3[j]); await cam(k);
-          await cap(`强风（风力 1.0），风向 ${j + 1}/3：${Math.round(((H3[j] * 180 / Math.PI) % 360 + 360) % 360)}°（${k === "flat" ? "平沙地" : "沙丘脊"}，人眼高度）`); }
-        await tick(1);
+      const r = await vid(`V_wind_direction_${k}`, 3 * 24, async i => {
+        const j = Math.floor(i / 24);
+        if (i % 24 === 0) { await E(a => { const q = window.__desQA(); q.windPin(a); q.sim(6, .1); }, H3[j]); await cam(k);
+          await cap(`强风（风力 1.0），风向 ${j + 1}/3：${Math.round(((H3[j] * 180 / Math.PI) % 360 + 360) % 360)}°（${{flat: "平沙地，人眼高度", down: "脚下沙面，俯看", crest: "沙丘脊，人眼高度"}[k]}）`); }
+        await tick(2);
         const s = await E(() => { const q = window.__desQA(), w = q.wind(); return {a: +w.a.toFixed(2), salt: +q.salt().toFixed(2)}; });
         log.push(s); return s;
       });
-      await strip([30, 90, 150].map(i => frameAt(r.dir, i)), `V_wind_direction_${k}_strip.png`);
-      report["wdir_" + k] = log.filter((_, i) => i % 60 === 30);
+      await strip([12, 36, 60].map(i => frameAt(r.dir, i)), `V_wind_direction_${k}_strip.png`);
+      report["wdir_" + k] = log.filter((_, i) => i % 24 === 12);
       fs.rmSync(r.dir, {recursive: true, force: true});
     }
     await E(() => window.__desQA().windPin(null));
@@ -171,32 +181,32 @@ try {
     await E(Y => window.__desQA().windPin(Y - .6), Y);
     const L = [.15, .5, 1];
     for (const k of ["flat", "crest"]) {
-      const r = await vid(`V_wind_strength_${k}`, 3 * 60, async i => {
-        const j = Math.floor(i / 60);
-        if (i % 60 === 0) { await set({weather: "sun", ct: "clear", wind: L[j]}, 20); await cam(k); await cap(`风力 ${L[j]}（${["微风：沙不起", "中风：沙粒贴地跳跃", "强风：沙流成带，脊上扬沙"][j]}）`); }
-        await tick(1);
+      const r = await vid(`V_wind_strength_${k}`, 3 * 24, async i => {
+        const j = Math.floor(i / 24);
+        if (i % 24 === 0) { await set({weather: "sun", ct: "clear", wind: L[j]}, 20); await cam(k); await cap(`风力 ${L[j]}（${["微风：沙不起", "中风：沙粒贴地跳跃", "强风：沙流成带，脊上扬沙"][j]}）`); }
+        await tick(2);
         return E(() => { const q = window.__desQA(), w = q.wind(); return {a: +w.a.toFixed(2), salt: +q.salt().toFixed(2), flowK: +q.sandU.uFlowK.value.toFixed(2)}; });
       });
-      await strip([30, 90, 150].map(i => frameAt(r.dir, i)), `V_wind_strength_${k}_strip.png`);
-      report["wstr_" + k] = r.log.filter((_, i) => i % 60 === 30);
+      await strip([12, 36, 60].map(i => frameAt(r.dir, i)), `V_wind_strength_${k}_strip.png`);
+      report["wstr_" + k] = r.log.filter((_, i) => i % 24 === 12);
       fs.rmSync(r.dir, {recursive: true, force: true});
     }
     await E(() => window.__desQA().windPin(null));
   }
 
   if (want("dune")) {
-    /* 4 scene-minutes per frame: 48 frames with the wind 60° off the crest on one side, 48 with it swung to the other */
+    /* 8 scene-minutes per frame: 24 frames with the wind 60° off the crest on one side, 24 with it swung to the other */
     await set({weather: "sun", ct: "clear", wind: .8}, 5);
     const yaw = await E(() => window.__desQA().dune.DUNE0.yaw);
-    const r = await vid("V_dune_timelapse", 96, async i => {
-      const side = i < 48 ? 1 : -1;
-      await E(a => { const q = window.__desQA(); q.windPin(a); q.sim(240, 1); }, yaw + 1.05 * side);
+    const r = await vid("V_dune_timelapse", 48, async i => {
+      const side = i < 24 ? 1 : -1;
+      await E(a => { const q = window.__desQA(); q.windPin(a); q.sim(480, 1); }, yaw + 1.05 * side);
       await cam("dune");
-      await cap(`沙丘延时：每帧 4 分钟，第 ${Math.round((i + 1) * 4)} 分钟；风${side > 0 ? "从脊线一侧斜吹" : "转到另一侧斜吹"}`);
+      await cap(`沙丘延时：每帧 8 分钟，第 ${(i + 1) * 8} 分钟；风${side > 0 ? "从脊线一侧斜吹" : "转到另一侧斜吹"}`);
       return E(() => { const P = window.__desQA().dune.DP; return {cv: +P.cv.toFixed(3), sk: +P.sk.toFixed(3), x: +P.x.toFixed(2), z: +P.z.toFixed(2), H: +(P.H || 0).toFixed(2)}; });
-    }, 12);
-    await strip([0, 47, 95].map(i => frameAt(r.dir, i)), "V_dune_timelapse_strip.png");
-    report.dune = {first: r.log[0], mid: r.log[47], last: r.log[95]};
+    }, 6);
+    await strip([0, 23, 47].map(i => frameAt(r.dir, i)), "V_dune_timelapse_strip.png");
+    report.dune = {first: r.log[0], mid: r.log[23], last: r.log[47]};
     fs.rmSync(r.dir, {recursive: true, force: true});
     await E(() => window.__desQA().windPin(null));
   }
@@ -206,34 +216,26 @@ try {
       await set({weather: "sun", ct: "clear", wind: .4}, 900, 1);
       await cam(k); await osOut(); await cam(k);
       const nm = {sand: "沙地", tent: "帐篷", lake: "绿洲湖"}[k];
-      const r = await vid(`V_rain_${k}_eye`, 24 + 96 + 48, async i => {
+      const r = await vid(`V_rain_${k}_eye`, 12 + 36 + 24, async i => {
         if (i === 0) await cap(`${nm}（人眼高度 1.6 米）：雨前，干燥`);
-        if (i === 24) { await set({weather: "hrain", ct: "overcast", wind: .5}, 45); await cam(k); await cap(`${nm}：大雨（开始下雨 45 秒后，实时）`); }
-        if (i >= 120) { if (i === 120) await set({weather: "sun", ct: "clear", wind: .4}, 2); await E(() => window.__desQA().sim(6, .2)); await cam(k);
-          await cap(`${nm}：雨停后变干（延时，每帧 6 秒），雨停 ${Math.round((i - 119) * 6 / 6) / 10} 分钟`); }
-        else await tick(1);
+        if (i === 12) { await set({weather: "hrain", ct: "overcast", wind: .5}, 45); await cam(k); await cap(`${nm}：大雨（开始下雨 45 秒后，实时）`); }
+        if (i >= 48) { if (i === 48) await set({weather: "sun", ct: "clear", wind: .4}, 2); await E(() => window.__desQA().sim(12, .2)); await cam(k);
+          await cap(`${nm}：雨停后变干（延时，每帧 12 秒），雨停 ${((i - 47) * 12 / 60).toFixed(1)} 分钟`); }
+        else await tick(2);
         return E(() => { const q = window.__desQA(); return {wet: +q.WX.wet.toFixed(3), rain: +q.WX.rain.toFixed(2)}; });
       });
-      await still(r.dir, 12, `V_rain_${k}_0dry.png`); await still(r.dir, 90, `V_rain_${k}_1rain.png`);
-      await still(r.dir, 130, `V_rain_${k}_2after1min.png`); await still(r.dir, 167, `V_rain_${k}_3after4.8min.png`);
-      await strip([12, 90, 130, 167].map(i => frameAt(r.dir, i)), `V_rain_${k}_strip.png`, 400);
-      report["rain_" + k] = {dry: r.log[12], rain: r.log[90], after1: r.log[130], after48: r.log[167]};
+      await still(r.dir, 6, `V_rain_${k}_0dry.png`); await still(r.dir, 30, `V_rain_${k}_1rain.png`);
+      await still(r.dir, 52, `V_rain_${k}_2after1min.png`); await still(r.dir, 71, `V_rain_${k}_3after4.8min.png`);
+      await strip([6, 30, 52, 71].map(i => frameAt(r.dir, i)), `V_rain_${k}_strip.png`, 400);
+      report["rain_" + k] = {dry: r.log[6], rain: r.log[30], after1: r.log[52], after48: r.log[71]};
       fs.rmSync(r.dir, {recursive: true, force: true});
     }
     await cap("");
   }
 
   if (want("agama")) {
-    const agCamJS = `(d, up, fov, palmOut) => { const q = window.__desQA(), C = window.__C(), a = q.AG.list[window.__ag];
-      a.g.updateMatrixWorld(true); const p = a.g.getWorldPosition(C.De.position.clone()); q.W.worldToLocal(p);
-      let base; if (a.palm && palmOut) { base = Math.atan2(p.x - a.palm.x, p.z - a.palm.z); } else base = (a.yaw || 0) + Math.PI / 2;
-      const clear = (ex, ey, ez) => { for (let s = .05; s < 1; s += .05) { const x = ex + (p.x - ex) * s, z = ez + (p.z - ez) * s, y = ey + (p.y + .03 - ey) * s; if (y < q.hTop(x, z) + .025) return false; } return true; };
-      let best = null; for (const off of [0, .35, -.35, .7, -.7, Math.PI, Math.PI + .5, Math.PI - .5]) { for (const u of [up, up * 1.6, up * 2.4]) {
-        const ex = p.x + Math.sin(base + off) * d, ez = p.z + Math.cos(base + off) * d, ey = p.y + u; if (clear(ex, ey, ez)) { best = [ex, ey, ez]; break; } } if (best) break; }
-      if (!best) best = [p.x + Math.sin(base) * d, p.y + up * 3, p.z + Math.cos(base) * d];
-      if (!window.__agFollow) window.__agEye = window.__agEye || best; else window.__agEye = best; const e = window.__agEye;
-      q.lookAt(e[0], e[1], e[2], p.x, p.y + .025, p.z); C.De.fov = fov; C.De.near = .02; C.De.updateProjectionMatrix(); return {p: [p.x, p.y, p.z]}; }`;
-    const agStep = (d, up, fov, palmOut) => E((js, d, up, fov, palmOut) => { const q = window.__desQA(); q.step(1, 1 / 24); (new Function("return " + js))()(d, up, fov, palmOut);
+    const agCamJS = AGCAM;
+    const agStep = (d, up, fov, palmOut) => E((js, d, up, fov, palmOut) => { const q = window.__desQA(); q.step(2, 1 / 24); (new Function("return " + js))()(d, up, fov, palmOut);
       const a = q.AG.list[window.__ag]; return {mode: a.mode, palm: !!a.palm, h: a.palm ? +(a.ct * a.palm.h).toFixed(2) : 0}; }, agCamJS, d, up, fov, palmOut);
     /* bask */
     const bp = await E(() => { const q = window.__desQA(), L = q.AG.list; window.__set({weather: "sun", ct: "clear", wind: .3});
@@ -243,8 +245,8 @@ try {
     if (!bp) fails.push("agama never basked on the ground");
     else {
       await cap(`西奈飞蜥（${bp.male ? "雄" : "雌"}）：晴天趴在石头 / 沙上晒太阳`);
-      const r = await vid("V_agama_bask", 72, () => agStep(.62, .16, 30, false));
-      await still(r.dir, 36, "V_agama_bask.png"); fs.rmSync(r.dir, {recursive: true, force: true});
+      const r = await vid("V_agama_bask", 36, () => agStep(.62, .16, 30, false));
+      await still(r.dir, 18, "V_agama_bask.png"); fs.rmSync(r.dir, {recursive: true, force: true});
       report.agBaskModes = [...new Set(r.log.map(s => s.mode))];
     }
     /* climb: wait for a lizard to start up a palm (in sun it goes up to perch; else rain sends it up), follow it */
@@ -256,11 +258,11 @@ try {
     if (!cp) fails.push("no agama climbed a palm");
     else {
       await cap(`西奈飞蜥：爬上椰枣树干${cp.rain ? "（下雨了，往树冠爬）" : "（晴天爬上树干找高处）"}`);
-      const r = await vid("V_agama_climb", 120, () => agStep(1.5, .1, 38, true));
-      await strip([10, 60, 110].map(i => frameAt(r.dir, i)), "V_agama_climb_strip.png");
-      report.agClimbLog = [r.log[0], r.log[60], r.log[119]];
+      const r = await vid("V_agama_climb", 60, () => agStep(1.5, .1, 38, true));
+      await strip([5, 30, 58].map(i => frameAt(r.dir, i)), "V_agama_climb_strip.png");
+      report.agClimbLog = [r.log[0], r.log[30], r.log[59]];
       fs.rmSync(r.dir, {recursive: true, force: true});
-      if (!(r.log[119].h > r.log[0].h + .3)) fails.push("climb clip: no height gained");
+      if (!(r.log[59].h > r.log[0].h + .3)) fails.push("climb clip: no height gained");
     }
     /* shelter: heavy rain 4 min, then every lizard under the crown */
     const st = await E(() => { const q = window.__desQA(), L = q.AG.list; window.__set({weather: "hrain", ct: "overcast", wind: .4}); q.sim(240);
@@ -270,15 +272,19 @@ try {
     report.agRain = st;
     if (!st.every(s => s.onPalm && Math.abs(s.belowTop - s.target) < .06)) fails.push("agama not under the crown in rain");
     await cap("西奈飞蜥：大雨中躲在椰枣树冠下（叶鞘和叶片下面）");
-    { const r = await vid("V_agama_rain_shelter", 72, () => agStep(1.25, -.25, 38, true));
-      await still(r.dir, 36, "V_agama_rain_shelter.png"); fs.rmSync(r.dir, {recursive: true, force: true}); }
+    { const r = await vid("V_agama_rain_shelter", 36, () => agStep(1.25, -.25, 38, true));
+      await still(r.dir, 18, "V_agama_rain_shelter.png"); fs.rmSync(r.dir, {recursive: true, force: true}); }
     await E(js => { window.__agEye = null; (new Function("return " + js))()(3.2, -1.4, 40, true); }, agCamJS);
     await cap("西奈飞蜥：雨中在树冠下（远一点看整个树冠）"); await shot("V_agama_rain_shelter_wide.png");
-    /* after the rain: down again and basking */
+  }
+  if (want("agama") || want("agafter")) {
+    const agCamJS = AGCAM;
+    if (want("agafter")) await E(() => { window.__set({weather: "hrain", ct: "overcast", wind: .4}); window.__desQA().sim(240); });
+    /* after the rain: down again and basking (they may go back up to perch later in the sun, so stop at the first ground bask) */
     const after = await E(() => { const q = window.__desQA(), L = q.AG.list; window.__set({weather: "sun", ct: "clear", wind: .3}); const seen = [];
-      for (let i = 0; i < 60; i++) { q.sim(5, .1); seen.push(L.map(a => a.mode + (a.palm ? "@palm" : "")).join(",")); }
-      let a = L.find(o => o.mode === "bask" && !o.palm) || L.find(o => o.mode === "bask"); window.__ag = L.indexOf(a); window.__agEye = null; window.__agFollow = false;
-      return {seen: seen.filter((s, i) => i % 6 === 0), basking: !!a, onGround: a ? !a.palm : false}; });
+      let a = null; for (let i = 0; i < 240 && !a; i++) { q.sim(1, .1); seen.push(L.map(o => o.mode + (o.palm ? "@palm" : "")).join(",")); a = L.find(o => o.mode === "bask" && !o.palm); }
+      window.__ag = L.indexOf(a); window.__agEye = null; window.__agFollow = false;
+      return {seen: seen.filter((s, i) => i % 3 === 0), secondsAfterRain: seen.length, basking: !!a, onGround: a ? !a.palm : false}; });
     report.agAfter = after;
     if (after.basking) { await cap("西奈飞蜥：雨停后下树，回到地面继续晒太阳"); await E(js => (new Function("return " + js))()(.7, .2, 32, false), agCamJS); await shot("V_agama_after_rain_bask.png"); }
     else fails.push("agama did not bask again after rain");
@@ -296,6 +302,7 @@ try {
   }
 
   if (want("ver")) {
+    await cap("");
     await set({weather: "sun", ct: "clear", wind: .3}, 2);
     await E(() => { document.body.classList.remove("col"); for (const s of ["#fab", "#sbtn", "#tp"]) { const n = document.querySelector(s); if (n) n.style.display = ""; } });
     await E(() => { const q = window.__desQA(); q.lookAt(-4.16, 11.13, 19.58, 0, 0, 0); q.step(1, 1 / 30); });

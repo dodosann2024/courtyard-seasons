@@ -1,0 +1,70 @@
+{
+ "live": "assets/desert.2ccd4efe17.js",
+ "agBask": {
+  "i": 0,
+  "male": true
+ },
+ "agBaskModes": [
+  "bask"
+ ],
+ "agClimb": {
+  "i": 0,
+  "male": true,
+  "rain": false,
+  "h": 7.6
+ },
+ "agClimbLog": [
+  {
+   "mode": "climb",
+   "palm": true,
+   "h": 0.2
+  },
+  {
+   "mode": "climb",
+   "palm": true,
+   "h": 0.6
+  },
+  {
+   "mode": "climb",
+   "palm": true,
+   "h": 0.99
+  }
+ ],
+ "agRain": [
+  {
+   "male": true,
+   "mode": "perch",
+   "onPalm": true,
+   "palmH": 7.6,
+   "belowTop": 0.5,
+   "target": 0.5
+  },
+  {
+   "male": false,
+   "mode": "perch",
+   "onPalm": true,
+   "palmH": 11.8,
+   "belowTop": 0.7,
+   "target": 0.7
+  }
+ ],
+ "agAfter": {
+  "seen": [
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "run,climb@palm",
+   "bask,run",
+   "bask,bask",
+   "run,bob",
+   "perch@palm,climb@palm",
+   "perch@palm,perch@palm",
+   "perch@palm,climb@palm",
+   "perch@palm,perch@palm"
+  ],
+  "basking": false,
+  "onGround": false
+ },
+ "fails": [
+  "agama did not bask again after rain"
+ ]
+}

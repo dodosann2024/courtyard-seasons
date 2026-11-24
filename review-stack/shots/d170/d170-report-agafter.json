@@ -1,0 +1,37 @@
+{
+ "live": "assets/desert.2ccd4efe17.js",
+ "agAfter": {
+  "seen": [
+   "perch@palm,perch@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "climb@palm,climb@palm",
+   "run,climb@palm",
+   "run,climb@palm",
+   "run,climb@palm",
+   "run,climb@palm",
+   "run,climb@palm",
+   "pause,climb@palm",
+   "pause,climb@palm",
+   "pause,run",
+   "pause,run",
+   "pause,run"
+  ],
+  "secondsAfterRain": 78,
+  "basking": true,
+  "onGround": true
+ },
+ "fails": []
+}

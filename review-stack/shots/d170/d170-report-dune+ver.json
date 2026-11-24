@@ -1,0 +1,33 @@
+{
+ "live": "assets/desert.2ccd4efe17.js",
+ "dune": {
+  "first": {
+   "cv": 2.806,
+   "sk": 1.286,
+   "x": 15.57,
+   "z": -11.12,
+   "H": 4.9
+  },
+  "mid": {
+   "cv": 2.758,
+   "sk": 1.401,
+   "x": 14.61,
+   "z": -9.91,
+   "H": 4.43
+  },
+  "last": {
+   "cv": 2.39,
+   "sk": -1.238,
+   "x": 15.99,
+   "z": -8.34,
+   "H": 5.14
+  }
+ },
+ "ver": {
+  "text": "版本 2ccd4e",
+  "bundle": "assets/desert.2ccd4efe17.js",
+  "visible": true,
+  "match": true
+ },
+ "fails": []
+}

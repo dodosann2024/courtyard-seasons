@@ -1,0 +1,58 @@
+{
+ "live": "assets/desert.2ccd4efe17.js",
+ "rain_sand": {
+  "dry": {
+   "wet": 0,
+   "rain": 0
+  },
+  "rain": {
+   "wet": 1,
+   "rain": 1
+  },
+  "after1": {
+   "wet": 0.724,
+   "rain": 0
+  },
+  "after48": {
+   "wet": 0,
+   "rain": 0
+  }
+ },
+ "rain_tent": {
+  "dry": {
+   "wet": 0,
+   "rain": 0
+  },
+  "rain": {
+   "wet": 1,
+   "rain": 1
+  },
+  "after1": {
+   "wet": 0.724,
+   "rain": 0
+  },
+  "after48": {
+   "wet": 0,
+   "rain": 0
+  }
+ },
+ "rain_lake": {
+  "dry": {
+   "wet": 0,
+   "rain": 0
+  },
+  "rain": {
+   "wet": 1,
+   "rain": 1
+  },
+  "after1": {
+   "wet": 0.724,
+   "rain": 0
+  },
+  "after48": {
+   "wet": 0,
+   "rain": 0
+  }
+ },
+ "fails": []
+}

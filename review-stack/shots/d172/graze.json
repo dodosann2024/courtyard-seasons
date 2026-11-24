@@ -1,0 +1,4218 @@
+{
+ "rule": "graze/nibble/peck valid when the lowest point of the head at the deepest reach is within 0.3 m (horizontal) of a live grass/tuft/reed instance; drink valid when it is over the water (pN<1) and within 5 cm of the water height",
+ "ostrichNote": "ostrich frozen (ostrich_v2ag): its pecks are reported, not changed",
+ "main": {
+  "bundle": "assets/desert.013a914945.js",
+  "simMinutes": 6,
+  "perKind": {
+   "ostrich:peck": {
+    "events": 69,
+    "valid": 5,
+    "mouthToTuftM": {
+     "min": 0.22,
+     "p50": 1.976,
+     "max": 3.417
+    },
+    "mouthToWaterYM": {
+     "min": 0.339,
+     "p50": 0.48,
+     "max": 0.976
+    },
+    "validPct": 7.2
+   },
+   "dromedary:graze": {
+    "events": 7,
+    "valid": 5,
+    "mouthToTuftM": {
+     "min": 0.094,
+     "p50": 0.224,
+     "max": 1.171
+    },
+    "mouthToWaterYM": {
+     "min": 0.293,
+     "p50": 0.335,
+     "max": 0.447
+    },
+    "validPct": 71.4
+   },
+   "tortoise:graze": {
+    "events": 9,
+    "valid": 2,
+    "mouthToTuftM": {
+     "min": 0.178,
+     "p50": 0.747,
+     "max": 1.828
+    },
+    "mouthToWaterYM": {
+     "min": 0.419,
+     "p50": 0.486,
+     "max": 0.821
+    },
+    "validPct": 22.2
+   },
+   "bactrian:graze": {
+    "events": 1,
+    "valid": 0,
+    "mouthToTuftM": {
+     "min": 0.474,
+     "p50": 0.474,
+     "max": 0.474
+    },
+    "mouthToWaterYM": {
+     "min": 0.254,
+     "p50": 0.254,
+     "max": 0.254
+    },
+    "validPct": 0
+   },
+   "bactrian:drink": {
+    "events": 2,
+    "valid": 0,
+    "mouthToTuftM": {
+     "min": 1.178,
+     "p50": 1.193,
+     "max": 1.193
+    },
+    "mouthToWaterYM": {
+     "min": 0.255,
+     "p50": 0.255,
+     "max": 0.255
+    },
+    "validPct": 0
+   },
+   "dromedary:drink": {
+    "events": 2,
+    "valid": 0,
+    "mouthToTuftM": {
+     "min": 1.057,
+     "p50": 1.133,
+     "max": 1.133
+    },
+    "mouthToWaterYM": {
+     "min": 0.26,
+     "p50": 0.26,
+     "max": 0.26
+    },
+    "validPct": 0
+   }
+  },
+  "events": [
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 7.1,
+    "dur": 2.2,
+    "mouth": {
+     "x": 2.312,
+     "y": 0.045,
+     "z": -7.839
+    },
+    "mouthToTuftM": 1.976,
+    "mouthToWaterYM": 0.465,
+    "mouthAboveSandM": -0.009,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 5.3,
+    "dur": 7.1,
+    "mouth": {
+     "x": -8.011,
+     "y": -0.101,
+     "z": 11.069
+    },
+    "mouthToTuftM": 0.224,
+    "mouthToWaterYM": 0.319,
+    "mouthAboveSandM": 0.172,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 13.1,
+    "dur": 4.8,
+    "mouth": {
+     "x": 1.571,
+     "y": 0.048,
+     "z": -8.462
+    },
+    "mouthToTuftM": 2.606,
+    "mouthToWaterYM": 0.468,
+    "mouthAboveSandM": -0.012,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 16.4,
+    "dur": 2,
+    "mouth": {
+     "x": -2.427,
+     "y": 0.096,
+     "z": -6.254
+    },
+    "mouthToTuftM": 0.265,
+    "mouthToWaterYM": 0.516,
+    "mouthAboveSandM": 0.003,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 21.9,
+    "dur": 2.1,
+    "mouth": {
+     "x": 1.511,
+     "y": 0.046,
+     "z": -9.325
+    },
+    "mouthToTuftM": 2.348,
+    "mouthToWaterYM": 0.466,
+    "mouthAboveSandM": -0.012,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 23.3,
+    "dur": 2,
+    "mouth": {
+     "x": -1.138,
+     "y": 0.084,
+     "z": -6.752
+    },
+    "mouthToTuftM": 1.142,
+    "mouthToWaterYM": 0.504,
+    "mouthAboveSandM": 0.003,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 26.6,
+    "dur": 2.2,
+    "mouth": {
+     "x": 1.431,
+     "y": 0.048,
+     "z": -9.529
+    },
+    "mouthToTuftM": 2.265,
+    "mouthToWaterYM": 0.468,
+    "mouthAboveSandM": -0.011,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 24.2,
+    "dur": 5.2,
+    "mouth": {
+     "x": 4.165,
+     "y": 0.088,
+     "z": -8.078
+    },
+    "mouthToTuftM": 0.178,
+    "mouthToWaterYM": 0.508,
+    "mouthAboveSandM": 0.034,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 34.2,
+    "dur": 5,
+    "mouth": {
+     "x": 1.936,
+     "y": 0.051,
+     "z": -8.15
+    },
+    "mouthToTuftM": 2.358,
+    "mouthToWaterYM": 0.471,
+    "mouthAboveSandM": -0.005,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 35,
+    "dur": 8.2,
+    "mouth": {
+     "x": 1.6,
+     "y": -0.06,
+     "z": 8.981
+    },
+    "mouthToTuftM": 0.198,
+    "mouthToWaterYM": 0.36,
+    "mouthAboveSandM": 0.166,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 45.5,
+    "dur": 2.2,
+    "mouth": {
+     "x": 0.399,
+     "y": 0.06,
+     "z": -7.673
+    },
+    "mouthToTuftM": 1.94,
+    "mouthToWaterYM": 0.48,
+    "mouthAboveSandM": -0.002,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 38,
+    "dur": 12.3,
+    "mouth": {
+     "x": -2.361,
+     "y": 0.063,
+     "z": -5.151
+    },
+    "mouthToTuftM": 0.47,
+    "mouthToWaterYM": 0.483,
+    "mouthAboveSandM": 0.006,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 51,
+    "dur": 2.1,
+    "mouth": {
+     "x": -0.014,
+     "y": 0.06,
+     "z": -7.598
+    },
+    "mouthToTuftM": 1.68,
+    "mouthToWaterYM": 0.48,
+    "mouthAboveSandM": -0.006,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 49.4,
+    "dur": 8.2,
+    "mouth": {
+     "x": 1.354,
+     "y": -0.122,
+     "z": 8.747
+    },
+    "mouthToTuftM": 0.213,
+    "mouthToWaterYM": 0.298,
+    "mouthAboveSandM": 0.127,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 54.5,
+    "dur": 4.6,
+    "mouth": {
+     "x": 0.175,
+     "y": 0.06,
+     "z": -7.406
+    },
+    "mouthToTuftM": 1.95,
+    "mouthToWaterYM": 0.48,
+    "mouthAboveSandM": -0.003,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 61.3,
+    "dur": 3.9,
+    "mouth": {
+     "x": -9.739,
+     "y": 0.217,
+     "z": -7.157
+    },
+    "mouthToTuftM": 1.017,
+    "mouthToWaterYM": 0.637,
+    "mouthAboveSandM": -0.021,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 67.7,
+    "dur": 2.3,
+    "mouth": {
+     "x": -0.58,
+     "y": 0.084,
+     "z": -9.329
+    },
+    "mouthToTuftM": 0.288,
+    "mouthToWaterYM": 0.504,
+    "mouthAboveSandM": -0.03,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 71.7,
+    "dur": 2.9,
+    "mouth": {
+     "x": -8.724,
+     "y": 0.019,
+     "z": -4.173
+    },
+    "mouthToTuftM": 1.057,
+    "mouthToWaterYM": 0.439,
+    "mouthAboveSandM": 0.008,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 74.7,
+    "dur": 6.7,
+    "mouth": {
+     "x": -0.562,
+     "y": 0.117,
+     "z": -10.283
+    },
+    "mouthToTuftM": 0.86,
+    "mouthToWaterYM": 0.537,
+    "mouthAboveSandM": -0.008,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 77.3,
+    "dur": 6.7,
+    "mouth": {
+     "x": -8.78,
+     "y": 0.017,
+     "z": -4.249
+    },
+    "mouthToTuftM": 1.051,
+    "mouthToWaterYM": 0.437,
+    "mouthAboveSandM": 0.006,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 70.7,
+    "dur": 14.3,
+    "mouth": {
+     "x": 2.297,
+     "y": 0.027,
+     "z": 9.553
+    },
+    "mouthToTuftM": 0.612,
+    "mouthToWaterYM": 0.447,
+    "mouthAboveSandM": 0.168,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 84.2,
+    "dur": 7.6,
+    "mouth": {
+     "x": 5.593,
+     "y": -0.001,
+     "z": -11.51
+    },
+    "mouthToTuftM": 0.462,
+    "mouthToWaterYM": 0.419,
+    "mouthAboveSandM": 0.037,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 87.7,
+    "dur": 6.5,
+    "mouth": {
+     "x": -0.98,
+     "y": 0.1,
+     "z": -8.295
+    },
+    "mouthToTuftM": 0.561,
+    "mouthToWaterYM": 0.52,
+    "mouthAboveSandM": -0.004,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 93,
+    "dur": 4.5,
+    "mouth": {
+     "x": -9.989,
+     "y": 0.541,
+     "z": -9.352
+    },
+    "mouthToTuftM": 0.256,
+    "mouthToWaterYM": 0.961,
+    "mouthAboveSandM": -0.108,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 99.4,
+    "dur": 7.3,
+    "mouth": {
+     "x": -1.997,
+     "y": 0.116,
+     "z": -8.261
+    },
+    "mouthToTuftM": 0.237,
+    "mouthToWaterYM": 0.536,
+    "mouthAboveSandM": -0.006,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 104.2,
+    "dur": 4.9,
+    "mouth": {
+     "x": -10.874,
+     "y": 0.526,
+     "z": -8.329
+    },
+    "mouthToTuftM": 1.375,
+    "mouthToWaterYM": 0.946,
+    "mouthAboveSandM": 0.047,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 109.2,
+    "dur": 2.4,
+    "mouth": {
+     "x": -1.982,
+     "y": 0.117,
+     "z": -8.3
+    },
+    "mouthToTuftM": 0.22,
+    "mouthToWaterYM": 0.537,
+    "mouthAboveSandM": -0.006,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 116.4,
+    "dur": 6.3,
+    "mouth": {
+     "x": 6.482,
+     "y": 0.059,
+     "z": 1.204
+    },
+    "mouthToTuftM": 1.364,
+    "mouthToWaterYM": 0.479,
+    "mouthAboveSandM": 0.041,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 118.1,
+    "dur": 6.1,
+    "mouth": {
+     "x": -0.156,
+     "y": 0.084,
+     "z": -7.654
+    },
+    "mouthToTuftM": 1.544,
+    "mouthToWaterYM": 0.504,
+    "mouthAboveSandM": 0.015,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 130.5,
+    "dur": 3.4,
+    "mouth": {
+     "x": 3.688,
+     "y": 0.033,
+     "z": -8.765
+    },
+    "mouthToTuftM": 1.013,
+    "mouthToWaterYM": 0.453,
+    "mouthAboveSandM": -0.009,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 140.4,
+    "dur": 3.4,
+    "mouth": {
+     "x": 0.47,
+     "y": 0.053,
+     "z": -7.359
+    },
+    "mouthToTuftM": 2.194,
+    "mouthToWaterYM": 0.473,
+    "mouthAboveSandM": -0.007,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "graze",
+    "t0": 128.7,
+    "dur": 15.3,
+    "mouth": {
+     "x": -6.364,
+     "y": -0.166,
+     "z": 10.825
+    },
+    "mouthToTuftM": 0.474,
+    "mouthToWaterYM": 0.254,
+    "mouthAboveSandM": 0.131,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 142.3,
+    "dur": 4.6,
+    "mouth": {
+     "x": 1.121,
+     "y": 0.056,
+     "z": -8.261
+    },
+    "mouthToTuftM": 2.296,
+    "mouthToWaterYM": 0.476,
+    "mouthAboveSandM": -0.008,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 145.9,
+    "dur": 7.2,
+    "mouth": {
+     "x": 0.49,
+     "y": 0.054,
+     "z": -7.388
+    },
+    "mouthToTuftM": 2.19,
+    "mouthToWaterYM": 0.474,
+    "mouthAboveSandM": -0.006,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 162.4,
+    "dur": 2.5,
+    "mouth": {
+     "x": -6.669,
+     "y": 0.062,
+     "z": -5.555
+    },
+    "mouthToTuftM": 1.358,
+    "mouthToWaterYM": 0.482,
+    "mouthAboveSandM": 0.001,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 165.8,
+    "dur": 3.3,
+    "mouth": {
+     "x": 0.257,
+     "y": 0.09,
+     "z": -10.953
+    },
+    "mouthToTuftM": 1.843,
+    "mouthToWaterYM": 0.51,
+    "mouthAboveSandM": -0.017,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 167,
+    "dur": 2.3,
+    "mouth": {
+     "x": -6.862,
+     "y": 0.061,
+     "z": -5.488
+    },
+    "mouthToTuftM": 1.514,
+    "mouthToWaterYM": 0.481,
+    "mouthAboveSandM": -0.002,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 171.3,
+    "dur": 4.4,
+    "mouth": {
+     "x": 0.275,
+     "y": 0.09,
+     "z": -10.94
+    },
+    "mouthToTuftM": 1.844,
+    "mouthToWaterYM": 0.51,
+    "mouthAboveSandM": -0.017,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 165,
+    "dur": 13.1,
+    "mouth": {
+     "x": 0.376,
+     "y": -0.165,
+     "z": 6.607
+    },
+    "mouthToTuftM": 1.178,
+    "mouthToWaterYM": 0.255,
+    "mouthAboveSandM": 0.135,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 180.4,
+    "dur": 1.6,
+    "mouth": {
+     "x": 1.201,
+     "y": 0.095,
+     "z": -11.275
+    },
+    "mouthToTuftM": 2.656,
+    "mouthToWaterYM": 0.515,
+    "mouthAboveSandM": -0.002,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 178.2,
+    "dur": 5.1,
+    "mouth": {
+     "x": -5.739,
+     "y": 0.111,
+     "z": -7.231
+    },
+    "mouthToTuftM": 0.772,
+    "mouthToWaterYM": 0.531,
+    "mouthAboveSandM": -0.039,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 185,
+    "dur": 1.9,
+    "mouth": {
+     "x": -5.758,
+     "y": 0.111,
+     "z": -7.278
+    },
+    "mouthToTuftM": 0.762,
+    "mouthToWaterYM": 0.531,
+    "mouthAboveSandM": -0.043,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 181.9,
+    "dur": 7.4,
+    "mouth": {
+     "x": 0.456,
+     "y": 0.066,
+     "z": -14.989
+    },
+    "mouthToTuftM": 0.524,
+    "mouthToWaterYM": 0.486,
+    "mouthAboveSandM": 0.037,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 187.4,
+    "dur": 5,
+    "mouth": {
+     "x": 0.327,
+     "y": 0.1,
+     "z": -11.971
+    },
+    "mouthToTuftM": 2.103,
+    "mouthToWaterYM": 0.52,
+    "mouthAboveSandM": -0.003,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 192,
+    "dur": 5.4,
+    "mouth": {
+     "x": -5.297,
+     "y": 0.089,
+     "z": -6.051
+    },
+    "mouthToTuftM": 1.05,
+    "mouthToWaterYM": 0.509,
+    "mouthAboveSandM": 0.012,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 190.1,
+    "dur": 7.5,
+    "mouth": {
+     "x": 7.206,
+     "y": 0.065,
+     "z": 0.956
+    },
+    "mouthToTuftM": 1.828,
+    "mouthToWaterYM": 0.485,
+    "mouthAboveSandM": 0.039,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 194.3,
+    "dur": 4.8,
+    "mouth": {
+     "x": 0.314,
+     "y": 0.1,
+     "z": -11.963
+    },
+    "mouthToTuftM": 2.116,
+    "mouthToWaterYM": 0.52,
+    "mouthAboveSandM": -0.002,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 203.6,
+    "dur": 6.7,
+    "mouth": {
+     "x": 0.083,
+     "y": 0.095,
+     "z": -12.802
+    },
+    "mouthToTuftM": 1.515,
+    "mouthToWaterYM": 0.515,
+    "mouthAboveSandM": 0.001,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 209.4,
+    "dur": 3.9,
+    "mouth": {
+     "x": -12.147,
+     "y": -0.045,
+     "z": -2.521
+    },
+    "mouthToTuftM": 2.328,
+    "mouthToWaterYM": 0.375,
+    "mouthAboveSandM": 0,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 201.4,
+    "dur": 14.2,
+    "mouth": {
+     "x": -7.77,
+     "y": -0.085,
+     "z": 11.242
+    },
+    "mouthToTuftM": 0.094,
+    "mouthToWaterYM": 0.335,
+    "mouthAboveSandM": 0.178,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 213,
+    "dur": 4.4,
+    "mouth": {
+     "x": 0.105,
+     "y": 0.095,
+     "z": -12.804
+    },
+    "mouthToTuftM": 1.499,
+    "mouthToWaterYM": 0.515,
+    "mouthAboveSandM": 0.001,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 216.9,
+    "dur": 1.9,
+    "mouth": {
+     "x": -12.663,
+     "y": -0.053,
+     "z": -2.136
+    },
+    "mouthToTuftM": 2.789,
+    "mouthToWaterYM": 0.367,
+    "mouthAboveSandM": 0.009,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 221.7,
+    "dur": 2.3,
+    "mouth": {
+     "x": -11.829,
+     "y": -0.051,
+     "z": -2.84
+    },
+    "mouthToTuftM": 2.025,
+    "mouthToWaterYM": 0.369,
+    "mouthAboveSandM": -0.009,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 233.3,
+    "dur": 2.2,
+    "mouth": {
+     "x": 0.1,
+     "y": 0.095,
+     "z": -12.808
+    },
+    "mouthToTuftM": 1.499,
+    "mouthToWaterYM": 0.515,
+    "mouthAboveSandM": 0.001,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 230.2,
+    "dur": 5.5,
+    "mouth": {
+     "x": -12.333,
+     "y": -0.047,
+     "z": -3.798
+    },
+    "mouthToTuftM": 2.641,
+    "mouthToWaterYM": 0.373,
+    "mouthAboveSandM": -0.009,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 238.5,
+    "dur": 3.8,
+    "mouth": {
+     "x": -12.339,
+     "y": -0.047,
+     "z": -3.807
+    },
+    "mouthToTuftM": 2.648,
+    "mouthToWaterYM": 0.373,
+    "mouthAboveSandM": -0.009,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 244.2,
+    "dur": 4.1,
+    "mouth": {
+     "x": 0.859,
+     "y": 0.1,
+     "z": -10.954
+    },
+    "mouthToTuftM": 2.253,
+    "mouthToWaterYM": 0.52,
+    "mouthAboveSandM": 0,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "drink",
+    "t0": 235.4,
+    "dur": 13.1,
+    "mouth": {
+     "x": 0.229,
+     "y": -0.16,
+     "z": 6.594
+    },
+    "mouthToTuftM": 1.133,
+    "mouthToWaterYM": 0.26,
+    "mouthAboveSandM": 0.144,
+    "mouthOverWater": true,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 247.4,
+    "dur": 4.3,
+    "mouth": {
+     "x": -13.464,
+     "y": -0.041,
+     "z": -4.139
+    },
+    "mouthToTuftM": 3.417,
+    "mouthToWaterYM": 0.379,
+    "mouthAboveSandM": -0.019,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 251.3,
+    "dur": 4.3,
+    "mouth": {
+     "x": 0.875,
+     "y": 0.1,
+     "z": -10.959
+    },
+    "mouthToTuftM": 2.268,
+    "mouthToWaterYM": 0.52,
+    "mouthAboveSandM": 0,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 248.3,
+    "dur": 7.4,
+    "mouth": {
+     "x": 10.643,
+     "y": 0.047,
+     "z": 1.253
+    },
+    "mouthToTuftM": 0.747,
+    "mouthToWaterYM": 0.467,
+    "mouthAboveSandM": 0.037,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 256.7,
+    "dur": 4.4,
+    "mouth": {
+     "x": -13.843,
+     "y": -0.012,
+     "z": -4.852
+    },
+    "mouthToTuftM": 3.176,
+    "mouthToWaterYM": 0.408,
+    "mouthAboveSandM": -0.03,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 261.4,
+    "dur": 3.5,
+    "mouth": {
+     "x": 2.271,
+     "y": 0.075,
+     "z": -10.996
+    },
+    "mouthToTuftM": 2.874,
+    "mouthToWaterYM": 0.495,
+    "mouthAboveSandM": 0.021,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 261.1,
+    "dur": 9.6,
+    "mouth": {
+     "x": 3.245,
+     "y": -0.053,
+     "z": 5.742
+    },
+    "mouthToTuftM": 1.171,
+    "mouthToWaterYM": 0.367,
+    "mouthAboveSandM": 0.142,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 267.2,
+    "dur": 4.1,
+    "mouth": {
+     "x": 2.274,
+     "y": 0.075,
+     "z": -10.997
+    },
+    "mouthToTuftM": 2.87,
+    "mouthToWaterYM": 0.495,
+    "mouthAboveSandM": 0.021,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 270,
+    "dur": 4.1,
+    "mouth": {
+     "x": -12.812,
+     "y": -0.049,
+     "z": -3.228
+    },
+    "mouthToTuftM": 3.061,
+    "mouthToWaterYM": 0.371,
+    "mouthAboveSandM": 0.005,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 274.5,
+    "dur": 5.3,
+    "mouth": {
+     "x": -4.074,
+     "y": 0.297,
+     "z": -11.288
+    },
+    "mouthToTuftM": 0.788,
+    "mouthToWaterYM": 0.717,
+    "mouthAboveSandM": 0.027,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 276.6,
+    "dur": 5.3,
+    "mouth": {
+     "x": -12.795,
+     "y": -0.049,
+     "z": -3.232
+    },
+    "mouthToTuftM": 3.045,
+    "mouthToWaterYM": 0.371,
+    "mouthAboveSandM": 0.005,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 278.7,
+    "dur": 4.5,
+    "mouth": {
+     "x": 2.355,
+     "y": 0.054,
+     "z": -12.283
+    },
+    "mouthToTuftM": 2.072,
+    "mouthToWaterYM": 0.474,
+    "mouthAboveSandM": 0.004,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "drink",
+    "t0": 276.7,
+    "dur": 13.1,
+    "mouth": {
+     "x": 0.297,
+     "y": -0.16,
+     "z": 6.502
+    },
+    "mouthToTuftM": 1.057,
+    "mouthToWaterYM": 0.26,
+    "mouthAboveSandM": 0.14,
+    "mouthOverWater": true,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 287.1,
+    "dur": 4.5,
+    "mouth": {
+     "x": -12.739,
+     "y": -0.06,
+     "z": -2.34
+    },
+    "mouthToTuftM": 2.893,
+    "mouthToWaterYM": 0.36,
+    "mouthAboveSandM": -0.001,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 287.8,
+    "dur": 7,
+    "mouth": {
+     "x": 2.854,
+     "y": 0.034,
+     "z": -12.727
+    },
+    "mouthToTuftM": 2.129,
+    "mouthToWaterYM": 0.454,
+    "mouthAboveSandM": 0.005,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 293.3,
+    "dur": 5.2,
+    "mouth": {
+     "x": -12.744,
+     "y": -0.06,
+     "z": -2.343
+    },
+    "mouthToTuftM": 2.893,
+    "mouthToWaterYM": 0.36,
+    "mouthAboveSandM": -0.001,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 297.8,
+    "dur": 2.2,
+    "mouth": {
+     "x": 2.866,
+     "y": 0.034,
+     "z": -12.672
+    },
+    "mouthToTuftM": 2.171,
+    "mouthToWaterYM": 0.454,
+    "mouthAboveSandM": 0.005,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 300,
+    "dur": 8.1,
+    "mouth": {
+     "x": -5.233,
+     "y": 0.401,
+     "z": -10.607
+    },
+    "mouthToTuftM": 0.874,
+    "mouthToWaterYM": 0.821,
+    "mouthAboveSandM": 0.024,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 304.4,
+    "dur": 5.2,
+    "mouth": {
+     "x": 1.744,
+     "y": 0.049,
+     "z": -12.411
+    },
+    "mouthToTuftM": 1.65,
+    "mouthToWaterYM": 0.469,
+    "mouthAboveSandM": -0.025,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 308.2,
+    "dur": 2.3,
+    "mouth": {
+     "x": -12.597,
+     "y": -0.041,
+     "z": -4.415
+    },
+    "mouthToTuftM": 3.024,
+    "mouthToWaterYM": 0.379,
+    "mouthAboveSandM": -0.018,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 312.5,
+    "dur": 2.1,
+    "mouth": {
+     "x": 2.903,
+     "y": 0.045,
+     "z": -12.341
+    },
+    "mouthToTuftM": 2.204,
+    "mouthToWaterYM": 0.465,
+    "mouthAboveSandM": 0.015,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 308,
+    "dur": 8.6,
+    "mouth": {
+     "x": -9.411,
+     "y": -0.127,
+     "z": 10.53
+    },
+    "mouthToTuftM": 0.279,
+    "mouthToWaterYM": 0.293,
+    "mouthAboveSandM": 0.168,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 318.2,
+    "dur": 2.3,
+    "mouth": {
+     "x": -13.225,
+     "y": -0.06,
+     "z": -2.332
+    },
+    "mouthToTuftM": 2.609,
+    "mouthToWaterYM": 0.36,
+    "mouthAboveSandM": 0.003,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 321.3,
+    "dur": 1.9,
+    "mouth": {
+     "x": 1.197,
+     "y": 0.073,
+     "z": -12.037
+    },
+    "mouthToTuftM": 1.894,
+    "mouthToWaterYM": 0.493,
+    "mouthAboveSandM": -0.02,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 316.1,
+    "dur": 13.1,
+    "mouth": {
+     "x": 0.396,
+     "y": -0.165,
+     "z": 6.616
+    },
+    "mouthToTuftM": 1.193,
+    "mouthToWaterYM": 0.255,
+    "mouthAboveSandM": 0.135,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 329.5,
+    "dur": 2,
+    "mouth": {
+     "x": 2.762,
+     "y": 0.043,
+     "z": -12.932
+    },
+    "mouthToTuftM": 1.941,
+    "mouthToWaterYM": 0.463,
+    "mouthAboveSandM": 0.014,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 321.4,
+    "dur": 12.5,
+    "mouth": {
+     "x": -4.76,
+     "y": 0.377,
+     "z": -11.241
+    },
+    "mouthToTuftM": 0.182,
+    "mouthToWaterYM": 0.797,
+    "mouthAboveSandM": 0.046,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 328.2,
+    "dur": 6.6,
+    "mouth": {
+     "x": -14.466,
+     "y": -0.081,
+     "z": -1.871
+    },
+    "mouthToTuftM": 1.784,
+    "mouthToWaterYM": 0.339,
+    "mouthAboveSandM": 0.002,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 340.2,
+    "dur": 2.2,
+    "mouth": {
+     "x": 3.066,
+     "y": 0.031,
+     "z": -11.091
+    },
+    "mouthToTuftM": 2.087,
+    "mouthToWaterYM": 0.451,
+    "mouthAboveSandM": 0.007,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 346.1,
+    "dur": 2.5,
+    "mouth": {
+     "x": 8.728,
+     "y": 0.417,
+     "z": -8.159
+    },
+    "mouthToTuftM": 2.743,
+    "mouthToWaterYM": 0.837,
+    "mouthAboveSandM": -0.252,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 349.6,
+    "dur": 2.3,
+    "mouth": {
+     "x": 2.69,
+     "y": 0.024,
+     "z": -13.347
+    },
+    "mouthToTuftM": 1.697,
+    "mouthToWaterYM": 0.444,
+    "mouthAboveSandM": 0.001,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 354,
+    "dur": 6,
+    "mouth": {
+     "x": 8.373,
+     "y": 0.556,
+     "z": -9.078
+    },
+    "mouthToTuftM": 2.179,
+    "mouthToWaterYM": 0.976,
+    "mouthAboveSandM": -0.092,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 357.7,
+    "dur": 6.4,
+    "mouth": {
+     "x": 1.679,
+     "y": 0.058,
+     "z": -12.047
+    },
+    "mouthToTuftM": 1.97,
+    "mouthToWaterYM": 0.478,
+    "mouthAboveSandM": -0.022,
+    "mouthOverWater": false,
+    "valid": false
+   }
+  ]
+ },
+ "branch": {
+  "bundle": "assets/desert.27a086314c.js",
+  "simMinutes": 12,
+  "perKind": {
+   "ostrich:peck": {
+    "events": 118,
+    "valid": 8,
+    "mouthToTuftM": {
+     "min": 0.07,
+     "p50": 1.45,
+     "max": 3.954
+    },
+    "mouthToWaterYM": {
+     "min": 0.178,
+     "p50": 0.5,
+     "max": 1.191
+    },
+    "validPct": 6.8
+   },
+   "dromedary:graze": {
+    "events": 13,
+    "valid": 13,
+    "mouthToTuftM": {
+     "min": 0.007,
+     "p50": 0.042,
+     "max": 0.059
+    },
+    "mouthToWaterYM": {
+     "min": 0.266,
+     "p50": 0.544,
+     "max": 1.01
+    },
+    "validPct": 100
+   },
+   "bactrian:drink": {
+    "events": 28,
+    "valid": 28,
+    "mouthToTuftM": {
+     "min": 1.562,
+     "p50": 1.563,
+     "max": 1.572
+    },
+    "mouthToWaterYM": {
+     "min": -0.031,
+     "p50": -0.016,
+     "max": -0.013
+    },
+    "validPct": 100
+   },
+   "tortoise:graze": {
+    "events": 4,
+    "valid": 4,
+    "mouthToTuftM": {
+     "min": 0.078,
+     "p50": 0.081,
+     "max": 0.102
+    },
+    "mouthToWaterYM": {
+     "min": 0.27,
+     "p50": 0.501,
+     "max": 0.513
+    },
+    "validPct": 100
+   }
+  },
+  "events": [
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 6.2,
+    "dur": 2.5,
+    "mouth": {
+     "x": -12.29,
+     "y": -0.168,
+     "z": -0.324
+    },
+    "mouthToTuftM": 0.964,
+    "mouthToWaterYM": 0.252,
+    "mouthAboveSandM": -0.034,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 5.4,
+    "dur": 8.4,
+    "mouth": {
+     "x": -9.636,
+     "y": 0.171,
+     "z": -3.631
+    },
+    "mouthToTuftM": 0.007,
+    "mouthToWaterYM": 0.591,
+    "mouthAboveSandM": 0.187,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 16.3,
+    "dur": 6.8,
+    "mouth": {
+     "x": -13.81,
+     "y": -0.135,
+     "z": -0.312
+    },
+    "mouthToTuftM": 0.78,
+    "mouthToWaterYM": 0.285,
+    "mouthAboveSandM": -0.016,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 24.7,
+    "dur": 11.6,
+    "mouth": {
+     "x": -17.206,
+     "y": 0.59,
+     "z": -7.108
+    },
+    "mouthToTuftM": 0.029,
+    "mouthToWaterYM": 1.01,
+    "mouthAboveSandM": 0.17,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 34,
+    "dur": 4.2,
+    "mouth": {
+     "x": -5.488,
+     "y": 0.025,
+     "z": -5.04
+    },
+    "mouthToTuftM": 0.07,
+    "mouthToWaterYM": 0.445,
+    "mouthAboveSandM": -0.014,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 34.2,
+    "dur": 4.1,
+    "mouth": {
+     "x": -9.203,
+     "y": -0.084,
+     "z": -1.481
+    },
+    "mouthToTuftM": 0.51,
+    "mouthToWaterYM": 0.336,
+    "mouthAboveSandM": 0.022,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 44,
+    "dur": 2.4,
+    "mouth": {
+     "x": -5.612,
+     "y": 0.052,
+     "z": -6.152
+    },
+    "mouthToTuftM": 1.158,
+    "mouthToWaterYM": 0.472,
+    "mouthAboveSandM": -0.027,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 46,
+    "dur": 3.6,
+    "mouth": {
+     "x": -10.826,
+     "y": -0.05,
+     "z": -2.361
+    },
+    "mouthToTuftM": 1.029,
+    "mouthToWaterYM": 0.37,
+    "mouthAboveSandM": -0.012,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 46.7,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.186,
+     "y": -0.451,
+     "z": 6.459
+    },
+    "mouthToTuftM": 1.572,
+    "mouthToWaterYM": -0.031,
+    "mouthAboveSandM": 0.174,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 54.6,
+    "dur": 7.3,
+    "mouth": {
+     "x": -4.864,
+     "y": 0.031,
+     "z": -4.205
+    },
+    "mouthToTuftM": 0.131,
+    "mouthToWaterYM": 0.451,
+    "mouthAboveSandM": 0,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 59.6,
+    "dur": 5.9,
+    "mouth": {
+     "x": -17.73,
+     "y": -0.084,
+     "z": -0.99
+    },
+    "mouthToTuftM": 1.312,
+    "mouthToWaterYM": 0.336,
+    "mouthAboveSandM": 0.009,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 68.1,
+    "dur": 4.6,
+    "mouth": {
+     "x": -5.682,
+     "y": 0.047,
+     "z": -5.963
+    },
+    "mouthToTuftM": 0.988,
+    "mouthToWaterYM": 0.467,
+    "mouthAboveSandM": -0.024,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 79.2,
+    "dur": 1.9,
+    "mouth": {
+     "x": -6.276,
+     "y": 0.03,
+     "z": -4.385
+    },
+    "mouthToTuftM": 1.01,
+    "mouthToWaterYM": 0.45,
+    "mouthAboveSandM": -0.001,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 75,
+    "dur": 6.3,
+    "mouth": {
+     "x": -15.491,
+     "y": 0.187,
+     "z": -6.593
+    },
+    "mouthToTuftM": 1.819,
+    "mouthToWaterYM": 0.607,
+    "mouthAboveSandM": -0.071,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 70.1,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.183,
+     "y": -0.438,
+     "z": 6.455
+    },
+    "mouthToTuftM": 1.567,
+    "mouthToWaterYM": -0.018,
+    "mouthAboveSandM": 0.187,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 87,
+    "dur": 1.8,
+    "mouth": {
+     "x": -6.693,
+     "y": 0.052,
+     "z": -5.992
+    },
+    "mouthToTuftM": 1.133,
+    "mouthToWaterYM": 0.472,
+    "mouthAboveSandM": -0.022,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 88.5,
+    "dur": 4.9,
+    "mouth": {
+     "x": -14.41,
+     "y": 0.08,
+     "z": -4.988
+    },
+    "mouthToTuftM": 2.694,
+    "mouthToWaterYM": 0.5,
+    "mouthAboveSandM": 0.037,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 99.6,
+    "dur": 3.1,
+    "mouth": {
+     "x": -15.234,
+     "y": 0.033,
+     "z": -4.018
+    },
+    "mouthToTuftM": 1.643,
+    "mouthToWaterYM": 0.453,
+    "mouthAboveSandM": 0.022,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 111.2,
+    "dur": 2.3,
+    "mouth": {
+     "x": -10.425,
+     "y": -0.223,
+     "z": 0.15
+    },
+    "mouthToTuftM": 0.226,
+    "mouthToWaterYM": 0.197,
+    "mouthAboveSandM": -0.016,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 100.7,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.438,
+     "z": 6.455
+    },
+    "mouthToTuftM": 1.566,
+    "mouthToWaterYM": -0.018,
+    "mouthAboveSandM": 0.186,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 113.2,
+    "dur": 6.2,
+    "mouth": {
+     "x": -9.471,
+     "y": 0.32,
+     "z": -8.043
+    },
+    "mouthToTuftM": 0.136,
+    "mouthToWaterYM": 0.74,
+    "mouthAboveSandM": -0.052,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 124.8,
+    "dur": 2.2,
+    "mouth": {
+     "x": -8.979,
+     "y": 0.402,
+     "z": -8.787
+    },
+    "mouthToTuftM": 0.308,
+    "mouthToWaterYM": 0.822,
+    "mouthAboveSandM": -0.082,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 120.8,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.438,
+     "z": 6.455
+    },
+    "mouthToTuftM": 1.566,
+    "mouthToWaterYM": -0.018,
+    "mouthAboveSandM": 0.186,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 132,
+    "dur": 4.4,
+    "mouth": {
+     "x": -8.221,
+     "y": 0.369,
+     "z": -8.288
+    },
+    "mouthToTuftM": 1.14,
+    "mouthToWaterYM": 0.789,
+    "mouthAboveSandM": 0.009,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 138.7,
+    "dur": 5.5,
+    "mouth": {
+     "x": -8.201,
+     "y": 0.369,
+     "z": -8.316
+    },
+    "mouthToTuftM": 1.166,
+    "mouthToWaterYM": 0.789,
+    "mouthAboveSandM": 0.006,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 134,
+    "dur": 14,
+    "mouth": {
+     "x": -1.181,
+     "y": -0.438,
+     "z": 6.454
+    },
+    "mouthToTuftM": 1.565,
+    "mouthToWaterYM": -0.018,
+    "mouthAboveSandM": 0.187,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 144.7,
+    "dur": 3.8,
+    "mouth": {
+     "x": -13.19,
+     "y": -0.17,
+     "z": 0.805
+    },
+    "mouthToTuftM": 0.397,
+    "mouthToWaterYM": 0.25,
+    "mouthAboveSandM": 0.025,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 153.3,
+    "dur": 5.7,
+    "mouth": {
+     "x": -12.205,
+     "y": -0.165,
+     "z": -0.259
+    },
+    "mouthToTuftM": 0.884,
+    "mouthToWaterYM": 0.255,
+    "mouthAboveSandM": -0.027,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 161.4,
+    "dur": 4.7,
+    "mouth": {
+     "x": -12.764,
+     "y": 0.1,
+     "z": -5.739
+    },
+    "mouthToTuftM": 3.769,
+    "mouthToWaterYM": 0.52,
+    "mouthAboveSandM": 0.03,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 161.9,
+    "dur": 4.4,
+    "mouth": {
+     "x": -12.198,
+     "y": -0.165,
+     "z": -0.242
+    },
+    "mouthToTuftM": 0.866,
+    "mouthToWaterYM": 0.255,
+    "mouthAboveSandM": -0.026,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 162.6,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.183,
+     "y": -0.437,
+     "z": 6.453
+    },
+    "mouthToTuftM": 1.566,
+    "mouthToWaterYM": -0.017,
+    "mouthAboveSandM": 0.188,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 177.3,
+    "dur": 7,
+    "mouth": {
+     "x": -15.262,
+     "y": 0.004,
+     "z": -3.714
+    },
+    "mouthToTuftM": 1.621,
+    "mouthToWaterYM": 0.424,
+    "mouthAboveSandM": 0.006,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 179.1,
+    "dur": 7.8,
+    "mouth": {
+     "x": -15.938,
+     "y": -0.007,
+     "z": -3.838
+    },
+    "mouthToTuftM": 0.937,
+    "mouthToWaterYM": 0.413,
+    "mouthAboveSandM": -0.035,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 196.3,
+    "dur": 2,
+    "mouth": {
+     "x": -3.186,
+     "y": 0.24,
+     "z": -10.933
+    },
+    "mouthToTuftM": 1.733,
+    "mouthToWaterYM": 0.66,
+    "mouthAboveSandM": 0.033,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 195.3,
+    "dur": 3,
+    "mouth": {
+     "x": -13.508,
+     "y": -0.242,
+     "z": 2.032
+    },
+    "mouthToTuftM": 0.48,
+    "mouthToWaterYM": 0.178,
+    "mouthAboveSandM": 0.023,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 194.6,
+    "dur": 13.2,
+    "mouth": {
+     "x": 4.633,
+     "y": 0.225,
+     "z": -7.854
+    },
+    "mouthToTuftM": 0.048,
+    "mouthToWaterYM": 0.645,
+    "mouthAboveSandM": 0.17,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 195.1,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.183,
+     "y": -0.437,
+     "z": 6.453
+    },
+    "mouthToTuftM": 1.565,
+    "mouthToWaterYM": -0.017,
+    "mouthAboveSandM": 0.188,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 205.4,
+    "dur": 4.5,
+    "mouth": {
+     "x": -4.05,
+     "y": 0.259,
+     "z": -9.164
+    },
+    "mouthToTuftM": 1.02,
+    "mouthToWaterYM": 0.679,
+    "mouthAboveSandM": 0.02,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 212.7,
+    "dur": 4.1,
+    "mouth": {
+     "x": -4.029,
+     "y": 0.259,
+     "z": -9.144
+    },
+    "mouthToTuftM": 0.993,
+    "mouthToWaterYM": 0.679,
+    "mouthAboveSandM": 0.023,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 215.6,
+    "dur": 3.6,
+    "mouth": {
+     "x": -20.572,
+     "y": -0.154,
+     "z": 0.684
+    },
+    "mouthToTuftM": 1.772,
+    "mouthToWaterYM": 0.266,
+    "mouthAboveSandM": -0.008,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 221.5,
+    "dur": 4.5,
+    "mouth": {
+     "x": -20.56,
+     "y": -0.154,
+     "z": 0.67
+    },
+    "mouthToTuftM": 1.782,
+    "mouthToWaterYM": 0.266,
+    "mouthAboveSandM": -0.008,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 227.7,
+    "dur": 7.1,
+    "mouth": {
+     "x": -6.186,
+     "y": 0.379,
+     "z": -12.515
+    },
+    "mouthToTuftM": 1.739,
+    "mouthToWaterYM": 0.799,
+    "mouthAboveSandM": -0.032,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 222.3,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.183,
+     "y": -0.435,
+     "z": 6.454
+    },
+    "mouthToTuftM": 1.566,
+    "mouthToWaterYM": -0.015,
+    "mouthAboveSandM": 0.19,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 235.8,
+    "dur": 2.1,
+    "mouth": {
+     "x": -19.397,
+     "y": -0.14,
+     "z": -1.086
+    },
+    "mouthToTuftM": 2.397,
+    "mouthToWaterYM": 0.28,
+    "mouthAboveSandM": -0.022,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 237.6,
+    "dur": 2.2,
+    "mouth": {
+     "x": -6.2,
+     "y": 0.379,
+     "z": -12.518
+    },
+    "mouthToTuftM": 1.752,
+    "mouthToWaterYM": 0.799,
+    "mouthAboveSandM": -0.033,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 245.8,
+    "dur": 3.4,
+    "mouth": {
+     "x": -18.345,
+     "y": -0.138,
+     "z": 0.481
+    },
+    "mouthToTuftM": 1.457,
+    "mouthToWaterYM": 0.282,
+    "mouthAboveSandM": -0.006,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 245,
+    "dur": 4.3,
+    "mouth": {
+     "x": -4.512,
+     "y": 0.319,
+     "z": -12.444
+    },
+    "mouthToTuftM": 1.104,
+    "mouthToWaterYM": 0.739,
+    "mouthAboveSandM": 0.059,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 255.2,
+    "dur": 2.4,
+    "mouth": {
+     "x": -4.039,
+     "y": 0.236,
+     "z": -13.047
+    },
+    "mouthToTuftM": 1.842,
+    "mouthToWaterYM": 0.656,
+    "mouthAboveSandM": 0.037,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 264.9,
+    "dur": 2.2,
+    "mouth": {
+     "x": -5.635,
+     "y": 0.342,
+     "z": -11.553
+    },
+    "mouthToTuftM": 0.795,
+    "mouthToWaterYM": 0.762,
+    "mouthAboveSandM": -0.061,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 265.1,
+    "dur": 7.2,
+    "mouth": {
+     "x": -16.747,
+     "y": 0.254,
+     "z": -6.57
+    },
+    "mouthToTuftM": 0.727,
+    "mouthToWaterYM": 0.674,
+    "mouthAboveSandM": -0.073,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 273.8,
+    "dur": 4.8,
+    "mouth": {
+     "x": -16.102,
+     "y": 0.253,
+     "z": -6.154
+    },
+    "mouthToTuftM": 1.481,
+    "mouthToWaterYM": 0.673,
+    "mouthAboveSandM": 0.01,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 273.5,
+    "dur": 5.5,
+    "mouth": {
+     "x": -4.452,
+     "y": 0.255,
+     "z": -13.263
+    },
+    "mouthToTuftM": 1.91,
+    "mouthToWaterYM": 0.675,
+    "mouthAboveSandM": 0.042,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 254.8,
+    "dur": 27.2,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.436,
+     "z": 6.452
+    },
+    "mouthToTuftM": 1.565,
+    "mouthToWaterYM": -0.016,
+    "mouthAboveSandM": 0.188,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 292.1,
+    "dur": 2.1,
+    "mouth": {
+     "x": -11.344,
+     "y": 0.203,
+     "z": -6.936
+    },
+    "mouthToTuftM": 2.311,
+    "mouthToWaterYM": 0.623,
+    "mouthAboveSandM": -0.018,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 292.9,
+    "dur": 4.6,
+    "mouth": {
+     "x": -2.482,
+     "y": 0.031,
+     "z": -4.266
+    },
+    "mouthToTuftM": 0.97,
+    "mouthToWaterYM": 0.451,
+    "mouthAboveSandM": -0.006,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 288.3,
+    "dur": 9.8,
+    "mouth": {
+     "x": 5.167,
+     "y": 0.093,
+     "z": -7.693
+    },
+    "mouthToTuftM": 0.081,
+    "mouthToWaterYM": 0.513,
+    "mouthAboveSandM": 0.038,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 296.9,
+    "dur": 2,
+    "mouth": {
+     "x": -12.314,
+     "y": 0.211,
+     "z": -7.124
+    },
+    "mouthToTuftM": 3.124,
+    "mouthToWaterYM": 0.631,
+    "mouthAboveSandM": -0.044,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 299.4,
+    "dur": 5.4,
+    "mouth": {
+     "x": -2.489,
+     "y": 0.032,
+     "z": -5.299
+    },
+    "mouthToTuftM": 0.275,
+    "mouthToWaterYM": 0.452,
+    "mouthAboveSandM": -0.028,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 291.7,
+    "dur": 13.5,
+    "mouth": {
+     "x": -11.263,
+     "y": -0.074,
+     "z": 0.884
+    },
+    "mouthToTuftM": 0.008,
+    "mouthToWaterYM": 0.346,
+    "mouthAboveSandM": 0.164,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 305.9,
+    "dur": 3.1,
+    "mouth": {
+     "x": -12.272,
+     "y": 0.082,
+     "z": -5.388
+    },
+    "mouthToTuftM": 3.164,
+    "mouthToWaterYM": 0.502,
+    "mouthAboveSandM": 0.046,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 297.5,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.181,
+     "y": -0.437,
+     "z": 6.452
+    },
+    "mouthToTuftM": 1.564,
+    "mouthToWaterYM": -0.017,
+    "mouthAboveSandM": 0.188,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 310.6,
+    "dur": 2.5,
+    "mouth": {
+     "x": -12.311,
+     "y": 0.085,
+     "z": -5.442
+    },
+    "mouthToTuftM": 3.227,
+    "mouthToWaterYM": 0.505,
+    "mouthAboveSandM": 0.044,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 313.4,
+    "dur": 4.3,
+    "mouth": {
+     "x": -4.403,
+     "y": 0.036,
+     "z": -4.983
+    },
+    "mouthToTuftM": 0.324,
+    "mouthToWaterYM": 0.456,
+    "mouthAboveSandM": -0.004,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 320.2,
+    "dur": 2.1,
+    "mouth": {
+     "x": -4.417,
+     "y": 0.036,
+     "z": -4.976
+    },
+    "mouthToTuftM": 0.31,
+    "mouthToWaterYM": 0.456,
+    "mouthAboveSandM": -0.004,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 319,
+    "dur": 9.9,
+    "mouth": {
+     "x": -12.952,
+     "y": 0.182,
+     "z": -7.072
+    },
+    "mouthToTuftM": 3.749,
+    "mouthToWaterYM": 0.602,
+    "mouthAboveSandM": -0.07,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 313.6,
+    "dur": 15.9,
+    "mouth": {
+     "x": -12.975,
+     "y": -0.154,
+     "z": 2.925
+    },
+    "mouthToTuftM": 0.041,
+    "mouthToWaterYM": 0.266,
+    "mouthAboveSandM": 0.145,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 328.7,
+    "dur": 4.4,
+    "mouth": {
+     "x": -2.429,
+     "y": 0.046,
+     "z": -5.585
+    },
+    "mouthToTuftM": 0.25,
+    "mouthToWaterYM": 0.466,
+    "mouthAboveSandM": -0.023,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 323.2,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.181,
+     "y": -0.437,
+     "z": 6.452
+    },
+    "mouthToTuftM": 1.563,
+    "mouthToWaterYM": -0.017,
+    "mouthAboveSandM": 0.188,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 340.2,
+    "dur": 2.3,
+    "mouth": {
+     "x": -7.991,
+     "y": 0.701,
+     "z": -11.646
+    },
+    "mouthToTuftM": 2.886,
+    "mouthToWaterYM": 1.121,
+    "mouthAboveSandM": 0.027,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 336.4,
+    "dur": 14,
+    "mouth": {
+     "x": -1.181,
+     "y": -0.436,
+     "z": 6.452
+    },
+    "mouthToTuftM": 1.563,
+    "mouthToWaterYM": -0.016,
+    "mouthAboveSandM": 0.188,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 350.1,
+    "dur": 5.2,
+    "mouth": {
+     "x": -9.264,
+     "y": 0.756,
+     "z": -10.353
+    },
+    "mouthToTuftM": 1.285,
+    "mouthToWaterYM": 1.176,
+    "mouthAboveSandM": -0.003,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 358.5,
+    "dur": 2.2,
+    "mouth": {
+     "x": -9.533,
+     "y": 0.771,
+     "z": -10.152
+    },
+    "mouthToTuftM": 1.004,
+    "mouthToWaterYM": 1.191,
+    "mouthAboveSandM": 0.014,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 361.2,
+    "dur": 4.5,
+    "mouth": {
+     "x": -2.394,
+     "y": 0.024,
+     "z": -3.664
+    },
+    "mouthToTuftM": 1.305,
+    "mouthToWaterYM": 0.444,
+    "mouthAboveSandM": -0.013,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 355.8,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.434,
+     "z": 6.452
+    },
+    "mouthToTuftM": 1.564,
+    "mouthToWaterYM": -0.014,
+    "mouthAboveSandM": 0.19,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 367.2,
+    "dur": 7.4,
+    "mouth": {
+     "x": -7.871,
+     "y": 0.641,
+     "z": -9.936
+    },
+    "mouthToTuftM": 1.601,
+    "mouthToWaterYM": 1.061,
+    "mouthAboveSandM": 0.057,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 369.1,
+    "dur": 7.4,
+    "mouth": {
+     "x": -3.081,
+     "y": 0.021,
+     "z": -3.343
+    },
+    "mouthToTuftM": 1.11,
+    "mouthToWaterYM": 0.441,
+    "mouthAboveSandM": -0.01,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 362,
+    "dur": 15.7,
+    "mouth": {
+     "x": 6.297,
+     "y": 0.137,
+     "z": -11.263
+    },
+    "mouthToTuftM": 0.045,
+    "mouthToWaterYM": 0.557,
+    "mouthAboveSandM": 0.159,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 378.1,
+    "dur": 5.7,
+    "mouth": {
+     "x": -3.086,
+     "y": 0.021,
+     "z": -3.358
+    },
+    "mouthToTuftM": 1.094,
+    "mouthToWaterYM": 0.441,
+    "mouthAboveSandM": -0.01,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 384.9,
+    "dur": 0.7,
+    "mouth": {
+     "x": -4.257,
+     "y": 0.1,
+     "z": -6.332
+    },
+    "mouthToTuftM": 0.267,
+    "mouthToWaterYM": 0.52,
+    "mouthAboveSandM": 0.011,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 382.3,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.434,
+     "z": 6.452
+    },
+    "mouthToTuftM": 1.564,
+    "mouthToWaterYM": -0.014,
+    "mouthAboveSandM": 0.191,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 399.8,
+    "dur": 3.3,
+    "mouth": {
+     "x": -12.368,
+     "y": 0.071,
+     "z": -5.91
+    },
+    "mouthToTuftM": 3.554,
+    "mouthToWaterYM": 0.491,
+    "mouthAboveSandM": -0.018,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 401,
+    "dur": 2.2,
+    "mouth": {
+     "x": -4.646,
+     "y": 0.025,
+     "z": -4.189
+    },
+    "mouthToTuftM": 0.187,
+    "mouthToWaterYM": 0.445,
+    "mouthAboveSandM": -0.005,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 405.7,
+    "dur": 2.5,
+    "mouth": {
+     "x": -12.236,
+     "y": 0.072,
+     "z": -5.979
+    },
+    "mouthToTuftM": 3.499,
+    "mouthToWaterYM": 0.492,
+    "mouthAboveSandM": -0.025,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 410.1,
+    "dur": 5.1,
+    "mouth": {
+     "x": -5.772,
+     "y": 0.039,
+     "z": -5.699
+    },
+    "mouthToTuftM": 0.772,
+    "mouthToWaterYM": 0.459,
+    "mouthAboveSandM": -0.021,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 413.7,
+    "dur": 2.1,
+    "mouth": {
+     "x": -10.945,
+     "y": 0.131,
+     "z": -6.704
+    },
+    "mouthToTuftM": 2.12,
+    "mouthToWaterYM": 0.551,
+    "mouthAboveSandM": -0.058,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 404,
+    "dur": 16.6,
+    "mouth": {
+     "x": -11.642,
+     "y": -0.114,
+     "z": 1.481
+    },
+    "mouthToTuftM": 0.042,
+    "mouthToWaterYM": 0.306,
+    "mouthAboveSandM": 0.153,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 422.9,
+    "dur": 2,
+    "mouth": {
+     "x": -11.313,
+     "y": 0.279,
+     "z": -7.786
+    },
+    "mouthToTuftM": 1.992,
+    "mouthToWaterYM": 0.699,
+    "mouthAboveSandM": -0.099,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 425.4,
+    "dur": 1.6,
+    "mouth": {
+     "x": -0.767,
+     "y": 0.123,
+     "z": -11.094
+    },
+    "mouthToTuftM": 1.629,
+    "mouthToWaterYM": 0.543,
+    "mouthAboveSandM": 0.009,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 425,
+    "dur": 6.3,
+    "mouth": {
+     "x": -11.325,
+     "y": 0.278,
+     "z": -7.8
+    },
+    "mouthToTuftM": 2.002,
+    "mouthToWaterYM": 0.698,
+    "mouthAboveSandM": -0.102,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 430.7,
+    "dur": 3.1,
+    "mouth": {
+     "x": -1.382,
+     "y": 0.126,
+     "z": -9.994
+    },
+    "mouthToTuftM": 0.74,
+    "mouthToWaterYM": 0.546,
+    "mouthAboveSandM": -0.012,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 442.6,
+    "dur": 2.2,
+    "mouth": {
+     "x": 0.307,
+     "y": 0.091,
+     "z": -13.321
+    },
+    "mouthToTuftM": 0.995,
+    "mouthToWaterYM": 0.511,
+    "mouthAboveSandM": 0.013,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 444.9,
+    "dur": 8.3,
+    "mouth": {
+     "x": 6.063,
+     "y": 0.112,
+     "z": -11.451
+    },
+    "mouthToTuftM": 0.013,
+    "mouthToWaterYM": 0.532,
+    "mouthAboveSandM": 0.144,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 452,
+    "dur": 3.6,
+    "mouth": {
+     "x": -17.108,
+     "y": 0.033,
+     "z": -3.579
+    },
+    "mouthToTuftM": 0.396,
+    "mouthToWaterYM": 0.453,
+    "mouthAboveSandM": -0.023,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 451.5,
+    "dur": 4.4,
+    "mouth": {
+     "x": -1.3,
+     "y": 0.088,
+     "z": -13.109
+    },
+    "mouthToTuftM": 2.532,
+    "mouthToWaterYM": 0.508,
+    "mouthAboveSandM": -0.007,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 449.3,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.436,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.563,
+    "mouthToWaterYM": -0.016,
+    "mouthAboveSandM": 0.189,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 466.9,
+    "dur": 0.4,
+    "mouth": {
+     "x": -2.871,
+     "y": 0.22,
+     "z": -4.993
+    },
+    "mouthToTuftM": 0.351,
+    "mouthToWaterYM": 0.64,
+    "mouthAboveSandM": 0.18,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 462.7,
+    "dur": 4.6,
+    "mouth": {
+     "x": -15.559,
+     "y": -0.015,
+     "z": -2.921
+    },
+    "mouthToTuftM": 1.45,
+    "mouthToWaterYM": 0.405,
+    "mouthAboveSandM": 0.015,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 467.4,
+    "dur": 2.4,
+    "mouth": {
+     "x": -15.573,
+     "y": -0.015,
+     "z": -2.919
+    },
+    "mouthToTuftM": 1.437,
+    "mouthToWaterYM": 0.405,
+    "mouthAboveSandM": 0.015,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 475,
+    "dur": 3.2,
+    "mouth": {
+     "x": -15.988,
+     "y": -0.063,
+     "z": -1.557
+    },
+    "mouthToTuftM": 1.462,
+    "mouthToWaterYM": 0.357,
+    "mouthAboveSandM": 0.013,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 479.9,
+    "dur": 1.9,
+    "mouth": {
+     "x": -12.201,
+     "y": 0.383,
+     "z": -7.778
+    },
+    "mouthToTuftM": 2.785,
+    "mouthToWaterYM": 0.803,
+    "mouthAboveSandM": 0.001,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 470.8,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.434,
+     "z": 6.451
+    },
+    "mouthToTuftM": 1.564,
+    "mouthToWaterYM": -0.014,
+    "mouthAboveSandM": 0.191,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 486.9,
+    "dur": 5.1,
+    "mouth": {
+     "x": -12.77,
+     "y": 0.485,
+     "z": -8.445
+    },
+    "mouthToTuftM": 3.065,
+    "mouthToWaterYM": 0.905,
+    "mouthAboveSandM": -0.051,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 489.5,
+    "dur": 4.7,
+    "mouth": {
+     "x": -14.34,
+     "y": 0.544,
+     "z": -9.027
+    },
+    "mouthToTuftM": 3.473,
+    "mouthToWaterYM": 0.964,
+    "mouthAboveSandM": -0.109,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 487,
+    "dur": 13.2,
+    "mouth": {
+     "x": -12.105,
+     "y": -0.152,
+     "z": 2.227
+    },
+    "mouthToTuftM": 0.045,
+    "mouthToWaterYM": 0.268,
+    "mouthAboveSandM": 0.14,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 499.7,
+    "dur": 2,
+    "mouth": {
+     "x": -14.658,
+     "y": 0.5,
+     "z": -7.759
+    },
+    "mouthToTuftM": 2.658,
+    "mouthToWaterYM": 0.92,
+    "mouthAboveSandM": 0.087,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 497.5,
+    "dur": 7.4,
+    "mouth": {
+     "x": -11.103,
+     "y": 0.435,
+     "z": -8.05
+    },
+    "mouthToTuftM": 1.731,
+    "mouthToWaterYM": 0.855,
+    "mouthAboveSandM": 0.01,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 501.8,
+    "dur": 4.1,
+    "mouth": {
+     "x": -14.658,
+     "y": 0.5,
+     "z": -7.753
+    },
+    "mouthToTuftM": 2.657,
+    "mouthToWaterYM": 0.92,
+    "mouthAboveSandM": 0.088,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 506.5,
+    "dur": 3.6,
+    "mouth": {
+     "x": -11.074,
+     "y": 0.436,
+     "z": -8.08
+    },
+    "mouthToTuftM": 1.688,
+    "mouthToWaterYM": 0.856,
+    "mouthAboveSandM": 0.005,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 498.9,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.181,
+     "y": -0.436,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.562,
+    "mouthToWaterYM": -0.016,
+    "mouthAboveSandM": 0.188,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 514.6,
+    "dur": 5.9,
+    "mouth": {
+     "x": -11.09,
+     "y": 0.435,
+     "z": -8.057
+    },
+    "mouthToTuftM": 1.716,
+    "mouthToWaterYM": 0.855,
+    "mouthAboveSandM": 0.009,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 512.8,
+    "dur": 7.7,
+    "mouth": {
+     "x": -14.148,
+     "y": 0.658,
+     "z": -9.578
+    },
+    "mouthToTuftM": 3.954,
+    "mouthToWaterYM": 1.078,
+    "mouthAboveSandM": -0.102,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 512.1,
+    "dur": 14,
+    "mouth": {
+     "x": -1.181,
+     "y": -0.436,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.562,
+    "mouthToWaterYM": -0.016,
+    "mouthAboveSandM": 0.188,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 520.5,
+    "dur": 10.4,
+    "mouth": {
+     "x": -9.705,
+     "y": 0.124,
+     "z": -3.587
+    },
+    "mouthToTuftM": 0.055,
+    "mouthToWaterYM": 0.544,
+    "mouthAboveSandM": 0.142,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 529.3,
+    "dur": 1.8,
+    "mouth": {
+     "x": -6.995,
+     "y": 0.602,
+     "z": -12.157
+    },
+    "mouthToTuftM": 2.271,
+    "mouthToWaterYM": 1.022,
+    "mouthAboveSandM": 0.066,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 527.9,
+    "dur": 4.1,
+    "mouth": {
+     "x": -15.638,
+     "y": 0.7,
+     "z": -9.346
+    },
+    "mouthToTuftM": 2.75,
+    "mouthToWaterYM": 1.12,
+    "mouthAboveSandM": -0.003,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 526.2,
+    "dur": 14,
+    "mouth": {
+     "x": -1.18,
+     "y": -0.436,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.562,
+    "mouthToWaterYM": -0.016,
+    "mouthAboveSandM": 0.189,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 537.1,
+    "dur": 4.8,
+    "mouth": {
+     "x": -8.359,
+     "y": 0.679,
+     "z": -10.79
+    },
+    "mouthToTuftM": 1.955,
+    "mouthToWaterYM": 1.099,
+    "mouthAboveSandM": -0.027,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 543.9,
+    "dur": 2.5,
+    "mouth": {
+     "x": -8.346,
+     "y": 0.679,
+     "z": -10.787
+    },
+    "mouthToTuftM": 1.957,
+    "mouthToWaterYM": 1.099,
+    "mouthAboveSandM": -0.026,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 539.6,
+    "dur": 7.2,
+    "mouth": {
+     "x": -15.554,
+     "y": 0.22,
+     "z": -5.753
+    },
+    "mouthToTuftM": 2.16,
+    "mouthToWaterYM": 0.64,
+    "mouthAboveSandM": 0.06,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 552.3,
+    "dur": 4.1,
+    "mouth": {
+     "x": -6.776,
+     "y": 0.608,
+     "z": -11.106
+    },
+    "mouthToTuftM": 1.942,
+    "mouthToWaterYM": 1.028,
+    "mouthAboveSandM": 0.062,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 554.8,
+    "dur": 4,
+    "mouth": {
+     "x": -15.572,
+     "y": 0.221,
+     "z": -5.78
+    },
+    "mouthToTuftM": 2.128,
+    "mouthToWaterYM": 0.641,
+    "mouthAboveSandM": 0.056,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 555.1,
+    "dur": 5.8,
+    "mouth": {
+     "x": -0.279,
+     "y": 0.081,
+     "z": -2.529
+    },
+    "mouthToTuftM": 0.102,
+    "mouthToWaterYM": 0.501,
+    "mouthAboveSandM": 0.038,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 559.2,
+    "dur": 3.2,
+    "mouth": {
+     "x": -6.757,
+     "y": 0.608,
+     "z": -11.113
+    },
+    "mouthToTuftM": 1.922,
+    "mouthToWaterYM": 1.028,
+    "mouthAboveSandM": 0.065,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 555.4,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.18,
+     "y": -0.436,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.562,
+    "mouthToWaterYM": -0.016,
+    "mouthAboveSandM": 0.189,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 567.5,
+    "dur": 4.7,
+    "mouth": {
+     "x": -5.513,
+     "y": 0.452,
+     "z": -11.432
+    },
+    "mouthToTuftM": 0.658,
+    "mouthToWaterYM": 0.872,
+    "mouthAboveSandM": 0.056,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 575.1,
+    "dur": 1.9,
+    "mouth": {
+     "x": -5.492,
+     "y": 0.452,
+     "z": -11.483
+    },
+    "mouthToTuftM": 0.643,
+    "mouthToWaterYM": 0.872,
+    "mouthAboveSandM": 0.06,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 578.8,
+    "dur": 5,
+    "mouth": {
+     "x": 3.019,
+     "y": 0.019,
+     "z": -11.667
+    },
+    "mouthToTuftM": 2.019,
+    "mouthToWaterYM": 0.439,
+    "mouthAboveSandM": -0.009,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 584.6,
+    "dur": 3,
+    "mouth": {
+     "x": -5.794,
+     "y": 0.449,
+     "z": -10.224
+    },
+    "mouthToTuftM": 1.501,
+    "mouthToWaterYM": 0.869,
+    "mouthAboveSandM": 0.027,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 577.5,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.18,
+     "y": -0.436,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.562,
+    "mouthToWaterYM": -0.016,
+    "mouthAboveSandM": 0.189,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 591.6,
+    "dur": 4.4,
+    "mouth": {
+     "x": 6.609,
+     "y": 0.01,
+     "z": -9.605
+    },
+    "mouthToTuftM": 0.56,
+    "mouthToWaterYM": 0.43,
+    "mouthAboveSandM": -0.052,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 592.2,
+    "dur": 13.3,
+    "mouth": {
+     "x": -4.608,
+     "y": 0.178,
+     "z": -4.723
+    },
+    "mouthToTuftM": 0.044,
+    "mouthToWaterYM": 0.598,
+    "mouthAboveSandM": 0.141,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 598.1,
+    "dur": 7.4,
+    "mouth": {
+     "x": 6.636,
+     "y": 0.01,
+     "z": -9.608
+    },
+    "mouthToTuftM": 0.583,
+    "mouthToWaterYM": 0.43,
+    "mouthAboveSandM": -0.056,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 602.3,
+    "dur": 5,
+    "mouth": {
+     "x": 2.64,
+     "y": 0.027,
+     "z": -13.816
+    },
+    "mouthToTuftM": 1.548,
+    "mouthToWaterYM": 0.447,
+    "mouthAboveSandM": 0.015,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 597.3,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.433,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.563,
+    "mouthToWaterYM": -0.013,
+    "mouthAboveSandM": 0.191,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 607.1,
+    "dur": 7,
+    "mouth": {
+     "x": 6.615,
+     "y": 0.01,
+     "z": -9.593
+    },
+    "mouthToTuftM": 0.557,
+    "mouthToWaterYM": 0.43,
+    "mouthAboveSandM": -0.054,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 609.9,
+    "dur": 4.9,
+    "mouth": {
+     "x": 2.665,
+     "y": 0.027,
+     "z": -13.006
+    },
+    "mouthToTuftM": 1.82,
+    "mouthToWaterYM": 0.447,
+    "mouthAboveSandM": -0.003,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 620.5,
+    "dur": 3.5,
+    "mouth": {
+     "x": 4.87,
+     "y": 0.016,
+     "z": -8.897
+    },
+    "mouthToTuftM": 1.022,
+    "mouthToWaterYM": 0.436,
+    "mouthAboveSandM": -0.018,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 610.5,
+    "dur": 14,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.433,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.563,
+    "mouthToWaterYM": -0.013,
+    "mouthAboveSandM": 0.191,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 610.4,
+    "dur": 16.9,
+    "mouth": {
+     "x": -2.815,
+     "y": 0.201,
+     "z": -5.374
+    },
+    "mouthToTuftM": 0.041,
+    "mouthToWaterYM": 0.621,
+    "mouthAboveSandM": 0.145,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 620.7,
+    "dur": 10,
+    "mouth": {
+     "x": -3.023,
+     "y": -0.15,
+     "z": 0.43
+    },
+    "mouthToTuftM": 0.078,
+    "mouthToWaterYM": 0.27,
+    "mouthAboveSandM": 0.052,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 625.4,
+    "dur": 5.4,
+    "mouth": {
+     "x": -3.535,
+     "y": 0.092,
+     "z": -14.072
+    },
+    "mouthToTuftM": 2.984,
+    "mouthToWaterYM": 0.512,
+    "mouthAboveSandM": -0.02,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 626.6,
+    "dur": 5.8,
+    "mouth": {
+     "x": 4.897,
+     "y": 0.014,
+     "z": -8.81
+    },
+    "mouthToTuftM": 0.945,
+    "mouthToWaterYM": 0.434,
+    "mouthAboveSandM": -0.024,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 629.2,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.433,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.563,
+    "mouthToWaterYM": -0.013,
+    "mouthAboveSandM": 0.191,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 642.4,
+    "dur": 2,
+    "mouth": {
+     "x": 4.886,
+     "y": 0.014,
+     "z": -8.823
+    },
+    "mouthToTuftM": 0.955,
+    "mouthToWaterYM": 0.434,
+    "mouthAboveSandM": -0.023,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 651.1,
+    "dur": 2.4,
+    "mouth": {
+     "x": 6.54,
+     "y": 0.037,
+     "z": -9.38
+    },
+    "mouthToTuftM": 0.376,
+    "mouthToWaterYM": 0.457,
+    "mouthAboveSandM": -0.028,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 649.8,
+    "dur": 4.2,
+    "mouth": {
+     "x": -2.783,
+     "y": 0.137,
+     "z": -8.452
+    },
+    "mouthToTuftM": 0.308,
+    "mouthToWaterYM": 0.557,
+    "mouthAboveSandM": -0.016,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 642.4,
+    "dur": 14,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.433,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.563,
+    "mouthToWaterYM": -0.013,
+    "mouthAboveSandM": 0.191,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "dromedary",
+    "kind": "graze",
+    "t0": 649.2,
+    "dur": 11,
+    "mouth": {
+     "x": -13.129,
+     "y": -0.028,
+     "z": 1.621
+    },
+    "mouthToTuftM": 0.059,
+    "mouthToWaterYM": 0.392,
+    "mouthAboveSandM": 0.222,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 655.9,
+    "dur": 5.4,
+    "mouth": {
+     "x": 6.567,
+     "y": 0.042,
+     "z": -9.633
+    },
+    "mouthToTuftM": 0.551,
+    "mouthToWaterYM": 0.462,
+    "mouthAboveSandM": -0.015,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 660.6,
+    "dur": 5.7,
+    "mouth": {
+     "x": -0.805,
+     "y": 0.126,
+     "z": -9.983
+    },
+    "mouthToTuftM": 0.517,
+    "mouthToWaterYM": 0.546,
+    "mouthAboveSandM": -0.005,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 656.5,
+    "dur": 14,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.433,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.563,
+    "mouthToWaterYM": -0.013,
+    "mouthAboveSandM": 0.191,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 670.8,
+    "dur": 2.1,
+    "mouth": {
+     "x": 1.637,
+     "y": 0.05,
+     "z": -7.789
+    },
+    "mouthToTuftM": 2.653,
+    "mouthToWaterYM": 0.47,
+    "mouthAboveSandM": -0.005,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 678,
+    "dur": 2.1,
+    "mouth": {
+     "x": 3.054,
+     "y": 0.049,
+     "z": -7.759
+    },
+    "mouthToTuftM": 1.245,
+    "mouthToWaterYM": 0.469,
+    "mouthAboveSandM": -0.005,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 680.2,
+    "dur": 2.8,
+    "mouth": {
+     "x": 2.799,
+     "y": 0.031,
+     "z": -13.379
+    },
+    "mouthToTuftM": 1.789,
+    "mouthToWaterYM": 0.451,
+    "mouthAboveSandM": 0.01,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 682,
+    "dur": 2.7,
+    "mouth": {
+     "x": 2.682,
+     "y": 0.051,
+     "z": -8.525
+    },
+    "mouthToTuftM": 1.704,
+    "mouthToWaterYM": 0.471,
+    "mouthAboveSandM": 0.004,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 684.7,
+    "dur": 1.6,
+    "mouth": {
+     "x": 2.799,
+     "y": 0.032,
+     "z": -13.464
+    },
+    "mouthToTuftM": 1.765,
+    "mouthToWaterYM": 0.452,
+    "mouthAboveSandM": 0.013,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "tortoise",
+    "kind": "graze",
+    "t0": 684.2,
+    "dur": 8.4,
+    "mouth": {
+     "x": 0.354,
+     "y": 0.027,
+     "z": -0.79
+    },
+    "mouthToTuftM": 0.081,
+    "mouthToWaterYM": 0.447,
+    "mouthAboveSandM": 0.034,
+    "mouthOverWater": false,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 693.4,
+    "dur": 6.2,
+    "mouth": {
+     "x": 6.157,
+     "y": 0.051,
+     "z": -8.323
+    },
+    "mouthToTuftM": 0.9,
+    "mouthToWaterYM": 0.471,
+    "mouthAboveSandM": -0.008,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 686.7,
+    "dur": 13.1,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.433,
+     "z": 6.45
+    },
+    "mouthToTuftM": 1.563,
+    "mouthToWaterYM": -0.013,
+    "mouthAboveSandM": 0.191,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 707.9,
+    "dur": 4.4,
+    "mouth": {
+     "x": 7.209,
+     "y": 0.077,
+     "z": -8.713
+    },
+    "mouthToTuftM": 1.131,
+    "mouthToWaterYM": 0.497,
+    "mouthAboveSandM": -0.043,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "bactrian",
+    "kind": "drink",
+    "t0": 699.9,
+    "dur": 14,
+    "mouth": {
+     "x": -1.182,
+     "y": -0.433,
+     "z": 6.449
+    },
+    "mouthToTuftM": 1.563,
+    "mouthToWaterYM": -0.013,
+    "mouthAboveSandM": 0.192,
+    "mouthOverWater": true,
+    "valid": true
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 712.4,
+    "dur": 2,
+    "mouth": {
+     "x": 2.706,
+     "y": 0.049,
+     "z": -7.433
+    },
+    "mouthToTuftM": 1.66,
+    "mouthToWaterYM": 0.469,
+    "mouthAboveSandM": -0.006,
+    "mouthOverWater": false,
+    "valid": false
+   },
+   {
+    "sp": "ostrich",
+    "kind": "peck",
+    "t0": 718.4,
+    "dur": 1.9,
+    "mouth": {
+     "x": 8.29,
+     "y": 0.059,
+     "z": -7.753
+    },
+    "mouthToTuftM": 2.556,
+    "mouthToWaterYM": 0.479,
+    "mouthAboveSandM": 0.005,
+    "mouthOverWater": false,
+    "valid": false
+   }
+  ]
+ }
+}

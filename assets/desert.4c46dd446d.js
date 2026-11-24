@@ -810,10 +810,10 @@ function vegMat(opt){
          #endif
          float h=max(position.y,0.),hh=h*h,g=gustF(ip.xz),tp=fract(sin(dot(ip.xz,vec2(12.9898,78.233)))*43758.5453)*6.283;
          float bp=tp+position.x*9.+position.z*7.,calm=smoothstep(.03,.3,uWind);
-         float lean=uWind*(.25+1.1*g)*(.85+.3*sin(uT*.6+tp));
+         float lean=uWind*(1.+.5*uWind)*(.25+1.1*g)*(.85+.3*sin(uT*.6+tp));
          float fl=(sin(uT*(2.2+1.6*uWind)+bp)*.65+sin(uT*(3.9+2.*uWind)+bp*1.7)*.35)*(.05+.45*uWind)*(.45+.8*g)*calm;
          float A=${opt.sway.toFixed(3)};vec2 d=wl*(lean+.55*fl)*A*hh+vec2(-wl.y,wl.x)*fl*.3*A*hh;
-         transformed.xz+=d;transformed.y-=length(d)*.4*h;}`)
+         transformed.xz+=d;transformed.y-=length(d)*.55*h;}`)
       .replace("#include <beginnormal_vertex>","vec3 objectNormal=normalize(mix(normal,vec3(0.,1.,0.),"+opt.up.toFixed(2)+"));\n#ifdef USE_TANGENT\nvec3 objectTangent=vec3(tangent.xyz);\n#endif");
     /* a blade is thin enough to pass light: both faces keep the sky-leaning normal instead of the back face turning it to the ground */
     sh.fragmentShader=sh.fragmentShader.replace("#include <normal_fragment_begin>","#include <normal_fragment_begin>\nnormal*=faceDirection;");

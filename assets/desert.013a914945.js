@@ -3271,6 +3271,65 @@ function furTick(a){const F=a.fur;if(!F)return;const d=Math.hypot(_cl.x-a.x,_cl.
   F.sh.forEach((s,k)=>{s.visible=n===FUR_N||n>0&&k%2===1});if(!n)return;
   F.body.updateMatrixWorld();_fM.copy(F.body.matrixWorld).invert();F.U.uDown.value.copy(_fD.set(0,-1,0).transformDirection(_fM));
   const g=gustAt(a.x,a.z)*st.wn;F.U.uWindO.value.copy(_fW.set(WIND.x,0,WIND.z).transformDirection(_fM)).multiplyScalar(.5*g);F.U.uFT.value=st.t}
+/* where a camel meets the sand. The clips are authored over a flat floor: the kneel ones leave the folded fore knees and chest
+   up to 0.3 m in the air, and over ripples and dune slopes the hooves float or sink by the slope under each one. Every frame
+   the lowest point of each lower leg (the hoof, or the knee once it folds) and of the chest and belly is found among the
+   vertices that come lowest anywhere in the clips and their blends (listed per model file, found offline), skinned here on the
+   CPU and measured against the sand under it. The body is pitched until the lowest fore and lowest hind contact are level on
+   the sand (and, standing or lying, rolled until the lowest left and right are), then lowered or raised so they press CT_SINK
+   into it. */
+const CAMEL_CT={camel_v4b:{n:11836,c:[[10210,10211,10215,10216,10217,10232,10233,10249,10250,10252,10253,10254,10255,10257,10258,10259,10294,10295,10298,10299,10300,10301,10317,10331,10364,10365,10371,10372,10373,10374,10383,10461,10462,10463,10465,10466,10467,10491,10507,10511,10512,10513,10514,10515,10516,10517,10518,10522,10523,10524,10595,10596,10597,10598,10599,10600,10601,10602,10603,10604,10605,10606,10609,10624,10625,10626,10629,10630,10728,10729,10730,10738,10761,10773,10775,10776,10778,10781,10792,10800,10802,10803,10804,10808,10815,10816,10817,10818,10819,10820,10821,10886,11116,11118,11120,11126,11133,11135,11144,11145,11146,11147,11148,11171,11176,11177,11178,11179,11180,11741,11743,11744,11748,11749,11750,11751,11754,11802,11803,11804,11805,11806,11807,11809,11810,11811,11812],[819,822,823,824,832,834,837,840,845,846,847,848,849,850,852,853,854,868,869,870,880,881,2002,2005,2006,2007,2011,2012,2014,2015,2016,3795,3798,3799,3822,3823,3824,3825,3839,3840,3841,3842,3868,3869,3870,3872,3873,3874,3876,3877,3878,3879,3882,3883,3912,3926,3931,3932,3939,3988,3990,3992,3993,3994,3998,3999,4000,4001,4002,4003,4004,4007,4018,4019,4020,4022,4067,4082,4083,4084,4085,4090,4452,4453,4454,4455,4457,4459,4481,4482,4483,4485,4487,4841,4846],[10549,10552,10554,10567,10568,10569,10573,10574,10578,10971,11037,11038,11612,11613,11614,11615,11616,11618,11620,11621,11622,11629,11630,11661,11662,11663,11664,11666,11667,11668,11669,11670,11674,11675,11728,11729],[406,407,408,409,413,415,416,430,472,473,475,478,479,754,758,759,762,763,766,786,791,792,793,794,795,797,798,799,801,802,1569,1579,1580,1581,1582,1586,1595,1596,1597,1598,1599,1603],[1667,1720,1722,1723,1724,1725,1728,1731,1735,1742,1744,1748,1767,1785,1791,1797,1817,1819,1885,2220,2224,2226,2260,2318,2960,2963,3045,3056,3058,3059,3794,3806,3820,3827,3832,5320,5321,5326,5327,5328,5329,5330,5334,5335,5336,5337,5338,5345,5348,5349,5350,5363,5364,5365,5366,5367,5368,5369,5370,5371,5372,5373,5374,5376,5380,7590,8865,8866,8869,8873,8874,9047,9133,9135,9144,9145,9178,9182,9212,9225,9246,9247,9254,9255,9259,9260,9945,9990,10012,10013,10014,10124,10125,10227]]},bactrian_v1:{n:10638,c:[[9090,9095,9096,9097,9112,9147,9148,9159,9160,9165,9166,9167,9168,9169,9170,9171,9172,9173,9174,9175,9176,9177,9194,9208,9219,9220,9226,9227,9228,9229,9261,9336,9337,9338,9339,9340,9341,9342,9365,9381,9385,9386,9387,9388,9389,9390,9391,9392,9396,9397,9398,9468,9469,9470,9471,9472,9473,9474,9475,9476,9477,9478,9479,9482,9495,9496,9497,9500,9501,9596,9597,9598,9606,9627,9629,9641,9643,9644,9648,9659,9665,9669,9670,9671,9675,9682,9683,9684,9685,9686,9687,9688,9747,9964,9966,9967,9973,9974,9975,9976,9977,9978,10018,10023,10024,10025,10026,10027,10028,10038,10040,10545,10547,10548,10552,10553,10554,10555,10558,10559,10616,10617,10618,10619,10620,10621,10626,10627,10628,10629],[639,642,643,644,652,654,657,660,665,666,667,668,669,670,672,673,674,688,689,690,700,701,1720,1723,1724,1725,1729,1730,1732,1733,1734,1737,3267,3268,3301,3307,3308,3309,3310,3311,3335,3336,3337,3339,3340,3341,3343,3344,3345,3346,3349,3350,3379,3393,3398,3399,3406,3455,3457,3459,3460,3461,3465,3466,3467,3468,3469,3470,3471,3474,3480,3481,3482,3484,3531,3552,3553,3554,3555,3560,3886,3887,3888,3889,3891,3893,3915,3916,3917,3919,4244,4249,4250],[9422,9435,9438,9440,9441,9442,9446,9453,9454,9455,9801,9802,9846,9901,10407,10423,10424,10425,10426,10427,10429,10431,10432,10433,10438,10440,10441,10472,10473,10474,10475,10477,10478,10479,10480,10481,10485,10486,10532,10533],[297,298,299,300,304,306,307,321,363,364,365,366,369,370,574,578,579,582,583,584,586,606,611,612,613,614,615,617,618,619,621,622,1238,1239,1240,1244,1245,1246,1248,1249,1250,1345,1346,1347,4338],[1406,1409,1462,1463,1465,1466,1467,1468,1471,1474,1478,1481,1504,1510,1515,1575,1576,1577,1578,1580,1581,1606,1868,1986,2039,2041,2052,2059,2575,2577,2584,2585,2586,2587,3152,3154,3156,3172,3173,3174,3263,3275,3277,3280,3282,3283,3289,3291,3292,3293,3296,4666,4668,4673,4674,4676,4683,4686,4687,4690,4692,4693,4694,4695,4696,4697,4698,4699,4703,4704,4705,4707,4708,4710,4711,4714,4715,4716,6809,7903,7904,7907,7911,7912,8055,8058,8059,8062,8143,8144,8145,8146,8147,8154,8155,8187,8190,8191,8221,8222,8225,8231,8232,8233,8308,8324,8331,8335,8880,8895,8901,8922,8924,8971,8972,8973,9106,9107,9739,9740,9741,10162,10165,10171,10172,10174,10183,10631,10633,10634]]}};
+const CT_SINK=.006,_ctA=new T.M4(),_ctM=new T.M4(),_ctV=new V3();
+function ctUp(a){const D=CAMEL_CT[a.kind.file];let body=null;a.mdl.traverse(o=>{if(o.isSkinnedMesh&&o.name==="Camel"&&!body)body=o});
+  if(!D||!body||body.geometry.attributes.position.count!==D.n)return;
+  const g=body.geometry,P=g.attributes.position,SI=g.attributes.skinIndex,SW=g.attributes.skinWeight,bones=[],bix=new Map();
+  const N=D.c.reduce((s,c)=>s+c.length,0),bp=new Float32Array(N*3),bi=new Uint8Array(N*4),bw=new Float32Array(N*4),reg=new Uint8Array(N);
+  let k=0;D.c.forEach((c,r)=>{for(const i of c){_ctV.fromBufferAttribute(P,i).applyMatrix4(body.bindMatrix);bp[k*3]=_ctV.x;bp[k*3+1]=_ctV.y;bp[k*3+2]=_ctV.z;
+    for(let j=0;j<4;j++){const b=SI.getComponent(i,j);if(!bix.has(b)){bix.set(b,bones.length);bones.push(b)}bi[k*4+j]=bix.get(b);bw[k*4+j]=SW.getComponent(i,j)}reg[k++]=r}});
+  /* contacts 0-3: the legs in a.feet order; 4 and 5: the body's underside ahead of and behind the root */
+  a.ct={body,N,bp,bi,bw,reg,bones,M:new Float32Array(bones.length*16),th:0,ph:0,rw:0,lp:a.feet.map(f=>{let b=f.b;while(b.parent&&!/Limb_0$/.test(b.name))b=b.parent;return{b,d:0,wx:0,wy:0,wz:0,x:0,y:0,z:0,px:0,pz:0,on:0}}),c:Array.from({length:6},(_,i)=>({fore:i<4?!a.feet[i].hind:i===4,x:0,y:0,z:0,X:0,Y:0,Z:0,g:0,h:0,h0:0,gx:0,gz:0,X0:0,Z0:0,ok:0}))}}
+function camelSettle(a,fdt){const C=a.ct;if(!C)return;const inn=a.inner;
+  for(const L of C.lp)if(L.on){L.on=0;const p=L.b.position;if(p.x===L.wx&&p.y===L.wy&&p.z===L.wz){p.x-=L.x;p.y-=L.y;p.z-=L.z}}
+  /* measured with last frame's tilt on, so the vertex picked as lowest is the one that will be once it is set down */
+  inn.position.y=0;inn.rotation.set(C.th,0,C.ph);a.g.updateMatrixWorld(true);
+  const sk=C.body.skeleton,M=C.M,bp=C.bp,bi=C.bi,bw=C.bw,cs=C.c,e=a.g.matrix.elements;
+  _ctA.copy(a.g.matrixWorld).invert().multiply(C.body.matrixWorld).multiply(C.body.bindMatrixInverse);
+  for(let b=0;b<C.bones.length;b++){const j=C.bones[b];_ctM.multiplyMatrices(sk.bones[j].matrixWorld,sk.boneInverses[j]).premultiply(_ctA);M.set(_ctM.elements,b*16)}
+  for(const c of cs){c.ok=0;c.h=1e9}
+  for(let k=0;k<C.N;k++){const px=bp[k*3],py=bp[k*3+1],pz=bp[k*3+2];let x=0,y=0,z=0;
+    for(let j=0;j<4;j++){const w=bw[k*4+j];if(!w)continue;const o=bi[k*4+j]*16;
+      x+=w*(M[o]*px+M[o+4]*py+M[o+8]*pz+M[o+12]);y+=w*(M[o+1]*px+M[o+5]*py+M[o+9]*pz+M[o+13]);z+=w*(M[o+2]*px+M[o+6]*py+M[o+10]*pz+M[o+14])}
+    const r=C.reg[k],c=cs[r<4?r:z>0?4:5],X=e[0]*x+e[4]*y+e[8]*z+e[12],Y=e[1]*x+e[5]*y+e[9]*z+e[13],Z=e[2]*x+e[6]*y+e[10]*z+e[14];
+    /* lowest over the sand's tangent plane where this contact was last frame: on a 25° slope toe and heel differ by 9 cm */
+    const h=Y-c.h0-c.gx*(X-c.X0)-c.gz*(Z-c.Z0);if(h<c.h){c.h=h;c.x=x;c.y=y;c.z=z;c.X=X;c.Y=Y;c.Z=Z;c.ok=1}}
+  for(const c of cs)if(c.ok){const h0=hTop(c.X,c.Z);c.g=c.Y-h0;c.gx=(hTop(c.X+.05,c.Z)-h0)/.05;c.gz=(hTop(c.X,c.Z+.05)-h0)/.05;c.h0=h0;c.X0=c.X;c.Z0=c.Z}
+  /* inner turns X then Z: pitch lowers the front, roll lowers the -x side; dt, dp are this frame's change. Rolling to the hooves only
+     while it stands, kneels or lies: a walking camel paces, both legs of one side in the air together, and must not tip toward them,
+     so walking it rolls to the sand under its feet instead (the slope across the fore pair and across the hind pair) */
+  let rw=0,nw=0;for(let i=0;i<4;i+=2){const p=cs[i],o=cs[i+1];if(!p.ok||!o.ok)continue;
+    const L=c=>{const dx=c.X-e[12],dy=c.h0-e[13],dz=c.Z-e[14];return[e[0]*dx+e[1]*dy+e[2]*dz,e[4]*dx+e[5]*dy+e[6]*dz]},P=L(p),Q=L(o);
+    if(Math.abs(P[0]-Q[0])>.15){rw+=Math.atan((P[1]-Q[1])/(P[0]-Q[0]));nw++}}
+  if(nw)C.rw+=(cl(rw/nw,-.12,.12)-C.rw)*.15;
+  let dt=0,dp=0;const wr=1-ss(.05,.3,a.spd),B=c=>c.x*Math.sin(dp)+c.y*Math.cos(dp),gap=c=>c.g+B(c)*Math.cos(dt)-c.z*Math.sin(dt)-c.y;
+  const low=(test,n)=>{let m=null,mv=1e9;for(let i=0;i<n;i++){const c=cs[i];if(!c.ok||!test(c))continue;const v=gap(c);if(v<mv){mv=v;m=c}}return m};
+  for(let it=0;it<3;it++){const f=low(c=>c.fore,6),h=low(c=>!c.fore,6);
+    if(f&&h&&f.z-h.z>.3)dt=cl(C.th+Math.asin(cl((f.g-f.y-h.g+h.y+(B(f)-B(h))*Math.cos(dt))/(f.z-h.z),-.3,.3)),-.2,.2)-C.th;
+    if(wr<.01){dp=C.rw-C.ph;continue}const l=low(c=>c.x>0,4),r=low(c=>c.x<=0,4);if(!l||!r||l.x-r.x<.2)continue;
+    const A=c=>c.g+c.y*(Math.cos(dt)-1)-c.z*Math.sin(dt);dp=cl(C.ph+Math.asin(cl((A(r)-A(l))/((l.x-r.x)*Math.cos(dt)),-.2,.2)),-.12,.12)*wr+C.rw*(1-wr)-C.ph}
+  dt=cl(dt,-.04,.04);dp=cl(dp,-.025,.025);
+  /* then each contact exactly where the new tilt puts it, and the drop along the body's up axis that sets the lowest one in */
+  const a0=Math.cos(C.th),b0=Math.sin(C.th),a1=Math.cos(C.ph),b1=Math.sin(C.ph);C.th+=dt;C.ph+=dp;
+  const A0=Math.cos(C.th),B0=Math.sin(C.th),A1=Math.cos(C.ph),B1=Math.sin(C.ph);let lo=1e9,dy=0;
+  for(const c of cs)if(c.ok){const y1=c.y*a0+c.z*b0,z1=c.z*a0-c.y*b0,x2=c.x*a1+y1*b1,y2=y1*a1-c.x*b1,x3=x2*A1-y2*B1,y3=x2*B1+y2*A1,y4=y3*A0-z1*B0,z4=y3*B0+z1*A0;
+    const g=e[1]*x3+e[5]*y4+e[9]*z4+e[13]-hTop(e[0]*x3+e[4]*y4+e[8]*z4+e[12],e[2]*x3+e[6]*y4+e[10]*z4+e[14]);
+    c.fg=g;c.k=Math.max(.5,e[5]-c.gx*e[4]-c.gz*e[6]);if(g<lo){lo=g;dy=(-CT_SINK-g)/c.k}}
+  inn.rotation.set(C.th,0,C.ph);inn.position.y=dy;
+  /* a body is a plane on three feet: standing or walking, a foot that is set down (still over the ground) but that the
+     pose leaves short of the sand (a twist across the diagonal, a stride ending) is let down onto it from the shoulder or hip */
+  const w=W.matrixWorld.elements,kw=1-ss(0,.1,a.k);if(kw>0)for(let i=0;i<4;i++){const c=cs[i],L=C.lp[i];if(!c.ok)continue;const fe=a.feet[i].b.matrixWorld.elements,v=fdt>0?Math.hypot(fe[12]-L.px,fe[14]-L.pz)/fdt:0;L.px=fe[12];L.pz=fe[14];
+    const r=c.fg+c.k*dy+CT_SINK,dw=r>0?r*kw*(1-ss(.08,.14,r))*(1-ss(.15,.3,v)):0;L.d+=(dw-L.d)*(fdt>0?1-Math.exp(-fdt*(dw>L.d?40:12)):1);const d=Math.min(L.d,Math.max(0,r));if(d<1e-4)continue;
+    const b=L.b,m=_ctM.copy(b.parent.matrixWorld).invert().elements,X=-w[4]*d,Y=-w[5]*d,Z=-w[6]*d;
+    L.x=m[0]*X+m[4]*Y+m[8]*Z;L.y=m[1]*X+m[5]*Y+m[9]*Z;L.z=m[2]*X+m[6]*Y+m[10]*Z;b.position.x+=L.x;b.position.y+=L.y;b.position.z+=L.z;L.wx=b.position.x;L.wy=b.position.y;L.wz=b.position.z;L.on=1}}
 function camelSpawn(sc,anims,i,kind){smoothRoot(anims);
  const g=new T.Group(),inner=new T.Group();g.rotation.order="YXZ";const s=kind.sc;
   sc.position.y=0;inner.add(sc);inner.scale.setScalar(s);g.add(inner);animalMats(g,kind.coat);W.add(g);onDes(g);
@@ -3280,7 +3339,7 @@ function camelSpawn(sc,anims,i,kind){smoothRoot(anims);
   /* the four feet: the tip below each leg's last joint, fore or hind by where it stands in the bind pose */
   a.feet=[];for(const n in a.bones){const m=n.match(/([01])_(Left|Right)_Limb_3$/);if(!m)continue;const b=a.bones[n];a.feet.push({b:b.children.find(c=>c.isBone)||b,R:m[2]==="Right",p:null,sw:0,hind:0})}
   if(a.feet.length===4){g.updateMatrixWorld(true);const z=a.feet.map(f=>g.worldToLocal(f.b.getWorldPosition(new V3())).z),mid=[...z].sort((x,y)=>x-y).slice(1,3).reduce((x,y)=>x+y)/2;a.feet.forEach((f,i)=>{f.hind=z[i]<mid?1:0})}
-  furUp(a);return a}
+  furUp(a);ctUp(a);return a}
 function camelPrints(a,dt){if(a.spd<.05){for(const f of a.feet)f.p=null;return}const bk=CAMEL_SLOTS[a.i]==="bact";
   for(const f of a.feet){const h=footPlant(f,f.b,a.spd,dt,.3);if(h)prAdd(bk?PRK.bact:PRK.drom,h.x,h.z,a.yaw+.06*Math.sin(h.x*7.1+h.z*3.3),f.hind,1,f.R)}}
 /* the hollow it lay in, left as it gets up: centred under the chest and belly, a little ahead of the root */
@@ -3359,7 +3418,7 @@ function camelUpdate(a,dt){
   if(a.gy==null||Math.abs(f.y-a.gy)>.6){a.gy=f.y;a.gp=f.pitch;a.gr=f.roll}
   const gk=ease(9,dt);a.gy+=(f.y-a.gy)*gk;a.gp+=(f.pitch-a.gp)*gk;a.gr+=(f.roll-a.gr)*gk;
   a.g.position.set(a.x,a.gy,a.z);a.g.rotation.set(a.gp*(1-.5*kk),a.yaw,a.gr*(1-.5*kk));
-  rigTick(a.r,dt);camelPrints(a,dt);
+  rigTick(a.r,dt);camelSettle(a,dt);camelPrints(a,dt);
   /* footsteps crunch in the snow, about one a stride per foot */
   if(WX.sc>.05&&a.spd>.08){a.stD=(a.stD||0)+a.spd*dt;if(a.stD>.75){a.stD=0;if(amb())shotS("dCrn",.42*ss(.05,.4,WX.sc)*cl(a.spd/.9,.5,1),_crP.set(a.x+Math.sin(a.yaw)*rr(-1,1),hTop(a.x,a.z),a.z+Math.cos(a.yaw)*rr(-1,1)),5,rr(.85,1.15))}}}
 

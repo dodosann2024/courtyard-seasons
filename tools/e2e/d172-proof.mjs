@@ -79,10 +79,16 @@ async function course(sp, setup, stepFn, sec, dt) {
 }
 async function course0(sp, setup, stepFn, sec, dt) {
   await E(`(${setup})()`);
-  await E((sp) => { const D = window.__d172; D.trackStart([sp]); D.prReset(); }, sp);
+  await E((sp, pl) => { const D = window.__d172; D.trackStart([sp]); D.prReset(); window.__plog = pl ? [] : null; }, sp, !!process.env.PLOG);
   const N = Math.round(sec / dt), CH = 150;
   for (let i = 0; i < N; i += CH) await E((n, dt, fn) => { const q = window.__desQA(), D = window.__d172, f = fn ? eval(fn) : null;
-    for (let k = 0; k < n; k++) { if (f) f(q); q.step(1, dt); D.trackStep(dt); D.prPoll(); } }, Math.min(CH, N - i), dt, stepFn);
+    for (let k = 0; k < n; k++) { if (f) f(q); q.step(1, dt); D.trackStep(dt); const n0 = D.pr.list.length; D.prPoll();
+      if (window.__plog) for (let j = n0; j < D.pr.list.length; j++) { const p = D.pr.list[j], tr = D.track.on[0], O = q.PA.os[0];
+        if (p.sp === "ostrich") { window.__plog.push([+q.st.t.toFixed(3), p.sp, +p.x.toFixed(2), +p.z.toFixed(2), O.mode, +O.v.toFixed(2), +(O.gtA || 0).toFixed(2), +(O.gtW || 0).toFixed(2), O.rig.cur,
+          Object.entries(O.rig.acts).filter(([, a]) => a.isRunning()).map(([k, a]) => k + ":" + a.getEffectiveWeight().toFixed(2) + "x" + a.getEffectiveTimeScale().toFixed(2)).join(","), tr ? tr.feet.map(f => (f.lo * 100).toFixed(1) + "/" + (f.fs || 0).toFixed(2)).join(" ") : ""]); continue; }
+        const c = q.ANIM.camels[0];
+        window.__plog.push([+q.st.t.toFixed(3), p.sp, +p.x.toFixed(2), +p.z.toFixed(2), c.mode, c.job, +c.spd.toFixed(2), +c.yr.toFixed(2), c.r.cur,
+          Object.entries(c.r.acts).filter(([, a]) => a.isRunning()).map(([k, a]) => k + ":" + a.getEffectiveWeight().toFixed(2)).join(","), tr ? tr.feet.map(f => (f.lo * 100).toFixed(1) + "/" + (f.fs || 0).toFixed(2)).join(" ") : ""]); } } }, Math.min(CH, N - i), dt, stepFn);
   return E((sp) => { const D = window.__d172, C = D.trackEnd(), P = D.pr.list.filter(p => p.sp === sp); return {contacts: C, prints: P, matched: D.match(P, C)}; }, sp);
 }
 const stats = (sp, r) => {
@@ -110,13 +116,18 @@ if (want("prints")) {
       `(q => { const a = q.ANIM.camels[${ci}]; if (a.mode !== "walk" && window.__li < window.__legs.length) { const [x, z] = window.__legs[window.__li++]; q.fn.camelGo(a, {x, z}, "idle"); }
         if (a.mode === "job" && a.timer > 100) a.timer = 1e9; })`, 60, DT);
     R[sp] = stats(sp, r); console.log(sp, JSON.stringify(R[sp]).slice(0, 400));
+    if (process.env.PLOG) console.log((await E(() => (window.__plog || []).map(r => r.join(" | ")))).join("\n"));
   }
   {
-    const r = await course("ostrich", `(() => { const q = window.__desQA(), O = q.PA.os[0]; q.tod("day"); window.__park(-5.5, -5, 6, [O]); q.osPlace(O, -5.5, -5, 0); O.mode = "stand"; O.t = 1e9; q.step(10, 1/30);
-      window.__legs = [[-2, -9], [-7, -11], [-9, -4], [-4, -2]]; window.__li = 0; })`,
+    const r = await course("ostrich", `(() => { const q = window.__desQA(), O = q.PA.os[0]; q.tod("day"); window.__park(-5.5, -5, 6, [O]);
+      /* the dunes drift with the scene clock, so start from the first of these spots the bird can walk out of */
+      for (const [x, z] of [[-5.5, -5], [-6, -7], [-4, -6], [-7, -4], [-3.5, -8], [-8, -8], [-5, -3]]) { q.osPlace(O, x, z, 0); if (q.osGo(O, {x: -2, z: -9})) break; }
+      O.path = null; O.mode = "stand"; O.t = 1e9; O.v = 0; q.step(10, 1/30);
+      window.__legs = [[-2, -9], [-7, -11], [-9, -4], [-4, -2], [-2, -9], [-7, -11], [-9, -4], [-4, -2], [-2, -9], [-7, -11]]; window.__li = 0; })`,
       `(q => { const O = q.PA.os[0]; if (!O.path && window.__li < window.__legs.length) { const [x, z] = window.__legs[window.__li++]; let ok = q.osGo(O, {x, z}, window.__li === 3); for (let t = 0; !ok && t < 20; t++) { const p = q.osSpot(O, true, 8); ok = p && q.osGo(O, p, window.__li === 3); } if (ok) O.then = "stand"; } if (O.mode === "stand") O.t = 1e9; if ((window.__oi = (window.__oi || 0) + 1) % 6 === 0) (window.__olog = window.__olog || []).push([+q.st.t.toFixed(1), O.mode, +O.v.toFixed(2), O.rig.cur, +O.P.sit.toFixed(2), +O.x.toFixed(2), +O.z.toFixed(2)].join(" ")); })`, 45, DT);
     if (process.env.OLOG) console.log((await E(() => window.__olog)).join("\n"));
     R.ostrich = stats("ostrich", r); console.log("ostrich", JSON.stringify(R.ostrich).slice(0, 400));
+    if (process.env.PLOG) console.log((await E(() => (window.__plog || []).map(r => r.join(" | ")))).join("\n"));
   }
   {
     const r = await course("tortoise", `(() => { const q = window.__desQA(), T = q.PA.tt[0]; window.__park(2, -6, 5, [T]); q.torPlace(T, 2, -6, .5); T.mode = "graze"; T.t = 1e9; T.P.wd = 0; q.step(30, 1/30);
@@ -156,30 +167,32 @@ if (want("gshots")) {
       /* the branch plans from a tuft / the water (grazeSpot, drinkSpot); main's own stands: the pond ring, and 1 m outside the east beach */
       let sp; if (job === "graze") sp = q.grazeSpot ? q.grazeSpot(a) : (() => { const [x, z] = q.pondEdge(.9, 1.45); return {x, z, yaw: Math.atan2(q.POND.x - x, q.POND.z - z) + .6}; })();
       else sp = q.drinkSpot ? q.drinkSpot(a) : (() => { const th = .05, [x, z] = q.pondEdge(th, 1), nx = Math.cos(th), nz = Math.sin(th); return {x: x + nx, z: z + nz, yaw: Math.atan2(-nx, -nz)}; })();
-      const yaw = sp.yaw, sx = sp.x - Math.sin(yaw) * 5, sz = sp.z - Math.cos(yaw) * 5;
+      const yaw = sp.yaw, sx = sp.x - Math.sin(yaw) * 3, sz = sp.z - Math.cos(yaw) * 3;
       Object.assign(a, {x: sx, z: sz, yaw, k: 0, spd: 0, yr: 0, path: null, gy: null, mode: "job", job: "idle", timer: 1e9, face: null});
       for (const k in a.r.acts) a.r.acts[k].stop(); a.r.fd = null; a.r.cur = null; q.fn.play(a.r, "idle", .01, 1); q.step(5, 1 / 30);
       q.fn.camelGo(a, sp, job); let lo = null;
       for (let i = 0; i < 1800; i++) { q.step(1, 1 / 30); if (a.mode === "job" && a.job === job) { a.timer = 1e9; const w = a.r.acts.drink.getEffectiveWeight(); if (w > .9) { const m = D.mouth(a); if (!lo || m.y < lo.y) lo = m; else if (lo && m.y > lo.y + .03) break; } } }
-      if (!lo) return null; const T = D.tufts(); let dT = 1e9; for (const p of T) dT = Math.min(dT, Math.hypot(p.x - lo.x, p.z - lo.z));
+      if (!lo) return {none: 1, sp, mode: a.mode, job: a.job, x: a.x, z: a.z}; const T = D.tufts(); let dT = 1e9; for (const p of T) dT = Math.min(dT, Math.hypot(p.x - lo.x, p.z - lo.z));
       const c = Math.cos(a.yaw), n = Math.sin(a.yaw); q.lookAt(lo.x + c * 2.3 - n * .6, lo.y + .55, lo.z - n * 2.3 - c * .6, lo.x, lo.y + .12, lo.z); q.step(1, 1 / 30);
       return {dT: +dT.toFixed(2), dW: +(lo.y - q.POND.wy).toFixed(2), over: q.pN(lo.x, lo.z) < 1}; }, job);
-    if (!res) { console.log("gshot", job, "no event"); continue; }
-    await cap(job === "graze" ? `骆驼吃草：嘴到最近草丛 ${res.dT} m` : `骆驼喝水：嘴${res.over ? "在水面上方" : "在沙地上方（不在水上）"}，距水面高度 ${res.dW} m`);
+    if (res.none) { console.log("gshot", job, "no event", JSON.stringify(res)); continue; }
+    await cap(job === "graze" ? `骆驼吃草：嘴到最近草丛 ${res.dT} m` : res.over && Math.abs(res.dW) <= .05 ? `骆驼喝水：嘴触及水面（与水面高差 ${res.dW} m）` : `骆驼喝水：嘴比水面高 ${res.dW} m，没有碰到水`);
     await shot(path.join(OUT, `${TAG}${job}_closeup.png`)); await cap(""); console.log("gshot", job, JSON.stringify(res));
   }
 }
 /* ---------------- a camel walking, its prints appearing under the hooves ---------------- */
 if (want("camvid")) {
   const dir = path.join(OUT, `${TAG}camfr`); fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir);
-  await E(() => { const q = window.__desQA(); q.tod("day"); window.__set({wind: .15}); window.__park(9, -9, 10, [q.ANIM.camels[0]]); window.__camel(0, 3, -10, Math.PI / 2); q.step(30, 1 / 30); q.fn.camelGo(q.ANIM.camels[0], {x: 13, z: -10}, "idle"); });
+  await E(() => { const q = window.__desQA(); q.tod("day"); window.__set({wind: .15}); window.__park(9, -9, 10, [q.ANIM.camels[0]]); window.__camel(0, 4, -9, .9); q.step(30, 1 / 30); const a = q.ANIM.camels[0];
+    if (![[12, -4], [9, -13], [13, -3], [-2, -9], [2, -4], [10, -10], [-3, -13]].some(([x, z]) => Math.hypot(x - a.x, z - a.z) > 6 && q.fn.camelGo(a, {x, z}, "idle"))) throw new Error("camvid: no path"); });
   await cap("单峰驼行走：脚印在蹄子落地处出现");
-  for (let i = 0; i < 300; i++) {
-    await E(() => { const q = window.__desQA(), a = q.ANIM.camels[0]; q.step(1, 1 / 30); const c = Math.cos(a.yaw), n = Math.sin(a.yaw); q.lookAt(a.x - c * 4.2 - n * 1.2, a.gy + 1.1, a.z + n * 4.2 - c * 1.2, a.x + n * .5, a.gy + .25, a.z + c * .5); });
+  for (let i = 0; i < 100; i++) {
+    await E(() => { const q = window.__desQA(), a = q.ANIM.camels[0]; q.step(2, 1 / 30); const c = Math.cos(a.yaw), n = Math.sin(a.yaw), ex = a.x - c * 3.6 - n * 1.6, ez = a.z + n * 3.6 - c * 1.6;
+      q.lookAt(ex, Math.max(a.gy + 1.5, q.hTop(ex, ez) + .9), ez, a.x - n * .9, q.hTop(a.x - n * .9, a.z - c * .9) + .1, a.z - c * .9); });
     await S.frames(1); await S.page.screenshot({path: path.join(dir, `f${String(i).padStart(4, "0")}.png`), type: "png"});
   }
   await cap("");
-  await ffmpeg(["-framerate", "30", "-i", path.join(dir, "f%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "22", path.join(OUT, `${TAG}camel_walk_prints.mp4`)]);
+  await ffmpeg(["-framerate", "15", "-i", path.join(dir, "f%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-r", "30", path.join(OUT, `${TAG}camel_walk_prints.mp4`)]);
   fs.rmSync(dir, {recursive: true, force: true}); console.log("camvid done");
 }
 if (want("ver")) {
@@ -213,10 +226,10 @@ if (want("wind")) {
   for (const [w, lab] of [[.05, "微风（wind 0.05）"], [1, "强风（wind 1.0）"]]) {
     await E(w => { const q = window.__desQA(); window.__set({wind: w}); q.step(150, 1 / 30); }, w);
     await grassView(g, .7, 1.8); await S.cap(lab);
-    for (let i = 0; i < 120; i++) { await E(() => window.__desQA().step(1, 1 / 30)); await S.frames(1); await S.page.screenshot({path: path.join(dir, `f${String(k++).padStart(4, "0")}.png`), type: "png"}); }
+    for (let i = 0; i < 60; i++) { await E(() => window.__desQA().step(2, 1 / 30)); await S.frames(1); await S.page.screenshot({path: path.join(dir, `f${String(k++).padStart(4, "0")}.png`), type: "png"}); }
   }
   await S.cap("");
-  await ffmpeg(["-framerate", "30", "-i", path.join(dir, "f%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "22", path.join(OUT, `${TAG}wind_low_vs_strong.mp4`)]);
+  await ffmpeg(["-framerate", "15", "-i", path.join(dir, "f%04d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-r", "30", path.join(OUT, `${TAG}wind_low_vs_strong.mp4`)]);
   console.log("wind video", k, "frames");
 }
 

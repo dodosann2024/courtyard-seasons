@@ -1,0 +1,66 @@
+{
+ "live": "assets/desert.2ccd4efe17.js",
+ "wdir_flat": [
+  {
+   "a": 0.7,
+   "salt": 1
+  },
+  {
+   "a": 2.1,
+   "salt": 1
+  },
+  {
+   "a": -0.9,
+   "salt": 1
+  }
+ ],
+ "wdir_crest": [
+  {
+   "a": 0.7,
+   "salt": 1
+  },
+  {
+   "a": 2.1,
+   "salt": 1
+  },
+  {
+   "a": -0.9,
+   "salt": 1
+  }
+ ],
+ "wstr_flat": [
+  {
+   "a": -0.15,
+   "salt": 0,
+   "flowK": 0
+  },
+  {
+   "a": -0.15,
+   "salt": 0.38,
+   "flowK": 0.44
+  },
+  {
+   "a": -0.15,
+   "salt": 1,
+   "flowK": 2.15
+  }
+ ],
+ "wstr_crest": [
+  {
+   "a": -0.15,
+   "salt": 0,
+   "flowK": 0
+  },
+  {
+   "a": -0.15,
+   "salt": 0.38,
+   "flowK": 0.44
+  },
+  {
+   "a": -0.15,
+   "salt": 1,
+   "flowK": 2.15
+  }
+ ],
+ "fails": []
+}

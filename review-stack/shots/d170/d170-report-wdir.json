@@ -1,0 +1,18 @@
+{
+ "live": "assets/desert.2ccd4efe17.js",
+ "wdir_down": [
+  {
+   "a": 0.7,
+   "salt": 1
+  },
+  {
+   "a": 2.1,
+   "salt": 1
+  },
+  {
+   "a": -0.9,
+   "salt": 1
+  }
+ ],
+ "fails": []
+}

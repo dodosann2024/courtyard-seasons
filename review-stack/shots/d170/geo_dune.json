@@ -1,0 +1,73 @@
+{
+ "main": {
+  "rackBar": "172651b5.-71ef96f3.23760",
+  "rackPostL": "15788cb5.-706a925d.9216",
+  "rackForkL0": "6a9f37f5.-4d4905fb.1512",
+  "rackForkL1": "68be0290.-7144f691.1512",
+  "rackPostR": "7d972a50.-6d0ccfa4.9216",
+  "rackForkR0": "68d362e8.-7df7b048.1512",
+  "rackForkR1": "69ef237c.-1365d16a.1512",
+  "fireStoneR0": "1107a669.-6f78f846.3840",
+  "fireStoneR1": "243e8285.-3e267e9c.3840",
+  "fireStoneR2": "11501063.-24ca8759.3840",
+  "fireLog0": "241c4fff.-155ac03a.1440",
+  "fireLog1": "15c03ecf.-2cfbe781.1440",
+  "fireLog2": "21dc5738.-3b431712.1440",
+  "fireLog3": "19cc908d.-3998398.1440",
+  "fireLog4": "1a3348f7.-6ef6eeb0.1440",
+  "fireSeat0": "29e968a.-16b0af90.21888",
+  "fireSeat1": "59877692.-3efecdc9.21888",
+  "fireSeat2": "3639cab.-29f00392.21888",
+  "fireWood0": "620247ca.-6375444b.3696",
+  "fireWood1": "211962c4.-309ba5bb.3696",
+  "fireWood2": "312f8192.-1b8ca8c1.3696",
+  "fireWood3": "459dcdb5.-701b40c7.3696",
+  "fireWood4": "20c4224e.-786b1474.3696",
+  "fireStoneP0": "1cfaed94.-6d1c98e9.3840",
+  "fireStoneP1": "1e66553e.-35921854.3840",
+  "fireStoneP2": "143c1ad4.-d3c56fa.3840"
+ },
+ "branch": {
+  "rackBar": "172651b5.-71ef96f3.23760",
+  "rackPostL": "15788cb5.-706a925d.9216",
+  "rackForkL0": "6a9f37f5.-4d4905fb.1512",
+  "rackForkL1": "68be0290.-7144f691.1512",
+  "rackPostR": "7d972a50.-6d0ccfa4.9216",
+  "rackForkR0": "68d362e8.-7df7b048.1512",
+  "rackForkR1": "69ef237c.-1365d16a.1512",
+  "fireStoneR0": "1107a669.-6f78f846.3840",
+  "fireStoneR1": "243e8285.-3e267e9c.3840",
+  "fireStoneR2": "11501063.-24ca8759.3840",
+  "fireLog0": "241c4fff.-155ac03a.1440",
+  "fireLog1": "15c03ecf.-2cfbe781.1440",
+  "fireLog2": "21dc5738.-3b431712.1440",
+  "fireLog3": "19cc908d.-3998398.1440",
+  "fireLog4": "1a3348f7.-6ef6eeb0.1440",
+  "fireSeat0": "29e968a.-16b0af90.21888",
+  "fireSeat1": "59877692.-3efecdc9.21888",
+  "fireSeat2": "3639cab.-29f00392.21888",
+  "fireWood0": "620247ca.-6375444b.3696",
+  "fireWood1": "211962c4.-309ba5bb.3696",
+  "fireWood2": "312f8192.-1b8ca8c1.3696",
+  "fireWood3": "459dcdb5.-701b40c7.3696",
+  "fireWood4": "20c4224e.-786b1474.3696",
+  "fireStoneP0": "1cfaed94.-6d1c98e9.3840",
+  "fireStoneP1": "1e66553e.-35921854.3840",
+  "fireStoneP2": "143c1ad4.-d3c56fa.3840"
+ },
+ "identical": true,
+ "duneShape_after40minOblique": {
+  "main": {
+   "cv": 3.249,
+   "sk": 0.077,
+   "x": 15.19,
+   "z": -9.8
+  },
+  "branch": {
+   "cv": 2.816,
+   "sk": 1.465,
+   "x": 14.74,
+   "z": -10.74
+  }
+ }
+}

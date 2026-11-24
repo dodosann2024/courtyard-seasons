@@ -95,14 +95,17 @@ const GLSL_GUST=`uniform float uGT;uniform vec2 uWD;
   float gustF(vec2 p){float s=uGT-dot(p,uWD)/${GUST.c.toFixed(1)},q=p.y*uWD.x-p.x*uWD.y;
     return clamp(.5+.26*sin(s*.43)+.16*sin(s*1.07+1.7)+.08*sin(s*2.3+.4)+.1*sin(q*.21+s*.31),0.,1.);}`;
 /* the dune creeps on its own clock, which runs faster in gusts; incommensurate periods (≈3–12 min) so the shape never visibly loops */
-const DCLK={ph:0};
+/* ob: how far the prevailing wind has come round off the dune's axis (sin of the angle), followed over a couple of minutes
+   of drifting sand: an oblique wind feeds one horn and starves the other, and walks the body a little across */
+const DCLK={ph:0,ob:0};
 function duneEvolve(dph){
   const p=DCLK.ph+=dph,c=Math.cos(DUNE0.yaw),s=Math.sin(DUNE0.yaw);
-  const mg=.55*Math.sin(p/89+.3)+.35*Math.sin(p/37+2.1),lt=.4*Math.sin(p/61+1.1);
+  DCLK.ob+=(Math.sin(wrapA(WS.ra-DUNE0.yaw))-DCLK.ob)*(1-Math.exp(-dph/45));
+  const mg=.55*Math.sin(p/89+.3)+.35*Math.sin(p/37+2.1),lt=.4*Math.sin(p/61+1.1)-1.2*DCLK.ob;
   DP.x=DUNE0.x+mg*c+lt*s;DP.z=DUNE0.z-mg*s+lt*c;
   DP.H=DUNE0.H*(1+.05*Math.sin(p/47+.7)+.03*Math.sin(p/23+2.6));
   DP.w=DUNE0.w*(1+.04*Math.sin(p/67+.1));
-  DP.cv=DUNE0.cv+.45*Math.sin(p/53+1.9);DP.sk=.3*Math.sin(p/71+.4)+.12*Math.sin(p/29+1.3);
+  DP.cv=DUNE0.cv+.45*Math.sin(p/53+1.9)-.5*Math.abs(DCLK.ob);DP.sk=.3*Math.sin(p/71+.4)+.12*Math.sin(p/29+1.3)+1.6*DCLK.ob;
   DP.Lw=DUNE0.Lw*(1+.06*Math.sin(p/43+2.2));DP.Ll=DUNE0.Ll*(1-.07*Math.sin(p/57+.9))}
 /* where the dune may move: a zone around it, pinned at the rim and around anything resting on the sand */
 let DOB=null,DLIVE=false;const PINS=[];
@@ -366,13 +369,17 @@ function sandMat(){
       .replace("#include <opaque_fragment>",`{
         vec2 p=vSP.xz,wd=uWD,wp=vec2(-wd.y,wd.x);float al=dot(p,wd)-uFlowT,ac=dot(p,wp);
         float g=gustF(p),fwf=length(fwidth(p));
-        float s1=dn2(vec2(al*.3,ac*1.7)),s2=dn2(vec2(al*.8+5.,ac*4.4+2.));
-        float str=smoothstep(.4,.82,s1*.6+s2*.4)*(.35+.65*dn2(vec2(al*.07-uGT*.05,ac*.16)));
+        /* narrow ribbons several metres long; a stronger wind sets more of them running side by side */
+        float s1=dn2(vec2(al*.2,ac*2.6+.6*sin(al*.35))),s2=dn2(vec2(al*.55+5.,ac*7.+2.));
+        float str=smoothstep(.56-.1*min(uFlowK,2.),.86,s1*.6+s2*.4)*(.35+.65*dn2(vec2(al*.07-uGT*.05,ac*.16)));
         ${MOB?"float grain=1.;":"float gr=dn2(vec2(al*13.,ac*9.)+vec2(0.,3.));float grain=mix(1.,.55+.9*smoothstep(.25,.85,gr),1.-smoothstep(.012,.05,fwf));"}
         float fl=str*grain*smoothstep(.18,.72,g)*uFlowK*smoothstep(1.45,2.1,pondN(p))*(1.+1.45*smoothstep(.6,3.2,vSP.y))*(.4+.6*(1.-smoothstep(.06,.25,fwf)));
         vec3 V=normalize(cameraPosition-vWP);float fs=pow(max(dot(V,-uLd),0.),5.);
-        outgoingLight*=ripAO;
-        outgoingLight+=(reflectedLight.directDiffuse*(1.7+4.2*fs)+reflectedLight.indirectDiffuse*.55)*fl*(.35+.9*min(uFlowK,1.7));
+        /* a film of grains over the sand lightens it a little (more against the light) and blurs the ripples under it; it never
+           washes the surface out */
+        float fk=fl*(.35+.9*min(uFlowK,1.7));fk=.42*(1.-exp(-fk*.7));
+        outgoingLight*=mix(ripAO,1.,.65*smoothstep(0.,.25,fk));
+        outgoingLight+=(reflectedLight.directDiffuse*(1.7+4.2*fs)+reflectedLight.indirectDiffuse*.55)*fk;
         /* aerial perspective: far sand takes a little of the sky's colour */
         float dC=length(cameraPosition-vWP);outgoingLight=mix(outgoingLight,uHaze*(.55+.45*(1.-uNight))*.9,.14*smoothstep(22.,75.,dC));
         /* heat: far sand shimmers, and a mirage shows the sky in the sand as broken blue-grey pools that drift, split and
@@ -1742,15 +1749,31 @@ function softPoints(n,col,size,additive,pMax){
       #include <colorspace_fragment>
       }`});
   const o=new T.Points(g,m);o.frustumCulled=false;return{o,P,A,Z,g,m,n}}
-/* sand wisps: low drifting grains that lift off the dune crest and blow downwind */
+/* sand wisps: low drifting grains that lift off the dune crest and blow downwind. Each point is a small knot of grains drawn as
+   the streak it smears along its own flight in a frame, so at eye level it reads as flying sand, not a floating blob */
 const SAND=softPoints(MOB?260:520,"#e6c08a",.16,false);SAND.o.renderOrder=6;W.add(SAND.o);
+{const V=new Float32Array(SAND.n*3);SAND.V=V;SAND.g.setAttribute("v",new T.BA(V,3));
+ SAND.m.uniforms.uRes={value:new T.V2(1,1)};
+ SAND.m.vertexShader=`attribute float a,z;attribute vec3 v;varying float vA,vL,vW;varying vec2 vD;uniform float uS,uH;uniform vec2 uRes;
+   void main(){vec4 mv=modelViewMatrix*vec4(position,1.),h=projectionMatrix*mv,t=projectionMatrix*modelViewMatrix*vec4(position-v,1.);
+     vec2 sd=(h.xy/max(h.w,.01)-t.xy/max(t.w,.01))*uRes*.5;float L=length(sd),w=clamp(uS*.22*z*uH*.5/max(.5,-mv.z),1.,4.);
+     float sz=clamp(max(L,w)+2.,2.,64.);vD=L>.01?sd/L:vec2(1.,0.);vL=min(L,62.)/sz;vW=w/sz;
+     vA=a*clamp(w*1.6/max(L*.25+w,1.),.45,1.);gl_Position=h;gl_PointSize=sz;}`;
+ SAND.m.fragmentShader=`uniform vec3 uC;varying float vA,vL,vW;varying vec2 vD;void main(){vec2 q=gl_PointCoord-.5;q.y=-q.y;
+   float al=dot(q,vD),ac=dot(q,vec2(-vD.y,vD.x)),hl=max(vL*.5,vW*.5);
+   float a=vA*(1.-smoothstep(hl-.06,hl,abs(al)))*(1.-smoothstep(vW*.25,vW*.55+.02,abs(ac)))*(.55+.45*smoothstep(-hl,hl,al));if(a<.004)discard;gl_FragColor=vec4(uC,a);
+   #include <tonemapping_fragment>
+   #include <colorspace_fragment>
+   }`;}
 const SANDP=[];
 function crestXZ(vn){const c=Math.cos(DP.yaw),s=Math.sin(DP.yaw),v=vn*DP.w,u=DP.cv*vn*vn-DP.sk*vn;return[DP.x+u*c+v*s,DP.z-u*s+v*c]}
+/* saltation: grains hop downwind in low arcs a few centimetres to a hand high; off the crest the wind throws them a little
+   higher and they fall away down the slip face */
 function sandSeed(i,init){
   const crest=rnd()<.55;let x,z;
   if(crest){[x,z]=crestXZ(rr(-1,1)*1.1)}
   else{const[a,b]=edgeXZ(rnd()*TAU,Math.sqrt(rnd())*.88);x=a;z=b}
-  const q={x,z,y:hTop(x,z)+.05,s:rr(1.5,3.4),lat:rr(-.1,.1),vy:crest?rr(.15,.5):rr(0,.12),life:init?rnd():0,dur:rr(2.5,6),crest};
+  const q={x,z,y:hTop(x,z)+.02,s:rr(1.5,3.4),lat:rr(-.1,.1),vy:crest?rr(.12,.4):0,life:init?rnd():0,dur:rr(2.5,6),crest,hp:rnd()*3,hh:rr(.015,.09),hf:rr(2.5,4.5)};
   SANDP[i]=q;SAND.Z[i]=rr(.4,1.3)}
 for(let i=0;i<SAND.n;i++)sandSeed(i,true);
 /* crest veil: fine sand torn off the dune crest, streaming downwind and up over the slip face, thicker in gusts */
@@ -2482,12 +2505,16 @@ UPD.push((dt,t)=>{
   for(let i=0;i<SAND.n;i++){const q=SANDP[i];q.life+=dt/q.dur;
     if(q.life>=1){sandSeed(i,false);continue}
     const gq=gustAt(q.x,q.z),sp=(.2+1.3*wd)*(.35+1.3*gq)*(1+1.2*WX.dust)*q.s;
-    q.x+=(WIND.x-WIND.z*q.lat)*dt*sp;q.z+=(WIND.z+WIND.x*q.lat)*dt*sp;q.y+=q.vy*dt*(.5+gq);const g=hTop(q.x,q.z);if(q.y<g+.03)q.y=g+.03;
-    q.vy+=(q.crest?-.08:-.02)*dt;
-    const o=i*3;SAND.P[o]=q.x;SAND.P[o+1]=q.y;SAND.P[o+2]=q.z;
+    const vx=(WIND.x-WIND.z*q.lat)*sp,vz=(WIND.z+WIND.x*q.lat)*sp,y0=q.y;
+    q.x+=vx*dt;q.z+=vz*dt;const g=hTop(q.x,q.z);
+    if(q.crest){q.y+=q.vy*dt*(.5+gq);q.vy-=.45*dt;if(q.y<g+.02){q.y=g+.02;q.vy=Math.max(q.vy,0)}}
+    else{q.hp+=dt*q.hf*(.5+.7*wd);q.y=g+.02+q.hh*(.4+.9*wd)*(.5+gq)*Math.abs(Math.sin(q.hp))}
+    /* the streak each knot smears in a frame (about 1/30 s), never longer than a hand */
+    const o=i*3,bl=Math.min(.035,.15/Math.max(sp,.01));SAND.V[o]=vx*bl;SAND.V[o+1]=dt>0?(q.y-y0)/dt*bl:0;SAND.V[o+2]=vz*bl;
+    SAND.P[o]=q.x;SAND.P[o+1]=q.y;SAND.P[o+2]=q.z;
     SAND.A[i]=Math.sin(q.life*Math.PI)*(q.crest?.34:.16)*SALT*(.08+wd*wd*1.7+wd*.2)*(.25+gq)*(1-ss(.86,.97,sN(q.x,q.z)))*(1-.92*WX.wet)*snL*(1+1.5*WX.dust)}
-  SAND.g.attributes.position.needsUpdate=SAND.g.attributes.a.needsUpdate=true;SAND.m.uniforms.uH.value=innerHeight;
-  SAND.m.uniforms.uC.value.copy(curU.uCol.value).multiplyScalar(1.15);
+  SAND.g.attributes.position.needsUpdate=SAND.g.attributes.a.needsUpdate=SAND.g.attributes.v.needsUpdate=true;SAND.m.uniforms.uH.value=innerHeight;Cn.getDrawingBufferSize(SAND.m.uniforms.uRes.value);
+  SAND.m.uniforms.uC.value.copy(curU.uCol.value).multiply(_c3.setRGB(1.05,.88,.6));
   sandFallsUpdate(dt,t,wd,nk);
   /* fireflies */
   const ffK=Math.max(0,1-WX.rain*3)*Math.max(0,1-WX.dust*3)*Math.max(0,1-WX.hf*3)*(1-ss(.1,.6,Math.max(WX.sf,WX.sc)));
@@ -2544,26 +2571,27 @@ const rainU={uT:{value:0},uRain:{value:0},uWS:{value:1},uWD:{value:new T.V2(WIND
 const GLSL_CELL=`float hc(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float nc(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hc(i),hc(i+vec2(1,0)),f.x),mix(hc(i+vec2(0,1)),hc(i+vec2(1,1)),f.x),f.y);}
   float cellK(vec2 p){float n=nc(p*.03-uWD*uT*.11)*.65+nc(p*.08+uWD*uT*.05+3.)*.35;return smoothstep(.0,.3,n+uRain*1.05-.62);}`;
-/* drops are drawn as streaks the length a camera shutter smears them (longer far off, where single drops would vanish),
+/* drops are drawn as streaks the length the eye smears them (longer far off, where single drops would vanish),
    at least a pixel and a bit wide with their alpha thinned to match, brightest at the head. One layer spans the island;
-   a second fills a box that wraps round the camera, so a close view has rain falling right in front of it. */
-const RAIN=(()=>{const mk=(n,near)=>{const R=new Float32Array(n*16),C=new Float32Array(n*8),P=new Float32Array(n*12),I=[];
+   two more fill boxes that wrap round the camera (a close one, and a wider one that takes over past ~3 m), so a view from
+   eye height looks through falling rain all the way out instead of seeing it only against the sky. */
+const RAIN=(()=>{const mk=(n,near,inner)=>{const R=new Float32Array(n*16),C=new Float32Array(n*8),P=new Float32Array(n*12),I=[];
     const cs=[-1,0,1,0,-1,1,1,1];
     for(let i=0;i<n;i++){const x=near?rr(-1,1):rr(-30,30),z=near?rr(-1,1):rr(-26,26),ph=rnd(),sj=rnd();
       for(let e=0;e<4;e++){const o=(i*4+e)*4;R[o]=x;R[o+1]=z;R[o+2]=ph;R[o+3]=sj;C[(i*4+e)*2]=cs[e*2];C[(i*4+e)*2+1]=cs[e*2+1]}
       const b=i*4;I.push(b,b+1,b+2,b+2,b+1,b+3)}
     const g=new T.BG();g.setAttribute("position",new T.BA(P,3));g.setAttribute("aR",new T.BA(R,4));g.setAttribute("aC",new T.BA(C,2));g.setIndex(I);
-    const m=new T.SM({uniforms:Object.assign({uNear:{value:near?3.5:0}},rainU),transparent:true,depthWrite:false,side:2,
-      vertexShader:`attribute vec4 aR;attribute vec2 aC;uniform float uT,uRain,uWS,uLen,uNear;uniform vec2 uWD,uRes;uniform vec3 uCamL;varying float vA;varying vec2 vC;${GLSL_HM}${GLSL_CELL}
+    const m=new T.SM({uniforms:Object.assign({uNear:{value:near||0},uIn:{value:inner||.15}},rainU),transparent:true,depthWrite:false,side:2,
+      vertexShader:`attribute vec4 aR;attribute vec2 aC;uniform float uT,uRain,uWS,uLen,uNear,uIn;uniform vec2 uWD,uRes;uniform vec3 uCamL;varying float vA;varying vec2 vC;${GLSL_HM}${GLSL_CELL}
         void main(){float sp=6.5+3.*aR.w,y,fall;vec2 p;
           if(uNear>0.){float B=2.*uNear;y=uCamL.y+mod(-uT*sp-aR.z*B-uCamL.y+uNear,B)-uNear;fall=(uCamL.y+uNear-y)/sp;
             p=uCamL.xz+mod(aR.xy*uNear+uWD*uWS*(fall-1.5)-uCamL.xz+uNear,B)-uNear;}
           else{const float TOP=26.,HC=66.;y=TOP-mod(uT*sp+aR.z*HC,HC);fall=(TOP-y)/sp;p=aR.xy+uWD*uWS*(fall-1.5);}
           float g=gH(p);vec3 H=vec3(p.x,y,p.y),dir=normalize(vec3(uWD.x*uWS,-sp,uWD.y*uWS));
-          float d=length(H-uCamL),len=mix(.14,uLen,smoothstep(1.5,22.,d));
+          float d=length(H-uCamL),len=mix(.3,uLen,smoothstep(1.5,22.,d));
           vec4 h=projectionMatrix*modelViewMatrix*vec4(H,1.),t=projectionMatrix*modelViewMatrix*vec4(H-dir*len,1.);
           vC=aC;vA=step(g,y)*cellK(p)*step(aR.w*.9,uRain*1.6)*(.35+.65*smoothstep(260.,25.,d))*smoothstep(-36.,-20.,y)*step(.02,t.w)*step(.02,h.w);
-          if(uNear>0.)vA*=smoothstep(uNear,uNear*.6,length(H-uCamL))*smoothstep(.15,.5,d);
+          if(uNear>0.)vA*=smoothstep(uNear,uNear*.6,length(H-uCamL))*smoothstep(uIn,uIn+.35+.4*uIn,d);
           vec2 sd=h.xy/h.w-t.xy/t.w;sd*=uRes;vec2 nd=normalize(vec2(-sd.y,sd.x)+1e-5);
           vec4 c=mix(t,h,aC.y);float px=.004*${S.toFixed(3)}*projectionMatrix[1][1]*uRes.y*.5/max(c.w,.01),wp=max(px,1.3);
           vA*=clamp(px/wp*1.6,.55,1.)*mix(1.,.5,smoothstep(2.,6.,px));c.xy+=nd*aC.x*wp/uRes*c.w;gl_Position=c;}`,
@@ -2573,7 +2601,7 @@ const RAIN=(()=>{const mk=(n,near)=>{const R=new Float32Array(n*16),C=new Float3
         #include <colorspace_fragment>
         }`});
     const o=new T.Mesh(g,m);o.frustumCulled=false;o.renderOrder=8;o.visible=false;W.add(o);return o};
-  const far=mk(MOB?1000:2800,0),near=mk(MOB?450:1400,1);return{far,near,set visible(v){far.visible=near.visible=v}}})();
+  const far=mk(MOB?1000:2800,0),near=mk(MOB?2000:6000,4.5),mid=mk(MOB?3000:9000,12,3.);return{far,near,mid,set visible(v){far.visible=near.visible=mid.visible=v}}})();
 /* splashes: each fires about once a second where the shower is falling; on the pond they are left to the water's rings */
 const SPL=(()=>{const n=MOB?450:1400,S0=new Float32Array(n*4),P=new Float32Array(n*3);let k=0;
   while(k<n){const x=rr(-25,25),z=rr(-20,20);if(sN(x,z)>.93||pN(x,z)<1.02)continue;const o=k*4;S0[o]=x;S0[o+1]=z;S0[o+2]=rnd();S0[o+3]=rnd();P[k*3]=x;P[k*3+1]=hTop0(x,z);P[k*3+2]=z;k++}

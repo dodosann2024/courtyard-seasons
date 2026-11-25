@@ -5,7 +5,7 @@
 //            once it has got up again
 //   weather  short clips of the pond at 1.6 m eye level in rain, at dusk (toward the low sun) and frozen (dawn after a snowy night)
 //   prints   the footprint check of desert.mjs ("ostriches, tortoises, gerbils, scorpions"), its own code read out of CHECK (a
-//            desert.mjs file, default this checkout's), run RUNS times in one page; each run records printKinds and pass/fail
+//            desert.mjs file, default this checkout's), run RUNS times, each on a freshly loaded page; each run records printKinds and pass/fail
 //   ver      the scene panel open, with its 「版本 xxxxxx」 label
 //   pair     (no browser) OUT/main_<n>.png | OUT/new_<n>.png -> <n>_before_after.jpg; main_<n>.mp4 | new_<n>.mp4 -> <n>_before_after.mp4
 // Usage: node tools/e2e/d175-proof.mjs <mode[,mode]>   (OUT=/tmp/d175/out DIR=<checkout> TAG=<prefix> RUNS=20 CHECK=<desert.mjs>)
@@ -158,10 +158,12 @@ try {
     const body = src.slice(src.indexOf("page.evaluate(", a) + "page.evaluate(".length, b + 3);
     const RUNS = +(process.env.RUNS || 20);
     report.prints = {check: path.relative(ROOT, process.env.CHECK || path.join(ROOT, "tools/e2e/desert.mjs")), runs: []};
-    await E(() => { const q = window.__desQA(); q.tod("day"); window.__set({weather: "sun", ct: "clear", wind: .8}); q.sim(20); });
+    /* every run on a freshly loaded scene, as in CI, where the check runs once per page */
     for (let i = 0; i < RUNS; i++) {
-      const t0 = Date.now();
-      const [ok, r] = await E(`(${body})()`);
+      const t0 = Date.now(), P = i ? await openScene(ROOT) : S;
+      await P.E(() => { const q = window.__desQA(); q.tod("day"); window.__set({weather: "sun", ct: "clear", wind: .8}); q.sim(20); });
+      const [ok, r] = await P.E(`(${body})()`);
+      if (P !== S) await P.close();
       const row = {run: i + 1, pass: ok, printKinds: r.printKinds, tortoise: r.printKinds.includes(6), ttWalk: r.ttWalk ?? null, sec: Math.round((Date.now() - t0) / 1000)};
       if (!ok) row.detail = r;
       report.prints.runs.push(row); console.log("prints", JSON.stringify(row));

@@ -156,7 +156,7 @@ try {
      threat at a camel), each pressing its own kind of print */
   check("ostriches, tortoises, gerbils, scorpions", ...await page.evaluate(() => {
     const q = window.__desQA(), PA = q.PA, r = {os: PA.os.length, tt: PA.tt.length, gb: PA.gb.length, sc: PA.sc.length};
-    const kinds = () => { const c = q.PR.im.instanceColor.array, s = new Set(); for (let i = 0; i < q.PR.n; i++) s.add(Math.floor(c[i * 3] + .001)); return s; };
+    const kinds = () => { const c = q.PR.im.instanceColor.array, s = new Set(); for (let i = 0; i < q.PR.im.count; i++) s.add(Math.floor(c[i * 3] + .001)); return s; };
     PA.noView = 1; window.__set({weather: "sun", ct: "clear", wind: .3}); q.tod("day"); q.sim(5);
     /* sizes: the cock's head against a standing camel's hump */
     for (const o of PA.os) { o.mode = "stand"; o.t = 3; o.P.gr = 0; o.P.al = 0; } q.step(60, 1 / 30);

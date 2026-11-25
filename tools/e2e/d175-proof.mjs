@@ -3,7 +3,7 @@
 //   shore    the east beach waterline: a still at the moment the lapping water draws back, and a short clip of the trail drying
 //   kneel    raised close-ups (0.5 m up, 1.3 m off) of the folded knees and chest pad of each camel lying down, and of the hollows left
 //            once it has got up again
-//   weather  short clips of the pond at 1.6 m eye level in rain, at dusk (toward the low sun) and frozen (dawn after a snowy night)
+//   weather  short clips of the pond at 1.6 m eye level in rain, at dusk (toward the low sun) and frozen (dawn after a snowy night) (ONLY=rain,dusk,frozen picks some)
 //   prints   the footprint check of desert.mjs ("ostriches, tortoises, gerbils, scorpions"), its own code read out of CHECK (a
 //            desert.mjs file, default this checkout's), run RUNS times, each on a freshly loaded page; each run records printKinds and pass/fail
 //   ver      the scene panel open, with its 「版本 xxxxxx」 label
@@ -136,11 +136,11 @@ try {
   if (want("weather")) {
     report.weather = {};
     const W = [
-      ["rain", "下雨", () => { const q = window.__desQA(); window.__set({weather: "rain", ct: "overcast", wind: .45}); q.tod("day"); q.sim(60, .25); window.__restAll(); q.step(10, 1 / 30); return window.__look("eye"); }],
+      ["rain", "下雨", () => { const q = window.__desQA(); window.__set({weather: "mrain", ct: "overcast", wind: .45}); q.tod("day"); q.sim(60, .25); window.__restAll(); q.step(10, 1 / 30); return window.__look("eye"); }],
       ["dusk", "黄昏（朝着低太阳）", () => { const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: .45}); q.tod("sunset"); q.sim(60, .25); window.__restAll(); q.step(10, 1 / 30); return window.__look("sun"); }],
       ["frozen", "结冰（下雪的夜后清晨）", () => { const q = window.__desQA(); window.__set({weather: "snow", snowLv: 2, ct: "overcast", wind: .4}); q.tod("night"); q.sim(400, .5);
         q.tod("sunrise"); q.sim(40, .5); window.__set({weather: "sun", ct: "clear", wind: .35}); q.sim(4, .25); window.__restAll(); q.step(10, 1 / 30); const r = window.__look("close", 62); r.ice = +q.WX.ice.toFixed(3); r.snow = +q.WX.sc.toFixed(3); return r; }]];
-    for (const [n, zh, f] of W) {
+    for (const [n, zh, f] of W.filter(([n]) => !process.env.ONLY || process.env.ONLY.split(",").includes(n))) {
       report.weather[n] = await E(`(${f})()`);
       await cap(`${zh}，眼高 ${report.weather[n].eyeAboveSand} 米`); await clip(`weather_${n}`, 60, 2, 15);
       await shot(path.join(OUT, `${TAG}weather_${n}.png`));

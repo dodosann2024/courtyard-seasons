@@ -4,11 +4,11 @@
 //   weather  standing on the bank opposite the key light (sun, or the moon at night), eyes 1.6 m up, looking toward it across the
 //            waterline: rain, dusk, night and frozen (dawn after a snowy night). A still and a clip each, and the brightness and warmth
 //            of the wet band, the dry sand and the water, with the share of glinting water samples (ONLY=rain,dusk,night,frozen)
-//   kneel    a camel lies 180 s on open sand in a light breeze, gets up and walks off; then a fresh wind (0.7, blowing sand) wears the
+//   kneel    a camel lies 180 s on open sand in an everyday breeze (RW, 0.45), gets up and walks off; then a fresh wind (0.7, blowing sand) wears the
 //            hollows of its knees and chest and its hoofprints. Stills at fixed times (KT, seconds after it got up) and the wear of each
 //   ver      the scene panel open, with its 「版本 xxxxxx」 label
 //   pair     (no browser) OUT/main_<n>.png | OUT/new_<n>.png -> <n>_before_after.jpg; main_<n>.mp4 | new_<n>.mp4 -> <n>_before_after.mp4
-// Usage: node tools/e2e/d176-proof.mjs <mode[,mode]>   (OUT=/tmp/d176/out DIR=<checkout> TAG=<prefix> KT=0,75,400)
+// Usage: node tools/e2e/d176-proof.mjs <mode[,mode]>   (OUT=/tmp/d176/out DIR=<checkout> TAG=<prefix> KT=0,75,200,400 TF=60 WF=36)
 import fs from "node:fs";
 import path from "node:path";
 import {execFile} from "node:child_process";
@@ -50,7 +50,7 @@ const patch = (buf, pts) => { let r = 0, g = 0, b = 0, n = 0;
 const S = await openScene(ROOT);
 const {E, shot, cap} = S;
 const fails = [], report = {bundle: S.bundle};
-const killer = setTimeout(() => { console.log("TIMEOUT"); process.exit(3); }, +(process.env.LIMIT || 7200) * 1000);
+const killer = setTimeout(() => { console.log("TIMEOUT"); process.exit(3); }, +(process.env.LIMIT || 10800) * 1000);
 const clip = async (name, n, every, fps) => {
   const dir = path.join(OUT, `${TAG}${name}_frames`); fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir, {recursive: true});
   for (let i = 0; i < n; i++) { await E(k => window.__desQA().step(k, 1 / 30), every); await S.frames(2); await S.page.screenshot({path: path.join(dir, `f${String(i).padStart(3, "0")}.png`)}); }
@@ -123,11 +123,11 @@ try {
     report.trail.samples = {trail: smp.trail.length, band: smp.band.length, dry: smp.dry.length, lapAmp: +smp.A.toFixed(4)};
     await shot(path.join(OUT, `${TAG}trail_eye.png`));
     report.trail.at = await measure(path.join(OUT, `${TAG}trail_eye.png`), smp);
-    /* the retreat cycle: 90 frames 4 sim frames apart (12 s of scene time), played at 15 fps; the trail patch brightness in each */
+    /* the retreat cycle: TF frames (default 60) 4 sim frames apart (8 s of scene time, more than one lap), played at 15 fps; the trail patch brightness in each */
     if (process.env.NOCLIP) throw "noclip";
-    const dir = await clip("trail_clip", 90, 4, 15);
+    const dir = await clip("trail_clip", +(process.env.TF || 60), 4, 15);
     report.trail.series = [];
-    for (let i = 0; i < 90; i++) { const buf = await pixels(path.join(dir, `f${String(i).padStart(3, "0")}.png`));
+    for (let i = 0; i < +(process.env.TF || 60); i++) { const buf = await pixels(path.join(dir, `f${String(i).padStart(3, "0")}.png`));
       report.trail.series.push({t: +((i + 1) * 4 / 30).toFixed(2), trail: patch(buf, smp.trail)?.lum, band: patch(buf, smp.band)?.lum, dry: patch(buf, smp.dry)?.lum}); }
     console.log("trail", JSON.stringify(report.trail.at));
   }
@@ -146,13 +146,13 @@ try {
       { const smp = await E(() => window.__samples()); r.samples = {band: smp.band.length, dry: smp.dry.length, water: smp.water.length};
         await cap(`${zh}，眼高 ${r.eyeAboveSand} 米`); await shot(path.join(OUT, `${TAG}weather_${n}.png`)); await cap("");
         await shot(path.join(OUT, `${TAG}weather_${n}_raw.png`)); r.at = await measure(path.join(OUT, `${TAG}weather_${n}_raw.png`), smp); fs.rmSync(path.join(OUT, `${TAG}weather_${n}_raw.png`)); }
-      if (!process.env.NOCLIP) { await cap(`${zh}，眼高 ${r.eyeAboveSand} 米`); await clip(`weather_${n}`, 60, 2, 15); await cap(""); }
+      if (!process.env.NOCLIP) { await cap(`${zh}，眼高 ${r.eyeAboveSand} 米`); await clip(`weather_${n}`, +(process.env.WF || 36), 2, 12); await cap(""); }
       console.log("weather", n, JSON.stringify(r));
     }
   }
 
   if (want("kneel")) {
-    const KT = (process.env.KT || "0,75,400").split(",").map(Number);
+    const KT = (process.env.KT || "0,75,200,400").split(",").map(Number);
     report.kneel = {times: KT, wind: .7, shots: []};
     /* the dromedary kneels on open sand, lies 180 s in an everyday breeze (RW, default 0.45), gets up and walks 4 m on */
     const RW = +(process.env.RW || .45);

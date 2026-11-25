@@ -306,8 +306,8 @@ function sandMat(){
              drying from its upper edge down; capillary water keeps a fringe about a centimetre above the reach saturated too, fading out by 3 cm */
           if(A>.0005)for(int i=0;i<12;i++){float ta=float(i)*.6,t=uPT-ta,lv=A*(sin(t*1.15+th*9.+1.8*dn2(vec2(th*5.,t*.25)))*.6+sin(t*.67+th*4.+1.3)*.4);
             shG=max(shG,smoothstep(hh-.03,hh-.008,lv)*exp(-ta/4.5)*smoothstep(6.8,4.4,ta));}
-          shG=min(1.,shG*1.15);
-          sc*=mix(1.,.84,smoothstep(top+.07,top,hh)*(1.-.5*uPI));sc*=mix(1.,.6-.1*shR,shW);sc=mix(sc,sc*vec3(.42,.38,.35),shG*.95);}}
+          shG=min(1.,shG*1.15)*(1.-smoothstep(0.,.3,uPI));
+          sc*=mix(1.,.84,smoothstep(top+.07,top,hh)*(1.-.5*uPI));sc*=mix(1.,.6-.2*shR,shW);sc=mix(sc,sc*vec3(.42,.38,.35),shG*.95);}}
         /* desert pavement: a lag of pebbles (grey, tan, varnished red-brown) over darker grit; at a distance only their mean tone */
         float grv=0.;
         for(int i=0;i<${GRV.length};i++){vec4 g=uGrv[i];vec2 q=vSP.xz-g.xy;float sh=(dfbm(q*.42+g.xy)-.5)*.75+(nz2-.5)*.3;grv=max(grv,smoothstep(1.,.35,length(q)/g.z+sh));}
@@ -385,12 +385,12 @@ function sandMat(){
         {float wS=(max(shW*(.35+.5*shR),shG)+.3*rWM)*(1.-smoothstep(0.,.3,uPI));
          if(wS>.003){vec3 Vw=normalize(cameraPosition-vWP),nW=normalize(cross(dFdx(vWP),dFdy(vWP)));nW*=sign(nW.y+1e-6);vec3 rw=reflect(-Vw,nW);
            float fr=.02+.98*pow(1.-max(dot(nW,Vw),0.),5.);
-           outgoingLight=mix(outgoingLight,mix(uMirC,uMirB,smoothstep(0.,.6,rw.y))*(1.-.6*uNight)*.85,clamp(fr*wS*(.2+.4*shR),0.,.05+.1*shR));
+           outgoingLight=mix(outgoingLight,mix(uMirC,uMirB,smoothstep(0.,.6,rw.y))*(1.-.6*uNight)*.85,clamp(fr*wS*(.2+.2*shR),0.,.05+.035*shR));
            float lit=step(1e-5,dot(reflectedLight.directDiffuse,vec3(1.))),rl=max(dot(rw,uLd),0.),lb=pow(rl,90.)*1.4+pow(rl,10.)*.3;
            vec2 gq=vSP.xz/.008,gi=floor(gq);float gh=dh2(gi+floor(uTm*3.+dh2(gi+2.3)*5.)*.61);
            vec3 gn=normalize(nW+vec3(dh2(gi+gh*5.1)-.5,0.,dh2(gi+gh*2.7+3.)-.5)*.5);
            float gg=smoothstep(.985,.997,dot(reflect(-Vw,gn),uLd))*smoothstep(.45,.15,length(fract(gq)-.5))*(1.-smoothstep(.004,.012,length(fwidth(vSP.xz))));
-           outgoingLight+=uLc*lit*wS*(lb+gg*2.)*.5*(1.-.8*uRainS);}}
+           outgoingLight+=uLc*lit*wS*(lb+gg*2.)*.5*max(0.,1.-1.6*uRainS);}}
         vec2 p=vSP.xz,wd=uWD,wp=vec2(-wd.y,wd.x);float al=dot(p,wd)-uFlowT,ac=dot(p,wp);
         float g=gustF(p),fwf=length(fwidth(p));
         /* narrow ribbons several metres long; a stronger wind sets more of them running side by side */

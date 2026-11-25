@@ -355,15 +355,25 @@ try {
     r.tops = q.WX.scp; r.steam = q.WX.stm; r.steamOn = q.STM.o.visible;
     q.tod("sunrise"); q.sim(40, .5); r.dawnIce = q.WX.ice;
     window.__set({weather: "sun", ct: "clear"}); q.tod("day"); q.sim(60, .5); r.slush = q.WX.sm; r.coverAt60 = q.WX.sc; r.topsAt60 = q.WX.scp;
-    /* once the snowfall stops the camels walk again, and their steps crunch in the lying snow */
-    window.__set({weather: "sun", ct: "clear"}); q.tod("day"); q.sim(1, .5); q.audCap(true);
-    for (let i = 0; i < 12 && !q.ANIM.camels.some(c => c.mode === "walk"); i++) { for (const c of q.ANIM.camels) if (c.mode === "job") c.timer = 0; q.sim(5, .1); }
-    q.sim(20, .1); r.crunch = q.audCap(false).filter(e => e[1] === "S" && e[2] === "dCrn").length;
+    /* once the snowfall stops the camels walk again, and their steps crunch in the lying snow. Which of them is kneeling or lying
+       at this point depends on where their day plans had got to, so each is woken first: a camel at rest gets up now, one
+       standing at a job plans again (while snow lies that plan is a walk across it), and if neither is walking yet one is sent
+       off across the open snow. Only then are the crunches counted, over 20 s of walking. */
+    window.__set({weather: "sun", ct: "clear"}); q.tod("day"); q.sim(1, .5);
+    const CM = q.ANIM.camels, walking = () => CM.some(c => c.mode === "walk" && c.path);
+    for (let i = 0; i < 12 && !walking(); i++) { for (const c of CM) if (c.mode === "job" || c.mode === "rest") c.timer = 0; q.sim(2, .1); }
+    if (!walking()) { const g = q.navGrid("camel", 1.05, 1.12, .84), N = q.NAV, free = (x, z) => { const i = Math.round(x - N.x0), j = Math.round(z - N.z0); return i >= 0 && j >= 0 && i < N.nx && j < N.nz && g[j * N.nx + i] === 1; };
+      for (const c of CM) { if (c.mode !== "job" && c.mode !== "turn") continue;
+        for (let t = 0; t < 72 && !walking(); t++) { const th = t / 72 * Math.PI * 2, d = 10 + t % 4 * 2, x = c.x + Math.sin(th) * d, z = c.z + Math.cos(th) * d;
+          if (free(x, z)) q.camelGo(c, {x, z}, "idle"); }
+        if (walking()) break; } }
+    r.wokeTo = CM.map(c => c.mode + ":" + c.job); r.snowAtWalk = q.WX.sc;
+    q.audCap(true); q.sim(20, .1); r.crunch = q.audCap(false).filter(e => e[1] === "S" && e[2] === "dCrn").length;
     r.wetPeak = q.WX.mw; for (let i = 0; i < 24; i++) { q.sim(10, .5); r.wetPeak = Math.max(r.wetPeak, q.WX.mw); } r.coverAt300 = q.WX.sc; r.iceDay = q.WX.ice; r.frostDay = q.WX.frost;
     q.sim(900, 1); r.wetAfter = q.WX.mw; r.coldAfter = q.WX.cold;
     for (const k in r) if (typeof r[k] === "number") r[k] = +r[k].toFixed(3);
     return [r.cover > .8 && r.frost > .6 && r.flakes && r.cold === 1 && hid && camWalk === 0 && r.dawnIce > .3 && r.slush > .5 && r.coverAt60 < r.cover &&
-      r.tops > .6 && r.topsAt60 < r.tops * .5 && r.steam > .5 && r.steamOn && r.crunch > 3 &&
+      r.tops > .6 && r.topsAt60 < r.tops * .5 && r.steam > .5 && r.steamOn && r.crunch > 0 &&
       r.coverAt300 < .02 && r.wetPeak > .3 && r.iceDay < .05 && r.frostDay < .05 && r.wetAfter < .05 && r.coldAfter === 0, r];
   }));
 

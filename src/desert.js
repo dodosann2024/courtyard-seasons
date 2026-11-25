@@ -713,7 +713,7 @@ function placeRocks(list){
 /* ---------------- oasis pond: sea-style water, depth tint, sky fresnel, palm reflection, sun glint ---------------- */
 const pondU={uT:{value:0},uCamL:{value:new V3()},uSunL:{value:new V3(0,1,0)},uSunCol:{value:new C3("#ffb469")},
   uDeep:{value:new C3("#0a2c2b")},uShal:{value:new C3("#2c6a5c")},uBed:{value:new C3("#a8875a")},uSkyA:{value:new C3("#c9a6c4")},uSkyB:{value:new C3("#6f6aa8")},
-  uRefl:{value:null},uReflM:{value:new T.M4()},uReflOn:{value:0},uNight:{value:0},uWind:{value:.35},uRainP:{value:0},uIce:{value:0},uFogC:{value:new C3()},uFogNF:{value:new T.V2(400,900)}};
+  uRefl:{value:null},uReflM:{value:new T.M4()},uReflOn:{value:0},uNight:{value:0},uWind:{value:.35},uRainP:{value:0},uIce:{value:0},uOvc:{value:0},uWD:sandU.uWD,uFogC:{value:new C3()},uFogNF:{value:new T.V2(400,900)}};
 let pondMesh=null;
 (function buildPond(){
   const NR=26,NA=96,pos=[],dep=[],idx=[];
@@ -725,26 +725,48 @@ let pondMesh=null;
   const m=new T.SM({uniforms:pondU,transparent:true,depthWrite:false,
     vertexShader:`attribute float aD;varying float vD;varying vec3 vP;varying vec4 vR;uniform mat4 uReflM;
       void main(){vD=aD;vP=position;vec4 w=modelMatrix*vec4(position,1.);vR=uReflM*w;gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uT,uReflOn,uNight,uWind,uRainP,uIce;uniform vec2 uFogNF;uniform vec3 uCamL,uSunL,uSunCol,uDeep,uShal,uBed,uSkyA,uSkyB,uFogC;uniform sampler2D uRefl;varying float vD;varying vec3 vP;varying vec4 vR;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uReflOn,uNight,uWind,uRainP,uIce,uOvc;uniform vec2 uFogNF,uWD;uniform vec3 uCamL,uSunL,uSunCol,uDeep,uShal,uBed,uSkyA,uSkyB,uFogC;uniform sampler2D uRefl;varying float vD;varying vec3 vP;varying vec4 vR;${GLSL_NOISE}
       /* raindrop rings: each cell rings once per cycle, two offset layers so the rings overlap */
       vec2 ringG(vec2 p){vec2 g=vec2(0.);for(int L=0;L<2;L++){vec2 q=p*(L==0?2.6:3.7)+float(L)*7.31;vec2 c=floor(q),f=fract(q)-.5;float h=dh2(c+float(L)*3.1);
         vec2 o=(vec2(dh2(c+1.3),dh2(c+2.7))-.5)*.5;vec2 d=f-o;float r=length(d),ph=fract(uT*(.9+.6*h)+h*7.),rad=ph*.42;
         float w=-2.*(r-rad)/.0016*exp(-(r-rad)*(r-rad)/.0016)*(1.-ph)*(1.-ph)*step(h,uRainP*1.15);g+=d/max(r,1e-3)*w*.012;}return g;}
       float wv(vec2 p){return dn2(p*1.1+vec2(uT*.35,uT*.12))*.6+dn2(p*2.7-vec2(uT*.22,-uT*.4))*.3+dn2(p*6.3+vec2(uT*.6,uT*.3))*.1;}
+      /* capillary wavelets on top of the ripples: crests across the wind, drifting downwind, two finer octaves */
+      float cw(vec2 q){return dn2(vec2(q.x*13.,q.y*5.5)-vec2(uT*2.1,0.))*.62+dn2(vec2(q.x*29.,q.y*12.)+vec2(-uT*3.6,5.3))*.38;}
+      /* light focused by the ripples onto the sand bed: a thin wandering net, two nets of different size */
+      float caus(vec2 p){float a=dn2(p*6.2+uT*vec2(.44,.25)),b=dn2(p*8.3-uT*vec2(.33,.5)+.37),c=dn2(p*13.+uT*vec2(.55,-.4)+2.1),d=dn2(p*17.-uT*vec2(-.42,.6)+5.7);
+        return pow(1.-clamp(abs(a-b)*4.,0.,1.),5.)+.55*pow(1.-clamp(abs(c-d)*4.,0.,1.),6.);}
       void main(){
         float e=.06,h0=wv(vP.xz);vec2 g=vec2(wv(vP.xz+vec2(e,0.))-h0,wv(vP.xz+vec2(0.,e))-h0)/e;
-        float amp=.022+.07*uWind;vec3 n=normalize(vec3(-g.x*amp,1.,-g.y*amp));
+        vec2 wd=normalize(uWD+vec2(1e-4,0.)),wp=vec2(-wd.y,wd.x);
+        float fw=length(fwidth(vP.xz)),lod=1.-smoothstep(.004,.03,fw);
+        /* cat's paws: patches the breeze touches drift across the pond and roughen it, calm glassy lanes in between */
+        float paw=smoothstep(.42,.78,dn2(vP.xz*.32-wd*uT*.55)*.7+dn2(vP.xz*.9+wp*uT*.2+3.)*.3);
+        float amp=(.022+.07*uWind)*(.75+.5*paw);vec3 n=normalize(vec3(-g.x*amp,1.,-g.y*amp));
+        if(lod>.001){vec2 q=vec2(dot(vP.xz,wd),dot(vP.xz,wp));float ce=.012,c0=cw(q),ca=(cw(q+vec2(ce,0.))-c0)/ce,cc=(cw(q+vec2(0.,ce))-c0)/ce;
+          vec2 cg=(wd*ca+wp*cc)*(.0035+.011*uWind)*(.25+.75*paw)*lod*(1.-uIce*.6);n=normalize(n-vec3(cg.x,0.,cg.y));}
         if(uRainP>.003){vec2 rg=ringG(vP.xz);n=normalize(n+vec3(rg.x,0.,rg.y)*smoothstep(.0,.1,vD));
           /* between the rings the surface is roughened by the drops all over it */
           float fr2=1.-smoothstep(.006,.025,length(fwidth(vP.xz))),r0=dn2(vP.xz*75.+uT*3.1),rx=dn2(vP.xz*75.+vec2(1.6,0.)+uT*3.1),rz=dn2(vP.xz*75.+vec2(0.,1.6)+uT*3.1);
           n=normalize(n+vec3(r0-rx,0.,r0-rz)*.22*uRainP*fr2);}
         vec3 V=normalize(uCamL-vP);
         float fr=.02+.98*pow(1.-max(dot(n,V),0.),5.);
+        /* the shore laps: the waterline creeps up the bank and draws back, unevenly along it, more in wind */
+        float th=atan(vP.z-(${POND.z.toFixed(3)}),vP.x-(${POND.x.toFixed(3)})),lph=uT*1.15+th*9.+1.8*dn2(vec2(th*5.,uT*.25));
+        float ed=vD+(.004+.012*uWind)*(sin(lph)*.6+sin(uT*.67+th*4.+1.3)*.4)*(1.-uIce);
+        float sunV=(1.-uNight)*(1.-.85*uOvc),sunK=dot(uSunCol,vec3(.3,.45,.25));
         /* oasis water: clear over the sand bed at the margin, absorbing to a deep green-teal in the middle */
         float dd=smoothstep(.02,1.3,vD);
         vec3 body=mix(uShal,uDeep,dd);
-        vec3 bed=uBed*exp(-vD*vec3(2.6,1.15,1.05)*3.)*(.8+.2*dn2(vP.xz*3.+uT*.05));
+        /* looking through the surface onto the bed: refracted and wobbled by the ripples; wind ripples and darker silt in the sand, the caustic net on top */
+        vec2 bp=vP.xz-V.xz/max(V.y,.25)*max(vD,0.)*.75+n.xz*max(vD,0.)*.9;
+        float rb=sin(dot(bp,wd)*8.5+2.4*dn2(bp*1.2))*.5+.5,sl=dn2(bp*.7+9.);
+        vec3 bed=uBed*exp(-vD*vec3(2.6,1.15,1.05)*3.)*(.8+.2*dn2(vP.xz*3.+uT*.05))*(.9+.14*rb*lod)*mix(1.,.78,smoothstep(.5,.8,sl));
+        bed*=1.+caus(bp)*1.5*sunV*sunK*(.35+.65*smoothstep(.05,.4,uWind))*(1.-.8*uRainP)*(1.-uIce)*exp(-vD*1.4)*smoothstep(0.,.03,vD)*(.4+.6*lod);
         body=mix(bed,body,smoothstep(.0,.45,vD))*mix(1.,.28,uNight);
+        /* low sun behind the ripples: light comes through the thin crests green-gold */
+        float bs=pow(clamp(dot(V,-uSunL)*.6+.4,0.,1.),3.)*smoothstep(.5,.8,h0+.2*paw)*sunV;
+        body+=uShal*vec3(.9,1.25,.85)*bs*.35*smoothstep(.05,.4,vD);
         vec3 rd=reflect(-V,n);
         vec3 sky=mix(uSkyA,uSkyB,smoothstep(.0,.8,rd.y));
         vec3 refl=sky;
@@ -754,13 +776,26 @@ let pondMesh=null;
         if(uReflOn>.5){vec2 ruv=vR.xy/vR.w+n.xz*.016+rJ;vec4 rc=texture2D(uRefl,clamp(ruv,0.,1.));
           rc=(any(isnan(rc))||any(isinf(rc)))?vec4(0.):clamp(rc,0.,1.);refl=mix(refl,rc.rgb*.7,rc.a*.92);}
         vec3 c=mix(body,refl,clamp(fr*1.05+.12,0.,.92));
+        /* the paws read from afar: roughened water mirrors less of the bright low sky and goes a shade darker, the calm lanes between stay glassy */
+        c*=1.-.12*paw*smoothstep(.1,.5,uWind)*(1.-uIce)*(1.-.5*lod);
         if(rFar>.001){c=mix(c,mix(uSkyA,uSkyB,.5)*.7+body*.3,.24*rFar);
           vec2 sc=floor(vP.xz*16.);float sk=step(.965-.04*uRainP,dh2(sc+floor(uT*6.+dh2(sc+4.1)*6.)*.37));c+=sk*.1*rFar*(1.-.6*uNight);}
-        /* a faint darker band where the water meets the shore, and fine wind-roughened sparkle */
-        c*=1.-.18*(1.-smoothstep(.0,.12,vD));
-        float gl=pow(max(dot(rd,uSunL),0.),220.)*(1.-uNight),sp=pow(max(dot(rd,uSunL),0.),36.)*smoothstep(.55,.85,dn2(vP.xz*9.+uT*1.3))*(1.-uNight);
-        c+=uSunCol*(gl*2.2+sp*.6);
-        float a=smoothstep(0.,.05,vD);
+        /* a faint darker band of wet shallows where the water meets the shore */
+        c*=1.-.14*(1.-smoothstep(.0,.12,ed));
+        /* sun on the water: a tight core, a microfacet lobe as wide as the ripples are rough, glints winking where facets catch it */
+        vec3 H=normalize(V+uSunL);float nh=max(dot(n,H),.05),t2=(1.-nh*nh)/(nh*nh),m2=.004+.016*uWind*(.5+paw)+.01*uRainP+.012*uWind*(1.-lod);
+        float bk=exp(-t2/m2)/(3.1416*m2*nh*nh*nh*nh)*(.02+.98*pow(1.-max(dot(V,H),0.),5.))/(4.*max(dot(n,V),.1));
+        float spk=mix(smoothstep(.74,.9,dn2(vP.xz*9.+wd*uT*1.2)*.5+dn2(vP.xz*15.-wp*uT*1.6)*.5),smoothstep(.7,.92,dn2(vP.xz*31.+wd*uT*1.7)*.55+dn2(vP.xz*57.-wp*uT*2.3)*.45),lod);
+        float gl=pow(max(dot(rd,uSunL),0.),220.),sw=pow(max(dot(rd,uSunL),0.),30.);
+        c+=uSunCol*sunV*(gl*2.2+min(bk,40.)*(.05+.5*spk)*.06+sw*spk*(.5+paw)*.8);
+        /* the meniscus catches the sky as a thin bright line at the edge, and a broken lace of bubbles and foam rides the lapping band */
+        float mw=max(.003,fwidth(ed)*1.2),ml=exp(-pow((ed-.003)/mw,2.))*(1.-uIce);
+        c=mix(c,sky*1.05+uSunCol*.12*sunV,ml*.3*(.4+.6*lod));
+        float fb=(1.-smoothstep(.0,.035+.04*uWind,ed))*smoothstep(-.004,.003,ed);
+        float l1=dn2(vP.xz*34.+vec2(uT*.13,-uT*.09)),l2=dn2(vP.xz*72.-vec2(uT*.18,uT*.11)),l3=dn2(vP.xz*7.+uT*.04);
+        float lace=fb*smoothstep(.46,.62,l1*.6+l3*.4+fb*.2)*mix(1.,smoothstep(.32,.55,l2),.75*lod)*(.3+.7*smoothstep(.1,.6,uWind))*(.65+.35*sin(lph+1.6))*(1.-uIce);
+        c=mix(c,vec3(.9,.9,.86)*(.5+.55*sunK*sunV+.25*(1.-uNight))*mix(1.,.35,uNight),lace*.62);
+        float a=max(smoothstep(0.,.05,ed),lace*.85);
         /* after a freezing night a skin of ice rims the shallows: grey-white, matte, cracked, never across the open water */
         if(uIce>.003){float ie=.02+.12*uIce+.07*(dn2(vP.xz*1.3)-.5)+.03*(dn2(vP.xz*4.1)-.5),ik=(1.-smoothstep(ie-.025,ie+.005,vD))*smoothstep(0.,.006,vD)*smoothstep(.25,.5,dn2(vP.xz*.9+4.)+.45*uIce);
           float crk=1.-smoothstep(.0,.025,min(abs(dn2(vP.xz*7.)-.5),1.3*abs(dn2(vP.xz*19.+3.)-.5)));
@@ -2502,7 +2537,7 @@ UPD.push((dt,t)=>{
   mirP.enabled=root.visible&&WX.heat>.01;mirM.uniforms.uT.value=t;mirM.uniforms.uSky.value.copy(sandU.uMirC.value);
   /* the low sun warms the air layer, so the mirrored sky comes back amber at dusk */
   mirM.uniforms.uTint.value.set(.95,.95,.95).lerp(_mirW,Math.max(LK.sunset,LK.sunrise*.7));rockU.uWetK.value=WX.wet;tentU.uWetC.value=Math.max(WX.wet,.42*WX.dew);propU.uDew.value=WX.dew;coatU.uDew.value=WX.dew;propU.uFrost.value=WX.frost;tentU.uFrost.value=.8*WX.frost;propU.uSnL.value=WX.scp;tentU.uSnL.value=WX.scp;rockU.uT.value=t;rockU.uVen.value=(.8+.18*Math.min(sfU.uFR.value,1.6))*(1-.3*WX.wet);
-  pondU.uRainP.value=WX.rain;pondU.uIce.value=WX.ice;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
+  pondU.uRainP.value=WX.rain;pondU.uIce.value=WX.ice;pondU.uOvc.value=WX.ovc;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
     curU.uCol.value.set("#f0d2a0").multiply(_c1.clone().multiplyScalar(.5).add(_c2.clone().multiplyScalar(.5)).add(dc?dc.color.clone().multiplyScalar(dc.intensity):_c2));
@@ -3429,14 +3464,24 @@ function furTick(a){const F=a.fur;if(!F)return;const d=Math.hypot(_cl.x-a.x,_cl.
    into it. */
 const CAMEL_CT={camel_v4b:{n:11836,c:[[10210,10211,10215,10216,10217,10232,10233,10249,10250,10252,10253,10254,10255,10257,10258,10259,10294,10295,10298,10299,10300,10301,10317,10331,10364,10365,10371,10372,10373,10374,10383,10461,10462,10463,10465,10466,10467,10491,10507,10511,10512,10513,10514,10515,10516,10517,10518,10522,10523,10524,10595,10596,10597,10598,10599,10600,10601,10602,10603,10604,10605,10606,10609,10624,10625,10626,10629,10630,10728,10729,10730,10738,10761,10773,10775,10776,10778,10781,10792,10800,10802,10803,10804,10808,10815,10816,10817,10818,10819,10820,10821,10886,11116,11118,11120,11126,11133,11135,11144,11145,11146,11147,11148,11171,11176,11177,11178,11179,11180,11741,11743,11744,11748,11749,11750,11751,11754,11802,11803,11804,11805,11806,11807,11809,11810,11811,11812],[819,822,823,824,832,834,837,840,845,846,847,848,849,850,852,853,854,868,869,870,880,881,2002,2005,2006,2007,2011,2012,2014,2015,2016,3795,3798,3799,3822,3823,3824,3825,3839,3840,3841,3842,3868,3869,3870,3872,3873,3874,3876,3877,3878,3879,3882,3883,3912,3926,3931,3932,3939,3988,3990,3992,3993,3994,3998,3999,4000,4001,4002,4003,4004,4007,4018,4019,4020,4022,4067,4082,4083,4084,4085,4090,4452,4453,4454,4455,4457,4459,4481,4482,4483,4485,4487,4841,4846],[10549,10552,10554,10567,10568,10569,10573,10574,10578,10971,11037,11038,11612,11613,11614,11615,11616,11618,11620,11621,11622,11629,11630,11661,11662,11663,11664,11666,11667,11668,11669,11670,11674,11675,11728,11729],[406,407,408,409,413,415,416,430,472,473,475,478,479,754,758,759,762,763,766,786,791,792,793,794,795,797,798,799,801,802,1569,1579,1580,1581,1582,1586,1595,1596,1597,1598,1599,1603],[1667,1720,1722,1723,1724,1725,1728,1731,1735,1742,1744,1748,1767,1785,1791,1797,1817,1819,1885,2220,2224,2226,2260,2318,2960,2963,3045,3056,3058,3059,3794,3806,3820,3827,3832,5320,5321,5326,5327,5328,5329,5330,5334,5335,5336,5337,5338,5345,5348,5349,5350,5363,5364,5365,5366,5367,5368,5369,5370,5371,5372,5373,5374,5376,5380,7590,8865,8866,8869,8873,8874,9047,9133,9135,9144,9145,9178,9182,9212,9225,9246,9247,9254,9255,9259,9260,9945,9990,10012,10013,10014,10124,10125,10227]]},bactrian_v1:{n:10638,c:[[9090,9095,9096,9097,9112,9147,9148,9159,9160,9165,9166,9167,9168,9169,9170,9171,9172,9173,9174,9175,9176,9177,9194,9208,9219,9220,9226,9227,9228,9229,9261,9336,9337,9338,9339,9340,9341,9342,9365,9381,9385,9386,9387,9388,9389,9390,9391,9392,9396,9397,9398,9468,9469,9470,9471,9472,9473,9474,9475,9476,9477,9478,9479,9482,9495,9496,9497,9500,9501,9596,9597,9598,9606,9627,9629,9641,9643,9644,9648,9659,9665,9669,9670,9671,9675,9682,9683,9684,9685,9686,9687,9688,9747,9964,9966,9967,9973,9974,9975,9976,9977,9978,10018,10023,10024,10025,10026,10027,10028,10038,10040,10545,10547,10548,10552,10553,10554,10555,10558,10559,10616,10617,10618,10619,10620,10621,10626,10627,10628,10629],[639,642,643,644,652,654,657,660,665,666,667,668,669,670,672,673,674,688,689,690,700,701,1720,1723,1724,1725,1729,1730,1732,1733,1734,1737,3267,3268,3301,3307,3308,3309,3310,3311,3335,3336,3337,3339,3340,3341,3343,3344,3345,3346,3349,3350,3379,3393,3398,3399,3406,3455,3457,3459,3460,3461,3465,3466,3467,3468,3469,3470,3471,3474,3480,3481,3482,3484,3531,3552,3553,3554,3555,3560,3886,3887,3888,3889,3891,3893,3915,3916,3917,3919,4244,4249,4250],[9422,9435,9438,9440,9441,9442,9446,9453,9454,9455,9801,9802,9846,9901,10407,10423,10424,10425,10426,10427,10429,10431,10432,10433,10438,10440,10441,10472,10473,10474,10475,10477,10478,10479,10480,10481,10485,10486,10532,10533],[297,298,299,300,304,306,307,321,363,364,365,366,369,370,574,578,579,582,583,584,586,606,611,612,613,614,615,617,618,619,621,622,1238,1239,1240,1244,1245,1246,1248,1249,1250,1345,1346,1347,4338],[1406,1409,1462,1463,1465,1466,1467,1468,1471,1474,1478,1481,1504,1510,1515,1575,1576,1577,1578,1580,1581,1606,1868,1986,2039,2041,2052,2059,2575,2577,2584,2585,2586,2587,3152,3154,3156,3172,3173,3174,3263,3275,3277,3280,3282,3283,3289,3291,3292,3293,3296,4666,4668,4673,4674,4676,4683,4686,4687,4690,4692,4693,4694,4695,4696,4697,4698,4699,4703,4704,4705,4707,4708,4710,4711,4714,4715,4716,6809,7903,7904,7907,7911,7912,8055,8058,8059,8062,8143,8144,8145,8146,8147,8154,8155,8187,8190,8191,8221,8222,8225,8231,8232,8233,8308,8324,8331,8335,8880,8895,8901,8922,8924,8971,8972,8973,9106,9107,9739,9740,9741,10162,10165,10171,10172,10174,10183,10631,10633,10634]]}};
 const CT_SINK=.006,_ctA=new T.M4(),_ctM=new T.M4(),_ctV=new V3();
+/* the bend at the carpus (fore) or hock (hind): angle between the bone above the cannon and the cannon, from the joints' world positions */
+function ctFold(b3){const b2=b3.parent,b1=b2&&b2.parent;if(!b1)return 0;const p=b1.matrixWorld.elements,q=b2.matrixWorld.elements,r=b3.matrixWorld.elements;
+  const ux=q[12]-p[12],uy=q[13]-p[13],uz=q[14]-p[14],vx=r[12]-q[12],vy=r[13]-q[13],vz=r[14]-q[14],l=Math.hypot(ux,uy,uz)*Math.hypot(vx,vy,vz);
+  return l>0?Math.acos(cl((ux*vx+uy*vy+uz*vz)/l,-1,1)):0}
 function ctUp(a){const D=CAMEL_CT[a.kind.file];let body=null;a.mdl.traverse(o=>{if(o.isSkinnedMesh&&o.name==="Camel"&&!body)body=o});
   if(!D||!body||body.geometry.attributes.position.count!==D.n)return;
   const g=body.geometry,P=g.attributes.position,SI=g.attributes.skinIndex,SW=g.attributes.skinWeight,bones=[],bix=new Map();
-  const N=D.c.reduce((s,c)=>s+c.length,0),bp=new Float32Array(N*3),bi=new Uint8Array(N*4),bw=new Float32Array(N*4),reg=new Uint8Array(N);
-  let k=0;D.c.forEach((c,r)=>{for(const i of c){_ctV.fromBufferAttribute(P,i).applyMatrix4(body.bindMatrix);bp[k*3]=_ctV.x;bp[k*3+1]=_ctV.y;bp[k*3+2]=_ctV.z;
+  /* the carpal pads: the forearm and cannon vertices within 0.3 cannon lengths of each fore carpus in the bind pose */
+  const sk=body.skeleton,pads=[],pdI=a.feet.map(()=>-1);a.feet.forEach((f,i)=>{const b2=f.b.parent,i2=sk.bones.indexOf(b2),i1=b2?sk.bones.indexOf(b2.parent):-1,i3=sk.bones.indexOf(f.b);if(f.hind||i1<0||i2<0||i3<0)return;
+    const J=new V3().setFromMatrixPosition(_ctM.copy(sk.boneInverses[i2]).invert()),r2=(.3*J.distanceTo(new V3().setFromMatrixPosition(_ctM.copy(sk.boneInverses[i3]).invert())))**2,L=[];
+    for(let v=0;v<P.count;v++){let w=0;for(let j=0;j<4;j++){const b=SI.getComponent(v,j);if(b===i1||b===i2)w+=SW.getComponent(v,j)}if(w>=.5&&_ctV.fromBufferAttribute(P,v).applyMatrix4(body.bindMatrix).distanceToSquared(J)<r2)L.push(v)}
+    if(L.length){pdI[i]=6+pads.length;pads.push(L)}});
+  const R=D.c.concat(pads),N=R.reduce((s,c)=>s+c.length,0),bp=new Float32Array(N*3),bi=new Uint8Array(N*4),bw=new Float32Array(N*4),reg=new Uint8Array(N);
+  let k=0;R.forEach((c,r)=>{for(const i of c){_ctV.fromBufferAttribute(P,i).applyMatrix4(body.bindMatrix);bp[k*3]=_ctV.x;bp[k*3+1]=_ctV.y;bp[k*3+2]=_ctV.z;
     for(let j=0;j<4;j++){const b=SI.getComponent(i,j);if(!bix.has(b)){bix.set(b,bones.length);bones.push(b)}bi[k*4+j]=bix.get(b);bw[k*4+j]=SW.getComponent(i,j)}reg[k++]=r}});
-  /* contacts 0-3: the legs in a.feet order; 4 and 5: the body's underside ahead of and behind the root */
-  a.ct={body,N,bp,bi,bw,reg,bones,M:new Float32Array(bones.length*16),th:0,ph:0,rw:0,lp:a.feet.map(f=>{let b=f.b;while(b.parent&&!/Limb_0$/.test(b.name))b=b.parent;return{b,d:0,wx:0,wy:0,wz:0,x:0,y:0,z:0,px:0,pz:0,on:0}}),c:Array.from({length:6},(_,i)=>({fore:i<4?!a.feet[i].hind:i===4,x:0,y:0,z:0,X:0,Y:0,Z:0,g:0,h:0,h0:0,gx:0,gz:0,X0:0,Z0:0,ok:0}))}}
+  /* contacts 0-3: the legs in a.feet order; 4 and 5: the body's underside ahead of and behind the root; 6 and 7: the carpal pads,
+     only while kneeling, which never move the body (they only say how far a folded fore leg is let down) */
+  a.ct={body,N,bp,bi,bw,reg,bones,pdI,M:new Float32Array(bones.length*16),th:0,ph:0,rw:0,lp:a.feet.map(f=>{let b=f.b;while(b.parent&&!/Limb_0$/.test(b.name))b=b.parent;return{b,d:0,wx:0,wy:0,wz:0,x:0,y:0,z:0,px:0,pz:0,on:0}}),c:Array.from({length:6+pads.length},(_,i)=>({fore:i<4?!a.feet[i].hind:i!==5,pad:i>5,x:0,y:0,z:0,X:0,Y:0,Z:0,g:0,h:0,h0:0,gx:0,gz:0,X0:0,Z0:0,ok:0}))}}
 function camelSettle(a,fdt){const C=a.ct;if(!C)return;const inn=a.inner;
   for(const L of C.lp)if(L.on){L.on=0;const p=L.b.position;if(p.x===L.wx&&p.y===L.wy&&p.z===L.wz){p.x-=L.x;p.y-=L.y;p.z-=L.z}}
   /* measured with last frame's tilt on, so the vertex picked as lowest is the one that will be once it is set down */
@@ -3445,10 +3490,11 @@ function camelSettle(a,fdt){const C=a.ct;if(!C)return;const inn=a.inner;
   _ctA.copy(a.g.matrixWorld).invert().multiply(C.body.matrixWorld).multiply(C.body.bindMatrixInverse);
   for(let b=0;b<C.bones.length;b++){const j=C.bones[b];_ctM.multiplyMatrices(sk.bones[j].matrixWorld,sk.boneInverses[j]).premultiply(_ctA);M.set(_ctM.elements,b*16)}
   for(const c of cs){c.ok=0;c.h=1e9}
-  for(let k=0;k<C.N;k++){const px=bp[k*3],py=bp[k*3+1],pz=bp[k*3+2];let x=0,y=0,z=0;
+  const kn=a.k>.05;
+  for(let k=0;k<C.N;k++){const r=C.reg[k];if(r>4&&!kn)continue;const px=bp[k*3],py=bp[k*3+1],pz=bp[k*3+2];let x=0,y=0,z=0;
     for(let j=0;j<4;j++){const w=bw[k*4+j];if(!w)continue;const o=bi[k*4+j]*16;
       x+=w*(M[o]*px+M[o+4]*py+M[o+8]*pz+M[o+12]);y+=w*(M[o+1]*px+M[o+5]*py+M[o+9]*pz+M[o+13]);z+=w*(M[o+2]*px+M[o+6]*py+M[o+10]*pz+M[o+14])}
-    const r=C.reg[k],c=cs[r<4?r:z>0?4:5],X=e[0]*x+e[4]*y+e[8]*z+e[12],Y=e[1]*x+e[5]*y+e[9]*z+e[13],Z=e[2]*x+e[6]*y+e[10]*z+e[14];
+    const c=cs[r<4?r:r>4?r+1:z>0?4:5],X=e[0]*x+e[4]*y+e[8]*z+e[12],Y=e[1]*x+e[5]*y+e[9]*z+e[13],Z=e[2]*x+e[6]*y+e[10]*z+e[14];
     /* lowest over the sand's tangent plane where this contact was last frame: on a 25° slope toe and heel differ by 9 cm */
     const h=Y-c.h0-c.gx*(X-c.X0)-c.gz*(Z-c.Z0);if(h<c.h){c.h=h;c.x=x;c.y=y;c.z=z;c.X=X;c.Y=Y;c.Z=Z;c.ok=1}}
   for(const c of cs)if(c.ok){const h0=hTop(c.X,c.Z);c.g=c.Y-h0;c.gx=(hTop(c.X+.05,c.Z)-h0)/.05;c.gz=(hTop(c.X,c.Z+.05)-h0)/.05;c.h0=h0;c.X0=c.X;c.Z0=c.Z}
@@ -3471,12 +3517,15 @@ function camelSettle(a,fdt){const C=a.ct;if(!C)return;const inn=a.inner;
   const A0=Math.cos(C.th),B0=Math.sin(C.th),A1=Math.cos(C.ph),B1=Math.sin(C.ph);let lo=1e9,dy=0;
   for(const c of cs)if(c.ok){const y1=c.y*a0+c.z*b0,z1=c.z*a0-c.y*b0,x2=c.x*a1+y1*b1,y2=y1*a1-c.x*b1,x3=x2*A1-y2*B1,y3=x2*B1+y2*A1,y4=y3*A0-z1*B0,z4=y3*B0+z1*A0;
     const g=e[1]*x3+e[5]*y4+e[9]*z4+e[13]-hTop(e[0]*x3+e[4]*y4+e[8]*z4+e[12],e[2]*x3+e[6]*y4+e[10]*z4+e[14]);
-    c.fg=g;c.k=Math.max(.5,e[5]-c.gx*e[4]-c.gz*e[6]);if(g<lo){lo=g;dy=(-CT_SINK-g)/c.k}}
+    c.fg=g;c.k=Math.max(.5,e[5]-c.gx*e[4]-c.gz*e[6]);if(g<lo&&!c.pad){lo=g;dy=(-CT_SINK-g)/c.k}}
   inn.rotation.set(C.th,0,C.ph);inn.position.y=dy;
   /* a body is a plane on three feet: standing or walking, a foot that is set down (still over the ground) but that the
      pose leaves short of the sand (a twist across the diagonal, a stride ending) is let down onto it from the shoulder or hip */
-  const w=W.matrixWorld.elements,kw=1-ss(0,.1,a.k);if(kw>0)for(let i=0;i<4;i++){const c=cs[i],L=C.lp[i];if(!c.ok)continue;const fe=a.feet[i].b.matrixWorld.elements,v=fdt>0?Math.hypot(fe[12]-L.px,fe[14]-L.pz)/fdt:0;L.px=fe[12];L.pz=fe[14];
-    const r=c.fg+c.k*dy+CT_SINK,dw=r>0?r*kw*(1-ss(.08,.14,r))*(1-ss(.15,.3,v)):0;L.d+=(dw-L.d)*(fdt>0?1-Math.exp(-fdt*(dw>L.d?40:12)):1);const d=Math.min(L.d,Math.max(0,r));if(d<1e-4)continue;
+  /* kneeling or lying, a fore leg folded at the carpus rests on its knee pad: while the chest or the hind end is the lowest
+     contact, that pad is let down onto the sand the same way, or, where the slope has pushed it in deeper than the rest, lifted back out */
+  const w=W.matrixWorld.elements,kw=1-ss(0,.1,a.k);for(let i=0;i<4;i++){const c=cs[i],L=C.lp[i];if(!c.ok)continue;const f=a.feet[i],kf=a.k>.05&&!f.hind?ss(2.36,2.5,ctFold(f.b)):0,ww=Math.max(kw,kf);if(ww<=0)continue;
+    const fe=f.b.matrixWorld.elements,v=fdt>0?Math.hypot(fe[12]-L.px,fe[14]-L.pz)/fdt:0;L.px=fe[12];L.pz=fe[14];
+    const p=kf>0&&C.pdI[i]>0?cs[C.pdI[i]]:null,rc=c.fg+c.k*dy,r=p&&p.ok?Math.min(p.fg+p.k*dy+CT_SINK,rc+.014):rc+CT_SINK,dw=r>0?r*ww*(1-ss(.08,.14,r))*(1-ss(.15,.3,v)*(1-kf)):p&&p.ok?Math.max(r,-.06)*kf:0;L.d+=(dw-L.d)*(fdt>0?1-Math.exp(-fdt*(Math.abs(dw)>Math.abs(L.d)?40:12)):1);const d=r>=0?Math.max(0,Math.min(L.d,r)):p&&p.ok&&L.d<0?Math.max(L.d,r):0;if(Math.abs(d)<1e-4)continue;
     const b=L.b,m=_ctM.copy(b.parent.matrixWorld).invert().elements,X=-w[4]*d,Y=-w[5]*d,Z=-w[6]*d;
     L.x=m[0]*X+m[4]*Y+m[8]*Z;L.y=m[1]*X+m[5]*Y+m[9]*Z;L.z=m[2]*X+m[6]*Y+m[10]*Z;b.position.x+=L.x;b.position.y+=L.y;b.position.z+=L.z;L.wx=b.position.x;L.wy=b.position.y;L.wz=b.position.z;L.on=1}}
 function camelSpawn(sc,anims,i,kind){smoothRoot(anims);

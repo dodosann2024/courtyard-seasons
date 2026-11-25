@@ -1,0 +1,74 @@
+{
+ "bundle": "assets/desert.fb25e09688.js",
+ "test": "tools/e2e/desert.mjs (the scene-panel CI job), full run, 5 times in a row on the final bundle",
+ "runs": [
+  {
+   "run": 1,
+   "checksOk": 23,
+   "checksFailed": [
+    "ostriches, tortoises, gerbils, scorpions"
+   ],
+   "failDetail": [
+    "FAIL ostriches, tortoises, gerbils, scorpions {\"os\":2,\"tt\":2,\"gb\":3,\"sc\":2,\"headY\":[2.45,2.25],\"osModes\":[\"alert\",\"graze\",\"run\",\"stand\",\"walk\"],\"osMoved\":24.8,\"ttModes\":[\"dig\",\"graze\",\"pallet\",\"shell\",\"walk\"],\"ttMaxV\":0,\"osFlee\":5.46,\"osAway\":6.3,\"ttHail\":[1,1],\"ttHeat\":\"dig\",\"gbDay\":[\"in\",\"in\",\"in\"],\"gbDayModes\":[\"in\",\"look\"],\"scDay\":[\"hide\",\"hide\"],\"gbModes\":[\"bolt\",\"dive\",\"forage\",\"in\",\"nibble\",\"peek\",\"stand\"],\"scModes\":[\"door\",\"roam\"],\"glow\":1,\"gbOut\":0.91,\"scRoam\":0.92,\"gbBolt\":[\"bolt\",\"dive\",\"in\"],\"scThr\":1,\"scOpen\":1,\"osNight\":[\"sit:1.00\",\"sit:1.00\"],\"printKinds\":[5,7,8,9,10]}"
+   ],
+   "snowCrunch": 19,
+   "snowCrunchPass": true,
+   "wokeTo": [
+    "walk:idle",
+    "job:idle"
+   ]
+  },
+  {
+   "run": 2,
+   "checksOk": 23,
+   "checksFailed": [
+    "hail: bounce, pits, troughs, tent, palms, cacti, lake, sounds, animals, melt"
+   ],
+   "failDetail": [
+    "FAIL hail: bounce, pits, troughs, tent, palms, cacti, lake, sounds, animals, melt {\"burstAfterGust\":true,\"gust\":1,\"windInGust\":1.059,\"hail\":0.984,\"tentShake\":1.4,\"palmTwitch\":0.463,\"cover\":0.851,\"pits\":1,\"rain\":0,\"streaks\":0.718,\"cold\":1,\"sky\":1,\"counts\":{\"spawn\":3289,\"sand\":2608,\"pit\":1204,\"landMid\":2193,\"restMid\":1921,\"landCr\":333,\"restCr\":111,\"rebound\":1744,\"landTr\":318,\"restTr\":731,\"tent\":246,\"palm\":56,\"pond\":413,\"cactus\":1},\"shots\":[\"dHc1\",\"dHp1\",\"dHs1\",\"dHt1\"],\"loops\":[\"hleaf\",\"hsand\",\"htent\",\"hwat\"],\"troughShareLanding\":0.488,\"troughShareResting\":0.868,\"agamas\":[\"hide:hidden\",\"hide:hidd"
+   ],
+   "snowCrunch": 27,
+   "snowCrunchPass": true,
+   "wokeTo": [
+    "walk:idle",
+    "job:idle"
+   ]
+  },
+  {
+   "run": 3,
+   "checksOk": 24,
+   "checksFailed": [],
+   "failDetail": [],
+   "snowCrunch": 22,
+   "snowCrunchPass": true,
+   "wokeTo": [
+    "walk:idle",
+    "job:drink"
+   ]
+  },
+  {
+   "run": 4,
+   "checksOk": 24,
+   "checksFailed": [],
+   "failDetail": [],
+   "snowCrunch": 26,
+   "snowCrunchPass": true,
+   "wokeTo": [
+    "walk:idle",
+    "job:idle"
+   ]
+  },
+  {
+   "run": 5,
+   "checksOk": 24,
+   "checksFailed": [],
+   "failDetail": [],
+   "snowCrunch": 24,
+   "snowCrunchPass": true,
+   "wokeTo": [
+    "walk:idle",
+    "job:idle"
+   ]
+  }
+ ]
+}

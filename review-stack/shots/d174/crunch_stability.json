@@ -1,0 +1,89 @@
+{
+ "bundle": "assets/desert.fb25e09688.js",
+ "runs": [
+  {
+   "state": "as-is",
+   "before": [
+    "rest:kneel",
+    "rest:kneel"
+   ],
+   "woke": [
+    "walk:idle",
+    "walk:idle"
+   ],
+   "snowAtWalk": 0.55,
+   "crunch": 22,
+   "pass": true
+  },
+  {
+   "state": "both-rest",
+   "before": [
+    "rest:kneel",
+    "rest:kneel"
+   ],
+   "woke": [
+    "job:idle",
+    "walk:idle"
+   ],
+   "snowAtWalk": 0.55,
+   "crunch": 18,
+   "pass": true
+  },
+  {
+   "state": "both-down",
+   "before": [
+    "down:kneel",
+    "down:kneel"
+   ],
+   "woke": [
+    "job:idle",
+    "walk:idle"
+   ],
+   "snowAtWalk": 0.523,
+   "crunch": 16,
+   "pass": true
+  },
+  {
+   "state": "rest+job",
+   "before": [
+    "rest:kneel",
+    "job:idle"
+   ],
+   "woke": [
+    "up:kneel",
+    "walk:idle"
+   ],
+   "snowAtWalk": 0.576,
+   "crunch": 18,
+   "pass": true
+  },
+  {
+   "state": "both-up",
+   "before": [
+    "rest:kneel",
+    "rest:kneel"
+   ],
+   "woke": [
+    "job:idle",
+    "walk:idle"
+   ],
+   "snowAtWalk": 0.55,
+   "crunch": 15,
+   "pass": true
+  },
+  {
+   "state": "as-is-late",
+   "before": [
+    "job:idle",
+    "rest:kneel"
+   ],
+   "woke": [
+    "job:drink",
+    "walk:idle"
+   ],
+   "snowAtWalk": 0.55,
+   "crunch": 16,
+   "pass": true
+  }
+ ]
+}

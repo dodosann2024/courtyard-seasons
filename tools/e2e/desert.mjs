@@ -223,9 +223,11 @@ try {
     const big = [...PA.os, ...PA.tt, ...q.ANIM.camels], room = a => Math.min(...big.map(b => Math.hypot(b.x - a.rk.dx, b.z - a.rk.dz)));
     const S = PA.sc.reduce((b, a) => room(a) > room(b) ? a : b); S.mode = "roam"; S.t = 99; S.x = S.rk.dx; S.z = S.rk.dz; S.goal = null; q.step(5, 1 / 30);
     q.paThreat(S.x + .5, S.z + .2, 4, .1); q.step(45, 1 / 30); r.scThr = +S.P.thr.toFixed(2); r.scOpen = +S.P.open.toFixed(2); q.paThreat(0, 0, 0);
-    /* night: ostriches sit */
-    q.sim(40, .1); r.osNight = PA.os.map(o => o.mode + ":" + o.P.sit.toFixed(2));
-    const sat = PA.os.every(o => o.mode === "sit" && o.P.sit > .8);
+    /* night: ostriches sit. One still on a run or on the alert when night falls finishes that first, so the sitting is waited on for
+       up to a minute and a half more rather than read at a fixed moment */
+    const sitting = () => PA.os.every(o => o.mode === "sit" && o.P.sit > .8);
+    q.sim(40, .1); for (let i = 0; i < 9 && !sitting(); i++) q.sim(10, .1); r.osNight = PA.os.map(o => o.mode + ":" + o.P.sit.toFixed(2));
+    const sat = sitting();
     /* morning: the ostriches get up off their night hollows */
     q.tod("day"); window.__set({weather: "sun", ct: "clear", wind: .3}); q.sim(50, .25);
     r.ttWalk = kinds().has(6) ? "already" : tortWalk();

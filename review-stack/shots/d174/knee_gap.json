@@ -1,0 +1,522 @@
+{
+ "units": "cm; carpal pad = lowest skinned vertex of the forearm/cannon within 0.3 cannon lengths of the carpus (bind pose), minus hTop under it; >0 in the air, <0 sunk; folded = carpus bent past 145 degrees. Three full kneel -> lie -> stand cycles per camel: flat sand (4,-9), the dune west slope (9.4,-11.6), the camel's rest spot. midPhase = down/up frames with 0.3 < k < 0.95.",
+ "target": "folded pad gap <= 0 and sink <= 2 cm",
+ "main": {
+  "bundle": "assets/desert.b609b040bf.js",
+  "dromedary": {
+   "cycles": [
+    {
+     "spot": "flat",
+     "at": [
+      4,
+      -9
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "job"
+    },
+    {
+     "spot": "dune slope",
+     "at": [
+      9.4,
+      -11.6
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "job"
+    },
+    {
+     "spot": "rest spot",
+     "at": [
+      8.24,
+      2.15
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "walk"
+    }
+   ],
+   "padVertices": [
+    198,
+    117
+   ],
+   "folded": {
+    "前左膝": {
+     "all": {
+      "frames": 882,
+      "max": 2.3,
+      "min": -5.1,
+      "p95": -0.2,
+      "p50": -0.6
+     },
+     "down": {
+      "frames": 333,
+      "max": 2.3,
+      "min": -5.1,
+      "p95": 0.6,
+      "p50": -0.6
+     },
+     "rest": {
+      "frames": 273,
+      "max": -0.4,
+      "min": -1,
+      "p95": -0.6,
+      "p50": -0.6
+     },
+     "up": {
+      "frames": 276,
+      "max": -0.5,
+      "min": -4.5,
+      "p95": -0.6,
+      "p50": -0.6
+     }
+    },
+    "前右膝": {
+     "all": {
+      "frames": 885,
+      "max": 5.6,
+      "min": -0.8,
+      "p95": 5.3,
+      "p50": -0.5
+     },
+     "down": {
+      "frames": 327,
+      "max": 5.1,
+      "min": -0.6,
+      "p95": 4.6,
+      "p50": -0.3
+     },
+     "rest": {
+      "frames": 273,
+      "max": 5.6,
+      "min": -0.6,
+      "p95": 5.3,
+      "p50": -0.5
+     },
+     "up": {
+      "frames": 285,
+      "max": 5.1,
+      "min": -0.8,
+      "p95": 1.4,
+      "p50": -0.3
+     }
+    }
+   },
+   "unfolded": {
+    "前左膝": {
+     "frames": 384,
+     "max": 51.4,
+     "min": -1.3,
+     "p95": 51.3,
+     "p50": 42.5
+    },
+    "前右膝": {
+     "frames": 381,
+     "max": 50.4,
+     "min": -0.6,
+     "p95": 50.2,
+     "p50": 42.3
+    }
+   },
+   "summary": {
+    "foldedPadFrames": 1767,
+    "maxGap": 5.6,
+    "maxSink": -5.1,
+    "framesAbove0": 318,
+    "framesBelowMinus2cm": 7,
+    "midPhase": {
+     "frames": 1113,
+     "maxGap": 4.8,
+     "maxSink": -5.1
+    }
+   }
+  },
+  "bactrian": {
+   "cycles": [
+    {
+     "spot": "flat",
+     "at": [
+      4,
+      -9
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "job"
+    },
+    {
+     "spot": "dune slope",
+     "at": [
+      9.4,
+      -11.6
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "job"
+    },
+    {
+     "spot": "rest spot",
+     "at": [
+      14.2,
+      2.6
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "walk"
+    }
+   ],
+   "padVertices": [
+    178,
+    107
+   ],
+   "folded": {
+    "前左膝": {
+     "all": {
+      "frames": 879,
+      "max": 5.6,
+      "min": -3.2,
+      "p95": 0.8,
+      "p50": -0.4
+     },
+     "down": {
+      "frames": 330,
+      "max": 5.6,
+      "min": -3.2,
+      "p95": 2.1,
+      "p50": -0.5
+     },
+     "rest": {
+      "frames": 273,
+      "max": 0.8,
+      "min": -2.9,
+      "p95": 0.8,
+      "p50": 0.4
+     },
+     "up": {
+      "frames": 276,
+      "max": 0.6,
+      "min": -2.8,
+      "p95": -0.3,
+      "p50": -0.6
+     }
+    },
+    "前右膝": {
+     "all": {
+      "frames": 882,
+      "max": 5.2,
+      "min": -0.8,
+      "p95": 3.6,
+      "p50": 0.2
+     },
+     "down": {
+      "frames": 327,
+      "max": 5.2,
+      "min": -0.6,
+      "p95": 3.9,
+      "p50": 0.2
+     },
+     "rest": {
+      "frames": 273,
+      "max": 3.4,
+      "min": 0.1,
+      "p95": 3.3,
+      "p50": 1
+     },
+     "up": {
+      "frames": 282,
+      "max": 3.2,
+      "min": -0.8,
+      "p95": 1,
+      "p50": -0.3
+     }
+    }
+   },
+   "unfolded": {
+    "前左膝": {
+     "frames": 387,
+     "max": 50.2,
+     "min": -1.3,
+     "p95": 49.7,
+     "p50": 41
+    },
+    "前右膝": {
+     "frames": 384,
+     "max": 50.1,
+     "min": -0.6,
+     "p95": 49.2,
+     "p50": 41.5
+    }
+   },
+   "summary": {
+    "foldedPadFrames": 1761,
+    "maxGap": 5.6,
+    "maxSink": -3.2,
+    "framesAbove0": 859,
+    "framesBelowMinus2cm": 71,
+    "midPhase": {
+     "frames": 1107,
+     "maxGap": 5.6,
+     "maxSink": -3.2
+    }
+   }
+  }
+ },
+ "branch": {
+  "bundle": "assets/desert.fb25e09688.js",
+  "dromedary": {
+   "cycles": [
+    {
+     "spot": "flat",
+     "at": [
+      4,
+      -9
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "job"
+    },
+    {
+     "spot": "dune slope",
+     "at": [
+      9.4,
+      -11.6
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "job"
+    },
+    {
+     "spot": "rest spot",
+     "at": [
+      8.24,
+      2.15
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "walk"
+    }
+   ],
+   "padVertices": [
+    198,
+    117
+   ],
+   "folded": {
+    "前左膝": {
+     "all": {
+      "frames": 882,
+      "max": -0.3,
+      "min": -1.7,
+      "p95": -0.6,
+      "p50": -0.6
+     },
+     "down": {
+      "frames": 333,
+      "max": -0.3,
+      "min": -1.7,
+      "p95": -0.6,
+      "p50": -0.6
+     },
+     "rest": {
+      "frames": 273,
+      "max": -0.6,
+      "min": -0.8,
+      "p95": -0.6,
+      "p50": -0.6
+     },
+     "up": {
+      "frames": 276,
+      "max": -0.5,
+      "min": -1.4,
+      "p95": -0.6,
+      "p50": -0.6
+     }
+    },
+    "前右膝": {
+     "all": {
+      "frames": 885,
+      "max": 0,
+      "min": -0.7,
+      "p95": -0.6,
+      "p50": -0.6
+     },
+     "down": {
+      "frames": 327,
+      "max": 0,
+      "min": -0.6,
+      "p95": -0.6,
+      "p50": -0.6
+     },
+     "rest": {
+      "frames": 273,
+      "max": -0.5,
+      "min": -0.6,
+      "p95": -0.6,
+      "p50": -0.6
+     },
+     "up": {
+      "frames": 285,
+      "max": -0.4,
+      "min": -0.7,
+      "p95": -0.5,
+      "p50": -0.6
+     }
+    }
+   },
+   "unfolded": {
+    "前左膝": {
+     "frames": 384,
+     "max": 51.4,
+     "min": -1.3,
+     "p95": 51.3,
+     "p50": 42.5
+    },
+    "前右膝": {
+     "frames": 381,
+     "max": 50.4,
+     "min": -0.6,
+     "p95": 50.2,
+     "p50": 42.3
+    }
+   },
+   "summary": {
+    "foldedPadFrames": 1767,
+    "maxGap": 0,
+    "maxSink": -1.7,
+    "framesAbove0": 0,
+    "framesBelowMinus2cm": 0,
+    "midPhase": {
+     "frames": 1113,
+     "maxGap": 0,
+     "maxSink": -1.7
+    }
+   }
+  },
+  "bactrian": {
+   "cycles": [
+    {
+     "spot": "flat",
+     "at": [
+      4,
+      -9
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "job"
+    },
+    {
+     "spot": "dune slope",
+     "at": [
+      9.4,
+      -11.6
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "job"
+    },
+    {
+     "spot": "rest spot",
+     "at": [
+      14.2,
+      2.6
+     ],
+     "frames": 422,
+     "complete": true,
+     "after": "walk"
+    }
+   ],
+   "padVertices": [
+    178,
+    107
+   ],
+   "folded": {
+    "前左膝": {
+     "all": {
+      "frames": 879,
+      "max": 0,
+      "min": -1.3,
+      "p95": -0.1,
+      "p50": -0.6
+     },
+     "down": {
+      "frames": 330,
+      "max": -0.1,
+      "min": -1.3,
+      "p95": -0.1,
+      "p50": -0.6
+     },
+     "rest": {
+      "frames": 273,
+      "max": 0,
+      "min": -0.9,
+      "p95": 0,
+      "p50": -0.4
+     },
+     "up": {
+      "frames": 276,
+      "max": -0.1,
+      "min": -1.1,
+      "p95": -0.6,
+      "p50": -0.6
+     }
+    },
+    "前右膝": {
+     "all": {
+      "frames": 882,
+      "max": -0.2,
+      "min": -0.7,
+      "p95": -0.4,
+      "p50": -0.6
+     },
+     "down": {
+      "frames": 327,
+      "max": -0.2,
+      "min": -0.7,
+      "p95": -0.3,
+      "p50": -0.6
+     },
+     "rest": {
+      "frames": 273,
+      "max": -0.3,
+      "min": -0.6,
+      "p95": -0.4,
+      "p50": -0.6
+     },
+     "up": {
+      "frames": 282,
+      "max": -0.3,
+      "min": -0.7,
+      "p95": -0.5,
+      "p50": -0.6
+     }
+    }
+   },
+   "unfolded": {
+    "前左膝": {
+     "frames": 387,
+     "max": 50.2,
+     "min": -1.3,
+     "p95": 49.7,
+     "p50": 41
+    },
+    "前右膝": {
+     "frames": 384,
+     "max": 50.1,
+     "min": -0.6,
+     "p95": 49.2,
+     "p50": 41.5
+    }
+   },
+   "summary": {
+    "foldedPadFrames": 1761,
+    "maxGap": 0,
+    "maxSink": -1.3,
+    "framesAbove0": 0,
+    "framesBelowMinus2cm": 0,
+    "midPhase": {
+     "frames": 1107,
+     "maxGap": -0.1,
+     "maxSink": -1.3
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,896 @@
+{
+ "units": "cm; gap = lowest skinned vertex of the hoof (or lower leg) minus hTop under it; >0 in the air, <0 sunk",
+ "main": {
+  "bundle": "assets/desert.b609b040bf.js",
+  "dromedary": {
+   "walk": {
+    "seconds": 26.9,
+    "frames": 808,
+    "perHoof": {
+     "前左": {
+      "all": {
+       "min": -0.8,
+       "max": 16.8,
+       "p95": 12.6,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 375,
+       "min": -0.7,
+       "max": -0.1,
+       "p95": -0.3,
+       "p50": -0.6
+      }
+     },
+     "前右": {
+      "all": {
+       "min": -0.8,
+       "max": 12.7,
+       "p95": 10.7,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 378,
+       "min": -0.7,
+       "max": -0.3,
+       "p95": -0.5,
+       "p50": -0.6
+      }
+     },
+     "后左": {
+      "all": {
+       "min": -0.8,
+       "max": 12.8,
+       "p95": 8.5,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 370,
+       "min": -0.8,
+       "max": -0.6,
+       "p95": -0.6,
+       "p50": -0.6
+      }
+     },
+     "后右": {
+      "all": {
+       "min": -0.7,
+       "max": 21.3,
+       "p95": 12.2,
+       "p50": -0.4
+      },
+      "support": {
+       "frames": 348,
+       "min": -0.7,
+       "max": 0,
+       "p95": -0.4,
+       "p50": -0.6
+      }
+     }
+    },
+    "zeroGroundedFrac": 0,
+    "underTwoGroundedFrac": 0,
+    "allFourAbove1cmFrac": 0,
+    "maxPenetration": -0.8,
+    "maxSupportGap": 0,
+    "supportHoofFramesAbove0": {
+     "count": 0,
+     "ofSupportHoofFrames": 1471,
+     "worst": []
+    },
+    "afterDuneCreep": {
+     "frames": 404,
+     "maxPenetration": -0.8,
+     "zeroGroundedFrac": 0
+    }
+   },
+   "kneelLieStand": {
+    "frames": 422,
+    "perLeg": {
+     "前左": {
+      "min": -0.6,
+      "max": 15.2,
+      "p95": 1.6,
+      "p50": -0.6
+     },
+     "前右": {
+      "min": -0.7,
+      "max": 11.4,
+      "p95": 1.1,
+      "p50": -0.6
+     },
+     "后左": {
+      "min": -0.7,
+      "max": 1.4,
+      "p95": 0.7,
+      "p50": -0.6
+     },
+     "后右": {
+      "min": -0.6,
+      "max": 1.9,
+      "p95": 0.9,
+      "p50": -0.6
+     }
+    },
+    "phases": {
+     "down": {
+      "frames": 169,
+      "perLeg": {
+       "前左": {
+        "min": -0.6,
+        "max": 15.2,
+        "p95": 9.1,
+        "p50": -0.4
+       },
+       "前右": {
+        "min": -0.7,
+        "max": -0.3,
+        "p95": -0.3,
+        "p50": -0.6
+       },
+       "后左": {
+        "min": -0.7,
+        "max": 0.8,
+        "p95": 0.7,
+        "p50": -0.6
+       },
+       "后右": {
+        "min": -0.6,
+        "max": 1.9,
+        "p95": 1,
+        "p50": 0.7
+       }
+      },
+      "lowestLegMax": -0.6,
+      "secondLowestLegMax": -0.4
+     },
+     "rest": {
+      "frames": 91,
+      "perLeg": {
+       "前左": {
+        "min": -0.6,
+        "max": -0.6,
+        "p95": -0.6,
+        "p50": -0.6
+       },
+       "前右": {
+        "min": -0.3,
+        "max": -0.2,
+        "p95": -0.2,
+        "p50": -0.3
+       },
+       "后左": {
+        "min": 0.5,
+        "max": 0.6,
+        "p95": 0.6,
+        "p50": 0.6
+       },
+       "后右": {
+        "min": -0.6,
+        "max": -0.6,
+        "p95": -0.6,
+        "p50": -0.6
+       }
+      },
+      "lowestLegMax": -0.6,
+      "secondLowestLegMax": -0.6
+     },
+     "up": {
+      "frames": 162,
+      "perLeg": {
+       "前左": {
+        "min": -0.6,
+        "max": 0.8,
+        "p95": 0.8,
+        "p50": -0.4
+       },
+       "前右": {
+        "min": -0.6,
+        "max": 11.4,
+        "p95": 7,
+        "p50": -0.6
+       },
+       "后左": {
+        "min": -0.7,
+        "max": 1.4,
+        "p95": 0.7,
+        "p50": -0.6
+       },
+       "后右": {
+        "min": -0.6,
+        "max": 0.9,
+        "p95": 0.8,
+        "p50": -0.6
+       }
+      },
+      "lowestLegMax": -0.6,
+      "secondLowestLegMax": -0.6
+     }
+    },
+    "zeroGroundedFrac": 0,
+    "underTwoGroundedFrac": 0,
+    "maxPenetration": -0.7,
+    "maxPenetrationLegs": -0.7
+   },
+   "overall": {
+    "zeroGroundedFrac": 0,
+    "maxPenetration": -0.8
+   }
+  },
+  "bactrian": {
+   "walk": {
+    "seconds": 31.6,
+    "frames": 948,
+    "perHoof": {
+     "前左": {
+      "all": {
+       "min": -1.1,
+       "max": 16.1,
+       "p95": 11.1,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 445,
+       "min": -1,
+       "max": -0.1,
+       "p95": -0.4,
+       "p50": -0.6
+      }
+     },
+     "前右": {
+      "all": {
+       "min": -0.9,
+       "max": 16.4,
+       "p95": 8.6,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 469,
+       "min": -0.7,
+       "max": -0.1,
+       "p95": -0.5,
+       "p50": -0.6
+      }
+     },
+     "后左": {
+      "all": {
+       "min": -1,
+       "max": 14.9,
+       "p95": 7.5,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 465,
+       "min": -1,
+       "max": -0.4,
+       "p95": -0.6,
+       "p50": -0.6
+      }
+     },
+     "后右": {
+      "all": {
+       "min": -0.9,
+       "max": 15.5,
+       "p95": 9.8,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 436,
+       "min": -0.9,
+       "max": -0.2,
+       "p95": -0.5,
+       "p50": -0.6
+      }
+     }
+    },
+    "zeroGroundedFrac": 0,
+    "underTwoGroundedFrac": 0,
+    "allFourAbove1cmFrac": 0,
+    "maxPenetration": -1.1,
+    "maxSupportGap": -0.1,
+    "supportHoofFramesAbove0": {
+     "count": 0,
+     "ofSupportHoofFrames": 1815,
+     "worst": []
+    },
+    "afterDuneCreep": {
+     "frames": 474,
+     "maxPenetration": -0.9,
+     "zeroGroundedFrac": 0
+    }
+   },
+   "kneelLieStand": {
+    "frames": 422,
+    "perLeg": {
+     "前左": {
+      "min": -1.4,
+      "max": 15.1,
+      "p95": 1.9,
+      "p50": -0.4
+     },
+     "前右": {
+      "min": -0.6,
+      "max": 10.4,
+      "p95": 1.1,
+      "p50": -0.6
+     },
+     "后左": {
+      "min": -0.7,
+      "max": 3.9,
+      "p95": 0.6,
+      "p50": -0.6
+     },
+     "后右": {
+      "min": -0.6,
+      "max": 5.1,
+      "p95": 0.7,
+      "p50": -0.6
+     }
+    },
+    "phases": {
+     "down": {
+      "frames": 169,
+      "perLeg": {
+       "前左": {
+        "min": -0.6,
+        "max": 15.1,
+        "p95": 9.1,
+        "p50": 0.3
+       },
+       "前右": {
+        "min": -0.6,
+        "max": 6.6,
+        "p95": 0.4,
+        "p50": -0.6
+       },
+       "后左": {
+        "min": -0.7,
+        "max": 0.6,
+        "p95": 0.5,
+        "p50": -0.6
+       },
+       "后右": {
+        "min": -0.6,
+        "max": 5.1,
+        "p95": 0,
+        "p50": -0.5
+       }
+      },
+      "lowestLegMax": -0.6,
+      "secondLowestLegMax": -0.2
+     },
+     "rest": {
+      "frames": 91,
+      "perLeg": {
+       "前左": {
+        "min": -0.6,
+        "max": -0.6,
+        "p95": -0.6,
+        "p50": -0.6
+       },
+       "前右": {
+        "min": 0.4,
+        "max": 0.4,
+        "p95": 0.4,
+        "p50": 0.4
+       },
+       "后左": {
+        "min": 0.3,
+        "max": 0.4,
+        "p95": 0.4,
+        "p50": 0.4
+       },
+       "后右": {
+        "min": -0.6,
+        "max": -0.6,
+        "p95": -0.6,
+        "p50": -0.6
+       }
+      },
+      "lowestLegMax": -0.6,
+      "secondLowestLegMax": -0.6
+     },
+     "up": {
+      "frames": 162,
+      "perLeg": {
+       "前左": {
+        "min": -1.4,
+        "max": 0.9,
+        "p95": 0.9,
+        "p50": -0.4
+       },
+       "前右": {
+        "min": -0.6,
+        "max": 10.4,
+        "p95": 7.4,
+        "p50": -0.6
+       },
+       "后左": {
+        "min": -0.6,
+        "max": 3.9,
+        "p95": 2,
+        "p50": -0.6
+       },
+       "后右": {
+        "min": -0.6,
+        "max": 0.9,
+        "p95": 0.8,
+        "p50": -0.6
+       }
+      },
+      "lowestLegMax": -0.6,
+      "secondLowestLegMax": -0.6
+     }
+    },
+    "zeroGroundedFrac": 0,
+    "underTwoGroundedFrac": 0,
+    "maxPenetration": -1.4,
+    "maxPenetrationLegs": -1.4
+   },
+   "overall": {
+    "zeroGroundedFrac": 0,
+    "maxPenetration": -1.4
+   }
+  }
+ },
+ "branch": {
+  "bundle": "assets/desert.fb25e09688.js",
+  "dromedary": {
+   "walk": {
+    "seconds": 26.9,
+    "frames": 808,
+    "perHoof": {
+     "前左": {
+      "all": {
+       "min": -0.8,
+       "max": 16.8,
+       "p95": 12.6,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 375,
+       "min": -0.7,
+       "max": -0.1,
+       "p95": -0.3,
+       "p50": -0.6
+      }
+     },
+     "前右": {
+      "all": {
+       "min": -0.8,
+       "max": 12.7,
+       "p95": 10.7,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 378,
+       "min": -0.7,
+       "max": -0.3,
+       "p95": -0.5,
+       "p50": -0.6
+      }
+     },
+     "后左": {
+      "all": {
+       "min": -0.8,
+       "max": 12.8,
+       "p95": 8.5,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 370,
+       "min": -0.8,
+       "max": -0.6,
+       "p95": -0.6,
+       "p50": -0.6
+      }
+     },
+     "后右": {
+      "all": {
+       "min": -0.7,
+       "max": 21.3,
+       "p95": 12.2,
+       "p50": -0.4
+      },
+      "support": {
+       "frames": 348,
+       "min": -0.7,
+       "max": 0,
+       "p95": -0.4,
+       "p50": -0.6
+      }
+     }
+    },
+    "zeroGroundedFrac": 0,
+    "underTwoGroundedFrac": 0,
+    "allFourAbove1cmFrac": 0,
+    "maxPenetration": -0.8,
+    "maxSupportGap": 0,
+    "supportHoofFramesAbove0": {
+     "count": 0,
+     "ofSupportHoofFrames": 1471,
+     "worst": []
+    },
+    "afterDuneCreep": {
+     "frames": 404,
+     "maxPenetration": -0.8,
+     "zeroGroundedFrac": 0
+    }
+   },
+   "kneelLieStand": {
+    "frames": 422,
+    "perLeg": {
+     "前左": {
+      "min": -0.7,
+      "max": 15.2,
+      "p95": 0.8,
+      "p50": -0.6
+     },
+     "前右": {
+      "min": -0.7,
+      "max": 11.4,
+      "p95": -0.5,
+      "p50": -0.6
+     },
+     "后左": {
+      "min": -0.7,
+      "max": 1.4,
+      "p95": 0.7,
+      "p50": -0.6
+     },
+     "后右": {
+      "min": -0.6,
+      "max": 1.9,
+      "p95": 0.9,
+      "p50": -0.6
+     }
+    },
+    "phases": {
+     "down": {
+      "frames": 169,
+      "perLeg": {
+       "前左": {
+        "min": -0.7,
+        "max": 15.2,
+        "p95": 9.1,
+        "p50": -0.6
+       },
+       "前右": {
+        "min": -0.7,
+        "max": -0.6,
+        "p95": -0.6,
+        "p50": -0.6
+       },
+       "后左": {
+        "min": -0.7,
+        "max": 0.8,
+        "p95": 0.7,
+        "p50": -0.6
+       },
+       "后右": {
+        "min": -0.6,
+        "max": 1.9,
+        "p95": 1,
+        "p50": 0.7
+       }
+      },
+      "lowestLegMax": -0.6,
+      "secondLowestLegMax": -0.6
+     },
+     "rest": {
+      "frames": 91,
+      "perLeg": {
+       "前左": {
+        "min": -0.7,
+        "max": -0.6,
+        "p95": -0.6,
+        "p50": -0.7
+       },
+       "前右": {
+        "min": -0.6,
+        "max": -0.6,
+        "p95": -0.6,
+        "p50": -0.6
+       },
+       "后左": {
+        "min": 0.5,
+        "max": 0.6,
+        "p95": 0.6,
+        "p50": 0.6
+       },
+       "后右": {
+        "min": -0.6,
+        "max": -0.6,
+        "p95": -0.6,
+        "p50": -0.6
+       }
+      },
+      "lowestLegMax": -0.6,
+      "secondLowestLegMax": -0.6
+     },
+     "up": {
+      "frames": 162,
+      "perLeg": {
+       "前左": {
+        "min": -0.6,
+        "max": 0.8,
+        "p95": 0.8,
+        "p50": -0.6
+       },
+       "前右": {
+        "min": -0.7,
+        "max": 11.4,
+        "p95": 7,
+        "p50": -0.6
+       },
+       "后左": {
+        "min": -0.7,
+        "max": 1.4,
+        "p95": 0.7,
+        "p50": -0.6
+       },
+       "后右": {
+        "min": -0.6,
+        "max": 0.9,
+        "p95": 0.8,
+        "p50": -0.6
+       }
+      },
+      "lowestLegMax": -0.6,
+      "secondLowestLegMax": -0.6
+     }
+    },
+    "zeroGroundedFrac": 0,
+    "underTwoGroundedFrac": 0,
+    "maxPenetration": -0.7,
+    "maxPenetrationLegs": -0.7
+   },
+   "overall": {
+    "zeroGroundedFrac": 0,
+    "maxPenetration": -0.8
+   }
+  },
+  "bactrian": {
+   "walk": {
+    "seconds": 31.6,
+    "frames": 948,
+    "perHoof": {
+     "前左": {
+      "all": {
+       "min": -1.1,
+       "max": 15.3,
+       "p95": 11,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 448,
+       "min": -1.1,
+       "max": 0,
+       "p95": -0.4,
+       "p50": -0.6
+      }
+     },
+     "前右": {
+      "all": {
+       "min": -0.9,
+       "max": 16.3,
+       "p95": 8.6,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 469,
+       "min": -0.7,
+       "max": -0.2,
+       "p95": -0.5,
+       "p50": -0.6
+      }
+     },
+     "后左": {
+      "all": {
+       "min": -0.9,
+       "max": 13.8,
+       "p95": 7.4,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 470,
+       "min": -0.8,
+       "max": -0.3,
+       "p95": -0.6,
+       "p50": -0.6
+      }
+     },
+     "后右": {
+      "all": {
+       "min": -0.9,
+       "max": 14.4,
+       "p95": 9.8,
+       "p50": -0.6
+      },
+      "support": {
+       "frames": 444,
+       "min": -0.9,
+       "max": 0.5,
+       "p95": -0.5,
+       "p50": -0.6
+      }
+     }
+    },
+    "zeroGroundedFrac": 0,
+    "underTwoGroundedFrac": 0,
+    "allFourAbove1cmFrac": 0,
+    "maxPenetration": -1.1,
+    "maxSupportGap": 0.5,
+    "supportHoofFramesAbove0": {
+     "count": 2,
+     "ofSupportHoofFrames": 1831,
+     "worst": [
+      {
+       "frame": 359,
+       "hoof": "后右",
+       "gap": 0.5,
+       "hoofSpeed": 0.21,
+       "bodySpeed": 0.92,
+       "gaps": [
+        2.8,
+        -0.6,
+        -0.4,
+        0.5
+       ]
+      },
+      {
+       "frame": 361,
+       "hoof": "后右",
+       "gap": 0.1,
+       "hoofSpeed": 0.03,
+       "bodySpeed": 0.92,
+       "gaps": [
+        -0.5,
+        -0.6,
+        -0.6,
+        0.1
+       ]
+      }
+     ]
+    },
+    "afterDuneCreep": {
+     "frames": 474,
+     "maxPenetration": -0.9,
+     "zeroGroundedFrac": 0
+    }
+   },
+   "kneelLieStand": {
+    "frames": 422,
+    "perLeg": {
+     "前左": {
+      "min": -1.4,
+      "max": 15.1,
+      "p95": 1,
+      "p50": -0.6
+     },
+     "前右": {
+      "min": -0.9,
+      "max": 10.4,
+      "p95": -0.4,
+      "p50": -0.6
+     },
+     "后左": {
+      "min": -0.7,
+      "max": 3.9,
+      "p95": 0.6,
+      "p50": -0.6
+     },
+     "后右": {
+      "min": -0.6,
+      "max": 5.1,
+      "p95": 0.7,
+      "p50": -0.6
+     }
+    },
+    "phases": {
+     "down": {
+      "frames": 169,
+      "perLeg": {
+       "前左": {
+        "min": -1.4,
+        "max": 15.1,
+        "p95": 9.1,
+        "p50": -0.6
+       },
+       "前右": {
+        "min": -0.9,
+        "max": 6.6,
+        "p95": -0.6,
+        "p50": -0.6
+       },
+       "后左": {
+        "min": -0.7,
+        "max": 0.6,
+        "p95": 0.5,
+        "p50": -0.6
+       },
+       "后右": {
+        "min": -0.6,
+        "max": 5.1,
+        "p95": 0,
+        "p50": -0.5
+       }
+      },
+      "lowestLegMax": -0.6,
+      "secondLowestLegMax": -0.2
+     },
+     "rest": {
+      "frames": 91,
+      "perLeg": {
+       "前左": {
+        "min": -1.4,
+        "max": -1.4,
+        "p95": -1.4,
+        "p50": -1.4
+       },
+       "前右": {
+        "min": -0.9,
+        "max": -0.9,
+        "p95": -0.9,
+        "p50": -0.9
+       },
+       "后左": {
+        "min": 0.3,
+        "max": 0.4,
+        "p95": 0.4,
+        "p50": 0.4
+       },
+       "后右": {
+        "min": -0.6,
+        "max": -0.6,
+        "p95": -0.6,
+        "p50": -0.6
+       }
+      },
+      "lowestLegMax": -1.4,
+      "secondLowestLegMax": -0.9
+     },
+     "up": {
+      "frames": 162,
+      "perLeg": {
+       "前左": {
+        "min": -1.4,
+        "max": 0.9,
+        "p95": 0.9,
+        "p50": -0.6
+       },
+       "前右": {
+        "min": -0.8,
+        "max": 10.4,
+        "p95": 7.4,
+        "p50": -0.6
+       },
+       "后左": {
+        "min": -0.6,
+        "max": 3.9,
+        "p95": 2,
+        "p50": -0.6
+       },
+       "后右": {
+        "min": -0.6,
+        "max": 0.9,
+        "p95": 0.8,
+        "p50": -0.6
+       }
+      },
+      "lowestLegMax": -0.6,
+      "secondLowestLegMax": -0.6
+     }
+    },
+    "zeroGroundedFrac": 0,
+    "underTwoGroundedFrac": 0,
+    "maxPenetration": -1.4,
+    "maxPenetrationLegs": -1.4
+   },
+   "overall": {
+    "zeroGroundedFrac": 0,
+    "maxPenetration": -1.4
+   }
+  }
+ }
+}

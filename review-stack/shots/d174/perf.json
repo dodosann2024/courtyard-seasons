@@ -1,0 +1,86 @@
+{
+ "bundles": {
+  "pr": "assets/desert.fb25e09688.js",
+  "main": "assets/desert.b609b040bf.js"
+ },
+ "session": "one browser session per run, same VM, same session; emulated iPhone 13, CPU throttled 4x, no debug flag; JS ms per rAF over 20 s starting 5 s after models done",
+ "rounds": 4,
+ "rule": "branch mean <= main mean x 1.15 and no frame over 200 ms",
+ "order": [
+  "pr",
+  "main",
+  "main",
+  "pr",
+  "pr",
+  "main",
+  "main",
+  "pr"
+ ],
+ "R": {
+  "pr": [
+   {
+    "frames": 39,
+    "jsMean": 21.7,
+    "jsP95": 72.2,
+    "max": 126,
+    "over200": 0
+   },
+   {
+    "frames": 42,
+    "jsMean": 18.7,
+    "jsP95": 64.5,
+    "max": 94,
+    "over200": 0
+   },
+   {
+    "frames": 45,
+    "jsMean": 17.8,
+    "jsP95": 64.9,
+    "max": 84,
+    "over200": 0
+   },
+   {
+    "frames": 45,
+    "jsMean": 17.3,
+    "jsP95": 65.7,
+    "max": 82,
+    "over200": 0
+   }
+  ],
+  "main": [
+   {
+    "frames": 42,
+    "jsMean": 18.4,
+    "jsP95": 64.6,
+    "max": 69,
+    "over200": 0
+   },
+   {
+    "frames": 45,
+    "jsMean": 17.3,
+    "jsP95": 62.6,
+    "max": 83,
+    "over200": 0
+   },
+   {
+    "frames": 42,
+    "jsMean": 17.7,
+    "jsP95": 61.9,
+    "max": 79,
+    "over200": 0
+   },
+   {
+    "frames": 39,
+    "jsMean": 18.8,
+    "jsP95": 74.1,
+    "max": 84,
+    "over200": 0
+   }
+  ]
+ },
+ "summary": {
+  "prMean": 18.88,
+  "mainMean": 18.05,
+  "ratio": 1.046
+ }
+}

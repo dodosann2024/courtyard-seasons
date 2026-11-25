@@ -713,7 +713,7 @@ function placeRocks(list){
 /* ---------------- oasis pond: sea-style water, depth tint, sky fresnel, palm reflection, sun glint ---------------- */
 const pondU={uT:{value:0},uCamL:{value:new V3()},uSunL:{value:new V3(0,1,0)},uSunCol:{value:new C3("#ffb469")},
   uDeep:{value:new C3("#0a2c2b")},uShal:{value:new C3("#2c6a5c")},uBed:{value:new C3("#a8875a")},uSkyA:{value:new C3("#c9a6c4")},uSkyB:{value:new C3("#6f6aa8")},
-  uRefl:{value:null},uReflM:{value:new T.M4()},uReflOn:{value:0},uNight:{value:0},uWind:{value:.35},uRainP:{value:0},uIce:{value:0},uFogC:{value:new C3()},uFogNF:{value:new T.V2(400,900)}};
+  uRefl:{value:null},uReflM:{value:new T.M4()},uReflOn:{value:0},uNight:{value:0},uWind:{value:.35},uRainP:{value:0},uIce:{value:0},uOvc:{value:0},uWD:sandU.uWD,uFogC:{value:new C3()},uFogNF:{value:new T.V2(400,900)}};
 let pondMesh=null;
 (function buildPond(){
   const NR=26,NA=96,pos=[],dep=[],idx=[];
@@ -725,26 +725,48 @@ let pondMesh=null;
   const m=new T.SM({uniforms:pondU,transparent:true,depthWrite:false,
     vertexShader:`attribute float aD;varying float vD;varying vec3 vP;varying vec4 vR;uniform mat4 uReflM;
       void main(){vD=aD;vP=position;vec4 w=modelMatrix*vec4(position,1.);vR=uReflM*w;gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uT,uReflOn,uNight,uWind,uRainP,uIce;uniform vec2 uFogNF;uniform vec3 uCamL,uSunL,uSunCol,uDeep,uShal,uBed,uSkyA,uSkyB,uFogC;uniform sampler2D uRefl;varying float vD;varying vec3 vP;varying vec4 vR;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uReflOn,uNight,uWind,uRainP,uIce,uOvc;uniform vec2 uFogNF,uWD;uniform vec3 uCamL,uSunL,uSunCol,uDeep,uShal,uBed,uSkyA,uSkyB,uFogC;uniform sampler2D uRefl;varying float vD;varying vec3 vP;varying vec4 vR;${GLSL_NOISE}
       /* raindrop rings: each cell rings once per cycle, two offset layers so the rings overlap */
       vec2 ringG(vec2 p){vec2 g=vec2(0.);for(int L=0;L<2;L++){vec2 q=p*(L==0?2.6:3.7)+float(L)*7.31;vec2 c=floor(q),f=fract(q)-.5;float h=dh2(c+float(L)*3.1);
         vec2 o=(vec2(dh2(c+1.3),dh2(c+2.7))-.5)*.5;vec2 d=f-o;float r=length(d),ph=fract(uT*(.9+.6*h)+h*7.),rad=ph*.42;
         float w=-2.*(r-rad)/.0016*exp(-(r-rad)*(r-rad)/.0016)*(1.-ph)*(1.-ph)*step(h,uRainP*1.15);g+=d/max(r,1e-3)*w*.012;}return g;}
       float wv(vec2 p){return dn2(p*1.1+vec2(uT*.35,uT*.12))*.6+dn2(p*2.7-vec2(uT*.22,-uT*.4))*.3+dn2(p*6.3+vec2(uT*.6,uT*.3))*.1;}
+      /* capillary wavelets on top of the ripples: crests across the wind, drifting downwind, two finer octaves */
+      float cw(vec2 q){return dn2(vec2(q.x*13.,q.y*5.5)-vec2(uT*2.1,0.))*.62+dn2(vec2(q.x*29.,q.y*12.)+vec2(-uT*3.6,5.3))*.38;}
+      /* light focused by the ripples onto the sand bed: a thin wandering net, two nets of different size */
+      float caus(vec2 p){float a=dn2(p*6.2+uT*vec2(.44,.25)),b=dn2(p*8.3-uT*vec2(.33,.5)+.37),c=dn2(p*13.+uT*vec2(.55,-.4)+2.1),d=dn2(p*17.-uT*vec2(-.42,.6)+5.7);
+        return pow(1.-clamp(abs(a-b)*4.,0.,1.),5.)+.55*pow(1.-clamp(abs(c-d)*4.,0.,1.),6.);}
       void main(){
         float e=.06,h0=wv(vP.xz);vec2 g=vec2(wv(vP.xz+vec2(e,0.))-h0,wv(vP.xz+vec2(0.,e))-h0)/e;
-        float amp=.022+.07*uWind;vec3 n=normalize(vec3(-g.x*amp,1.,-g.y*amp));
+        vec2 wd=normalize(uWD+vec2(1e-4,0.)),wp=vec2(-wd.y,wd.x);
+        float fw=length(fwidth(vP.xz)),lod=1.-smoothstep(.004,.03,fw);
+        /* cat's paws: patches the breeze touches drift across the pond and roughen it, calm glassy lanes in between */
+        float paw=smoothstep(.42,.78,dn2(vP.xz*.32-wd*uT*.55)*.7+dn2(vP.xz*.9+wp*uT*.2+3.)*.3);
+        float amp=(.022+.07*uWind)*(.75+.5*paw);vec3 n=normalize(vec3(-g.x*amp,1.,-g.y*amp));
+        if(lod>.001){vec2 q=vec2(dot(vP.xz,wd),dot(vP.xz,wp));float ce=.012,c0=cw(q),ca=(cw(q+vec2(ce,0.))-c0)/ce,cc=(cw(q+vec2(0.,ce))-c0)/ce;
+          vec2 cg=(wd*ca+wp*cc)*(.0035+.011*uWind)*(.25+.75*paw)*lod*(1.-uIce*.6);n=normalize(n-vec3(cg.x,0.,cg.y));}
         if(uRainP>.003){vec2 rg=ringG(vP.xz);n=normalize(n+vec3(rg.x,0.,rg.y)*smoothstep(.0,.1,vD));
           /* between the rings the surface is roughened by the drops all over it */
           float fr2=1.-smoothstep(.006,.025,length(fwidth(vP.xz))),r0=dn2(vP.xz*75.+uT*3.1),rx=dn2(vP.xz*75.+vec2(1.6,0.)+uT*3.1),rz=dn2(vP.xz*75.+vec2(0.,1.6)+uT*3.1);
           n=normalize(n+vec3(r0-rx,0.,r0-rz)*.22*uRainP*fr2);}
         vec3 V=normalize(uCamL-vP);
         float fr=.02+.98*pow(1.-max(dot(n,V),0.),5.);
+        /* the shore laps: the waterline creeps up the bank and draws back, unevenly along it, more in wind */
+        float th=atan(vP.z-(${POND.z.toFixed(3)}),vP.x-(${POND.x.toFixed(3)})),lph=uT*1.15+th*9.+1.8*dn2(vec2(th*5.,uT*.25));
+        float ed=vD+(.004+.012*uWind)*(sin(lph)*.6+sin(uT*.67+th*4.+1.3)*.4)*(1.-uIce);
+        float sunV=(1.-uNight)*(1.-.85*uOvc),sunK=dot(uSunCol,vec3(.3,.45,.25));
         /* oasis water: clear over the sand bed at the margin, absorbing to a deep green-teal in the middle */
         float dd=smoothstep(.02,1.3,vD);
         vec3 body=mix(uShal,uDeep,dd);
-        vec3 bed=uBed*exp(-vD*vec3(2.6,1.15,1.05)*3.)*(.8+.2*dn2(vP.xz*3.+uT*.05));
+        /* looking through the surface onto the bed: refracted and wobbled by the ripples; wind ripples and darker silt in the sand, the caustic net on top */
+        vec2 bp=vP.xz-V.xz/max(V.y,.25)*max(vD,0.)*.75+n.xz*max(vD,0.)*.9;
+        float rb=sin(dot(bp,wd)*8.5+2.4*dn2(bp*1.2))*.5+.5,sl=dn2(bp*.7+9.);
+        vec3 bed=uBed*exp(-vD*vec3(2.6,1.15,1.05)*3.)*(.8+.2*dn2(vP.xz*3.+uT*.05))*(.9+.14*rb*lod)*mix(1.,.78,smoothstep(.5,.8,sl));
+        bed*=1.+caus(bp)*1.5*sunV*sunK*(.35+.65*smoothstep(.05,.4,uWind))*(1.-.8*uRainP)*(1.-uIce)*exp(-vD*1.4)*smoothstep(0.,.03,vD)*(.4+.6*lod);
         body=mix(bed,body,smoothstep(.0,.45,vD))*mix(1.,.28,uNight);
+        /* low sun behind the ripples: light comes through the thin crests green-gold */
+        float bs=pow(clamp(dot(V,-uSunL)*.6+.4,0.,1.),3.)*smoothstep(.5,.8,h0+.2*paw)*sunV;
+        body+=uShal*vec3(.9,1.25,.85)*bs*.35*smoothstep(.05,.4,vD);
         vec3 rd=reflect(-V,n);
         vec3 sky=mix(uSkyA,uSkyB,smoothstep(.0,.8,rd.y));
         vec3 refl=sky;
@@ -754,13 +776,26 @@ let pondMesh=null;
         if(uReflOn>.5){vec2 ruv=vR.xy/vR.w+n.xz*.016+rJ;vec4 rc=texture2D(uRefl,clamp(ruv,0.,1.));
           rc=(any(isnan(rc))||any(isinf(rc)))?vec4(0.):clamp(rc,0.,1.);refl=mix(refl,rc.rgb*.7,rc.a*.92);}
         vec3 c=mix(body,refl,clamp(fr*1.05+.12,0.,.92));
+        /* the paws read from afar: roughened water mirrors less of the bright low sky and goes a shade darker, the calm lanes between stay glassy */
+        c*=1.-.12*paw*smoothstep(.1,.5,uWind)*(1.-uIce)*(1.-.5*lod);
         if(rFar>.001){c=mix(c,mix(uSkyA,uSkyB,.5)*.7+body*.3,.24*rFar);
           vec2 sc=floor(vP.xz*16.);float sk=step(.965-.04*uRainP,dh2(sc+floor(uT*6.+dh2(sc+4.1)*6.)*.37));c+=sk*.1*rFar*(1.-.6*uNight);}
-        /* a faint darker band where the water meets the shore, and fine wind-roughened sparkle */
-        c*=1.-.18*(1.-smoothstep(.0,.12,vD));
-        float gl=pow(max(dot(rd,uSunL),0.),220.)*(1.-uNight),sp=pow(max(dot(rd,uSunL),0.),36.)*smoothstep(.55,.85,dn2(vP.xz*9.+uT*1.3))*(1.-uNight);
-        c+=uSunCol*(gl*2.2+sp*.6);
-        float a=smoothstep(0.,.05,vD);
+        /* a faint darker band of wet shallows where the water meets the shore */
+        c*=1.-.14*(1.-smoothstep(.0,.12,ed));
+        /* sun on the water: a tight core, a microfacet lobe as wide as the ripples are rough, glints winking where facets catch it */
+        vec3 H=normalize(V+uSunL);float nh=max(dot(n,H),.05),t2=(1.-nh*nh)/(nh*nh),m2=.004+.016*uWind*(.5+paw)+.01*uRainP+.012*uWind*(1.-lod);
+        float bk=exp(-t2/m2)/(3.1416*m2*nh*nh*nh*nh)*(.02+.98*pow(1.-max(dot(V,H),0.),5.))/(4.*max(dot(n,V),.1));
+        float spk=mix(smoothstep(.74,.9,dn2(vP.xz*9.+wd*uT*1.2)*.5+dn2(vP.xz*15.-wp*uT*1.6)*.5),smoothstep(.7,.92,dn2(vP.xz*31.+wd*uT*1.7)*.55+dn2(vP.xz*57.-wp*uT*2.3)*.45),lod);
+        float gl=pow(max(dot(rd,uSunL),0.),220.),sw=pow(max(dot(rd,uSunL),0.),30.);
+        c+=uSunCol*sunV*(gl*2.2+min(bk,40.)*(.05+.5*spk)*.06+sw*spk*(.5+paw)*.8);
+        /* the meniscus catches the sky as a thin bright line at the edge, and a broken lace of bubbles and foam rides the lapping band */
+        float mw=max(.003,fwidth(ed)*1.2),ml=exp(-pow((ed-.003)/mw,2.))*(1.-uIce);
+        c=mix(c,sky*1.05+uSunCol*.12*sunV,ml*.3*(.4+.6*lod));
+        float fb=(1.-smoothstep(.0,.035+.04*uWind,ed))*smoothstep(-.004,.003,ed);
+        float l1=dn2(vP.xz*34.+vec2(uT*.13,-uT*.09)),l2=dn2(vP.xz*72.-vec2(uT*.18,uT*.11)),l3=dn2(vP.xz*7.+uT*.04);
+        float lace=fb*smoothstep(.46,.62,l1*.6+l3*.4+fb*.2)*mix(1.,smoothstep(.32,.55,l2),.75*lod)*(.3+.7*smoothstep(.1,.6,uWind))*(.65+.35*sin(lph+1.6))*(1.-uIce);
+        c=mix(c,vec3(.9,.9,.86)*(.5+.55*sunK*sunV+.25*(1.-uNight))*mix(1.,.35,uNight),lace*.62);
+        float a=max(smoothstep(0.,.05,ed),lace*.85);
         /* after a freezing night a skin of ice rims the shallows: grey-white, matte, cracked, never across the open water */
         if(uIce>.003){float ie=.02+.12*uIce+.07*(dn2(vP.xz*1.3)-.5)+.03*(dn2(vP.xz*4.1)-.5),ik=(1.-smoothstep(ie-.025,ie+.005,vD))*smoothstep(0.,.006,vD)*smoothstep(.25,.5,dn2(vP.xz*.9+4.)+.45*uIce);
           float crk=1.-smoothstep(.0,.025,min(abs(dn2(vP.xz*7.)-.5),1.3*abs(dn2(vP.xz*19.+3.)-.5)));
@@ -2502,7 +2537,7 @@ UPD.push((dt,t)=>{
   mirP.enabled=root.visible&&WX.heat>.01;mirM.uniforms.uT.value=t;mirM.uniforms.uSky.value.copy(sandU.uMirC.value);
   /* the low sun warms the air layer, so the mirrored sky comes back amber at dusk */
   mirM.uniforms.uTint.value.set(.95,.95,.95).lerp(_mirW,Math.max(LK.sunset,LK.sunrise*.7));rockU.uWetK.value=WX.wet;tentU.uWetC.value=Math.max(WX.wet,.42*WX.dew);propU.uDew.value=WX.dew;coatU.uDew.value=WX.dew;propU.uFrost.value=WX.frost;tentU.uFrost.value=.8*WX.frost;propU.uSnL.value=WX.scp;tentU.uSnL.value=WX.scp;rockU.uT.value=t;rockU.uVen.value=(.8+.18*Math.min(sfU.uFR.value,1.6))*(1-.3*WX.wet);
-  pondU.uRainP.value=WX.rain;pondU.uIce.value=WX.ice;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
+  pondU.uRainP.value=WX.rain;pondU.uIce.value=WX.ice;pondU.uOvc.value=WX.ovc;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
   if(pi){sandU.uLd.value.copy(pi.position).normalize();
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
     curU.uCol.value.set("#f0d2a0").multiply(_c1.clone().multiplyScalar(.5).add(_c2.clone().multiplyScalar(.5)).add(dc?dc.color.clone().multiplyScalar(dc.intensity):_c2));

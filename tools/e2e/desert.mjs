@@ -175,6 +175,12 @@ try {
       q.torPlace(T0w, x, z, th); Object.assign(T0w, {mode: "graze", t: 99, path: null, then: null, inShade: 1}); T0w.P.wd = 0; T0w.P.dig = 0;
       if (q.torGo(T0w, {x: ex, z: ez}, "walk")) { T0w.then = "graze"; return [+x.toFixed(2), +z.toFixed(2)]; } } return null; };
     if (!tm.has("walk")) { r.ttWalk0 = tortWalk(); for (let i = 0; i < 20; i++) { q.step(6, 1 / 30); for (const t of PA.tt) tm.add(t.mode); } }
+    /* an ostrich walking off: on a quiet spell both may only graze and stand about, so one is sent to an open spot a few metres off */
+    const osMv = () => Math.max(...PA.os.map((o, i) => Math.hypot(o.x - op[i][0], o.z - op[i][1])));
+    if (osMv() <= 2 || !om.has("walk") || !om.has("graze")) { const O1 = PA.os[0];
+      for (let k = 0; k < 40; k++) { const p = q.osSpot(O1, true, 9); if (p && Math.hypot(p.x - O1.x, p.z - O1.z) > 4 && q.osGo(O1, p, false)) { O1.then = "graze"; r.osSent = 1; break; } }
+      for (let i = 0; i < 40 && (osMv() <= 2 || !om.has("walk") || !om.has("graze")); i++) { q.step(6, 1 / 30); for (const o of PA.os) om.add(o.mode); }
+      if (!om.has("graze")) for (let i = 0; i < 40 && !om.has("graze"); i++) { q.step(6, 1 / 30); for (const o of PA.os) om.add(o.mode); } }
     r.osModes = [...om].sort(); r.osMoved = +Math.max(...PA.os.map((o, i) => Math.hypot(o.x - op[i][0], o.z - op[i][1]))).toFixed(1);
     r.ttModes = [...tm].sort(); r.ttMaxV = +Math.max(...PA.tt.map(t => t.v)).toFixed(3);
     /* a threat close behind an ostrich out on the open sand: it runs. Whether a run gets going depends on there being room ahead
@@ -194,7 +200,7 @@ try {
     window.__set({weather: "sun", ct: "clear", hailLv: 1}); q.sim(240, .5);
     /* noon heat: a tortoise digs into shade */
     const T0 = PA.tt[0], s = q.torShade(T0); q.torPlace(T0, s.x + .4, s.z + .3, 0); T0.mode = "graze"; T0.t = 0; T0.inShade = 0; let dug = false;
-    for (let i = 0; i < 40 && !dug; i++) { q.WX.heat = 1; q.sim(3, .1); dug = T0.mode === "dig" || T0.mode === "pallet"; } r.ttHeat = T0.mode;
+    for (let i = 0; i < 80 && !dug; i++) { q.WX.heat = 1; q.sim(3, .1); dug = T0.mode === "dig" || T0.mode === "pallet"; } r.ttHeat = T0.mode;
     /* day: gerbils below, scorpions under their rocks */
     /* ...though now and then one puts its head up out of the hole for a look round (and ducks if something comes by); each burrow
        and scrape has its spoil heap */

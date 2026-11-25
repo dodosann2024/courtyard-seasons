@@ -166,12 +166,17 @@ try {
     for (let i = 0; i < 60; i++) { q.sim(3, .1); for (const o of PA.os) om.add(o.mode); for (const t of PA.tt) tm.add(t.mode); }
     r.osModes = [...om].sort(); r.osMoved = +Math.max(...PA.os.map((o, i) => Math.hypot(o.x - op[i][0], o.z - op[i][1]))).toFixed(1);
     r.ttModes = [...tm].sort(); r.ttMaxV = +Math.max(...PA.tt.map(t => t.v)).toFixed(3);
-    /* the eagle stooping on an ostrich out on the open sand north-west of the camp, well clear of the fire, the tent and the lake:
-       it runs. A fixed spot keeps the check repeatable; the random open-spot search is only the fallback. */
-    const O = PA.os[0]; let s0 = q.osOpen(-5.5, -5) ? {x: -5.5, z: -5} : null;
-    for (let k = 0; k < 60 && !s0; k++) { const p = q.osSpot(O, false, 10); if (p && Math.hypot(p.x - q.FIRE.x, p.z - q.FIRE.z) > 8 && Math.hypot(p.x, p.z) > 4) s0 = p; }
-    if (s0) q.osPlace(O, s0.x, s0.z, 0); O.path = null; O.mode = "graze"; O.t = 9; O.P.sit = 0;
-    const ox = O.x, oz = O.z, ol = Math.hypot(ox, oz) || 1; q.paThreat(ox + ox / ol * 2, oz + oz / ol * 2, 6, 1.5); let vmax = 0;
+    /* a threat close behind an ostrich out on the open sand: it runs. Whether a run gets going depends on there being room ahead
+       of it (the camels, the other bird and the camp move about), so the bird is stood facing a straight 10 m of open sand clear of
+       all of them and the threat put down 2 m behind it; north-west of the camp is tried first, the open-spot search after it */
+    const O = PA.os[0], others = [...q.ANIM.camels, ...PA.os.filter(o => o !== O)];
+    const osRoom = (x, z, a) => { for (let u = 0; u <= 10; u++) { const px = x + Math.sin(a) * u, pz = z + Math.cos(a) * u;
+      if (!q.osOpen(px, pz) || Math.hypot(px - q.FIRE.x, pz - q.FIRE.z) < 5 || others.some(b => Math.hypot(b.x - px, b.z - pz) < 4.5)) return false; } return true; };
+    let s0 = null, fa = 0;
+    for (let k = 0; k < 120 && !s0; k++) { const p = k ? q.osSpot(O, false, 12) : {x: -5.5, z: -5}; if (!p) continue;
+      for (let j = 0; j < 12 && !s0; j++) { const a = j * Math.PI / 6; if (osRoom(p.x, p.z, a)) { s0 = p; fa = a; } } }
+    if (s0) q.osPlace(O, s0.x, s0.z, fa); O.path = null; O.mode = "graze"; O.t = 9; O.P.sit = 0; O.thr = null; O.fled = 0; r.osFrom = s0 && [+s0.x.toFixed(1), +s0.z.toFixed(1)];
+    const ox = O.x, oz = O.z; q.paThreat(ox - Math.sin(fa) * 2, oz - Math.cos(fa) * 2, 6, 1.5); let vmax = 0;
     for (let i = 0; i < 75; i++) { q.step(3, 1 / 30); vmax = Math.max(vmax, O.v); } r.osFlee = +vmax.toFixed(2); r.osAway = +Math.hypot(O.x - ox, O.z - oz).toFixed(1); q.paThreat(0, 0, 0);
     /* hail: tortoises pull in */
     window.__set({weather: "hail", hailLv: 1}); q.sim(20, .1); r.ttHail = PA.tt.map(t => +t.P.wd.toFixed(2)); const shell = PA.tt.every(t => t.P.wd > .9);

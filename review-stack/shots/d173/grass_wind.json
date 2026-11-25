@@ -1,0 +1,303 @@
+{
+ "about": "Grass tip displacement per wind level. The bend is each build's own vertex-shader formula (src/desert.js vegMat, d172: shear d = wl*(lean..)*A*h^2; d173: rotation about the tuft root toward a shared 72-degree downwind lean, more the higher the point, chord-shortened as a curved stem), evaluated on the CPU on the live instance matrices, the scene's wind (st.wn), wind direction, gust clock and time, over 3 s (90 frames). Tips: the top 30 % (by height) of every blade of every grass/clump/dry tuft (sway 0.8) and reed (0.3) 2-12 m from the camera's tuft. downwindCm: horizontal tip shift along the wind; leanDeg: change of the tip's angle from the vertical about the tuft root, toward the wind; stretchPct: change of the tip's distance from the root (0 = no stretching). 'gust peak': the same at wind 1.0 counting only tip samples on tufts the gust field is on (>= 0.75, its clock set so the gust peaks at the camera's tuft).",
+ "main": {
+  "bundle": "assets/desert.4c46dd446d.js",
+  "shader": "d172",
+  "levels": {
+   "wind 0.15": {
+    "wind": 0.15,
+    "gustAtTufts": "< 0.75 (ordinary air), clock swept over 54 s",
+    "grassTips": {
+     "tipSamples": 89467,
+     "downwindCm": {
+      "mean": 4.5,
+      "p50": 4,
+      "p90": 7.6
+     },
+     "leanDeg": {
+      "mean": 4.1,
+      "p90": 8.1
+     },
+     "stretchPct": {
+      "mean": 3.6,
+      "p90": 7.5
+     }
+    },
+    "reedTips": {
+     "tipSamples": 6942,
+     "downwindCm": {
+      "mean": 1.1,
+      "p50": 1.1,
+      "p90": 1.9
+     },
+     "leanDeg": {
+      "mean": 0.6,
+      "p90": 1.1
+     },
+     "stretchPct": {
+      "mean": 0.5,
+      "p90": 0.9
+     }
+    }
+   },
+   "wind 0.5": {
+    "wind": 0.5,
+    "gustAtTufts": "< 0.75 (ordinary air), clock swept over 54 s",
+    "grassTips": {
+     "tipSamples": 84944,
+     "downwindCm": {
+      "mean": 17.1,
+      "p50": 15.3,
+      "p90": 29
+     },
+     "leanDeg": {
+      "mean": 16,
+      "p90": 32.5
+     },
+     "stretchPct": {
+      "mean": 13.7,
+      "p90": 28.5
+     }
+    },
+    "reedTips": {
+     "tipSamples": 6424,
+     "downwindCm": {
+      "mean": 4.5,
+      "p50": 4.1,
+      "p90": 7.6
+     },
+     "leanDeg": {
+      "mean": 2.5,
+      "p90": 4.4
+     },
+     "stretchPct": {
+      "mean": 1.8,
+      "p90": 3.7
+     }
+    }
+   },
+   "wind 1.0": {
+    "wind": 1,
+    "gustAtTufts": "< 0.75 (ordinary air), clock swept over 54 s",
+    "grassTips": {
+     "tipSamples": 85762,
+     "downwindCm": {
+      "mean": 41.1,
+      "p50": 36.6,
+      "p90": 69.7
+     },
+     "leanDeg": {
+      "mean": 39.3,
+      "p90": 81
+     },
+     "stretchPct": {
+      "mean": 31.8,
+      "p90": 64.4
+     }
+    },
+    "reedTips": {
+     "tipSamples": 6498,
+     "downwindCm": {
+      "mean": 11.1,
+      "p50": 10.2,
+      "p90": 18.5
+     },
+     "leanDeg": {
+      "mean": 6.5,
+      "p90": 11.2
+     },
+     "stretchPct": {
+      "mean": 4,
+      "p90": 8.3
+     }
+    }
+   },
+   "wind 1.0, gust peak": {
+    "wind": 1,
+    "gustAtTufts": ">= 0.75 (gust field 0..1), clock swept over 54 s",
+    "grassTips": {
+     "tipSamples": 16713,
+     "downwindCm": {
+      "mean": 66.8,
+      "p50": 62.3,
+      "p90": 104.5
+     },
+     "leanDeg": {
+      "mean": 60.2,
+      "p90": 112.1
+     },
+     "stretchPct": {
+      "mean": 51.9,
+      "p90": 108.1
+     }
+    },
+    "reedTips": {
+     "tipSamples": 1214,
+     "downwindCm": {
+      "mean": 18.4,
+      "p50": 17.3,
+      "p90": 28.1
+     },
+     "leanDeg": {
+      "mean": 11.1,
+      "p90": 17.5
+     },
+     "stretchPct": {
+      "mean": 6,
+      "p90": 12.1
+     }
+    }
+   }
+  }
+ },
+ "branch": {
+  "bundle": "assets/desert.b609b040bf.js",
+  "shader": "d173",
+  "levels": {
+   "wind 0.15": {
+    "wind": 0.15,
+    "gustAtTufts": "< 0.75 (ordinary air), clock swept over 54 s",
+    "grassTips": {
+     "tipSamples": 85248,
+     "downwindCm": {
+      "mean": 3.6,
+      "p50": 2.6,
+      "p90": 8.2
+     },
+     "leanDeg": {
+      "mean": 4.9,
+      "p90": 10.2
+     },
+     "stretchPct": {
+      "mean": 0.2,
+      "p90": 0.4
+     }
+    },
+    "reedTips": {
+     "tipSamples": 6462,
+     "downwindCm": {
+      "mean": 2.9,
+      "p50": 2.6,
+      "p90": 4.8
+     },
+     "leanDeg": {
+      "mean": 1.6,
+      "p90": 2.6
+     },
+     "stretchPct": {
+      "mean": 0,
+      "p90": 0
+     }
+    }
+   },
+   "wind 0.5": {
+    "wind": 0.5,
+    "gustAtTufts": "< 0.75 (ordinary air), clock swept over 54 s",
+    "grassTips": {
+     "tipSamples": 89050,
+     "downwindCm": {
+      "mean": 20.4,
+      "p50": 14.3,
+      "p90": 47.5
+     },
+     "leanDeg": {
+      "mean": 25.1,
+      "p90": 50.6
+     },
+     "stretchPct": {
+      "mean": 3.1,
+      "p90": 9.3
+     }
+    },
+    "reedTips": {
+     "tipSamples": 6806,
+     "downwindCm": {
+      "mean": 17.2,
+      "p50": 15.5,
+      "p90": 28.8
+     },
+     "leanDeg": {
+      "mean": 9.6,
+      "p90": 15.5
+     },
+     "stretchPct": {
+      "mean": 0.5,
+      "p90": 1.1
+     }
+    }
+   },
+   "wind 1.0": {
+    "wind": 1,
+    "gustAtTufts": "< 0.75 (ordinary air), clock swept over 54 s",
+    "grassTips": {
+     "tipSamples": 84960,
+     "downwindCm": {
+      "mean": 36.9,
+      "p50": 26.4,
+      "p90": 85.3
+     },
+     "leanDeg": {
+      "mean": 48.9,
+      "p90": 93.2
+     },
+     "stretchPct": {
+      "mean": 6,
+      "p90": 14.2
+     }
+    },
+    "reedTips": {
+     "tipSamples": 6324,
+     "downwindCm": {
+      "mean": 39.8,
+      "p50": 36.6,
+      "p90": 64.2
+     },
+     "leanDeg": {
+      "mean": 23.7,
+      "p90": 36.3
+     },
+     "stretchPct": {
+      "mean": 2.9,
+      "p90": 6
+     }
+    }
+   },
+   "wind 1.0, gust peak": {
+    "wind": 1,
+    "gustAtTufts": ">= 0.75 (gust field 0..1), clock swept over 54 s",
+    "grassTips": {
+     "tipSamples": 16948,
+     "downwindCm": {
+      "mean": 44,
+      "p50": 31.3,
+      "p90": 101.2
+     },
+     "leanDeg": {
+      "mean": 62.1,
+      "p90": 111.8
+     },
+     "stretchPct": {
+      "mean": 6.8,
+      "p90": 14.3
+     }
+    },
+    "reedTips": {
+     "tipSamples": 1202,
+     "downwindCm": {
+      "mean": 55.2,
+      "p50": 52.7,
+      "p90": 81.9
+     },
+     "leanDeg": {
+      "mean": 35.2,
+      "p90": 48.1
+     },
+     "stretchPct": {
+      "mean": 5.9,
+      "p90": 10.2
+     }
+    }
+   }
+  }
+ }
+}

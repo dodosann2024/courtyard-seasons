@@ -1,0 +1,93 @@
+{
+ "bundles": {
+  "main": "assets/desert.4c46dd446d.js",
+  "branch": "assets/desert.b609b040bf.js"
+ },
+ "session": "one headless Chrome session, main and branch alternated, 4 rounds each, order rotated",
+ "order": [
+  "pr",
+  "main",
+  "main",
+  "pr",
+  "pr",
+  "main",
+  "main",
+  "pr"
+ ],
+ "rounds": {
+  "pr": [
+   {
+    "frames": 51,
+    "jsMean": 16.1,
+    "jsP95": 58.3,
+    "max": 74,
+    "over200": 0
+   },
+   {
+    "frames": 48,
+    "jsMean": 15.5,
+    "jsP95": 55.1,
+    "max": 69,
+    "over200": 0
+   },
+   {
+    "frames": 45,
+    "jsMean": 15.4,
+    "jsP95": 51.5,
+    "max": 60,
+    "over200": 0
+   },
+   {
+    "frames": 48,
+    "jsMean": 16,
+    "jsP95": 53.8,
+    "max": 56,
+    "over200": 0
+   }
+  ],
+  "main": [
+   {
+    "frames": 48,
+    "jsMean": 14.8,
+    "jsP95": 53.8,
+    "max": 63,
+    "over200": 0
+   },
+   {
+    "frames": 48,
+    "jsMean": 15.3,
+    "jsP95": 55.7,
+    "max": 70,
+    "over200": 0
+   },
+   {
+    "frames": 48,
+    "jsMean": 13.9,
+    "jsP95": 48.6,
+    "max": 62,
+    "over200": 0
+   },
+   {
+    "frames": 51,
+    "jsMean": 15.9,
+    "jsP95": 52,
+    "max": 78,
+    "over200": 0
+   }
+  ]
+ },
+ "summary": {
+  "clearDayJsPerFrameMs": {
+   "branch": 15.8,
+   "main": 15.0,
+   "limit_main_x1.15": 17.2,
+   "ok": true
+  },
+  "framesOver200ms": [
+   0,
+   0,
+   0,
+   0
+  ]
+ }
+}

@@ -164,21 +164,43 @@ try {
     const okSize = os.length === 2 && os[0].headY > 2.3 && os[0].headY < 2.75 && os[1].headY > 1.95 && os[1].headY < os[0].headY;
     const om = new Set(), tm = new Set(), op = os.map(o => [o.x, o.z]);
     for (let i = 0; i < 60; i++) { q.sim(3, .1); for (const o of PA.os) om.add(o.mode); for (const t of PA.tt) tm.add(t.mode); }
+    /* a tortoise out walking. Whether one happens to be on the move in these seconds depends on where its day plan has
+       got to (cropping a tuft, still in its shell after an ostrich went by), so one is sent off explicitly on a short walk over open
+       sand well clear of the big animals, the way the snow-crunch check sends a camel off with camelGo: here when none walked, and
+       again below until its own prints show */
+    const T0w = PA.tt[0], e = q.ANIM.eagle, bigT = [...PA.os, ...q.ANIM.camels, ...(e && e.x != null ? [e] : [])];
+    const tortWalk = () => { for (let t = 0; t < 120; t++) { const th = t * 2.39996, d = (t % 10) * 1.2, x = T0w.x + Math.sin(th) * d, z = T0w.z + Math.cos(th) * d,
+        ex = x + Math.sin(th) * 1.6, ez = z + Math.cos(th) * 1.6;
+      if (q.pN(x, z) < 1.3 || q.pN(ex, ez) < 1.3 || bigT.some(b => Math.min(Math.hypot(b.x - x, b.z - z), Math.hypot(b.x - ex, b.z - ez)) < 5)) continue;
+      q.torPlace(T0w, x, z, th); Object.assign(T0w, {mode: "graze", t: 99, path: null, then: null, inShade: 1}); T0w.P.wd = 0; T0w.P.dig = 0;
+      if (q.torGo(T0w, {x: ex, z: ez}, "walk")) { T0w.then = "graze"; return [+x.toFixed(2), +z.toFixed(2)]; } } return null; };
+    if (!tm.has("walk")) { r.ttWalk0 = tortWalk(); for (let i = 0; i < 20; i++) { q.step(6, 1 / 30); for (const t of PA.tt) tm.add(t.mode); } }
+    /* an ostrich walking off: on a quiet spell both may only graze and stand about, so one is sent to an open spot a few metres off */
+    const osMv = () => Math.max(...PA.os.map((o, i) => Math.hypot(o.x - op[i][0], o.z - op[i][1])));
+    if (osMv() <= 2 || !om.has("walk") || !om.has("graze")) { const O1 = PA.os[0];
+      for (let k = 0; k < 40; k++) { const p = q.osSpot(O1, true, 9); if (p && Math.hypot(p.x - O1.x, p.z - O1.z) > 4 && q.osGo(O1, p, false)) { O1.then = "graze"; r.osSent = 1; break; } }
+      for (let i = 0; i < 40 && (osMv() <= 2 || !om.has("walk") || !om.has("graze")); i++) { q.step(6, 1 / 30); for (const o of PA.os) om.add(o.mode); }
+      if (!om.has("graze")) for (let i = 0; i < 40 && !om.has("graze"); i++) { q.step(6, 1 / 30); for (const o of PA.os) om.add(o.mode); } }
     r.osModes = [...om].sort(); r.osMoved = +Math.max(...PA.os.map((o, i) => Math.hypot(o.x - op[i][0], o.z - op[i][1]))).toFixed(1);
     r.ttModes = [...tm].sort(); r.ttMaxV = +Math.max(...PA.tt.map(t => t.v)).toFixed(3);
-    /* the eagle stooping on an ostrich out on the open sand north-west of the camp, well clear of the fire, the tent and the lake:
-       it runs. A fixed spot keeps the check repeatable; the random open-spot search is only the fallback. */
-    const O = PA.os[0]; let s0 = q.osOpen(-5.5, -5) ? {x: -5.5, z: -5} : null;
-    for (let k = 0; k < 60 && !s0; k++) { const p = q.osSpot(O, false, 10); if (p && Math.hypot(p.x - q.FIRE.x, p.z - q.FIRE.z) > 8 && Math.hypot(p.x, p.z) > 4) s0 = p; }
-    if (s0) q.osPlace(O, s0.x, s0.z, 0); O.path = null; O.mode = "graze"; O.t = 9; O.P.sit = 0;
-    const ox = O.x, oz = O.z, ol = Math.hypot(ox, oz) || 1; q.paThreat(ox + ox / ol * 2, oz + oz / ol * 2, 6, 1.5); let vmax = 0;
+    /* a threat close behind an ostrich out on the open sand: it runs. Whether a run gets going depends on there being room ahead
+       of it (the camels, the other bird and the camp move about), so the bird is stood facing a straight 10 m of open sand clear of
+       all of them and the threat put down 2 m behind it; north-west of the camp is tried first, the open-spot search after it */
+    const O = PA.os[0], others = [...q.ANIM.camels, ...PA.os.filter(o => o !== O)];
+    const osRoom = (x, z, a) => { for (let u = 0; u <= 10; u++) { const px = x + Math.sin(a) * u, pz = z + Math.cos(a) * u;
+      if (!q.osOpen(px, pz) || Math.hypot(px - q.FIRE.x, pz - q.FIRE.z) < 5 || others.some(b => Math.hypot(b.x - px, b.z - pz) < 4.5)) return false; } return true; };
+    let s0 = null, fa = 0;
+    for (let k = 0; k < 120 && !s0; k++) { const p = k ? q.osSpot(O, false, 12) : {x: -5.5, z: -5}; if (!p) continue;
+      for (let j = 0; j < 12 && !s0; j++) { const a = j * Math.PI / 6; if (osRoom(p.x, p.z, a)) { s0 = p; fa = a; } } }
+    if (s0) q.osPlace(O, s0.x, s0.z, fa); O.path = null; O.mode = "graze"; O.t = 9; O.P.sit = 0; O.thr = null; O.fled = 0; r.osFrom = s0 && [+s0.x.toFixed(1), +s0.z.toFixed(1)];
+    const ox = O.x, oz = O.z; q.paThreat(ox - Math.sin(fa) * 2, oz - Math.cos(fa) * 2, 6, 1.5); let vmax = 0;
     for (let i = 0; i < 75; i++) { q.step(3, 1 / 30); vmax = Math.max(vmax, O.v); } r.osFlee = +vmax.toFixed(2); r.osAway = +Math.hypot(O.x - ox, O.z - oz).toFixed(1); q.paThreat(0, 0, 0);
     /* hail: tortoises pull in */
     window.__set({weather: "hail", hailLv: 1}); q.sim(20, .1); r.ttHail = PA.tt.map(t => +t.P.wd.toFixed(2)); const shell = PA.tt.every(t => t.P.wd > .9);
     window.__set({weather: "sun", ct: "clear", hailLv: 1}); q.sim(240, .5);
     /* noon heat: a tortoise digs into shade */
     const T0 = PA.tt[0], s = q.torShade(T0); q.torPlace(T0, s.x + .4, s.z + .3, 0); T0.mode = "graze"; T0.t = 0; T0.inShade = 0; let dug = false;
-    for (let i = 0; i < 40 && !dug; i++) { q.WX.heat = 1; q.sim(3, .1); dug = T0.mode === "dig" || T0.mode === "pallet"; } r.ttHeat = T0.mode;
+    for (let i = 0; i < 80 && !dug; i++) { q.WX.heat = 1; q.sim(3, .1); dug = T0.mode === "dig" || T0.mode === "pallet"; } r.ttHeat = T0.mode;
     /* day: gerbils below, scorpions under their rocks */
     /* ...though now and then one puts its head up out of the hole for a look round (and ducks if something comes by); each burrow
        and scrape has its spoil heap */
@@ -207,11 +229,15 @@ try {
     const big = [...PA.os, ...PA.tt, ...q.ANIM.camels], room = a => Math.min(...big.map(b => Math.hypot(b.x - a.rk.dx, b.z - a.rk.dz)));
     const S = PA.sc.reduce((b, a) => room(a) > room(b) ? a : b); S.mode = "roam"; S.t = 99; S.x = S.rk.dx; S.z = S.rk.dz; S.goal = null; q.step(5, 1 / 30);
     q.paThreat(S.x + .5, S.z + .2, 4, .1); q.step(45, 1 / 30); r.scThr = +S.P.thr.toFixed(2); r.scOpen = +S.P.open.toFixed(2); q.paThreat(0, 0, 0);
-    /* night: ostriches sit */
-    q.sim(40, .1); r.osNight = PA.os.map(o => o.mode + ":" + o.P.sit.toFixed(2));
-    const sat = PA.os.every(o => o.mode === "sit" && o.P.sit > .8);
+    /* night: ostriches sit. One still on a run or on the alert when night falls finishes that first, so the sitting is waited on for
+       up to a minute and a half more rather than read at a fixed moment */
+    const sitting = () => PA.os.every(o => o.mode === "sit" && o.P.sit > .8);
+    q.sim(40, .1); for (let i = 0; i < 9 && !sitting(); i++) q.sim(10, .1); r.osNight = PA.os.map(o => o.mode + ":" + o.P.sit.toFixed(2));
+    const sat = sitting();
     /* morning: the ostriches get up off their night hollows */
     q.tod("day"); window.__set({weather: "sun", ct: "clear", wind: .3}); q.sim(50, .25);
+    r.ttWalk = kinds().has(6) ? "already" : tortWalk();
+    for (let i = 0; i < 30 && !kinds().has(6); i++) { if (T0w.mode !== "walk") r.ttWalk = tortWalk(); q.step(30, 1 / 30); }
     const K = kinds(); r.printKinds = [5, 6, 7, 8, 9, 10].filter(k => K.has(k));
     window.__set({wind: .8}); PA.noView = 0; q.sim(30, .5);
     return [r.os === 2 && r.tt === 2 && r.gb === 3 && r.sc === 2 && okSize && om.has("walk") && om.has("graze") && r.osMoved > 2 && r.osFlee > 3 &&

@@ -1,0 +1,33 @@
+{
+ "bundle": "assets/desert.fb25e09688.js",
+ "water": {
+  "eye": {
+   "cam": [
+    0.53,
+    1.3,
+    6.8
+   ],
+   "eyeAboveSand": 1.6,
+   "eyeAboveWater": 1.72
+  },
+  "sun": {
+   "cam": [
+    -11.77,
+    1.36,
+    11.5
+   ],
+   "eyeAboveSand": 1.6,
+   "eyeAboveWater": 1.78
+  },
+  "close": {
+   "cam": [
+    -2.49,
+    0.13,
+    8.29
+   ],
+   "eyeAboveSand": 0.85,
+   "eyeAboveWater": 0.55
+  }
+ },
+ "fails": []
+}

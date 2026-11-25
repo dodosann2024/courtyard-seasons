@@ -272,7 +272,7 @@ function sandMat(){
         /* where the dune is (x) and how sharply it peaks along the wind (y: high only along the crest), for the snow */
         vDn=aM>0.&&uSnow+uMW>.003?vec2(aM,aM*(duneG(position.xz,uDA,uDB)-.5*(duneG(position.xz+uRipDir*1.4,uDA,uDB)+duneG(position.xz-uRipDir*1.4,uDA,uDB)))):vec2(0.);`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;varying vec2 vDn;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uPitK,uHeat,uTm;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;float mkO=0.;
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;varying vec2 vDn;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uPitK,uHeat,uTm,uPT,uPW,uPI;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;float mkO=0.;
       uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}
       /* the island's rim shape (sN in JS): 1 on the rim line */
       float rimN(vec2 p){vec2 q=p/vec2(${AX}.,${AZ}.);float th=atan(q.y,q.x);
@@ -296,6 +296,14 @@ function sandMat(){
         sc=mix(sc,uSoil,soil*.8);
         float wet=smoothstep(uWy+.32,uWy+.04,vSP.y)*smoothstep(1.25,.9,pn);
         sc=mix(sc,uWet,wet);
+        /* the pond's edge laps exactly as the water does (its clock, wind and ice): above the highest reach a band of dark wet sand
+           with a ragged top; below it, sand the water has just drawn back from stays dark and glossy and dries off over a few seconds */
+        float shW=0.,shG=0.;
+        {float hh=vSP.y-uWy;if(pn<1.15&&hh<.22&&hh>-.06){float th=atan(vSP.z-uPond.y,vSP.x-uPond.x),A=(.006+.022*uPW)*(1.-uPI);
+          float top=A+.075+.04*uPW+.018*(dn2(vSP.xz*3.7)-.5)+.009*(dn2(vSP.xz*14.+2.)-.5);shW=smoothstep(top,top-.035,hh)*(1.-.5*uPI);
+          if(A>.0005)for(int i=0;i<8;i++){float ta=float(i)*.5,t=uPT-ta,lv=A*(sin(t*1.15+th*9.+1.8*dn2(vec2(th*5.,t*.25)))*.6+sin(t*.67+th*4.+1.3)*.4);
+            shG=max(shG,smoothstep(hh-.003,hh+.002,lv)*exp(-ta/1.6));}
+          sc*=mix(1.,.84,smoothstep(top+.07,top,hh)*(1.-.5*uPI));sc*=mix(1.,.6,shW);sc=mix(sc,sc*vec3(.68,.64,.6),shG*.85);}}
         /* desert pavement: a lag of pebbles (grey, tan, varnished red-brown) over darker grit; at a distance only their mean tone */
         float grv=0.;
         for(int i=0;i<${GRV.length};i++){vec4 g=uGrv[i];vec2 q=vSP.xz-g.xy;float sh=(dfbm(q*.42+g.xy)-.5)*.75+(nz2-.5)*.3;grv=max(grv,smoothstep(1.,.35,length(q)/g.z+sh));}
@@ -350,7 +358,7 @@ function sandMat(){
          sc*=1.+gd*((g1-.5)*.09+(g2-.5)*.1);}
         diffuseColor.rgb=mix(sc,vec3(dot(sc,vec3(.3,.59,.11)))*vec3(.74,.88,1.04),uNight*.7)*mix(1.,.54,uNight);`)
       .replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
-        roughnessFactor=mix(roughnessFactor,.64,rWM);`)
+        roughnessFactor=mix(roughnessFactor,.64,rWM);roughnessFactor=mix(roughnessFactor,.74,shW*.6);roughnessFactor=mix(roughnessFactor,.36,shG*.85);`)
       .replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
         float ripAO=1.;
         {float fw=length(fwidth(vSP.xz));
@@ -714,6 +722,8 @@ function placeRocks(list){
 const pondU={uT:{value:0},uCamL:{value:new V3()},uSunL:{value:new V3(0,1,0)},uSunCol:{value:new C3("#ffb469")},
   uDeep:{value:new C3("#0a2c2b")},uShal:{value:new C3("#2c6a5c")},uBed:{value:new C3("#a8875a")},uSkyA:{value:new C3("#c9a6c4")},uSkyB:{value:new C3("#6f6aa8")},
   uRefl:{value:null},uReflM:{value:new T.M4()},uReflOn:{value:0},uNight:{value:0},uWind:{value:.35},uRainP:{value:0},uIce:{value:0},uOvc:{value:0},uWD:sandU.uWD,uFogC:{value:new C3()},uFogNF:{value:new T.V2(400,900)}};
+/* the sand's wet margin laps with the water */
+Object.assign(sandU,{uPT:pondU.uT,uPW:pondU.uWind,uPI:pondU.uIce});
 let pondMesh=null;
 (function buildPond(){
   const NR=26,NA=96,pos=[],dep=[],idx=[];
@@ -736,6 +746,14 @@ let pondMesh=null;
       /* light focused by the ripples onto the sand bed: a thin wandering net, two nets of different size */
       float caus(vec2 p){float a=dn2(p*6.2+uT*vec2(.44,.25)),b=dn2(p*8.3-uT*vec2(.33,.5)+.37),c=dn2(p*13.+uT*vec2(.55,-.4)+2.1),d=dn2(p*17.-uT*vec2(-.42,.6)+5.7);
         return pow(1.-clamp(abs(a-b)*4.,0.,1.),5.)+.55*pow(1.-clamp(abs(c-d)*4.,0.,1.),6.);}
+      /* the wind's own ripple train, 4-13 cm crests running downwind at capillary speed (~27 cm/s), each a little off the wind,
+         their crests bent by a slow warp and gathered in groups: slope (xz) in island axes. A train finer than about three pixels
+         is left out and its slope variance (w) handed to the sun lobe, so it turns into roughness instead of shimmering. */
+      vec3 wrip(vec2 p,vec2 wd,vec2 wp,float fw){vec2 s=vec2(0.);float w=0.,wa=dn2(p*2.3+wp*uT*.3)-.5,wb=dn2(p*5.1-wd*uT*.5+7.)-.5;
+        for(int i=0;i<4;i++){float fi=float(i),L=i==0?.13:i==1?.088:i==2?.061:.042,an=i==0?-.32:i==1?.24:i==2?-.12:.41,k=6.2832/L;
+          vec2 d=wd*cos(an)+wp*sin(an);float ph=k*(dot(p,d)+(wa*.05+wb*.018)*(1.+fi*.3))-k*.27*uT+fi*1.7;
+          float A=(.9-.12*fi),f=1.-smoothstep(L*.22,L*.55,fw);s+=d*cos(ph+.35*sin(ph))*A*f;w+=A*A*(1.-f);}
+        return vec3(s,w);}
       void main(){
         float e=.06,h0=wv(vP.xz);vec2 g=vec2(wv(vP.xz+vec2(e,0.))-h0,wv(vP.xz+vec2(0.,e))-h0)/e;
         vec2 wd=normalize(uWD+vec2(1e-4,0.)),wp=vec2(-wd.y,wd.x);
@@ -745,6 +763,8 @@ let pondMesh=null;
         float amp=(.022+.07*uWind)*(.75+.5*paw);vec3 n=normalize(vec3(-g.x*amp,1.,-g.y*amp));
         if(lod>.001){vec2 q=vec2(dot(vP.xz,wd),dot(vP.xz,wp));float ce=.012,c0=cw(q),ca=(cw(q+vec2(ce,0.))-c0)/ce,cc=(cw(q+vec2(0.,ce))-c0)/ce;
           vec2 cg=(wd*ca+wp*cc)*(.0035+.011*uWind)*(.25+.75*paw)*lod*(1.-uIce*.6);n=normalize(n-vec3(cg.x,0.,cg.y));}
+        float grp=.45+.55*smoothstep(.25,.75,dn2(vP.xz*1.6-wd*uT*.35+11.)),rs=(.02+.15*uWind)*(.4+.6*paw)*grp*(1.-uIce*.75);
+        vec3 wr=wrip(vP.xz,wd,wp,fw);n=normalize(n-vec3(wr.x,0.,wr.y)*rs);float rv=wr.z*rs*rs;
         if(uRainP>.003){vec2 rg=ringG(vP.xz);n=normalize(n+vec3(rg.x,0.,rg.y)*smoothstep(.0,.1,vD));
           /* between the rings the surface is roughened by the drops all over it */
           float fr2=1.-smoothstep(.006,.025,length(fwidth(vP.xz))),r0=dn2(vP.xz*75.+uT*3.1),rx=dn2(vP.xz*75.+vec2(1.6,0.)+uT*3.1),rz=dn2(vP.xz*75.+vec2(0.,1.6)+uT*3.1);
@@ -753,7 +773,7 @@ let pondMesh=null;
         float fr=.02+.98*pow(1.-max(dot(n,V),0.),5.);
         /* the shore laps: the waterline creeps up the bank and draws back, unevenly along it, more in wind */
         float th=atan(vP.z-(${POND.z.toFixed(3)}),vP.x-(${POND.x.toFixed(3)})),lph=uT*1.15+th*9.+1.8*dn2(vec2(th*5.,uT*.25));
-        float ed=vD+(.004+.012*uWind)*(sin(lph)*.6+sin(uT*.67+th*4.+1.3)*.4)*(1.-uIce);
+        float ed=vD+(.006+.022*uWind)*(sin(lph)*.6+sin(uT*.67+th*4.+1.3)*.4)*(1.-uIce);
         float sunV=(1.-uNight)*(1.-.85*uOvc),sunK=dot(uSunCol,vec3(.3,.45,.25));
         /* oasis water: clear over the sand bed at the margin, absorbing to a deep green-teal in the middle */
         float dd=smoothstep(.02,1.3,vD);
@@ -773,7 +793,7 @@ let pondMesh=null;
         /* from the usual distance single rings are below a pixel: the drops show as a matte, broken sheen with splashes winking on it */
         float rFar=uRainP*smoothstep(.006,.03,length(fwidth(vP.xz)));
         vec2 rJ=(vec2(dn2(vP.xz*14.+uT*2.3),dn2(vP.xz*14.+vec2(5.2,1.7)-uT*2.1))-.5)*.05*rFar;
-        if(uReflOn>.5){vec2 ruv=vR.xy/vR.w+n.xz*.016+rJ;vec4 rc=texture2D(uRefl,clamp(ruv,0.,1.));
+        if(uReflOn>.5){vec2 ruv=vR.xy/vR.w+n.xz*.03+rJ;vec4 rc=texture2D(uRefl,clamp(ruv,0.,1.));
           rc=(any(isnan(rc))||any(isinf(rc)))?vec4(0.):clamp(rc,0.,1.);refl=mix(refl,rc.rgb*.7,rc.a*.92);}
         vec3 c=mix(body,refl,clamp(fr*1.05+.12,0.,.92));
         /* the paws read from afar: roughened water mirrors less of the bright low sky and goes a shade darker, the calm lanes between stay glassy */
@@ -783,11 +803,21 @@ let pondMesh=null;
         /* a faint darker band of wet shallows where the water meets the shore */
         c*=1.-.14*(1.-smoothstep(.0,.12,ed));
         /* sun on the water: a tight core, a microfacet lobe as wide as the ripples are rough, glints winking where facets catch it */
-        vec3 H=normalize(V+uSunL);float nh=max(dot(n,H),.05),t2=(1.-nh*nh)/(nh*nh),m2=.004+.016*uWind*(.5+paw)+.01*uRainP+.012*uWind*(1.-lod);
+        vec3 H=normalize(V+uSunL);float nh=max(dot(n,H),.05),t2=(1.-nh*nh)/(nh*nh),m2=.004+.016*uWind*(.5+paw)+.01*uRainP+.012*uWind*(1.-lod)+rv*.5;
         float bk=exp(-t2/m2)/(3.1416*m2*nh*nh*nh*nh)*(.02+.98*pow(1.-max(dot(V,H),0.),5.))/(4.*max(dot(n,V),.1));
         float spk=mix(smoothstep(.74,.9,dn2(vP.xz*9.+wd*uT*1.2)*.5+dn2(vP.xz*15.-wp*uT*1.6)*.5),smoothstep(.7,.92,dn2(vP.xz*31.+wd*uT*1.7)*.55+dn2(vP.xz*57.-wp*uT*2.3)*.45),lod);
         float gl=pow(max(dot(rd,uSunL),0.),220.),sw=pow(max(dot(rd,uSunL),0.),30.);
         c+=uSunCol*sunV*(gl*2.2+min(bk,40.)*(.05+.5*spk)*.06+sw*spk*(.5+paw)*.8);
+        /* glitter: each facet of the ripples is a small mirror tilted its own way (wider spread in wind and on the paws); one that
+           turns the sun into the eye flashes, re-rolled a few times a second so the sparkle twinkles. Near cells are 1.2 cm, far 4 cm,
+           and a spot never shrinks under about a pixel. */
+        float sig=.07+.42*uWind*(.55+.45*paw)+.1*uRainP,gs=0.,ln=1.-smoothstep(.006,.02,fw);
+        if(sunV>.02)for(int L=0;L<2;L++){float cs=L==0?.012:.04,on=L==0?ln:1.-ln;if(on<.01)continue;
+          vec2 gq=vP.xz/cs+float(L)*17.,ci=floor(gq);float h=dh2(ci+floor(uT*4.+dh2(ci+3.3)*8.)*.731);
+          vec2 r=vec2(dh2(ci+h*7.3+1.1),dh2(ci+h*3.9+5.7))-.5,o=vec2(dh2(ci+9.2),dh2(ci+4.4))*.5+.25;
+          vec3 nf=normalize(n+vec3(r.x,0.,r.y)*sig*3.4);float sd=dot(reflect(-V,nf),uSunL),rad=clamp(.16+.6*fw/cs,.16,.5);
+          gs+=on*smoothstep(.9965,.9993,sd)*smoothstep(rad,rad*.45,length(fract(gq)-o));}
+        c+=uSunCol*sunV*gs*2.6*(1.-.8*uRainP)*(1.-.7*uIce)*smoothstep(.0,.06,vD);
         /* the meniscus catches the sky as a thin bright line at the edge, and a broken lace of bubbles and foam rides the lapping band */
         float mw=max(.003,fwidth(ed)*1.2),ml=exp(-pow((ed-.003)/mw,2.))*(1.-uIce);
         c=mix(c,sky*1.05+uSunCol*.12*sunV,ml*.3*(.4+.6*lod));
@@ -3161,8 +3191,8 @@ function groundFrame(x,z,yaw,L,Wd){
    and a shaded wall and a dark floor. Prints are laid where a foot actually comes to rest, and wind, blowing sand and rain
    wear them away (slowly in still air, within seconds in a dust storm). instanceColor carries (kind + variant/4, wear clock
    at birth, depth). ---- */
-const PRK={drom:0,bact:1,talon:2,wing:3,lie:4,ost:5,tort:6,gerb:7,scorp:8,pal:9,hole:10};
-const PR_SZ=[.28,.32,.2,.9,2.1,.25,.11,.065,.075,.5,.17];
+const PRK={drom:0,bact:1,talon:2,wing:3,lie:4,ost:5,tort:6,gerb:7,scorp:8,pal:9,hole:10,knee:11,chest:12};
+const PR_SZ=[.28,.32,.2,.9,2.1,.25,.11,.065,.075,.5,.17,.3,.56];
 const PR=(()=>{const N=MOB?1000:2000,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
   const m=new T.SM({transparent:true,depthWrite:false,side:2,blending:5,blendSrc:208,blendDst:202,blendSrcAlpha:200,blendDstAlpha:201,
     polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,uniforms:{uE:{value:0},uKs:{value:.7},uSnw:{value:0},uLd:sandU.uLd,uWD:sandU.uWD},
@@ -3233,7 +3263,13 @@ const PR=(()=>{const N=MOB?1000:2000,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
       /* a gerbil's hole: a dark mouth sloping down under the sand, the spoil kicked out of it fanned on one side */
       float hole(vec2 p){float r=length(p/vec2(2.5,2.3))+(dn2(p*.9+vSd*3.)-.5)*.12;vec2 m=(p-vec2(0.,4.6))/vec2(4.2,3.4);
         return -5.*smoothstep(1.05,.25,r)+.9*exp(-(r-1.15)*(r-1.15)*6.)+1.5*exp(-dot(m,m))*(1.+.4*dn2(p*.7+vSd*5.));}
-      float hgt(vec2 p,float k,float v){if(k>9.5)return hole(p);if(k<1.5)return camel(p,v,k)*(k<.5?1.4:1.);if(k<2.5)return talon(p);if(k<3.5)return wing(p);if(k<4.5)return lie(p,v);
+      /* a folded fore knee pressed in on its carpal pad: an oval hollow, the sand pushed up round it in a low rim, most ahead where
+         the knee slid forward going down; the chest pad's hollow is broader and deeper, it bears most of a lying camel's weight */
+      float knee(vec2 p,float bk){p/=bk>.5?1.12:1.;float q=length(p/vec2(5.2,6.6))+(dn2(p*.5+vSd*7.)-.5)*.12;
+        return -2.*smoothstep(1.03,.3,q)+1.*exp(-(q-1.2)*(q-1.2)*9.)*(1.+.8*smoothstep(-4.,8.,p.y))+.2*(dn2(p*1.1+vSd*5.)-.5);}
+      float chest(vec2 p,float bk){p/=bk>.5?1.12:1.;float q=length(p/vec2(10.5,13.5))+(dn2(p*.2+vSd*4.)-.5)*.12;
+        return -2.8*smoothstep(1.03,.3,q)+1.35*exp(-(q-1.17)*(q-1.17)*11.)*(1.+.5*smoothstep(-8.,14.,p.y))+.3*(dn2(p*.5+vSd*9.)-.5);}
+      float hgt(vec2 p,float k,float v){if(k>11.5)return chest(p,v);if(k>10.5)return knee(p,v);if(k>9.5)return hole(p);if(k<1.5)return camel(p,v,k)*(k<.5?1.4:1.);if(k<2.5)return talon(p);if(k<3.5)return wing(p);if(k<4.5)return lie(p,v);
         if(k<5.5)return ost(p);if(k<6.5)return tort(p,v);if(k<7.5)return gerb(p,v);if(k<8.5)return scorp(p,v);return pal(p);}
       /* wear (w 0 fresh .. 1 gone): the heaped rims blow away first and the walls slump, while drifting sand fills the print
          from its upwind edge in a ragged front that creeps downwind */
@@ -3250,7 +3286,7 @@ const PR=(()=>{const N=MOB?1000:2000,geo=new T.Plane(1,1).rotateX(-Math.PI/2);
         float F=clamp(mix(1.,df,uKs)*ao,.12,1.7);
         /* pressed sand is packed smooth and reads darker than the loose sand round it, the heaped rim lighter, whatever the sun's height */
         if(big>.5)F*=(1.-.2*clamp(-h0/2.5,0.,1.))*(1.+.1*clamp(h0/1.5,0.,1.));
-        if(k>9.5)F*=mix(1.,.18,smoothstep(-1.5,-4.,h0));
+        if(k>9.5&&k<10.5)F*=mix(1.,.18,smoothstep(-1.5,-4.,h0));
         /* a print only a few pixels across: its lit rim and shaded floor would average out to nothing, so it settles to a soft dent */
         float os=step(4.5,k)*step(k,5.5),lod=smoothstep(1.2,3.5,max(fwidth(p.x),fwidth(p.y)))*max(step(k,2.5),os),R=k<.5?10.5*vG:k<1.5?9.*vG:os>.5?5.5*vG:6.*vG;
         F=mix(F,1.-(k<.5?.62:.42)*(k<2.5||os>.5?exp(-dot(p-vec2(0.,os*2.),p-vec2(0.,os*2.))/(R*R)):clamp(-h0*1.4,0.,1.)),lod);
@@ -3483,7 +3519,7 @@ function ctUp(a){const D=CAMEL_CT[a.kind.file];let body=null;a.mdl.traverse(o=>{
      only while kneeling, which never move the body (they only say how far a folded fore leg is let down) */
   a.ct={body,N,bp,bi,bw,reg,bones,pdI,M:new Float32Array(bones.length*16),th:0,ph:0,rw:0,lp:a.feet.map(f=>{let b=f.b;while(b.parent&&!/Limb_0$/.test(b.name))b=b.parent;return{b,d:0,wx:0,wy:0,wz:0,x:0,y:0,z:0,px:0,pz:0,on:0}}),c:Array.from({length:6+pads.length},(_,i)=>({fore:i<4?!a.feet[i].hind:i!==5,pad:i>5,x:0,y:0,z:0,X:0,Y:0,Z:0,g:0,h:0,h0:0,gx:0,gz:0,X0:0,Z0:0,ok:0}))}}
 function camelSettle(a,fdt){const C=a.ct;if(!C)return;const inn=a.inner;
-  for(const L of C.lp)if(L.on){L.on=0;const p=L.b.position;if(p.x===L.wx&&p.y===L.wy&&p.z===L.wz){p.x-=L.x;p.y-=L.y;p.z-=L.z}}
+  for(const L of C.lp)if(L.ap=0,L.on){L.on=0;const p=L.b.position;if(p.x===L.wx&&p.y===L.wy&&p.z===L.wz){p.x-=L.x;p.y-=L.y;p.z-=L.z}}
   /* measured with last frame's tilt on, so the vertex picked as lowest is the one that will be once it is set down */
   inn.position.y=0;inn.rotation.set(C.th,0,C.ph);a.g.updateMatrixWorld(true);
   const sk=C.body.skeleton,M=C.M,bp=C.bp,bi=C.bi,bw=C.bw,cs=C.c,e=a.g.matrix.elements;
@@ -3525,7 +3561,7 @@ function camelSettle(a,fdt){const C=a.ct;if(!C)return;const inn=a.inner;
      contact, that pad is let down onto the sand the same way, or, where the slope has pushed it in deeper than the rest, lifted back out */
   const w=W.matrixWorld.elements,kw=1-ss(0,.1,a.k);for(let i=0;i<4;i++){const c=cs[i],L=C.lp[i];if(!c.ok)continue;const f=a.feet[i],kf=a.k>.05&&!f.hind?ss(2.36,2.5,ctFold(f.b)):0,ww=Math.max(kw,kf);if(ww<=0)continue;
     const fe=f.b.matrixWorld.elements,v=fdt>0?Math.hypot(fe[12]-L.px,fe[14]-L.pz)/fdt:0;L.px=fe[12];L.pz=fe[14];
-    const p=kf>0&&C.pdI[i]>0?cs[C.pdI[i]]:null,rc=c.fg+c.k*dy,r=p&&p.ok?Math.min(p.fg+p.k*dy+CT_SINK,rc+.014):rc+CT_SINK,dw=r>0?r*ww*(1-ss(.08,.14,r))*(1-ss(.15,.3,v)*(1-kf)):p&&p.ok?Math.max(r,-.06)*kf:0;L.d+=(dw-L.d)*(fdt>0?1-Math.exp(-fdt*(Math.abs(dw)>Math.abs(L.d)?40:12)):1);const d=r>=0?Math.max(0,Math.min(L.d,r)):p&&p.ok&&L.d<0?Math.max(L.d,r):0;if(Math.abs(d)<1e-4)continue;
+    const p=kf>0&&C.pdI[i]>0?cs[C.pdI[i]]:null,rc=c.fg+c.k*dy,r=p&&p.ok?Math.min(p.fg+p.k*dy+CT_SINK,rc+.014):rc+CT_SINK,dw=r>0?r*ww*(1-ss(.08,.14,r))*(1-ss(.15,.3,v)*(1-kf)):p&&p.ok?Math.max(r,-.06)*kf:0;L.d+=(dw-L.d)*(fdt>0?1-Math.exp(-fdt*(Math.abs(dw)>Math.abs(L.d)?40:12)):1);const d=r>=0?Math.max(0,Math.min(L.d,r)):p&&p.ok&&L.d<0?Math.max(L.d,r):0;L.ap=d;if(Math.abs(d)<1e-4)continue;
     const b=L.b,m=_ctM.copy(b.parent.matrixWorld).invert().elements,X=-w[4]*d,Y=-w[5]*d,Z=-w[6]*d;
     L.x=m[0]*X+m[4]*Y+m[8]*Z;L.y=m[1]*X+m[5]*Y+m[9]*Z;L.z=m[2]*X+m[6]*Y+m[10]*Z;b.position.x+=L.x;b.position.y+=L.y;b.position.z+=L.z;L.wx=b.position.x;L.wy=b.position.y;L.wz=b.position.z;L.on=1}}
 function camelSpawn(sc,anims,i,kind){smoothRoot(anims);
@@ -3553,6 +3589,15 @@ function camelMouth(a,x,z,yaw,out){const f=groundFrame(x,z,yaw,1.25,.45);_cmE=_c
   return out.copy(a.mo).applyMatrix4(_cmM.compose(_cmP.set(x,f.y,z),_cmQ.setFromEuler(_cmE),_cmS))}
 function camelPrints(a){if(!a.gt)return;const bk=CAMEL_SLOTS[a.i]==="bact";
   gaitStep(a,a.r,a.gt,a.fb,.05,(j,x,z,yaw)=>{const f=a.feet[j];prAdd(bk?PRK.bact:PRK.drom,x,z,yaw,f.hind,1,f.R)},a.spd,3)}
+/* where the folded knees and the chest pad bear on the sand (kneeling, lying, getting up): a soft contact shadow round each pad
+   that is down, and once a pad has pressed in, the print of its hollow with the sand pushed up round it, laid again if it slides on */
+function camelPress(a){const C=a.ct;if(!C||a.k<.05){a.prs=null;return}
+  const bk=CAMEL_SLOTS[a.i]==="bact",dy=a.inner.position.y,L=a.prs||(a.prs={}),sh=.26+.2*sunCast(),lay=a.mode==="down"||a.mode==="rest";
+  const press=(c,g,j,knee)=>{const on=ss(.025,.004,g);if(on<.02)return;const y=hTop(c.X,c.Z),s=bk?1.1:1;
+    blobAdd(c.X,y,c.Z,a.yaw,(knee?.2:.42)*s,(knee?.26:.5)*s,on*sh,.85,0);
+    const p=L[j];if(lay&&on>.7&&(!p||Math.hypot(p.x-c.X,p.z-c.Z)>.07)){prAdd(knee?PRK.knee:PRK.chest,c.X,c.Z,a.yaw,bk?1:0,1,0,1);L[j]={x:c.X,z:c.Z}}};
+  const ch=C.c[4];if(ch.ok)press(ch,ch.fg+ch.k*dy,4,0);
+  for(let i=0;i<4;i++){const j=C.pdI[i],c=j>0&&C.c[j];if(c&&c.ok)press(c,c.fg+c.k*dy-C.lp[i].ap,j,1)}}
 /* the hollow it lay in, left as it gets up: centred under the chest and belly, a little ahead of the root */
 function camelLie(a){const bk=CAMEL_SLOTS[a.i]==="bact",f=.12*a.sc;prAdd(PRK.lie,a.x+Math.sin(a.yaw)*f,a.z+Math.cos(a.yaw)*f,a.yaw,bk?1:0,1,0,a.sc)}
 /* to.via: the stand is down the bank, off the walkable grid; the path runs to the bank top and then straight down to it */
@@ -3650,7 +3695,7 @@ function camelUpdate(a,dt){
   if(a.gy==null||Math.abs(f.y-a.gy)>.6){a.gy=f.y;a.gp=f.pitch;a.gr=f.roll}
   const gk=ease(9,dt);a.gy+=(f.y-a.gy)*gk;a.gp+=(f.pitch-a.gp)*gk;a.gr+=(f.roll-a.gr)*gk;
   a.g.position.set(a.x,a.gy,a.z);a.g.rotation.set(a.gp*(1-.5*kk),a.yaw,a.gr*(1-.5*kk));
-  rigTick(a.r,dt);camelSettle(a,dt);camelPrints(a);
+  rigTick(a.r,dt);camelSettle(a,dt);camelPrints(a);camelPress(a);
   /* footsteps crunch in the snow, about one a stride per foot */
   if(WX.sc>.05&&a.spd>.08){a.stD=(a.stD||0)+a.spd*dt;if(a.stD>.75){a.stD=0;if(amb())shotS("dCrn",.42*ss(.05,.4,WX.sc)*cl(a.spd/.9,.5,1),_crP.set(a.x+Math.sin(a.yaw)*rr(-1,1),hTop(a.x,a.z),a.z+Math.cos(a.yaw)*rr(-1,1)),5,rr(.85,1.15))}}}
 

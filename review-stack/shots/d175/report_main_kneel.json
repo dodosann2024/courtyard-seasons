@@ -1,0 +1,26 @@
+{
+ "bundle": "assets/desert.fb25e09688.js",
+ "kneel": {
+  "drom_rest": {
+   "pad": [
+    4.63,
+    -8.77
+   ],
+   "chest": [
+    4.05,
+    -8.75
+   ]
+  },
+  "bact_rest": {
+   "pad": [
+    4.62,
+    -8.79
+   ],
+   "chest": [
+    4.02,
+    -8.77
+   ]
+  }
+ },
+ "fails": []
+}

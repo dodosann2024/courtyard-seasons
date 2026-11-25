@@ -1,0 +1,491 @@
+{
+ "bundle": "assets/desert.375132585c.js",
+ "check": "tools/e2e/desert.mjs",
+ "runs": [
+  {
+   "run": 1,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": [
+    11.32,
+    0.99
+   ],
+   "sec": 44
+  },
+  {
+   "run": 2,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": [
+    5.46,
+    4.89
+   ],
+   "sec": 134
+  },
+  {
+   "run": 3,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": [
+    9.75,
+    8.17
+   ],
+   "sec": 131
+  },
+  {
+   "run": 4,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 144
+  },
+  {
+   "run": 5,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 144
+  },
+  {
+   "run": 6,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 184
+  },
+  {
+   "run": 7,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 193
+  },
+  {
+   "run": 8,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 155
+  },
+  {
+   "run": 9,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 173
+  },
+  {
+   "run": 10,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 178
+  },
+  {
+   "run": 11,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 148
+  },
+  {
+   "run": 12,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 164
+  },
+  {
+   "run": 13,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": [
+    5.19,
+    9.5
+   ],
+   "sec": 150
+  },
+  {
+   "run": 14,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 150
+  },
+  {
+   "run": 15,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": [
+    8.85,
+    1.22
+   ],
+   "sec": 118
+  },
+  {
+   "run": 16,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": [
+    11.25,
+    1.01
+   ],
+   "sec": 105
+  },
+  {
+   "run": 17,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 197
+  },
+  {
+   "run": 18,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 298
+  },
+  {
+   "run": 19,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": [
+    4.81,
+    7.46
+   ],
+   "sec": 298
+  },
+  {
+   "run": 20,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 220
+  },
+  {
+   "run": 21,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 238
+  },
+  {
+   "run": 22,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": [
+    10.84,
+    -3.32
+   ],
+   "sec": 220
+  },
+  {
+   "run": 23,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 277
+  },
+  {
+   "run": 24,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 205
+  },
+  {
+   "run": 25,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 244
+  },
+  {
+   "run": 26,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 216
+  },
+  {
+   "run": 27,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": [
+    4.72,
+    7.88
+   ],
+   "sec": 250
+  },
+  {
+   "run": 28,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 220
+  },
+  {
+   "run": 29,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": [
+    4.77,
+    9.15
+   ],
+   "sec": 263
+  },
+  {
+   "run": 30,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": "already",
+   "sec": 287
+  }
+ ],
+ "summary": {
+  "runs": 30,
+  "failures": 0,
+  "tortoiseMissing": 0
+ }
+}

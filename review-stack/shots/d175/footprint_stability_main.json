@@ -1,0 +1,2003 @@
+{
+ "bundle": "assets/desert.fb25e09688.js",
+ "check": "tools/e2e/desert.mjs",
+ "runs": [
+  {
+   "run": 1,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 52
+  },
+  {
+   "run": 2,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 224
+  },
+  {
+   "run": 3,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 187
+  },
+  {
+   "run": 4,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 263,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.44,
+     2.24
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 9.3,
+    "ttModes": [
+     "graze",
+     "pallet",
+     "shell",
+     "walk"
+    ],
+    "ttMaxV": 0.07,
+    "osFlee": 5.54,
+    "osAway": 10.4,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "walk",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.94,
+    "scRoam": 1,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 5,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 210,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "run",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 4.4,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 6.58,
+    "osAway": 9.3,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.87,
+    "scRoam": 0.96,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 6,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 232
+  },
+  {
+   "run": 7,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 224,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.44,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 8.7,
+    "ttModes": [
+     "pallet",
+     "shell"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 6.15,
+    "osAway": 8.8,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "dive",
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.8,
+    "scRoam": 0.91,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 8,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 223
+  },
+  {
+   "run": 9,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 267,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.44,
+     2.26
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "run",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 1.6,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 5.76,
+    "osAway": 6.4,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.81,
+    "scRoam": 1,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 10,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 216,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.46,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 14.4,
+    "ttModes": [
+     "graze",
+     "pallet",
+     "shell",
+     "walk"
+    ],
+    "ttMaxV": 0.07,
+    "osFlee": 0.08,
+    "osAway": 0,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "dive",
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.97,
+    "scRoam": 0.98,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 11,
+   "pass": false,
+   "printKinds": [
+    5,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": false,
+   "ttWalk": null,
+   "sec": 214,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.44,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "run",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 17.4,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 5.3,
+    "osAway": 9.7,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.91,
+    "scRoam": 0.97,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 12,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 228,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "run",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 10.6,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 5.57,
+    "osAway": 9.7,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "look",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.86,
+    "scRoam": 0.98,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 13,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 254,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 17.3,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 0.84,
+    "osAway": 2.7,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "dive",
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.71,
+    "scRoam": 0.87,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 14,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 252,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.26
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 9.6,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 5.83,
+    "osAway": 9.7,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "dive",
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.83,
+    "scRoam": 0.92,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 15,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 203
+  },
+  {
+   "run": 16,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 226,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "run",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 4.4,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 6.58,
+    "osAway": 9.3,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.87,
+    "scRoam": 0.96,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 17,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 210,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "run",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 10.6,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 5.57,
+    "osAway": 9.7,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "look",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.86,
+    "scRoam": 0.98,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 18,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 211,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 14.8,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 4.68,
+    "osAway": 6.9,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.83,
+    "scRoam": 0.89,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 19,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 219
+  },
+  {
+   "run": 20,
+   "pass": false,
+   "printKinds": [
+    5,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": false,
+   "ttWalk": null,
+   "sec": 260,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.26
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 9.2,
+    "ttModes": [
+     "graze",
+     "pallet",
+     "shell",
+     "walk"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 6.74,
+    "osAway": 13.5,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "dive",
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.87,
+    "scRoam": 0.95,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 21,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 199,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.44,
+     2.26
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "run",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 8.4,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 5.89,
+    "osAway": 13.5,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "dive",
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.94,
+    "scRoam": 0.98,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 22,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 206,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 8.3,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 6.22,
+    "osAway": 13.6,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "dive",
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 1,
+    "scRoam": 0.92,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 23,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 185,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "run",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 10.6,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 5.57,
+    "osAway": 9.7,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "look",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.86,
+    "scRoam": 0.98,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 24,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 197
+  },
+  {
+   "run": 25,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 182,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "run",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 8.1,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 5.15,
+    "osAway": 10.9,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "look",
+     "in"
+    ],
+    "gbDayModes": [
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.85,
+    "scRoam": 1,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 26,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 247,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.44,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 8.7,
+    "ttModes": [
+     "pallet",
+     "shell"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 6.15,
+    "osAway": 8.8,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "dive",
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.8,
+    "scRoam": 0.91,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 27,
+   "pass": false,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 205,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.25
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 17.3,
+    "ttModes": [
+     "pallet"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 0.84,
+    "osAway": 2.7,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "dive",
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.71,
+    "scRoam": 0.87,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 28,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 254
+  },
+  {
+   "run": 29,
+   "pass": false,
+   "printKinds": [
+    5,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": false,
+   "ttWalk": null,
+   "sec": 216,
+   "detail": {
+    "os": 2,
+    "tt": 2,
+    "gb": 3,
+    "sc": 2,
+    "headY": [
+     2.45,
+     2.26
+    ],
+    "osModes": [
+     "alert",
+     "graze",
+     "stand",
+     "walk"
+    ],
+    "osMoved": 9.2,
+    "ttModes": [
+     "graze",
+     "pallet",
+     "shell",
+     "walk"
+    ],
+    "ttMaxV": 0,
+    "osFlee": 6.74,
+    "osAway": 13.5,
+    "ttHail": [
+     1,
+     1
+    ],
+    "ttHeat": "dig",
+    "gbDay": [
+     "in",
+     "in",
+     "in"
+    ],
+    "gbDayModes": [
+     "dive",
+     "in",
+     "look"
+    ],
+    "scDay": [
+     "hide",
+     "hide"
+    ],
+    "gbModes": [
+     "bolt",
+     "dive",
+     "forage",
+     "in",
+     "nibble",
+     "peek",
+     "stand"
+    ],
+    "scModes": [
+     "door",
+     "roam"
+    ],
+    "glow": 1,
+    "gbOut": 0.87,
+    "scRoam": 0.95,
+    "gbBolt": [
+     "bolt",
+     "dive",
+     "in"
+    ],
+    "scThr": 1,
+    "scOpen": 1,
+    "osNight": [
+     "sit:1.00",
+     "sit:1.00"
+    ],
+    "printKinds": [
+     5,
+     7,
+     8,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "run": 30,
+   "pass": true,
+   "printKinds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "tortoise": true,
+   "ttWalk": null,
+   "sec": 221
+  }
+ ],
+ "summary": {
+  "runs": 30,
+  "failures": 20,
+  "tortoiseMissing": 3
+ }
+}

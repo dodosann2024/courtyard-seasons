@@ -1,0 +1,69 @@
+{
+ "bundles": {
+  "new": "assets/desert.375132585c.js",
+  "main": "assets/desert.fb25e09688.js"
+ },
+ "about": "60-frame clips at 15 fps, 2 sim frames (1/30 s) per clip frame; rain = panel rain (mrain), overcast, wind .45; dusk = sunset, looking toward the low sun; frozen = snow night (400 s) then sunrise, ice on the pond, close view",
+ "cameras": {
+  "rain": {
+   "cam": [
+    0.53,
+    1.3,
+    6.8
+   ],
+   "eyeAboveSand": 1.6,
+   "eyeAboveWater": 1.72
+  },
+  "dusk": {
+   "cam": [
+    -11.77,
+    1.36,
+    11.5
+   ],
+   "eyeAboveSand": 1.6,
+   "eyeAboveWater": 1.78
+  },
+  "frozen": {
+   "cam": [
+    -2.49,
+    0.13,
+    8.29
+   ],
+   "eyeAboveSand": 0.85,
+   "eyeAboveWater": 0.55,
+   "ice": 0.793,
+   "snow": 0.986
+  }
+ },
+ "main": {
+  "rain": {
+   "cam": [
+    0.53,
+    1.3,
+    6.8
+   ],
+   "eyeAboveSand": 1.6,
+   "eyeAboveWater": 1.72
+  },
+  "dusk": {
+   "cam": [
+    -11.77,
+    1.36,
+    11.5
+   ],
+   "eyeAboveSand": 1.6,
+   "eyeAboveWater": 1.78
+  },
+  "frozen": {
+   "cam": [
+    -2.49,
+    0.13,
+    8.29
+   ],
+   "eyeAboveSand": 0.85,
+   "eyeAboveWater": 0.55,
+   "ice": 0.793,
+   "snow": 0.986
+  }
+ }
+}

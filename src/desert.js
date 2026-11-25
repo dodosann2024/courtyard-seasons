@@ -3525,7 +3525,7 @@ function camelSettle(a,fdt){const C=a.ct;if(!C)return;const inn=a.inner;
      contact, that pad is let down onto the sand the same way, or, where the slope has pushed it in deeper than the rest, lifted back out */
   const w=W.matrixWorld.elements,kw=1-ss(0,.1,a.k);for(let i=0;i<4;i++){const c=cs[i],L=C.lp[i];if(!c.ok)continue;const f=a.feet[i],kf=a.k>.05&&!f.hind?ss(2.36,2.5,ctFold(f.b)):0,ww=Math.max(kw,kf);if(ww<=0)continue;
     const fe=f.b.matrixWorld.elements,v=fdt>0?Math.hypot(fe[12]-L.px,fe[14]-L.pz)/fdt:0;L.px=fe[12];L.pz=fe[14];
-    const p=kf>0&&C.pdI[i]>0?cs[C.pdI[i]]:null,rc=c.fg+c.k*dy,r=p&&p.ok?Math.min(p.fg+p.k*dy+CT_SINK,rc+.018):rc+CT_SINK,dw=r>0?r*ww*(1-ss(.08,.14,r))*(1-ss(.15,.3,v)*(1-kf)):p&&p.ok?Math.max(r,-.06)*kf:0;L.d+=(dw-L.d)*(fdt>0?1-Math.exp(-fdt*(Math.abs(dw)>Math.abs(L.d)?40:12)):1);const d=r>=0?Math.max(0,Math.min(L.d,r)):p&&p.ok&&L.d<0?Math.max(L.d,r):0;if(Math.abs(d)<1e-4)continue;
+    const p=kf>0&&C.pdI[i]>0?cs[C.pdI[i]]:null,rc=c.fg+c.k*dy,r=p&&p.ok?Math.min(p.fg+p.k*dy+CT_SINK,rc+.014):rc+CT_SINK,dw=r>0?r*ww*(1-ss(.08,.14,r))*(1-ss(.15,.3,v)*(1-kf)):p&&p.ok?Math.max(r,-.06)*kf:0;L.d+=(dw-L.d)*(fdt>0?1-Math.exp(-fdt*(Math.abs(dw)>Math.abs(L.d)?40:12)):1);const d=r>=0?Math.max(0,Math.min(L.d,r)):p&&p.ok&&L.d<0?Math.max(L.d,r):0;if(Math.abs(d)<1e-4)continue;
     const b=L.b,m=_ctM.copy(b.parent.matrixWorld).invert().elements,X=-w[4]*d,Y=-w[5]*d,Z=-w[6]*d;
     L.x=m[0]*X+m[4]*Y+m[8]*Z;L.y=m[1]*X+m[5]*Y+m[9]*Z;L.z=m[2]*X+m[6]*Y+m[10]*Z;b.position.x+=L.x;b.position.y+=L.y;b.position.z+=L.z;L.wx=b.position.x;L.wy=b.position.y;L.wz=b.position.z;L.on=1}}
 function camelSpawn(sc,anims,i,kind){smoothRoot(anims);

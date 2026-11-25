@@ -164,6 +164,17 @@ try {
     const okSize = os.length === 2 && os[0].headY > 2.3 && os[0].headY < 2.75 && os[1].headY > 1.95 && os[1].headY < os[0].headY;
     const om = new Set(), tm = new Set(), op = os.map(o => [o.x, o.z]);
     for (let i = 0; i < 60; i++) { q.sim(3, .1); for (const o of PA.os) om.add(o.mode); for (const t of PA.tt) tm.add(t.mode); }
+    /* a tortoise out walking. Whether one happens to be on the move in these seconds depends on where its day plan has
+       got to (cropping a tuft, still in its shell after an ostrich went by), so one is sent off explicitly on a short walk over open
+       sand well clear of the big animals, the way the snow-crunch check sends a camel off with camelGo: here when none walked, and
+       again below until its own prints show */
+    const T0w = PA.tt[0], e = q.ANIM.eagle, bigT = [...PA.os, ...q.ANIM.camels, ...(e && e.x != null ? [e] : [])];
+    const tortWalk = () => { for (let t = 0; t < 120; t++) { const th = t * 2.39996, d = (t % 10) * 1.2, x = T0w.x + Math.sin(th) * d, z = T0w.z + Math.cos(th) * d,
+        ex = x + Math.sin(th) * 1.6, ez = z + Math.cos(th) * 1.6;
+      if (q.pN(x, z) < 1.3 || q.pN(ex, ez) < 1.3 || bigT.some(b => Math.min(Math.hypot(b.x - x, b.z - z), Math.hypot(b.x - ex, b.z - ez)) < 5)) continue;
+      q.torPlace(T0w, x, z, th); Object.assign(T0w, {mode: "graze", t: 99, path: null, then: null, inShade: 1}); T0w.P.wd = 0; T0w.P.dig = 0;
+      if (q.torGo(T0w, {x: ex, z: ez}, "walk")) { T0w.then = "graze"; return [+x.toFixed(2), +z.toFixed(2)]; } } return null; };
+    if (!tm.has("walk")) { r.ttWalk0 = tortWalk(); for (let i = 0; i < 20; i++) { q.step(6, 1 / 30); for (const t of PA.tt) tm.add(t.mode); } }
     r.osModes = [...om].sort(); r.osMoved = +Math.max(...PA.os.map((o, i) => Math.hypot(o.x - op[i][0], o.z - op[i][1]))).toFixed(1);
     r.ttModes = [...tm].sort(); r.ttMaxV = +Math.max(...PA.tt.map(t => t.v)).toFixed(3);
     /* a threat close behind an ostrich out on the open sand: it runs. Whether a run gets going depends on there being room ahead
@@ -217,15 +228,6 @@ try {
     const sat = PA.os.every(o => o.mode === "sit" && o.P.sit > .8);
     /* morning: the ostriches get up off their night hollows */
     q.tod("day"); window.__set({weather: "sun", ct: "clear", wind: .3}); q.sim(50, .25);
-    /* ...and a tortoise is out walking. Whether one happens to be on the move in these seconds depends on where its day plan has
-       got to (cropping a tuft, still in its shell after an ostrich went by), so one is sent off explicitly on a short walk over open
-       sand well clear of the big animals, the way the snow-crunch check sends a camel off with camelGo, until its own prints show */
-    const T0w = PA.tt[0], e = q.ANIM.eagle, bigT = [...PA.os, ...q.ANIM.camels, ...(e && e.x != null ? [e] : [])];
-    const tortWalk = () => { for (let t = 0; t < 120; t++) { const th = t * 2.39996, d = (t % 10) * 1.2, x = T0w.x + Math.sin(th) * d, z = T0w.z + Math.cos(th) * d,
-        ex = x + Math.sin(th) * 1.6, ez = z + Math.cos(th) * 1.6;
-      if (q.pN(x, z) < 1.3 || q.pN(ex, ez) < 1.3 || bigT.some(b => Math.min(Math.hypot(b.x - x, b.z - z), Math.hypot(b.x - ex, b.z - ez)) < 5)) continue;
-      q.torPlace(T0w, x, z, th); Object.assign(T0w, {mode: "graze", t: 99, path: null, then: null, inShade: 1}); T0w.P.wd = 0; T0w.P.dig = 0;
-      if (q.torGo(T0w, {x: ex, z: ez}, "walk")) { T0w.then = "graze"; return [+x.toFixed(2), +z.toFixed(2)]; } } return null; };
     r.ttWalk = kinds().has(6) ? "already" : tortWalk();
     for (let i = 0; i < 30 && !kinds().has(6); i++) { if (T0w.mode !== "walk") r.ttWalk = tortWalk(); q.step(30, 1 / 30); }
     const K = kinds(); r.printKinds = [5, 6, 7, 8, 9, 10].filter(k => K.has(k));

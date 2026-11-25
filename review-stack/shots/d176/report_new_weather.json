@@ -1,0 +1,186 @@
+{
+ "bundle": "assets/desert.029d7dc195.js",
+ "weather": {
+  "rain": {
+   "cam": [
+    -10.75,
+    1.37,
+    11.88
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -9.48,
+    9.84
+   ],
+   "rain": 0.62,
+   "wet": 1,
+   "ice": 0,
+   "snow": 0,
+   "night": 0,
+   "samples": {
+    "band": 65,
+    "dry": 849,
+    "water": 2226
+   },
+   "at": {
+    "trail": {
+     "lum": 90.9,
+     "warm": 1.204,
+     "n": 14
+    },
+    "band": {
+     "lum": 111.9,
+     "warm": 1.363,
+     "n": 65
+    },
+    "dry": {
+     "lum": 129.3,
+     "warm": 1.659,
+     "n": 849
+    },
+    "water": {
+     "lum": 123.3,
+     "warm": 0.704,
+     "n": 2226,
+     "glint": 0.0009
+    }
+   }
+  },
+  "dusk": {
+   "cam": [
+    -10.75,
+    1.37,
+    11.88
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -9.48,
+    9.84
+   ],
+   "rain": 0,
+   "wet": 0.667,
+   "ice": 0,
+   "snow": 0,
+   "night": 0,
+   "samples": {
+    "band": 65,
+    "dry": 849,
+    "water": 2226
+   },
+   "at": {
+    "trail": {
+     "lum": 113.1,
+     "warm": 2.517,
+     "n": 14
+    },
+    "band": {
+     "lum": 126.1,
+     "warm": 2.485,
+     "n": 65
+    },
+    "dry": {
+     "lum": 121.1,
+     "warm": 2.721,
+     "n": 849
+    },
+    "water": {
+     "lum": 140.6,
+     "warm": 1.212,
+     "n": 2226,
+     "glint": 0.1128
+    }
+   }
+  },
+  "night": {
+   "cam": [
+    -16.27,
+    1.34,
+    7.47
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -13.89,
+    7.14
+   ],
+   "rain": 0,
+   "wet": 0.561,
+   "ice": 0,
+   "snow": 0,
+   "night": 1,
+   "samples": {
+    "band": 169,
+    "dry": 4,
+    "water": 2293
+   },
+   "at": {
+    "trail": {
+     "lum": 102.9,
+     "warm": 0.723,
+     "n": 24
+    },
+    "band": {
+     "lum": 83,
+     "warm": 0.722,
+     "n": 169
+    },
+    "dry": {
+     "lum": 55.7,
+     "warm": 0.792,
+     "n": 4
+    },
+    "water": {
+     "lum": 46.7,
+     "warm": 0.525,
+     "n": 2293,
+     "glint": 0.0392
+    }
+   }
+  },
+  "frozen": {
+   "cam": [
+    -16.28,
+    1.34,
+    4.6
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -13.91,
+    5.02
+   ],
+   "rain": 0,
+   "wet": 0,
+   "ice": 0.792,
+   "snow": 0.985,
+   "night": 0,
+   "samples": {
+    "band": 165,
+    "dry": 24,
+    "water": 2246
+   },
+   "at": {
+    "trail": {
+     "lum": 148.9,
+     "warm": 1.764,
+     "n": 21
+    },
+    "band": {
+     "lum": 155,
+     "warm": 1.695,
+     "n": 165
+    },
+    "dry": {
+     "lum": 164.5,
+     "warm": 2.026,
+     "n": 24
+    },
+    "water": {
+     "lum": 147.6,
+     "warm": 1.036,
+     "n": 2246,
+     "glint": 0.0793
+    }
+   }
+  }
+ },
+ "fails": []
+}

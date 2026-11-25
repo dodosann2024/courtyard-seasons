@@ -248,7 +248,7 @@ const sandU={uWy:{value:POND.wy},uRipDir:{value:new T.V2(WIND.x,WIND.z)},uRip:{v
   uPond:{value:new T.V4(POND.x,POND.z,POND.rx,POND.rz)},uGrv:{value:GRV.map(g=>new T.V4(g.x,g.z,g.r,0))},
   uDA:{value:new T.V4()},uDB:{value:new T.V4()},uDA0:{value:new T.V4(DUNE0.x,DUNE0.z,DUNE0.H,DUNE0.w)},uDB0:{value:new T.V4(DUNE0.Lw,DUNE0.Ll,DUNE0.cv,DUNE0.sk)},uDYaw:{value:DUNE0.yaw},
   uGT:{value:0},uWD:{value:new T.V2(WIND.x,WIND.z)},uFlowT:{value:0},uFlowK:{value:1},uRipPh:{value:0},uLd:{value:new V3(0,1,0)},uHaze:{value:new C3("#d4aab8")},uWetK:{value:0},uPitK:{value:0},uHeat:{value:0},uTm:{value:0},uMirC:{value:new C3("#cfe1f2")},uMirB:{value:new C3("#8fb3dc")},
-  uSnow:{value:0},uSnM:{value:0},uSnP:{value:0},uMW:{value:0},uHC:{value:0},uHP:{value:0},uHM:{value:0},uNorth:{value:new T.V2(-Math.sin(148*Math.PI/180),-Math.cos(148*Math.PI/180))}};
+  uRainS:{value:0},uLc:{value:new C3()},uSnow:{value:0},uSnM:{value:0},uSnP:{value:0},uMW:{value:0},uHC:{value:0},uHP:{value:0},uHM:{value:0},uNorth:{value:new T.V2(-Math.sin(148*Math.PI/180),-Math.cos(148*Math.PI/180))}};
 const GLSL_DUNE=`uniform vec4 uDA,uDB,uDA0,uDB0;uniform float uDYaw;
   float duneG(vec2 p,vec4 A,vec4 B){float c=cos(uDYaw),s=sin(uDYaw);vec2 d=p-A.xy;float u=d.x*c-d.y*s,v=d.x*s+d.y*c,vn=v/A.w,dd=u-B.z*vn*vn+B.w*vn;
     float hv=exp(-vn*vn*1.15),pp=dd<0.?exp(-(dd/B.x)*(dd/B.x)):pow(max(0.,1.-dd/B.y),1.3);return A.z*hv*pp;}
@@ -272,7 +272,7 @@ function sandMat(){
         /* where the dune is (x) and how sharply it peaks along the wind (y: high only along the crest), for the snow */
         vDn=aM>0.&&uSnow+uMW>.003?vec2(aM,aM*(duneG(position.xz,uDA,uDB)-.5*(duneG(position.xz+uRipDir*1.4,uDA,uDB)+duneG(position.xz-uRipDir*1.4,uDA,uDB)))):vec2(0.);`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
-      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;varying vec2 vDn;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uPitK,uHeat,uTm,uPT,uPW,uPI;uniform vec2 uRipDir;uniform vec3 uLd,uHaze,uMirC,uMirB;float mkO=0.;
+      varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;varying vec2 vDn;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uPitK,uHeat,uTm,uPT,uPW,uPI,uRainS;uniform vec2 uRipDir;uniform vec3 uLd,uLc,uHaze,uMirC,uMirB;float mkO=0.;
       uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}
       /* the island's rim shape (sN in JS): 1 on the rim line */
       float rimN(vec2 p){vec2 q=p/vec2(${AX}.,${AZ}.);float th=atan(q.y,q.x);
@@ -298,12 +298,16 @@ function sandMat(){
         sc=mix(sc,uWet,wet);
         /* the pond's edge laps exactly as the water does (its clock, wind and ice): above the highest reach a band of dark wet sand
            with a ragged top; below it, sand the water has just drawn back from stays dark and glossy and dries off over a few seconds */
-        float shW=0.,shG=0.;
-        {float hh=vSP.y-uWy;if(pn<1.15&&hh<.22&&hh>-.06){float th=atan(vSP.z-uPond.y,vSP.x-uPond.x),A=(.006+.022*uPW)*(1.-uPI);
-          float top=A+.075+.04*uPW+.018*(dn2(vSP.xz*3.7)-.5)+.009*(dn2(vSP.xz*14.+2.)-.5);shW=smoothstep(top,top-.035,hh)*(1.-.5*uPI);
-          if(A>.0005)for(int i=0;i<8;i++){float ta=float(i)*.5,t=uPT-ta,lv=A*(sin(t*1.15+th*9.+1.8*dn2(vec2(th*5.,t*.25)))*.6+sin(t*.67+th*4.+1.3)*.4);
-            shG=max(shG,smoothstep(hh-.003,hh+.002,lv)*exp(-ta/1.6));}
-          sc*=mix(1.,.84,smoothstep(top+.07,top,hh)*(1.-.5*uPI));sc*=mix(1.,.6,shW);sc=mix(sc,sc*vec3(.68,.64,.6),shG*.85);}}
+        float shW=0.,shG=0.,shR=max(uRainS,.6*uWetK)*(1.-uPI);
+        {float hh=vSP.y-uWy;if(pn<1.15&&hh<.3&&hh>-.06){float th=atan(vSP.z-uPond.y,vSP.x-uPond.x),A=(.006+.022*uPW)*(1.-uPI);
+          /* rain soaks the bank higher up: the band widens and its edge softens */
+          float top=A+.075+.04*uPW+.075*shR+.018*(dn2(vSP.xz*3.7)-.5)+.009*(dn2(vSP.xz*14.+2.)-.5);shW=smoothstep(top,top-.035-.025*shR,hh)*(1.-.5*uPI);
+          /* sand the water has just left stays saturated for several seconds: a film still on it, nearly as dark as the ocean's wet sand,
+             drying from its upper edge down; capillary water keeps a fringe about a centimetre above the reach saturated too, fading out by 3 cm */
+          if(A>.0005)for(int i=0;i<12;i++){float ta=float(i)*.6,t=uPT-ta,lv=A*(sin(t*1.15+th*9.+1.8*dn2(vec2(th*5.,t*.25)))*.6+sin(t*.67+th*4.+1.3)*.4);
+            shG=max(shG,smoothstep(hh-.03,hh-.008,lv)*exp(-ta/4.5)*smoothstep(6.8,4.4,ta));}
+          shG=min(1.,shG*1.15)*(1.-smoothstep(0.,.3,uPI));
+          sc*=mix(1.,.84,smoothstep(top+.07,top,hh)*(1.-.5*uPI));sc*=mix(1.,.6-.2*shR,shW);sc=mix(sc,sc*vec3(.42,.38,.35),shG*.95);}}
         /* desert pavement: a lag of pebbles (grey, tan, varnished red-brown) over darker grit; at a distance only their mean tone */
         float grv=0.;
         for(int i=0;i<${GRV.length};i++){vec4 g=uGrv[i];vec2 q=vSP.xz-g.xy;float sh=(dfbm(q*.42+g.xy)-.5)*.75+(nz2-.5)*.3;grv=max(grv,smoothstep(1.,.35,length(q)/g.z+sh));}
@@ -358,7 +362,7 @@ function sandMat(){
          sc*=1.+gd*((g1-.5)*.09+(g2-.5)*.1);}
         diffuseColor.rgb=mix(sc,vec3(dot(sc,vec3(.3,.59,.11)))*vec3(.74,.88,1.04),uNight*.7)*mix(1.,.54,uNight);`)
       .replace("#include <roughnessmap_fragment>",`#include <roughnessmap_fragment>
-        roughnessFactor=mix(roughnessFactor,.64,rWM);roughnessFactor=mix(roughnessFactor,.74,shW*.6);roughnessFactor=mix(roughnessFactor,.36,shG*.85);`)
+        roughnessFactor=mix(roughnessFactor,.64,rWM);roughnessFactor=mix(roughnessFactor,.74-.3*shR,shW*.6);roughnessFactor=mix(roughnessFactor,.52,shG*.9);`)
       .replace("#include <normal_fragment_maps>",`#include <normal_fragment_maps>
         float ripAO=1.;
         {float fw=length(fwidth(vSP.xz));
@@ -375,6 +379,18 @@ function sandMat(){
       /* drifting sand: ground-hugging streamers of fine grains running downwind, denser in gusts and over the dune;
          lit by the scene's own direct light (so shadowed, warm, or moonlit as the sand is) plus forward scatter against the light */
       .replace("#include <opaque_fragment>",`{
+        /* wet sand is a thin mirror: the film on the band and the trail (and on rain-soaked sand) gives back the sky at a grazing look
+           (a soft grey sheen in rain) and the key light along its reflection, warm under a low sun and silver under the moon, with
+           single grains glinting in it; ice keeps it matte */
+        {float wS=(max(shW*(.35+.5*shR),shG)+.3*rWM)*(1.-smoothstep(0.,.3,uPI));
+         if(wS>.003){vec3 Vw=normalize(cameraPosition-vWP),nW=normalize(cross(dFdx(vWP),dFdy(vWP)));nW*=sign(nW.y+1e-6);vec3 rw=reflect(-Vw,nW);
+           float fr=.02+.98*pow(1.-max(dot(nW,Vw),0.),5.);
+           outgoingLight=mix(outgoingLight,mix(uMirC,uMirB,smoothstep(0.,.6,rw.y))*(1.-.6*uNight)*.85,clamp(fr*wS*(.2+.2*shR),0.,.05+.035*shR));
+           float lit=step(1e-5,dot(reflectedLight.directDiffuse,vec3(1.))),rl=max(dot(rw,uLd),0.),lb=pow(rl,90.)*1.4+pow(rl,10.)*.3;
+           vec2 gq=vSP.xz/.008,gi=floor(gq);float gh=dh2(gi+floor(uTm*3.+dh2(gi+2.3)*5.)*.61);
+           vec3 gn=normalize(nW+vec3(dh2(gi+gh*5.1)-.5,0.,dh2(gi+gh*2.7+3.)-.5)*.5);
+           float gg=smoothstep(.985,.997,dot(reflect(-Vw,gn),uLd))*smoothstep(.45,.15,length(fract(gq)-.5))*(1.-smoothstep(.004,.012,length(fwidth(vSP.xz))));
+           outgoingLight+=uLc*lit*wS*(lb+gg*2.)*.5*max(0.,1.-1.6*uRainS);}}
         vec2 p=vSP.xz,wd=uWD,wp=vec2(-wd.y,wd.x);float al=dot(p,wd)-uFlowT,ac=dot(p,wp);
         float g=gustF(p),fwf=length(fwidth(p));
         /* narrow ribbons several metres long; a stronger wind sets more of them running side by side */
@@ -775,6 +791,8 @@ let pondMesh=null;
         float th=atan(vP.z-(${POND.z.toFixed(3)}),vP.x-(${POND.x.toFixed(3)})),lph=uT*1.15+th*9.+1.8*dn2(vec2(th*5.,uT*.25));
         float ed=vD+(.006+.022*uWind)*(sin(lph)*.6+sin(uT*.67+th*4.+1.3)*.4)*(1.-uIce);
         float sunV=(1.-uNight)*(1.-.85*uOvc),sunK=dot(uSunCol,vec3(.3,.45,.25));
+        /* at night the key light is the moon: the same core, lobe and glitter, dimmer, and quiet under ice */
+        float lV=sunV+uNight*(1.-.85*uOvc)*.45*(1.-.8*uIce);
         /* oasis water: clear over the sand bed at the margin, absorbing to a deep green-teal in the middle */
         float dd=smoothstep(.02,1.3,vD);
         vec3 body=mix(uShal,uDeep,dd);
@@ -807,17 +825,17 @@ let pondMesh=null;
         float bk=exp(-t2/m2)/(3.1416*m2*nh*nh*nh*nh)*(.02+.98*pow(1.-max(dot(V,H),0.),5.))/(4.*max(dot(n,V),.1));
         float spk=mix(smoothstep(.74,.9,dn2(vP.xz*9.+wd*uT*1.2)*.5+dn2(vP.xz*15.-wp*uT*1.6)*.5),smoothstep(.7,.92,dn2(vP.xz*31.+wd*uT*1.7)*.55+dn2(vP.xz*57.-wp*uT*2.3)*.45),lod);
         float gl=pow(max(dot(rd,uSunL),0.),220.),sw=pow(max(dot(rd,uSunL),0.),30.);
-        c+=uSunCol*sunV*(gl*2.2+min(bk,40.)*(.05+.5*spk)*.06+sw*spk*(.5+paw)*.8);
+        c+=uSunCol*lV*(gl*2.2+min(bk,40.)*(.05+.5*spk)*.06+sw*spk*(.5+paw)*.8);
         /* glitter: each facet of the ripples is a small mirror tilted its own way (wider spread in wind and on the paws); one that
            turns the sun into the eye flashes, re-rolled a few times a second so the sparkle twinkles. Near cells are 1.2 cm, far 4 cm,
            and a spot never shrinks under about a pixel. */
         float sig=.07+.42*uWind*(.55+.45*paw)+.1*uRainP,gs=0.,ln=1.-smoothstep(.006,.02,fw);
-        if(sunV>.02)for(int L=0;L<2;L++){float cs=L==0?.012:.04,on=L==0?ln:1.-ln;if(on<.01)continue;
+        if(lV>.02)for(int L=0;L<2;L++){float cs=L==0?.012:.04,on=L==0?ln:1.-ln;if(on<.01)continue;
           vec2 gq=vP.xz/cs+float(L)*17.,ci=floor(gq);float h=dh2(ci+floor(uT*4.+dh2(ci+3.3)*8.)*.731);
           vec2 r=vec2(dh2(ci+h*7.3+1.1),dh2(ci+h*3.9+5.7))-.5,o=vec2(dh2(ci+9.2),dh2(ci+4.4))*.5+.25;
           vec3 nf=normalize(n+vec3(r.x,0.,r.y)*sig*3.4);float sd=dot(reflect(-V,nf),uSunL),rad=clamp(.16+.6*fw/cs,.16,.5);
           gs+=on*smoothstep(.9965,.9993,sd)*smoothstep(rad,rad*.45,length(fract(gq)-o));}
-        c+=uSunCol*sunV*gs*2.6*(1.-.8*uRainP)*(1.-.7*uIce)*smoothstep(.0,.06,vD);
+        c+=uSunCol*lV*gs*2.6*(1.-.8*uRainP)*(1.-.7*uIce)*smoothstep(.0,.06,vD);
         /* the meniscus catches the sky as a thin bright line at the edge, and a broken lace of bubbles and foam rides the lapping band */
         float mw=max(.003,fwidth(ed)*1.2),ml=exp(-pow((ed-.003)/mw,2.))*(1.-uIce);
         c=mix(c,sky*1.05+uSunCol*.12*sunV,ml*.3*(.4+.6*lod));
@@ -2568,7 +2586,8 @@ UPD.push((dt,t)=>{
   /* the low sun warms the air layer, so the mirrored sky comes back amber at dusk */
   mirM.uniforms.uTint.value.set(.95,.95,.95).lerp(_mirW,Math.max(LK.sunset,LK.sunrise*.7));rockU.uWetK.value=WX.wet;tentU.uWetC.value=Math.max(WX.wet,.42*WX.dew);propU.uDew.value=WX.dew;coatU.uDew.value=WX.dew;propU.uFrost.value=WX.frost;tentU.uFrost.value=.8*WX.frost;propU.uSnL.value=WX.scp;tentU.uSnL.value=WX.scp;rockU.uT.value=t;rockU.uVen.value=(.8+.18*Math.min(sfU.uFR.value,1.6))*(1-.3*WX.wet);
   pondU.uRainP.value=WX.rain;pondU.uIce.value=WX.ice;pondU.uOvc.value=WX.ovc;if(Jt.fog){pondU.uFogC.value.copy(Jt.fog.color);pondU.uFogNF.value.set(Jt.fog.near,Jt.fog.far)}
-  if(pi){sandU.uLd.value.copy(pi.position).normalize();
+  sandU.uRainS.value=WX.rain;
+  if(pi){sandU.uLd.value.copy(pi.position).normalize();sandU.uLc.value.copy(pi.color).multiplyScalar(pi.intensity*(1-.85*WX.ovc));
     _c1.copy(pi.color).multiplyScalar(pi.intensity);_c2.copy(dc?(dc.groundColor||dc.color):_c1).multiplyScalar(dc?dc.intensity:0);
     curU.uCol.value.set("#f0d2a0").multiply(_c1.clone().multiplyScalar(.5).add(_c2.clone().multiplyScalar(.5)).add(dc?dc.color.clone().multiplyScalar(dc.intensity):_c2));
     curU.uSheen.value.set("#ffb45c").multiply(_c1).multiplyScalar(.55);
@@ -3309,7 +3328,11 @@ function prAdd(k,x,z,yaw,v,dep,mir,sc){if(pN(x,z)<1.02)return;
   if(g){P.gi=(P.gi+1)%P.G;P.gn=Math.min(P.gn+1,P.G)}else{P.i=(i+1)%(P.N-P.G);P.n=Math.min(P.n+1,P.N-P.G)}
   P.q2.setFromUnitVectors(_up,nTop(x,z));P.q.setFromAxisAngle(_up,yaw).premultiply(P.q2);
   const s=PR_SZ[k]*(sc||1);P.s.set(mir?-s:s,1,s);P.v.set(x,hTop(x,z)+.003,z);P.m4.compose(P.v,P.q,P.s);P.im.setMatrixAt(i,P.m4);
-  P.im.setColorAt(i,P.c.setRGB(k+(v||0)/4,P.E,dep==null?1:dep));P.dirty=1;P.im.count=P.gn?P.N:P.n}
+  P.im.setColorAt(i,P.c.setRGB(k+(v||0)/4,P.E,dep==null?1:dep));P.dirty=1;P.im.count=P.gn?P.N:P.n;return i}
+/* a print still under weight (a lying camel's pads) does not wear: its birth on the wear clock follows now until the weight comes
+   off, then wind, blowing sand and rain wear it like any hoofprint. Nothing happens if the ring has since reused its slot. */
+function prHold(i,x,z){const P=PR;if(i==null)return;const c=P.im.instanceColor.array,m=P.im.instanceMatrix.array;
+  if(Math.abs(m[i*16+12]-x)>.08||Math.abs(m[i*16+14]-z)>.08)return;if(P.E-c[i*3+1]>.02){c[i*3+1]=P.E;P.dirty=1}}
 function prTick(dt){const P=PR;P.E+=dt*(1/240+st.wn*(1-.8*WX.sc)*.3/35+WX.dust/6+WX.rain/9+WX.sf/40);P.im.material.uniforms.uE.value=P.E;
   P.im.material.uniforms.uSnw.value=ss(.05,.5,WX.sc);
   if(pi&&dc)P.im.material.uniforms.uKs.value=cl(pi.intensity/(pi.intensity+dc.intensity*1.4+1e-3),.12,.85);
@@ -3595,7 +3618,7 @@ function camelPress(a){const C=a.ct;if(!C||a.k<.05){a.prs=null;return}
   const bk=CAMEL_SLOTS[a.i]==="bact",dy=a.inner.position.y,L=a.prs||(a.prs={}),sh=.26+.2*sunCast(),lay=a.mode==="down"||a.mode==="rest";
   const press=(c,g,j,knee)=>{const on=ss(.025,.004,g);if(on<.02)return;const y=hTop(c.X,c.Z),s=bk?1.1:1;
     blobAdd(c.X,y,c.Z,a.yaw,(knee?.2:.42)*s,(knee?.26:.5)*s,on*sh,.85,0);
-    const p=L[j];if(lay&&on>.7&&(!p||Math.hypot(p.x-c.X,p.z-c.Z)>.07)){prAdd(knee?PRK.knee:PRK.chest,c.X,c.Z,a.yaw,bk?1:0,1,0,1);L[j]={x:c.X,z:c.Z}}};
+    const p=L[j];if(lay&&on>.7){if(!p||Math.hypot(p.x-c.X,p.z-c.Z)>.07)L[j]={x:c.X,z:c.Z,i:prAdd(knee?PRK.knee:PRK.chest,c.X,c.Z,a.yaw,bk?1:0,1,0,1)};else prHold(p.i,p.x,p.z)}};
   const ch=C.c[4];if(ch.ok)press(ch,ch.fg+ch.k*dy,4,0);
   for(let i=0;i<4;i++){const j=C.pdI[i],c=j>0&&C.c[j];if(c&&c.ok)press(c,c.fg+c.k*dy-C.lp[i].ap,j,1)}}
 /* the hollow it lay in, left as it gets up: centred under the chest and belly, a little ahead of the root */

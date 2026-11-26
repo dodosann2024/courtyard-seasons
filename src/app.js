@@ -5309,43 +5309,39 @@ function CYgl(){try{return new qo({antialias:!0})}catch(e){document.dispatchEven
    Quality tier: on a phone the desert is drawn at a lower pixel ratio and with a smaller sun shadow map, since its models
    and textures already take most of the graphics memory there; other yards keep the full tier. A lost context comes back
    one tier lower (for every yard), and cyQ=low (the fallback card's reload) starts at the lowest.
-   iOS WebKit can be left with bad vertex data on the GPU for the composer's shared full-screen triangle after a burst of
+   WebKit can be left with bad vertex data on the GPU for the composer's shared full-screen triangle after a burst of
    model uploads (the desert's cold start): the scene still renders into the composer's targets but the screen shows black,
    or one near-black colour where the triangle samples the wrong place, with no error, and it can come back. There, while
-   the desert shows, five pixels of the screen are read back every second (every 2 s once it has settled), asynchronously
-   through a pixel-pack buffer and a fence so the check never waits for the GPU. Five points all dark and alike read as
+   the desert shows, five pixels of the screen are read back every second (every 2 s once it has settled; a read through a
+   pixel-pack buffer instead can itself leave WebKit's canvas black on screen). Five points all dark and alike read as
    black: each such read uploads the triangle again, and a screen that stays black is healed in steps (rebuild the pass
-   shaders, draw without the composer) before ui.js is asked to show the fallback card. */
-var CYq=(()=>{const ua=navigator.userAgent,wk=/AppleWebKit/.test(ua)&&!/Chrome\/|Chromium|Android|Edg\//.test(ua)||/CriOS|FxiOS|EdgiOS/.test(ua),
-    Q=[{dpr:2,sh:0},{dpr:1.75,sh:1536},{dpr:1.25,sh:1024}],gl=Cn.getContext(),px=new Uint8Array(20),gl2=typeof WebGL2RenderingContext<"u"&&gl instanceof WebGL2RenderingContext,
+   shaders, draw without the composer) before ui.js is asked to show the fallback card. WebKit is told by navigator.vendor,
+   which a Chromium with an iPhone user agent (the perf job) does not change. */
+var CYq=(()=>{const ua=navigator.userAgent,wk=/^Apple/.test(navigator.vendor||"")&&!/Android/.test(ua),
+    Q=[{dpr:2,sh:0},{dpr:1.75,sh:1536},{dpr:1.25,sh:1024}],gl=Cn.getContext(),px=new Uint8Array(4),
     ev=k=>document.dispatchEvent(new CustomEvent("cy-gl",{detail:k})),
     P=[[.5,.5],[.3,.4],[.7,.4],[.3,.65],[.7,.65]];
-  let lv=kn?1:0,lost=0,sh0=0,des=!1,dd=!1,chk=0,end=0,bad=0,heal=0,direct=!1,gone=!1,pbo=null,fence=null,t0=0,log=[];
+  let lv=kn?1:0,lost=0,sh0=0,des=!1,dd=!1,chk=0,end=0,bad=0,heal=0,direct=!1,gone=!1,t0=0,log=[];
   try{localStorage.getItem("cyQ")==="low"&&(lv=2)}catch{}
   const shadow=w=>{let s=pi.shadow.mapSize;s.x!==w&&(s.set(w,w),pi.shadow.map&&(pi.shadow.map.dispose(),pi.shadow.map=null))},
     apply=()=>{let t=Q[des||lost?lv:0],r=Math.min(devicePixelRatio,t.dpr);
       Cn.getPixelRatio()!==r&&(Cn.setPixelRatio(r),Ta.setPixelRatio(r));
       t.sh?(sh0||(sh0=pi.shadow.mapSize.x),shadow(Math.min(sh0,t.sh))):sh0&&(shadow(sh0),sh0=0)},
     arm=ms=>{let n=performance.now();chk=n+600,end=Math.max(end,n+ms)},
-    read=()=>{let w=gl.drawingBufferWidth,h=gl.drawingBufferHeight;Cn.setRenderTarget(null);
-      pbo||(pbo=gl.createBuffer(),gl.bindBuffer(gl.PIXEL_PACK_BUFFER,pbo),gl.bufferData(gl.PIXEL_PACK_BUFFER,20,gl.STREAM_READ));gl.bindBuffer(gl.PIXEL_PACK_BUFFER,pbo);
-      P.forEach(([x,y],i)=>gl.readPixels(x*w|0,y*h|0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,i*4));gl.bindBuffer(gl.PIXEL_PACK_BUFFER,null);
-      fence=gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);gl.flush()},
-    drawn=()=>{if(gl.getSyncParameter(fence,gl.SYNC_STATUS)!==gl.SIGNALED)return null;gl.deleteSync(fence);fence=null;
-      gl.bindBuffer(gl.PIXEL_PACK_BUFFER,pbo);gl.getBufferSubData(gl.PIXEL_PACK_BUFFER,0,px);gl.bindBuffer(gl.PIXEL_PACK_BUFFER,null);
-      let lo=765,hi=0;for(let i=0;i<20;i+=4){let v=px[i]+px[i+1]+px[i+2];lo=Math.min(lo,v),hi=Math.max(hi,v)}return hi>=60||hi-lo>12},
+    drawn=()=>{let w=gl.drawingBufferWidth,h=gl.drawingBufferHeight,lo=765,hi=0;Cn.setRenderTarget(null);
+      for(let[x,y]of P){gl.readPixels(x*w|0,y*h|0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,px);let v=px[0]+px[1]+px[2];lo=Math.min(lo,v),hi=Math.max(hi,v)}
+      return hi>=60||hi-lo>12},
     rebuild=()=>{for(let p of Ta.passes)for(let k in p){let m=p[k];for(let x of Array.isArray(m)?m:[m])x&&x.isMaterial&&(x.needsUpdate=!0)}};
-  Cn.domElement.addEventListener("webglcontextlost",()=>{pbo=fence=null,ev("lost")});
+  Cn.domElement.addEventListener("webglcontextlost",()=>ev("lost"));
   Cn.domElement.addEventListener("webglcontextrestored",()=>{lost++,lv=Math.min(2,lv+1),apply(),bad=0,direct=!1,gone=!1,wk&&des&&arm(15e3),ev("restored")});
   return{q:()=>({tier:["high","mobile","low"][des||lost?lv:0],dpr:Cn.getPixelRatio(),shadow:pi.shadow.mapSize.x,wk,heal,direct,lost,log}),
     style(i){let d=i==="desert";d!==des&&(des=d,apply()),d&&wk&&arm(15e3)},
     frame(){direct&&des?(Cn.setRenderTarget(null),Cn.render(Jt,De)):Ta.render();
-      if(!wk||!des||!gl2||gl.isContextLost())return;let n=performance.now();
+      if(!wk||!des||gl.isContextLost())return;let n=performance.now();
       if(!dd&&window.__desProg&&window.__desProg().done){dd=!0,t0=n,ty.dispose(),arm(3e4);return}
-      if(fence){let d=drawn();if(d===null)return;chk=n+(n<end?1e3:2e3);if(d){bad=0;return}
-        bad++,heal++,chk=n+400,log.length<20&&log.push([bad,t0?+((n-t0)/1e3).toFixed(1):null]);
-        bad===3&&rebuild(),bad===5&&(direct=!0),ty.dispose(),bad>=7&&!gone&&(gone=!0,ev("black"));return}
-      n>=chk&&read()}}})();
+      if(n<chk)return;chk=n+(n<end?1e3:2e3);if(drawn()){bad=0;return}
+      bad++,heal++,chk=n+400,log.length<20&&log.push([bad,t0?+((n-t0)/1e3).toFixed(1):null]);
+      bad===3&&rebuild(),bad===5&&(direct=!0),ty.dispose(),bad>=7&&!gone&&(gone=!0,ev("black"))}}})();
 CYq.style(Qc);window.__cyq=CYq.q;
 Cn.setAnimationLoop(()=>{let i=Zy.getDelta(),t=Math.min(i,.05),e=Math.min(i,.25);s0(t),xa-=e;let n=Ia&&xa<=0&&!Sn?1:0;if(Ce.__ar=(Ce.__ar||0)+(n-(Ce.__ar||0))*Math.min(1,e*.8),Ce.__ar>.003){let s=e*6.2832/75*Ce.__ar,r=De.position.clone().sub(Ce.target).applyAxisAngle(new P(0,1,0),s);De.position.copy(Ce.target).add(r)}if(Sn){Sn.u=Math.min(1,Sn.u+t/1.2);let s=Sn.u*Sn.u*(3-2*Sn.u);De.position.lerpVectors(Sn.p0,Sn.p1,s),Ce.target.lerpVectors(Sn.t0,Sn.t1,s),Sn.u>=1&&(Sn=null)}Ce.update(),window.__seaU&&window.__seaU(t),window.__desU&&window.__desU(t),SLx(),CYq.frame()});addEventListener("resize",()=>{Dd.uniforms.scale.value=qc.material.uniforms.scale.value=Gc.material.uniforms.scale.value=Hc.material.uniforms.scale.value=innerHeight*.5,De.aspect=innerWidth/innerHeight,De.updateProjectionMatrix(),Cn.setSize(innerWidth,innerHeight),Ta.setSize(innerWidth,innerHeight)});window.__set=i=>{i.season!==void 0&&Wc(i.season),Object.assign(Ct,{...i,season:Ct.season}),Ad=i.mode?1:0,Ui()};window.__cel=()=>({...Se,N:qt.night});window.__phase=ba;window.__warp=i=>{for(let t=0;t<i;t+=1/30)s0(1/30)};window.__ready=!0;
 })();

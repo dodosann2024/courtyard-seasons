@@ -1,0 +1,2769 @@
+{
+ "what": "Cold loads of each yard on a phone viewport, before (main b0acc6a) and after (this branch).",
+ "method": {
+  "webkit": "Playwright 1.49.1 WebKit, iPhone 13 (390x844, DPR 3) unless noted; root URL with localStorage cyStyle=<yard> (the owner's path).",
+  "chromium": "Playwright Chromium (SwiftShader), Pixel 7 (412x839, DPR 2.625), CPU throttled 4x via CDP.",
+  "nonBlackRatio": "share of screenshot pixels with Rec.709 luma > 16 between 20% and 85% of the height (the scene area). A black scene with the yard panel open (first-visit default) measures 0.679.",
+  "loadMs": "navigation to: loading screen gone and, for the desert, window.__desProg().done (every model placed and drawn).",
+  "gpuEstimateMB": "textures (compressed mip bytes, or w*h*4 with mips) + geometry buffers in the scene + render targets (MSAA drawing buffer, composer ping-pong half-float x2, bloom chain). Shadow maps are not included; the desert's on a phone go from 2048^2 to 1536^2 (about 32 MB to 18 MB with depth).",
+  "jsHeapMB": "CDP Runtime.getHeapUsage after load (Chromium only; WebKit exposes no heap size). ArrayBuffer stores are outside it, see memory.prefetch."
+ },
+ "yards": {
+  "def": {
+   "webkit": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9998,
+      "loadMsMedian": 4605,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 78.1
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9998,
+       "meanLuma": 156.4,
+       "loadMs": 4512,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 78.1,
+        "textures": 12.2,
+        "geometry": 20.9,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-def-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9998,
+       "meanLuma": 156.3,
+       "loadMs": 4699,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 78.1,
+        "textures": 12.2,
+        "geometry": 20.9,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-def-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9998,
+      "loadMsMedian": 4514,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 78.1
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9998,
+       "meanLuma": 156.4,
+       "loadMs": 4633,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 78.1,
+        "textures": 12.2,
+        "geometry": 20.9,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-def-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9998,
+       "meanLuma": 156.3,
+       "loadMs": 4395,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 78.1,
+        "textures": 12.2,
+        "geometry": 20.9,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-def-1.png"
+      }
+     ]
+    }
+   },
+   "chromium": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9999,
+      "loadMsMedian": 19387,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 27.3,
+      "gpuEstimateMB": 93.2
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 156.3,
+       "loadMs": 19052,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 28,
+       "gpuEstimateMB": {
+        "total": 93.2,
+        "textures": 12.2,
+        "geometry": 20.9,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-def-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 156.4,
+       "loadMs": 19723,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 26.6,
+       "gpuEstimateMB": {
+        "total": 93.2,
+        "textures": 12.2,
+        "geometry": 20.9,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-def-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9999,
+      "loadMsMedian": 19623,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 27.5,
+      "gpuEstimateMB": 93.2
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 156.4,
+       "loadMs": 19326,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 27.7,
+       "gpuEstimateMB": {
+        "total": 93.2,
+        "textures": 12.2,
+        "geometry": 20.9,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-def-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 156.4,
+       "loadMs": 19920,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 27.3,
+       "gpuEstimateMB": {
+        "total": 93.2,
+        "textures": 12.2,
+        "geometry": 20.9,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-def-1.png"
+      }
+     ]
+    }
+   }
+  },
+  "jp": {
+   "webkit": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9997,
+      "loadMsMedian": 7069,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 122.7
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.4,
+       "loadMs": 7087,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 122.7,
+        "textures": 14.8,
+        "geometry": 62.8,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-jp-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.3,
+       "loadMs": 7051,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 122.7,
+        "textures": 14.8,
+        "geometry": 62.8,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-jp-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9997,
+      "loadMsMedian": 6897,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 122.7
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.5,
+       "loadMs": 7073,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 122.7,
+        "textures": 14.8,
+        "geometry": 62.8,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-jp-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.4,
+       "loadMs": 6721,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 122.7,
+        "textures": 14.8,
+        "geometry": 62.8,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-jp-1.png"
+      }
+     ]
+    }
+   },
+   "chromium": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9995,
+      "loadMsMedian": 29403,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 62.699999999999996,
+      "gpuEstimateMB": 137.8
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9995,
+       "meanLuma": 145.7,
+       "loadMs": 30125,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 59.3,
+       "gpuEstimateMB": {
+        "total": 137.8,
+        "textures": 14.8,
+        "geometry": 62.8,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-jp-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9995,
+       "meanLuma": 145.6,
+       "loadMs": 28682,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 66.1,
+       "gpuEstimateMB": {
+        "total": 137.8,
+        "textures": 14.8,
+        "geometry": 62.8,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-jp-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9995,
+      "loadMsMedian": 29612,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 100.1,
+      "gpuEstimateMB": 137.8
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9996,
+       "meanLuma": 145.4,
+       "loadMs": 29340,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 60.2,
+       "gpuEstimateMB": {
+        "total": 137.8,
+        "textures": 14.8,
+        "geometry": 62.8,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-jp-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9995,
+       "meanLuma": 145.4,
+       "loadMs": 29885,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 140,
+       "gpuEstimateMB": {
+        "total": 137.8,
+        "textures": 14.8,
+        "geometry": 62.8,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-jp-1.png"
+      }
+     ]
+    }
+   }
+  },
+  "cn": {
+   "webkit": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9997,
+      "loadMsMedian": 12465,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 107.9
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.2,
+       "loadMs": 16111,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 107.9,
+        "textures": 25.6,
+        "geometry": 37.3,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-cn-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.1,
+       "loadMs": 8820,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 107.9,
+        "textures": 25.6,
+        "geometry": 37.3,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-cn-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9997,
+      "loadMsMedian": 8384,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 107.9
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.2,
+       "loadMs": 8326,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 107.9,
+        "textures": 25.6,
+        "geometry": 37.3,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-cn-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.3,
+       "loadMs": 8443,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 107.9,
+        "textures": 25.6,
+        "geometry": 37.3,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-cn-1.png"
+      }
+     ]
+    }
+   },
+   "chromium": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.999,
+      "loadMsMedian": 35337,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 31.1,
+      "gpuEstimateMB": 123
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9991,
+       "meanLuma": 143.3,
+       "loadMs": 34752,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 30.6,
+       "gpuEstimateMB": {
+        "total": 123,
+        "textures": 25.6,
+        "geometry": 37.3,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-cn-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.999,
+       "meanLuma": 143.1,
+       "loadMs": 35923,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 31.6,
+       "gpuEstimateMB": {
+        "total": 123,
+        "textures": 25.6,
+        "geometry": 37.3,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-cn-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.999,
+      "loadMsMedian": 34591,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 31.2,
+      "gpuEstimateMB": 123
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.999,
+       "meanLuma": 143.2,
+       "loadMs": 34421,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 31.9,
+       "gpuEstimateMB": {
+        "total": 123,
+        "textures": 25.6,
+        "geometry": 37.3,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-cn-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9992,
+       "meanLuma": 143.3,
+       "loadMs": 34761,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 30.5,
+       "gpuEstimateMB": {
+        "total": 123,
+        "textures": 25.6,
+        "geometry": 37.3,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-cn-1.png"
+      }
+     ]
+    }
+   }
+  },
+  "kr": {
+   "webkit": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9997,
+      "loadMsMedian": 8953,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 90
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 147.7,
+       "loadMs": 11689,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 90,
+        "textures": 21.1,
+        "geometry": 23.9,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-kr-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 147.7,
+       "loadMs": 6218,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 90,
+        "textures": 21.1,
+        "geometry": 23.9,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-kr-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9997,
+      "loadMsMedian": 5157,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 90
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 147.8,
+       "loadMs": 5240,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 90,
+        "textures": 21.1,
+        "geometry": 23.9,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-kr-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 147.9,
+       "loadMs": 5074,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 90,
+        "textures": 21.1,
+        "geometry": 23.9,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-kr-1.png"
+      }
+     ]
+    }
+   },
+   "chromium": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9995,
+      "loadMsMedian": 20157,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 27.1,
+      "gpuEstimateMB": 105.1
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9996,
+       "meanLuma": 148.1,
+       "loadMs": 19874,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 26,
+       "gpuEstimateMB": {
+        "total": 105.1,
+        "textures": 21.1,
+        "geometry": 23.9,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-kr-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9995,
+       "meanLuma": 148,
+       "loadMs": 20440,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 28.2,
+       "gpuEstimateMB": {
+        "total": 105.1,
+        "textures": 21.1,
+        "geometry": 23.9,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-kr-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9996,
+      "loadMsMedian": 20536,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 28.05,
+      "gpuEstimateMB": 105.1
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 148.1,
+       "loadMs": 21103,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 27.8,
+       "gpuEstimateMB": {
+        "total": 105.1,
+        "textures": 21.1,
+        "geometry": 23.9,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-kr-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9996,
+       "meanLuma": 147.8,
+       "loadMs": 19970,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 28.3,
+       "gpuEstimateMB": {
+        "total": 105.1,
+        "textures": 21.1,
+        "geometry": 23.9,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-kr-1.png"
+      }
+     ]
+    }
+   }
+  },
+  "eu": {
+   "webkit": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9996,
+      "loadMsMedian": 9211,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 94.4
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9996,
+       "meanLuma": 147.3,
+       "loadMs": 10701,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 94.4,
+        "textures": 21.6,
+        "geometry": 27.8,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-eu-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 147.5,
+       "loadMs": 7722,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 94.4,
+        "textures": 21.6,
+        "geometry": 27.8,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-eu-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9996,
+      "loadMsMedian": 7219,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 94.4
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9996,
+       "meanLuma": 147.3,
+       "loadMs": 7185,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 94.4,
+        "textures": 21.6,
+        "geometry": 27.8,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-eu-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 147.3,
+       "loadMs": 7253,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 94.4,
+        "textures": 21.6,
+        "geometry": 27.8,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-eu-1.png"
+      }
+     ]
+    }
+   },
+   "chromium": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9995,
+      "loadMsMedian": 25749,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 27.65,
+      "gpuEstimateMB": 109.5
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9996,
+       "meanLuma": 145.9,
+       "loadMs": 24826,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 27,
+       "gpuEstimateMB": {
+        "total": 109.5,
+        "textures": 21.6,
+        "geometry": 27.8,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-eu-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9995,
+       "meanLuma": 145.9,
+       "loadMs": 26672,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 28.3,
+       "gpuEstimateMB": {
+        "total": 109.5,
+        "textures": 21.6,
+        "geometry": 27.8,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-eu-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9996,
+      "loadMsMedian": 25039,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 27.450000000000003,
+      "gpuEstimateMB": 109.5
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9996,
+       "meanLuma": 146,
+       "loadMs": 25567,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 28.1,
+       "gpuEstimateMB": {
+        "total": 109.5,
+        "textures": 21.6,
+        "geometry": 27.8,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-eu-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9996,
+       "meanLuma": 146,
+       "loadMs": 24512,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 26.8,
+       "gpuEstimateMB": {
+        "total": 109.5,
+        "textures": 21.6,
+        "geometry": 27.8,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-eu-1.png"
+      }
+     ]
+    }
+   }
+  },
+  "sea": {
+   "webkit": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9997,
+      "loadMsMedian": 5103,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 93.5
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.4,
+       "loadMs": 6219,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 93.5,
+        "textures": 22.9,
+        "geometry": 25.6,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-sea-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.3,
+       "loadMs": 3988,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 93.5,
+        "textures": 22.9,
+        "geometry": 25.6,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-yards-webkit-sea-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9997,
+      "loadMsMedian": 3840,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 93.5
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.5,
+       "loadMs": 3841,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 93.5,
+        "textures": 22.9,
+        "geometry": 25.6,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-sea-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 145.5,
+       "loadMs": 3840,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 93.5,
+        "textures": 22.9,
+        "geometry": 25.6,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": true,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-webkit-sea-1.png"
+      }
+     ]
+    }
+   },
+   "chromium": {
+    "before": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9999,
+      "loadMsMedian": 12915,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 34.5,
+      "gpuEstimateMB": 108.6
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 142.9,
+       "loadMs": 12747,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 32.9,
+       "gpuEstimateMB": {
+        "total": 108.6,
+        "textures": 22.9,
+        "geometry": 25.6,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-sea-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 142.9,
+       "loadMs": 13084,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 36.1,
+       "gpuEstimateMB": {
+        "total": 108.6,
+        "textures": 22.9,
+        "geometry": 25.6,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-yards-chromium-sea-1.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 2,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9999,
+      "loadMsMedian": 12937,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 31.15,
+      "gpuEstimateMB": 108.6
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 142.9,
+       "loadMs": 13288,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 26.8,
+       "gpuEstimateMB": {
+        "total": 108.6,
+        "textures": 22.9,
+        "geometry": 25.6,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-sea-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 143,
+       "loadMs": 12586,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 35.5,
+       "gpuEstimateMB": {
+        "total": 108.6,
+        "textures": 22.9,
+        "geometry": 25.6,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "guard": {
+        "tier": "high",
+        "dpr": 2,
+        "shadow": 2048,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-yards-chromium-sea-1.png"
+      }
+     ]
+    }
+   }
+  },
+  "desert": {
+   "webkit": {
+    "before": {
+     "summary": {
+      "runs": 3,
+      "blackRuns": 3,
+      "nonBlackMin": 0.6789,
+      "loadMsMedian": 15773,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 219.2
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.6789,
+       "meanLuma": 38.5,
+       "loadMs": 15931,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 219.2,
+        "textures": 134.2,
+        "geometry": 40,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-desert-webkit-desert-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.6789,
+       "meanLuma": 38.5,
+       "loadMs": 15447,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 219.2,
+        "textures": 134.2,
+        "geometry": 39.9,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-desert-webkit-desert-1.png"
+      },
+      {
+       "run": 2,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.6789,
+       "meanLuma": 38.5,
+       "loadMs": 15773,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 219.2,
+        "textures": 134.2,
+        "geometry": 39.9,
+        "renderTargets": 45,
+        "canvas": [
+         780,
+         1328
+        ]
+       },
+       "shot": "before-desert-webkit-desert-2.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 3,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9997,
+      "loadMsMedian": 15159,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": null,
+      "gpuEstimateMB": 208.6
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 136.4,
+       "loadMs": 15747,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 208.6,
+        "textures": 134.2,
+        "geometry": 39.9,
+        "renderTargets": 34.5,
+        "canvas": [
+         682,
+         1162
+        ]
+       },
+       "guard": {
+        "tier": "mobile",
+        "dpr": 1.75,
+        "shadow": 1536,
+        "wk": true,
+        "heal": 1,
+        "direct": false,
+        "lost": 0,
+        "log": [
+         [
+          1,
+          7
+         ]
+        ]
+       },
+       "shot": "after-desert-webkit-desert-0.png"
+      },
+      {
+       "run": 1,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 136.4,
+       "loadMs": 15159,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 208.6,
+        "textures": 134.2,
+        "geometry": 39.9,
+        "renderTargets": 34.5,
+        "canvas": [
+         682,
+         1162
+        ]
+       },
+       "guard": {
+        "tier": "mobile",
+        "dpr": 1.75,
+        "shadow": 1536,
+        "wk": true,
+        "heal": 1,
+        "direct": false,
+        "lost": 0,
+        "log": [
+         [
+          1,
+          null
+         ]
+        ]
+       },
+       "shot": "after-desert-webkit-desert-1.png"
+      },
+      {
+       "run": 2,
+       "device": "iPhone 13",
+       "url": "/",
+       "nonBlackRatio": 0.9997,
+       "meanLuma": 136.4,
+       "loadMs": 14880,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "gpuEstimateMB": {
+        "total": 208.6,
+        "textures": 134.2,
+        "geometry": 39.9,
+        "renderTargets": 34.5,
+        "canvas": [
+         682,
+         1162
+        ]
+       },
+       "guard": {
+        "tier": "mobile",
+        "dpr": 1.75,
+        "shadow": 1536,
+        "wk": true,
+        "heal": 1,
+        "direct": false,
+        "lost": 0,
+        "log": [
+         [
+          1,
+          null
+         ]
+        ]
+       },
+       "shot": "after-desert-webkit-desert-2.png"
+      }
+     ]
+    }
+   },
+   "chromium": {
+    "before": {
+     "summary": {
+      "runs": 3,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9999,
+      "loadMsMedian": 48991,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 46.4,
+      "gpuEstimateMB": 234.3
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 136.7,
+       "loadMs": 49907,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 46.7,
+       "gpuEstimateMB": {
+        "total": 234.3,
+        "textures": 134.2,
+        "geometry": 40,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-desert-chromium-desert-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 136.6,
+       "loadMs": 41092,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 45.8,
+       "gpuEstimateMB": {
+        "total": 234.3,
+        "textures": 134.2,
+        "geometry": 40,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-desert-chromium-desert-1.png"
+      },
+      {
+       "run": 2,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 136.6,
+       "loadMs": 48991,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 46.4,
+       "gpuEstimateMB": {
+        "total": 234.3,
+        "textures": 134.2,
+        "geometry": 40,
+        "renderTargets": 60.1,
+        "canvas": [
+         824,
+         1678
+        ]
+       },
+       "shot": "before-desert-chromium-desert-2.png"
+      }
+     ]
+    },
+    "after": {
+     "summary": {
+      "runs": 3,
+      "blackRuns": 0,
+      "nonBlackMin": 0.9999,
+      "loadMsMedian": 40081,
+      "consoleErrors": 0,
+      "contextLost": 0,
+      "jsHeapMBMedian": 50.2,
+      "gpuEstimateMB": 220.2
+     },
+     "runs": [
+      {
+       "run": 0,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 136.7,
+       "loadMs": 45693,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 48.7,
+       "gpuEstimateMB": {
+        "total": 220.2,
+        "textures": 134.2,
+        "geometry": 40,
+        "renderTargets": 46,
+        "canvas": [
+         721,
+         1468
+        ]
+       },
+       "guard": {
+        "tier": "mobile",
+        "dpr": 1.75,
+        "shadow": 1536,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-desert-chromium-desert-0.png"
+      },
+      {
+       "run": 1,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 136.7,
+       "loadMs": 38233,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 50.2,
+       "gpuEstimateMB": {
+        "total": 220.1,
+        "textures": 134.2,
+        "geometry": 40,
+        "renderTargets": 46,
+        "canvas": [
+         721,
+         1468
+        ]
+       },
+       "guard": {
+        "tier": "mobile",
+        "dpr": 1.75,
+        "shadow": 1536,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-desert-chromium-desert-1.png"
+      },
+      {
+       "run": 2,
+       "device": "Pixel 7",
+       "url": "/",
+       "nonBlackRatio": 0.9999,
+       "meanLuma": 136.7,
+       "loadMs": 40081,
+       "desertDone": true,
+       "contextLost": 0,
+       "webglContexts": 2,
+       "fallbackCard": false,
+       "consoleErrors": [],
+       "jsHeapMB": 52,
+       "gpuEstimateMB": {
+        "total": 220.2,
+        "textures": 134.2,
+        "geometry": 40,
+        "renderTargets": 46,
+        "canvas": [
+         721,
+         1468
+        ]
+       },
+       "guard": {
+        "tier": "mobile",
+        "dpr": 1.75,
+        "shadow": 1536,
+        "wk": false,
+        "heal": 0,
+        "direct": false,
+        "lost": 0,
+        "log": []
+       },
+       "shot": "after-desert-chromium-desert-2.png"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "desertExtra": {
+  "iPhone 15 Pro (393x852, DPR 3), root": {
+   "before": [
+    {
+     "run": 0,
+     "device": "iPhone 15 Pro",
+     "url": "/",
+     "nonBlackRatio": 0.6798,
+     "meanLuma": 38.7,
+     "loadMs": 15393,
+     "desertDone": true,
+     "contextLost": 0,
+     "webglContexts": 2,
+     "fallbackCard": false,
+     "consoleErrors": [],
+     "gpuEstimateMB": {
+      "total": 219.2,
+      "textures": 134.2,
+      "geometry": 39.9,
+      "renderTargets": 45.1,
+      "canvas": [
+       786,
+       1318
+      ]
+     },
+     "shot": "before-ip15-webkit-desert-0.png"
+    },
+    {
+     "run": 1,
+     "device": "iPhone 15 Pro",
+     "url": "/",
+     "nonBlackRatio": 0.6798,
+     "meanLuma": 38.7,
+     "loadMs": 14605,
+     "desertDone": true,
+     "contextLost": 0,
+     "webglContexts": 2,
+     "fallbackCard": false,
+     "consoleErrors": [],
+     "gpuEstimateMB": {
+      "total": 219.2,
+      "textures": 134.2,
+      "geometry": 39.9,
+      "renderTargets": 45.1,
+      "canvas": [
+       786,
+       1318
+      ]
+     },
+     "shot": "before-ip15-webkit-desert-1.png"
+    }
+   ],
+   "after": [
+    {
+     "run": 0,
+     "device": "iPhone 15 Pro",
+     "url": "/",
+     "nonBlackRatio": 0.9998,
+     "meanLuma": 136.4,
+     "loadMs": 14889,
+     "desertDone": true,
+     "contextLost": 0,
+     "webglContexts": 2,
+     "fallbackCard": false,
+     "consoleErrors": [],
+     "gpuEstimateMB": {
+      "total": 208.6,
+      "textures": 134.2,
+      "geometry": 39.9,
+      "renderTargets": 34.4,
+      "canvas": [
+       687,
+       1153
+      ]
+     },
+     "guard": {
+      "tier": "mobile",
+      "dpr": 1.75,
+      "shadow": 1536,
+      "wk": true,
+      "heal": 1,
+      "direct": false,
+      "lost": 0,
+      "log": [
+       [
+        1,
+        null
+       ]
+      ]
+     },
+     "shot": "after-ip15-webkit-desert-0.png"
+    },
+    {
+     "run": 1,
+     "device": "iPhone 15 Pro",
+     "url": "/",
+     "nonBlackRatio": 0.9998,
+     "meanLuma": 136.4,
+     "loadMs": 15350,
+     "desertDone": true,
+     "contextLost": 0,
+     "webglContexts": 2,
+     "fallbackCard": false,
+     "consoleErrors": [],
+     "gpuEstimateMB": {
+      "total": 208.6,
+      "textures": 134.2,
+      "geometry": 39.9,
+      "renderTargets": 34.4,
+      "canvas": [
+       687,
+       1153
+      ]
+     },
+     "guard": {
+      "tier": "mobile",
+      "dpr": 1.75,
+      "shadow": 1536,
+      "wk": true,
+      "heal": 2,
+      "direct": false,
+      "lost": 0,
+      "log": [
+       [
+        1,
+        null
+       ],
+       [
+        1,
+        3.2
+       ]
+      ]
+     },
+     "shot": "after-ip15-webkit-desert-1.png"
+    }
+   ]
+  },
+  "iPhone 13, /desert/": {
+   "after": [
+    {
+     "run": 0,
+     "device": "iPhone 13",
+     "url": "/desert/",
+     "nonBlackRatio": 0.9997,
+     "meanLuma": 136.4,
+     "loadMs": 15638,
+     "desertDone": true,
+     "contextLost": 0,
+     "webglContexts": 2,
+     "fallbackCard": false,
+     "consoleErrors": [],
+     "gpuEstimateMB": {
+      "total": 208.6,
+      "textures": 134.2,
+      "geometry": 39.9,
+      "renderTargets": 34.5,
+      "canvas": [
+       682,
+       1162
+      ]
+     },
+     "guard": {
+      "tier": "mobile",
+      "dpr": 1.75,
+      "shadow": 1536,
+      "wk": true,
+      "heal": 1,
+      "direct": false,
+      "lost": 0,
+      "log": [
+       [
+        1,
+        null
+       ]
+      ]
+     },
+     "shot": "after-path-webkit-desert-0.png"
+    },
+    {
+     "run": 1,
+     "device": "iPhone 13",
+     "url": "/desert/",
+     "nonBlackRatio": 0.9997,
+     "meanLuma": 136.4,
+     "loadMs": 15581,
+     "desertDone": true,
+     "contextLost": 0,
+     "webglContexts": 2,
+     "fallbackCard": false,
+     "consoleErrors": [],
+     "gpuEstimateMB": {
+      "total": 208.6,
+      "textures": 134.2,
+      "geometry": 39.9,
+      "renderTargets": 34.5,
+      "canvas": [
+       682,
+       1162
+      ]
+     },
+     "guard": {
+      "tier": "mobile",
+      "dpr": 1.75,
+      "shadow": 1536,
+      "wk": true,
+      "heal": 1,
+      "direct": false,
+      "lost": 0,
+      "log": [
+       [
+        1,
+        null
+       ]
+      ]
+     },
+     "shot": "after-path-webkit-desert-1.png"
+    }
+   ]
+  }
+ },
+ "memory": {
+  "prefetch": [
+   {
+    "label": "before",
+    "glbRequests": 31,
+    "glbMB": 38.1,
+    "leftInDesPre": 12,
+    "leftMB": 19.4,
+    "leftKeys": [
+     "gerbil_v4d",
+     "gerbil_v5",
+     "ostrich_v2af",
+     "ostrich_v2ah",
+     "ostrich_v2c",
+     "ostrich_v2d",
+     "ostrich_v2e",
+     "ostrich_v2g",
+     "ostrich_v2z2",
+     "scorpion_uv_v2b",
+     "scorpion_v2b",
+     "tortoise_v2g"
+    ],
+    "heapUsedMB": 47.4,
+    "backingStorageMB": null
+   },
+   {
+    "label": "after",
+    "glbRequests": 19,
+    "glbMB": 20.8,
+    "leftInDesPre": 0,
+    "leftMB": 0,
+    "leftKeys": [],
+    "heapUsedMB": 47.9,
+    "backingStorageMB": null
+   }
+  ]
+ },
+ "soak": [
+  {
+   "run": 0,
+   "lumEvery10s": [
+    126.2,
+    126.2,
+    126.2,
+    126.1,
+    126.1,
+    126.1,
+    126.1,
+    126.1,
+    126,
+    126
+   ],
+   "guard": {
+    "tier": "mobile",
+    "dpr": 1.75,
+    "shadow": 1536,
+    "wk": true,
+    "heal": 4,
+    "direct": false,
+    "lost": 0,
+    "log": [
+     [
+      1,
+      null
+     ],
+     [
+      2,
+      null
+     ],
+     [
+      1,
+      8.6
+     ],
+     [
+      1,
+      24.3
+     ]
+    ]
+   }
+  },
+  {
+   "run": 1,
+   "lumEvery10s": [
+    126.2,
+    126.2,
+    126.2,
+    126.1,
+    126.1,
+    126.1,
+    126.1,
+    126.1,
+    126.1,
+    126
+   ],
+   "guard": {
+    "tier": "mobile",
+    "dpr": 1.75,
+    "shadow": 1536,
+    "wk": true,
+    "heal": 7,
+    "direct": false,
+    "lost": 0,
+    "log": [
+     [
+      1,
+      null
+     ],
+     [
+      2,
+      null
+     ],
+     [
+      1,
+      9.7
+     ],
+     [
+      1,
+      20.7
+     ],
+     [
+      1,
+      53.4
+     ],
+     [
+      1,
+      79.4
+     ],
+     [
+      1,
+      99.7
+     ]
+    ]
+   }
+  }
+ ],
+ "failurePaths": [
+  {
+   "case": "lost+restored",
+   "whileLost": {
+    "pill": "场景恢复中…",
+    "card": null,
+    "q": {
+     "tier": "mobile",
+     "dpr": 1.75,
+     "shadow": 1536,
+     "wk": true,
+     "heal": 1,
+     "direct": false,
+     "lost": 0,
+     "log": [
+      [
+       1,
+       null
+      ]
+     ]
+    }
+   },
+   "afterRestore": {
+    "pill": null,
+    "card": null,
+    "q": {
+     "tier": "low",
+     "dpr": 1.25,
+     "shadow": 1024,
+     "wk": true,
+     "heal": 1,
+     "direct": false,
+     "lost": 1,
+     "log": [
+      [
+       1,
+       null
+      ]
+     ]
+    }
+   },
+   "errors": [
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+    "WebGL: INVALID_OPERATION: delete: object does not belong to this context"
+   ]
+  },
+  {
+   "case": "lost for good",
+   "card": {
+    "pill": null,
+    "card": "场景暂时无法显示\n设备图形内存不足，画面已暂停。\n以流畅画质重新载入\n",
+    "q": {
+     "tier": "mobile",
+     "dpr": 1.75,
+     "shadow": 1536,
+     "wk": true,
+     "heal": 1,
+     "direct": false,
+     "lost": 0,
+     "log": [
+      [
+       1,
+       null
+      ]
+     ]
+    }
+   },
+   "afterReload": {
+    "pill": null,
+    "card": null,
+    "q": {
+     "tier": "low",
+     "dpr": 1.25,
+     "shadow": 1024,
+     "wk": true,
+     "heal": 2,
+     "direct": false,
+     "lost": 0,
+     "log": [
+      [
+       1,
+       null
+      ],
+      [
+       2,
+       null
+      ]
+     ]
+    }
+   },
+   "errors": [
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dWnd.ff02237487.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dCalm.89da1bd867.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dSnd.b33d754ea1.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dFire.33662e3a07.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dSnk.21e330a51e.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dPop1.9a9d841b4d.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dPop2.bcc84443e4.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dPop3.ef7efcd23a.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dEg1.293c9c2d4e.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dEg2.1279fb1910.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dEg3.4ac8779906.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dEg4.94735b1f97.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dEg5.cc6841e972.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dCm1.f2a9b2a01d.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dCm2.e317be836e.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dCm3.51b2b6db0a.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dCm4.fc07ce6e86.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dCm5.4cca90b15e.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dOk1.e1cd0b8449.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dOk2.187122caa9.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dOk3.12a14d4f0e.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dOk4.2e238f8827.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dOc1.31d35bc855.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dOc2.ba99be553d.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dOc3.f21d195427.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dFr1.71022fc177.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dFr2.2933177163.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dFr3.ef371c70a6.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dFr4.3b0eb8afa7.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dFr5.f59005cbba.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dFr6.34303a83b9.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dDf1.c2bca8b159.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dDf2.f9c6cbb2b2.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dDf3.89d3852f46.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dGh1.fab43c03e1.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dGh2.db74adeb9b.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dRn.962d3a4b8e.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dRt.42d94b489e.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dRn2.c4bd152bef.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dRn3.ce70d282d2.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dRt2.ea377a8b4f.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dRtl.583fb265c7.mp3 due to access control checks.",
+    "Fetch API cannot load http: /127.0.0.1:44405/assets/audio/dRtlOn.8c54efd922.mp3 due to access control checks."
+   ]
+  },
+  {
+   "case": "no WebGL",
+   "state": {
+    "pill": null,
+    "card": "沙漠绿洲\n此浏览器未能启用 WebGL，暂时无法显示 3D 场景。"
+   },
+   "errors": [
+    "THREE.WebGLRenderer: A WebGL context could not be created. Reason:  disabled by enterprise policy or commandline switch",
+    "THREE.WebGLRenderer: A WebGL context could not be created. Reason:  Failed to create a WebGL2 context.",
+    "THREE.WebGLRenderer: A WebGL context could not be created. Reason:  disabled by enterprise policy or commandline switch"
+   ]
+  }
+ ],
+ "ci": {
+  "scene-panel/scenes.mjs": "all scene switches ok",
+  "scene-panel/desert.mjs": "all desert checks ok (24/24); one earlier local run failed 'ostriches, tortoises, gerbils, scorpions', the same check that failed on main in run 45555741562, and passed on rerun",
+  "clear-day-perf/perf.mjs (ROUNDS=3, vs main)": {
+   "pr": {
+    "jsMean": [
+     17.9,
+     15.2,
+     14.2
+    ],
+    "max": [
+     93,
+     59,
+     65
+    ],
+    "over200": [
+     0,
+     0,
+     0
+    ]
+   },
+   "main": {
+    "jsMean": [
+     15.5,
+     16.5,
+     16.8
+    ],
+    "max": [
+     59,
+     65,
+     76
+    ]
+   },
+   "verdict": "ok: pr 15.8 vs main 16.3 (limit 18.7), no frame over 200 ms"
+  }
+ },
+ "tiers": {
+  "high": "desktop and every non-desert yard: DPR cap 2, sun shadow map unchanged (2048, 4096 after the jp yard is built on desktop)",
+  "mobile": "phone (UA Mobi|iPhone|Android) in the desert: DPR cap 1.75, sun shadow map 1536",
+  "low": "after a context loss (every yard) or cyQ=low (the fallback card's reload): DPR cap 1.25, shadow map 1024"
+ }
+}

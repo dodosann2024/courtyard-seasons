@@ -138,29 +138,32 @@ try {
   if (want("shore")) {
     report.shore = {}; const part = k => !process.env.SHORE || process.env.SHORE.split(",").includes(k);
     if (part("crabs")) {
-    /* the whole crab population over SHM minutes, in the everyday breeze: time out on the bank, time with the lap washing over it (by the same
+    /* the whole crab population over SHM minutes, in the everyday breeze: time out on the bank above the still water, time with the lap washing over it (by the same
        edge the shaders draw, lapAt where the build has it), dodges and trail follows */
     report.shore.crabs = await E(min => { const q = window.__desQA(), C = window.__C(); window.__set({weather: "sun", ct: "clear", wind: .45}); q.tod("day"); q.sim(10, .25);
       C.Ce.enabled = false; q.lookAt(30, 25, 30, 0, 0, 0); q.step(1, 1 / 30);
-      const L = q.CR.list, P = q.POND, has = !!q.lapAt; let out = 0, under = 0, dodge = 0, trail = 0, lastGo = L.map(c => c.go);
+      const L = q.CR.list, P = q.POND, has = !!q.lapAt; let out = 0, under = 0, reach = 0, dodge = 0, trail = 0, lastGo = L.map(c => c.go);
       for (let f = 0; f < min * 60 * 30; f++) { q.step(1, 1 / 30); if (q.st.phase !== "day") q.tod("day");
         L.forEach((c, i) => { if (c.go !== lastGo[i]) { if (c.go === "dodge") dodge++; if (c.go === "trail") trail++; lastGo[i] = c.go; }
-          if (!has || !(c.mode === "out" || c.mode === "dig" || c.mode === "face" || (c.mode === "walk" && c.go !== "water"))) return; out++;
-          if (c.y - P.wy < q.lapAt(c.x, c.z, q.pondU.uT.value)) under++; }); }
-      return has ? {minutes: min, crabs: L.length, crabSecondsOnBank: +(out / 30).toFixed(1), crabSecondsUnderLap: +(under / 30).toFixed(1), underShare: +(under / Math.max(1, out)).toFixed(4), dodges: dodge, trailFollows: trail}
-        : {minutes: min, crabs: L.length, note: "main has no shared lap edge in JS (its phase is GPU noise) and no crab reaction to it"}; }, +(process.env.SHM || 6));
+          const hh = c.y - P.wy; if (!(c.mode === "out" || c.mode === "dig" || c.mode === "face" || (c.mode === "walk" && c.go !== "water")) || hh <= 0) return; out++;
+          const A = (.006 + .022 * q.pondU.uWind.value) * (1 - q.pondU.uIce.value); if (hh < A) reach++;
+          if (has && hh < q.lapAt(c.x, c.z, q.pondU.uT.value)) under++; }); }
+      /* inReach: on the bank inside the band the lap washes over (under its full height over the still level), readable on any build */
+      const o = {minutes: min, crabs: L.length, crabSecondsOnBank: +(out / 30).toFixed(1), crabSecondsInReach: +(reach / 30).toFixed(1), inReachShare: +(reach / Math.max(1, out)).toFixed(4), dodges: dodge, trailFollows: trail};
+      return has ? {...o, crabSecondsUnderLap: +(under / 30).toFixed(1), underShare: +(under / Math.max(1, out)).toFixed(4)} : {...o, note: "main has no lap edge in JS (its phase is GPU noise) and no crab reaction to it"}; }, +(process.env.SHM || 6));
     console.log("shore crabs", JSON.stringify(report.shore.crabs)); }
     if (part("crab")) {
-    /* one crab set down on the bank inside the reach of the lap (2 mm over the still level), a lens 1.5 m off at 0.45 m: 12 s */
+    /* one crab set down on the bank inside the reach of the lap (2 mm over the still level), watched from 1.1 m out over the water, 0.42 m up: 12 s */
     report.shore.crab = await E(() => { const q = window.__desQA(), C = window.__C(), P = q.POND, c = q.CR.list[0]; window.__set({weather: "sun", ct: "clear", wind: .45}); q.tod("day"); q.sim(4, .25);
       for (const o of q.CR.list) if (o !== c) { o.x = o.bx; o.z = o.bz; o.mode = "in"; o.t = 1e9; o.sk = 1; }
       const th = Math.atan2(c.bz - P.z, c.bx - P.x); let bx = c.bx, bz = c.bz;
       for (let s = .7; s < 1.3; s += .001) { const [x, z] = q.pondEdge(th, s); if (q.hTop(x, z) - P.wy > .002) { bx = x; bz = z; break; } }
       Object.assign(c, {x: bx, z: bz, mode: "out", t: 1e9, sk: 0, v: 0, go: null, yaw: th + Math.PI / 2}); q.step(2, 1 / 30);
-      const ux = Math.cos(th), uz = Math.sin(th), ex = bx + ux * .9 - uz * 1.2, ez = bz + uz * .9 + ux * 1.2;
-      window.__crabCam = {e: [ex, q.hTop(ex, ez) + .45, ez], t: [bx, P.wy + .01, bz], w: [bx, bz], u: [ux, uz], fov: 40};
+      /* from out over the water, looking back at the bank (no grass between): the wash, its wet trail and the crab */
+      const ux = Math.cos(th), uz = Math.sin(th), ex = bx - ux * 1.1 + uz * .35, ez = bz - uz * 1.1 - ux * .35;
+      window.__crabCam = {e: [ex, P.wy + .42, ez], t: [bx + ux * .05, P.wy + .01, bz + uz * .05], w: [bx, bz], u: [ux, uz], fov: 32};
       window.__look(window.__crabCam); window.__crabTrack = []; return {crab: 0, at: [+bx.toFixed(3), +bz.toFixed(3)], overWater: +(q.hTop(bx, bz) - P.wy).toFixed(4)}; });
-    await cap("螃蟹在水边：浪涌上来时让开，退下去时跟着走到刚露出的湿沙上");
+    await cap("螃蟹在水边：水涌上来时让开，退下去时跟着走到刚露出的湿沙上");
     { const dir = path.join(OUT, `${TAG}shore_crab_frames`); fs.rmSync(dir, {recursive: true, force: true}); fs.mkdirSync(dir, {recursive: true});
       for (let i = 0; i < 90; i++) { const s = await E(() => { const q = window.__desQA(), c = q.CR.list[0], P = q.POND; q.step(4, 1 / 30);
           const l = q.lapAt ? q.lapAt(c.x, c.z, q.pondU.uT.value) : null, r = {t: +q.pondU.uT.value.toFixed(2), mode: c.mode, go: c.go, hh: +(c.y - P.wy).toFixed(4), lap: l == null ? null : +l.toFixed(4)}; window.__crabTrack.push(r); return r; });

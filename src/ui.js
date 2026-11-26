@@ -139,7 +139,8 @@ function fallback(t,m,retry){if($("#cyfb"))return;clearTimeout(glT);pill(0);cons
   /* retry 1: reload at the low tier (app.js reads cyQ), 2: a plain reload */
   if(retry){const b=d.querySelector("button");b.textContent=retry===1?"以流畅画质重新载入":"重新载入";
     b.addEventListener("click",()=>{if(retry===1)try{localStorage.setItem("cyQ","low")}catch{}location.reload()})}
-  document.body.appendChild(d)}
+  /* under the panels, which close so the note shows; reopened, they still switch yards over it */
+  const cv=sceneCanvas();cv?cv.after(d):document.body.prepend(d);document.body.classList.add("col","snc")}
 document.addEventListener("cy-gl",e=>{const k=e.detail,p=tp();clearTimeout(glT);
   if(k==="lost"){if(p){pill(0);p.querySelector("span").textContent="场景恢复中…";p.classList.add("on")}
     glT=setTimeout(()=>fallback("场景暂时无法显示","设备图形内存不足，画面已暂停。",1),8000)}

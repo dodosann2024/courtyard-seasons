@@ -110,6 +110,7 @@ try {
       await E(`(${f})()`);
       const r = report.weather[n] = await E(() => { const q = window.__desQA(), r = window.__look("light"); return {...r, rain: +q.WX.rain.toFixed(3), wet: +q.WX.wet.toFixed(3), ice: +q.WX.ice.toFixed(3), snow: +q.WX.sc.toFixed(3), night: +q.st.night.toFixed(2), uT: +q.pondU.uT.value.toFixed(2)}; });
       { const smp = await E(() => window.__samples()); r.samples = {band: smp.band.length, dry: smp.dry.length, water: smp.water.length};
+        if (process.env.PTS) fs.writeFileSync(path.join(OUT, `${TAG}weather_${n}_pts.json`), JSON.stringify(smp));
         await cap(`${zh}，眼高 ${r.eyeAboveSand} 米`); await shot(path.join(OUT, `${TAG}weather_${n}.png`)); await cap("");
         await shot(path.join(OUT, `${TAG}weather_${n}_raw.png`)); r.at = await measure(path.join(OUT, `${TAG}weather_${n}_raw.png`), smp); }
       if (!process.env.NOCLIP) { await cap(`${zh}，眼高 ${r.eyeAboveSand} 米`); await clip(`weather_${n}`, +(process.env.WF || 36), 2, 12); await cap(""); }

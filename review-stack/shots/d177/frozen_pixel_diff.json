@@ -1,0 +1,10 @@
+{
+ "what": "pixel diff of the frozen raw stills (main vs branch, HOLD=1, same camera and sim time)",
+ "frozen": {
+  "meanAbs": 0.4792,
+  "max": 209,
+  "changedShare": 0.1224,
+  "over8Share": 0.00904
+ },
+ "reference": "main vs main in two runs of the same sequence: meanAbs ~0.39"
+}

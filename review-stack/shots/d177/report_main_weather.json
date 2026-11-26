@@ -1,0 +1,277 @@
+{
+ "bundle": "assets/desert.029d7dc195.js",
+ "weather": {
+  "rain": {
+   "cam": [
+    -10.75,
+    1.37,
+    11.88
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -9.48,
+    9.84
+   ],
+   "rain": 0.62,
+   "wet": 1,
+   "ice": 0,
+   "snow": 0,
+   "night": 0,
+   "uT": 65.72,
+   "samples": {
+    "band": 65,
+    "dry": 849,
+    "water": 2226
+   },
+   "at": {
+    "trail": {
+     "lum": 91,
+     "warm": 1.204,
+     "n": 14
+    },
+    "band": {
+     "lum": 112.7,
+     "warm": 1.363,
+     "n": 65
+    },
+    "dry": {
+     "lum": 129.3,
+     "warm": 1.659,
+     "n": 849
+    },
+    "water": {
+     "lum": 123.3,
+     "warm": 0.704,
+     "n": 2226,
+     "glint": 0.0009
+    }
+   }
+  },
+  "dusk": {
+   "cam": [
+    -10.75,
+    1.37,
+    11.88
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -9.48,
+    9.84
+   ],
+   "rain": 0,
+   "wet": 0.667,
+   "ice": 0,
+   "snow": 0,
+   "night": 0,
+   "uT": 126.08,
+   "samples": {
+    "band": 65,
+    "dry": 849,
+    "water": 2226
+   },
+   "at": {
+    "trail": {
+     "lum": 113.5,
+     "warm": 2.475,
+     "n": 14
+    },
+    "band": {
+     "lum": 125,
+     "warm": 2.48,
+     "n": 65
+    },
+    "dry": {
+     "lum": 121.7,
+     "warm": 2.707,
+     "n": 849
+    },
+    "water": {
+     "lum": 135,
+     "warm": 1.18,
+     "n": 2226,
+     "glint": 0.1195
+    }
+   }
+  },
+  "night": {
+   "cam": [
+    -16.27,
+    1.34,
+    7.47
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -13.89,
+    7.14
+   ],
+   "rain": 0,
+   "wet": 0.574,
+   "ice": 0,
+   "snow": 0,
+   "night": 1,
+   "uT": 186.45,
+   "samples": {
+    "band": 169,
+    "dry": 4,
+    "water": 2293
+   },
+   "at": {
+    "trail": {
+     "lum": 84.5,
+     "warm": 0.738,
+     "n": 24
+    },
+    "band": {
+     "lum": 83.1,
+     "warm": 0.723,
+     "n": 169
+    },
+    "dry": {
+     "lum": 55.6,
+     "warm": 0.79,
+     "n": 4
+    },
+    "water": {
+     "lum": 45.7,
+     "warm": 0.519,
+     "n": 2293,
+     "glint": 0.0445
+    }
+   }
+  },
+  "frozen": {
+   "cam": [
+    -16.28,
+    1.34,
+    4.6
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -13.91,
+    5.02
+   ],
+   "rain": 0,
+   "wet": 0,
+   "ice": 0.792,
+   "snow": 0.985,
+   "night": 0,
+   "uT": 449.72,
+   "samples": {
+    "band": 165,
+    "dry": 24,
+    "water": 2246
+   },
+   "at": {
+    "trail": {
+     "lum": 156.1,
+     "warm": 1.664,
+     "n": 21
+    },
+    "band": {
+     "lum": 153.5,
+     "warm": 1.714,
+     "n": 165
+    },
+    "dry": {
+     "lum": 164.5,
+     "warm": 2.025,
+     "n": 24
+    },
+    "water": {
+     "lum": 147.6,
+     "warm": 1.026,
+     "n": 2246,
+     "glint": 0.0806
+    }
+   }
+  }
+ },
+ "fails": [],
+ "note": "rain/dusk/night: stills re-measured in a NOCLIP run of the same sequence (the paired stills and clips come from the full run; the sequence is deterministic in sim time, the stills differ by a few levels from wall-clock animation). frozen: HOLD=1 (crabs held in their burrows on both builds).",
+ "clipLuma": {
+  "rain": {
+   "still_nocaption": {
+    "band": 111.0,
+    "trail": 90.8,
+    "dry": 129.3,
+    "water": 123.2
+   },
+   "clipMean": {
+    "band": 111.9,
+    "trail": 88.4,
+    "dry": 126.8,
+    "water": 123.1
+   },
+   "clipMin": {
+    "band": 110.4,
+    "trail": 85.7,
+    "dry": 126.5,
+    "water": 122.4
+   },
+   "clipMax": {
+    "band": 115.7,
+    "trail": 94.6,
+    "dry": 128.7,
+    "water": 124.3
+   },
+   "frames": 36,
+   "note": "clip frames carry a caption at the bottom; points below y=670 are left out of the clip numbers"
+  },
+  "dusk": {
+   "still_nocaption": {
+    "band": 125.9,
+    "trail": 113.1,
+    "dry": 121.1,
+    "water": 140.6
+   },
+   "clipMean": {
+    "band": 124.8,
+    "trail": 115.5,
+    "dry": 123.7,
+    "water": 138.0
+   },
+   "clipMin": {
+    "band": 124.2,
+    "trail": 112.7,
+    "dry": 123.1,
+    "water": 135.5
+   },
+   "clipMax": {
+    "band": 125.8,
+    "trail": 118.8,
+    "dry": 124.2,
+    "water": 141.3
+   },
+   "frames": 36,
+   "note": "clip frames carry a caption at the bottom; points below y=670 are left out of the clip numbers"
+  },
+  "night": {
+   "still_nocaption": {
+    "band": 83.1,
+    "trail": 102.9,
+    "dry": 55.7,
+    "water": 46.7
+   },
+   "clipMean": {
+    "band": 82.7,
+    "trail": 97.5,
+    "dry": null,
+    "water": 47.5
+   },
+   "clipMin": {
+    "band": 82.1,
+    "trail": 93.0,
+    "dry": null,
+    "water": 46.6
+   },
+   "clipMax": {
+    "band": 83.3,
+    "trail": 102.8,
+    "dry": null,
+    "water": 48.3
+   },
+   "frames": 36,
+   "note": "clip frames carry a caption at the bottom; points below y=670 are left out of the clip numbers"
+  }
+ }
+}

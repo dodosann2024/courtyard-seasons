@@ -1,0 +1,671 @@
+{
+ "bundle": "assets/desert.029d7dc195.js",
+ "shore": {
+  "crabs": {
+   "minutes": 6,
+   "crabs": 8,
+   "crabSecondsOnBank": 996.4,
+   "crabSecondsInReach": 127.5,
+   "inReachShare": 0.128,
+   "dodges": 0,
+   "trailFollows": 0,
+   "note": "main has no lap edge in JS (its phase is GPU noise) and no crab reaction to it"
+  },
+  "crab": {
+   "crab": 0,
+   "at": [
+    -4.025,
+    2.584
+   ],
+   "overWater": 0.0023,
+   "track": [
+    {
+     "t": 379.5,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 379.63,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 379.77,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 379.9,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 380.03,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 380.17,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 380.3,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 380.43,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 380.57,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 380.7,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 380.83,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 380.97,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 381.1,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 381.23,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 381.37,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 381.5,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 381.63,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 381.77,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 381.9,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 382.03,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 382.17,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 382.3,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 382.43,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 382.57,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 382.7,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 382.83,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 382.97,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 383.1,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 383.23,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 383.37,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 383.5,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 383.63,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 383.77,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 383.9,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 384.03,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 384.17,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 384.3,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 384.43,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 384.57,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 384.7,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 384.83,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 384.97,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 385.1,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 385.23,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 385.37,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 385.5,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 385.63,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 385.77,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 385.9,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 386.03,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 386.17,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 386.3,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 386.43,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 386.57,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 386.7,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 386.83,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 386.97,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 387.1,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 387.23,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 387.37,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 387.5,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 387.63,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 387.77,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 387.9,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 388.03,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 388.17,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 388.3,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 388.43,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 388.57,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 388.7,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 388.83,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 388.97,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 389.1,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 389.23,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 389.37,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 389.5,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 389.63,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 389.77,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 389.9,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 390.03,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 390.17,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 390.3,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 390.43,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 390.57,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 390.7,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 390.83,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 390.97,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 391.1,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 391.23,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    },
+    {
+     "t": 391.37,
+     "mode": "out",
+     "go": null,
+     "hh": 0.0009,
+     "lap": null
+    }
+   ],
+   "stillFrame": 49,
+   "dodges": 0,
+   "trailFollows": 0,
+   "framesUnderLap": 0
+  },
+  "fish": {
+   "knot": [
+    -8.43,
+    9.15
+   ],
+   "inKnot": 8,
+   "pupfish": 16,
+   "vis": 1,
+   "shadows": 0,
+   "list": []
+  }
+ },
+ "fails": []
+}

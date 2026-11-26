@@ -59,6 +59,10 @@ float dn2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
   return mix(mix(dh2(i),dh2(i+vec2(1,0)),f.x),mix(dh2(i+vec2(0,1)),dh2(i+vec2(1,1)),f.x),f.y);}
 float dfbm(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*dn2(p);p=p*2.03+vec2(1.7,9.2);a*=.5;}return s/.9375;}
 `;
+/* the pond's lapping edge, shared by the water, the wet sand and the crabs (lapAt): its phase at angle th round the pond at time t,
+   unevenly along the shore. Built from sines only, so the scene's JS reads the same edge as the shaders at any scene time. */
+const LAP_G=`float lapP(float th,float t){return t*1.15+th*9.+1.8*(.5+.25*sin(th*5.3+t*.29)+.25*sin(th*3.1-t*.21+2.3));}`;
+const lapP=(th,t)=>t*1.15+th*9+1.8*(.5+.25*Math.sin(th*5.3+t*.29)+.25*Math.sin(th*3.1-t*.21+2.3));
 
 /* ---------------- layout (metres; +x = right of the default view, +z = toward the camera) ---------------- */
 const AX=24,AZ=19;
@@ -273,7 +277,7 @@ function sandMat(){
         vDn=aM>0.&&uSnow+uMW>.003?vec2(aM,aM*(duneG(position.xz,uDA,uDB)-.5*(duneG(position.xz+uRipDir*1.4,uDA,uDB)+duneG(position.xz-uRipDir*1.4,uDA,uDB)))):vec2(0.);`);
     sh.fragmentShader=sh.fragmentShader.replace("#include <common>",`#include <common>
       varying vec3 vSP;varying vec3 vSN;varying vec3 vWP;varying vec2 vDn;uniform mat3 normalMatrix;uniform float uWy,uRip,uNight,uFlowT,uFlowK,uRipPh,uWetK,uPitK,uHeat,uTm,uPT,uPW,uPI,uRainS;uniform vec2 uRipDir;uniform vec3 uLd,uLc,uHaze,uMirC,uMirB;float mkO=0.;
-      uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}
+      uniform vec3 uSandA,uSandB,uWet,uSoil;uniform vec4 uPond;uniform vec4 uGrv[${GRV.length}];${GLSL_NOISE}${GLSL_GUST}${LAP_G}
       /* the island's rim shape (sN in JS): 1 on the rim line */
       float rimN(vec2 p){vec2 q=p/vec2(${AX}.,${AZ}.);float th=atan(q.y,q.x);
         return length(q)/(1.+.06*sin(2.*th+.7)+.05*sin(3.*th-1.2)+.03*sin(5.*th+2.1)+.018*sin(8.*th+.4)+.01*sin(13.*th+1.3));}
@@ -298,16 +302,20 @@ function sandMat(){
         sc=mix(sc,uWet,wet);
         /* the pond's edge laps exactly as the water does (its clock, wind and ice): above the highest reach a band of dark wet sand
            with a ragged top; below it, sand the water has just drawn back from stays dark and glossy and dries off over a few seconds */
-        float shW=0.,shG=0.,shR=max(uRainS,.6*uWetK)*(1.-uPI);
+        float shW=0.,shG=0.,shR=max(uRainS,.6*uWetK)*(1.-uPI),shK=shR*(1.-smoothstep(0.,.3,uPI));
         {float hh=vSP.y-uWy;if(pn<1.15&&hh<.3&&hh>-.06){float th=atan(vSP.z-uPond.y,vSP.x-uPond.x),A=(.006+.022*uPW)*(1.-uPI);
+          /* a strong wind dries the bank faster: the soaked band above the reach is narrower and the retreat trail dries off sooner */
+          float dw=smoothstep(.5,1.,uPW)*(1.-shK)*(1.-smoothstep(0.,.3,uPI));
           /* rain soaks the bank higher up: the band widens and its edge softens */
-          float top=A+.075+.04*uPW+.075*shR+.018*(dn2(vSP.xz*3.7)-.5)+.009*(dn2(vSP.xz*14.+2.)-.5);shW=smoothstep(top,top-.035-.025*shR,hh)*(1.-.5*uPI);
+          float top=A+(.075+.04*uPW)*(1.-.45*dw)+.075*shR+.018*(dn2(vSP.xz*3.7)-.5)+.009*(dn2(vSP.xz*14.+2.)-.5);shW=smoothstep(top,top-.035-.025*shR,hh)*(1.-.5*uPI)*(1.-.3*dw);
           /* sand the water has just left stays saturated for several seconds: a film still on it, nearly as dark as the ocean's wet sand,
              drying from its upper edge down; capillary water keeps a fringe about a centimetre above the reach saturated too, fading out by 3 cm */
-          if(A>.0005)for(int i=0;i<12;i++){float ta=float(i)*.6,t=uPT-ta,lv=A*(sin(t*1.15+th*9.+1.8*dn2(vec2(th*5.,t*.25)))*.6+sin(t*.67+th*4.+1.3)*.4);
-            shG=max(shG,smoothstep(hh-.03,hh-.008,lv)*exp(-ta/4.5)*smoothstep(6.8,4.4,ta));}
+          float tD=4.5*(1.-.55*dw),tE=6.8*(1.-.5*dw);
+          if(A>.0005)for(int i=0;i<12;i++){float ta=float(i)*.6,t=uPT-ta,lv=A*(sin(lapP(th,t))*.6+sin(t*.67+th*4.+1.3)*.4);
+            shG=max(shG,smoothstep(hh-.03,hh-.008,lv)*exp(-ta/tD)*smoothstep(tE,4.4*(1.-.5*dw),ta));}
           shG=min(1.,shG*1.15)*(1.-smoothstep(0.,.3,uPI));
-          sc*=mix(1.,.84,smoothstep(top+.07,top,hh)*(1.-.5*uPI));sc*=mix(1.,.6-.2*shR,shW);sc=mix(sc,sc*vec3(.42,.38,.35),shG*.95);}}
+          /* in rain the band is soaked through: water fills the pores, so it goes much darker and a little cooler */
+          sc*=mix(1.,.84,smoothstep(top+.07,top,hh)*(1.-.5*uPI));sc*=mix(vec3(1.),(.6-.2*shR)*mix(vec3(1.),vec3(.44,.44,.48),shK),shW);sc=mix(sc,sc*vec3(.42,.38,.35),shG*.95);}}
         /* desert pavement: a lag of pebbles (grey, tan, varnished red-brown) over darker grit; at a distance only their mean tone */
         float grv=0.;
         for(int i=0;i<${GRV.length};i++){vec4 g=uGrv[i];vec2 q=vSP.xz-g.xy;float sh=(dfbm(q*.42+g.xy)-.5)*.75+(nz2-.5)*.3;grv=max(grv,smoothstep(1.,.35,length(q)/g.z+sh));}
@@ -386,7 +394,9 @@ function sandMat(){
          if(wS>.003){vec3 Vw=normalize(cameraPosition-vWP),nW=normalize(cross(dFdx(vWP),dFdy(vWP)));nW*=sign(nW.y+1e-6);vec3 rw=reflect(-Vw,nW);
            float fr=.02+.98*pow(1.-max(dot(nW,Vw),0.),5.);
            outgoingLight=mix(outgoingLight,mix(uMirC,uMirB,smoothstep(0.,.6,rw.y))*(1.-.6*uNight)*.85,clamp(fr*wS*(.2+.2*shR),0.,.05+.035*shR));
-           float lit=step(1e-5,dot(reflectedLight.directDiffuse,vec3(1.))),rl=max(dot(rw,uLd),0.),lb=pow(rl,90.)*1.4+pow(rl,10.)*.3;
+           /* under the moon the lobe is as plain as the dusk sun's warm band: a silver path on the wet sand toward the moon, a little
+              wider (the eye is dark-adapted and the moon is a broad, soft source) */
+           float lit=step(1e-5,dot(reflectedLight.directDiffuse,vec3(1.))),rl=max(dot(rw,uLd),0.),lb=pow(rl,90.)*1.4*(1.+1.4*uNight)+pow(rl,10.)*.3*(1.+.25*uNight)+pow(rl,30.)*1.4*uNight;
            vec2 gq=vSP.xz/.008,gi=floor(gq);float gh=dh2(gi+floor(uTm*3.+dh2(gi+2.3)*5.)*.61);
            vec3 gn=normalize(nW+vec3(dh2(gi+gh*5.1)-.5,0.,dh2(gi+gh*2.7+3.)-.5)*.5);
            float gg=smoothstep(.985,.997,dot(reflect(-Vw,gn),uLd))*smoothstep(.45,.15,length(fract(gq)-.5))*(1.-smoothstep(.004,.012,length(fwidth(vSP.xz))));
@@ -737,7 +747,8 @@ function placeRocks(list){
 /* ---------------- oasis pond: sea-style water, depth tint, sky fresnel, palm reflection, sun glint ---------------- */
 const pondU={uT:{value:0},uCamL:{value:new V3()},uSunL:{value:new V3(0,1,0)},uSunCol:{value:new C3("#ffb469")},
   uDeep:{value:new C3("#0a2c2b")},uShal:{value:new C3("#2c6a5c")},uBed:{value:new C3("#a8875a")},uSkyA:{value:new C3("#c9a6c4")},uSkyB:{value:new C3("#6f6aa8")},
-  uRefl:{value:null},uReflM:{value:new T.M4()},uReflOn:{value:0},uNight:{value:0},uWind:{value:.35},uRainP:{value:0},uIce:{value:0},uOvc:{value:0},uWD:sandU.uWD,uFogC:{value:new C3()},uFogNF:{value:new T.V2(400,900)}};
+  uRefl:{value:null},uReflM:{value:new T.M4()},uReflOn:{value:0},uNight:{value:0},uWind:{value:.35},uRainP:{value:0},uIce:{value:0},uOvc:{value:0},uWD:sandU.uWD,uFogC:{value:new C3()},uFogNF:{value:new T.V2(400,900)},
+  uFS:{value:Array.from({length:12},()=>new T.V4())},uFZ:{value:Array.from({length:12},()=>new T.V4())},uFN:{value:0}};
 /* the sand's wet margin laps with the water */
 Object.assign(sandU,{uPT:pondU.uT,uPW:pondU.uWind,uPI:pondU.uIce});
 let pondMesh=null;
@@ -751,7 +762,7 @@ let pondMesh=null;
   const m=new T.SM({uniforms:pondU,transparent:true,depthWrite:false,
     vertexShader:`attribute float aD;varying float vD;varying vec3 vP;varying vec4 vR;uniform mat4 uReflM;
       void main(){vD=aD;vP=position;vec4 w=modelMatrix*vec4(position,1.);vR=uReflM*w;gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader:`uniform float uT,uReflOn,uNight,uWind,uRainP,uIce,uOvc;uniform vec2 uFogNF,uWD;uniform vec3 uCamL,uSunL,uSunCol,uDeep,uShal,uBed,uSkyA,uSkyB,uFogC;uniform sampler2D uRefl;varying float vD;varying vec3 vP;varying vec4 vR;${GLSL_NOISE}
+    fragmentShader:`uniform float uT,uReflOn,uNight,uWind,uRainP,uIce,uOvc,uFN;uniform vec4 uFS[12],uFZ[12];uniform vec2 uFogNF,uWD;uniform vec3 uCamL,uSunL,uSunCol,uDeep,uShal,uBed,uSkyA,uSkyB,uFogC;uniform sampler2D uRefl;varying float vD;varying vec3 vP;varying vec4 vR;${GLSL_NOISE}${LAP_G}
       /* raindrop rings: each cell rings once per cycle, two offset layers so the rings overlap */
       vec2 ringG(vec2 p){vec2 g=vec2(0.);for(int L=0;L<2;L++){vec2 q=p*(L==0?2.6:3.7)+float(L)*7.31;vec2 c=floor(q),f=fract(q)-.5;float h=dh2(c+float(L)*3.1);
         vec2 o=(vec2(dh2(c+1.3),dh2(c+2.7))-.5)*.5;vec2 d=f-o;float r=length(d),ph=fract(uT*(.9+.6*h)+h*7.),rad=ph*.42;
@@ -788,7 +799,8 @@ let pondMesh=null;
         vec3 V=normalize(uCamL-vP);
         float fr=.02+.98*pow(1.-max(dot(n,V),0.),5.);
         /* the shore laps: the waterline creeps up the bank and draws back, unevenly along it, more in wind */
-        float th=atan(vP.z-(${POND.z.toFixed(3)}),vP.x-(${POND.x.toFixed(3)})),lph=uT*1.15+th*9.+1.8*dn2(vec2(th*5.,uT*.25));
+        /* (under any ice, the old noise-driven phase: an icing pond laps exactly as it always has) */
+        float th=atan(vP.z-(${POND.z.toFixed(3)}),vP.x-(${POND.x.toFixed(3)})),lph=mix(lapP(th,uT),uT*1.15+th*9.+1.8*dn2(vec2(th*5.,uT*.25)),smoothstep(0.,.05,uIce));
         float ed=vD+(.006+.022*uWind)*(sin(lph)*.6+sin(uT*.67+th*4.+1.3)*.4)*(1.-uIce);
         float sunV=(1.-uNight)*(1.-.85*uOvc),sunK=dot(uSunCol,vec3(.3,.45,.25));
         /* at night the key light is the moon: the same core, lobe and glitter, dimmer, and quiet under ice */
@@ -800,8 +812,15 @@ let pondMesh=null;
         vec2 bp=vP.xz-V.xz/max(V.y,.25)*max(vD,0.)*.75+n.xz*max(vD,0.)*.9;
         float rb=sin(dot(bp,wd)*8.5+2.4*dn2(bp*1.2))*.5+.5,sl=dn2(bp*.7+9.);
         vec3 bed=uBed*exp(-vD*vec3(2.6,1.15,1.05)*3.)*(.8+.2*dn2(vP.xz*3.+uT*.05))*(.9+.14*rb*lod)*mix(1.,.78,smoothstep(.5,.8,sl));
-        bed*=1.+caus(bp)*1.5*sunV*sunK*(.35+.65*smoothstep(.05,.4,uWind))*(1.-.8*uRainP)*(1.-uIce)*exp(-vD*1.4)*smoothstep(0.,.03,vD)*(.4+.6*lod);
-        body=mix(bed,body,smoothstep(.0,.45,vD))*mix(1.,.28,uNight);
+        /* the shadows of the fish over the shallow bed (fishSh): the sun they block is the light the ripples focus, so inside a
+           shadow the caustic net goes out with the direct light, and the net runs on bright right up to its edge */
+        float fsh=0.;
+        if(uFN>.5&&vD<.6)for(int i=0;i<12;i++){if(float(i)>=uFN)break;vec4 a=uFS[i],b=uFZ[i];vec2 d=bp-a.xy;
+          vec2 q=vec2(d.x*a.z-d.y*a.w,d.x*a.w+d.y*a.z)/b.xy;q.x/=mix(1.,.35,smoothstep(.1,-1.,q.y))*mix(1.,.8,smoothstep(.4,1.,q.y));
+          fsh=max(fsh,b.z*smoothstep(1.,1.-b.w,length(q)));}
+        bed*=1.-.7*fsh;
+        bed*=1.+caus(bp)*(1.-fsh)*1.5*sunV*sunK*(.35+.65*smoothstep(.05,.4,uWind))*(1.-.8*uRainP)*(1.-uIce)*exp(-vD*1.4)*smoothstep(0.,.03,vD)*(.4+.6*lod);
+        body=mix(bed,body,smoothstep(.0,.45,vD))*mix(1.,.28,uNight)*(1.-.4*fsh*(1.-smoothstep(.3,.6,vD)));
         /* low sun behind the ripples: light comes through the thin crests green-gold */
         float bs=pow(clamp(dot(V,-uSunL)*.6+.4,0.,1.),3.)*smoothstep(.5,.8,h0+.2*paw)*sunV;
         body+=uShal*vec3(.9,1.25,.85)*bs*.35*smoothstep(.05,.4,vD);
@@ -4897,6 +4916,19 @@ function ttUpdate(dt){const L=TT.list,S0=TT.sch,ny=st.night>.5,hail=WX.hcold>0||
     const sc=sunCast()*TT.vis;if(sc>.02){const L_=sunL(),h=Math.hypot(L_.x,L_.z)||1e-3,sw=Math.min(h,.999)/1.33,tw=sw/Math.sqrt(1-sw*sw);
       for(const f of L){const bed=lkY(f.x,f.z),hb=Math.max(f.y-bed,0),o=hb*tw,bx=f.x-L_.x/h*o,bz=f.z-L_.z/h*o;
         blobAdd(bx,lkY(bx,bz),bz,f.yaw,.2*f.L+.1*hb,1.05*f.L+.1*hb,sc*.8*Math.exp(-hb*.55),.5+.35*ss(0,.8,hb),1)}}}}
+/* the fish's shadows as the pond itself draws its shallow bed (pondU.uFS/uFZ): where the bed shows through, so the shadow sits in
+   the caustic net and puts it out. The 12 fish nearest the lens (pupfish over the margin, and any trout whose shadow falls on a bed
+   shallow enough to be seen; the deep middle shows no bed). Cast along the sun bent down by the surface, as the trout's own blob is,
+   and a little wider and softer the higher the fish swims over the bed. */
+const PF_LEN=.05,_fsL=[];
+function fishSh(){const U=pondU,FS=U.uFS.value,FZ=U.uFZ.value;let n=0;
+  const sc=sunCast()*(1-ss(0,.3,WX.ice));if(sc>.02){const L_=sunL(),h=Math.hypot(L_.x,L_.z)||1e-3,sw=Math.min(h,.999)/1.33,tw=sw/Math.sqrt(1-sw*sw);
+    _fsL.length=0;if(PF.vis>0)for(const f of PF.list)_fsL.push([f,PF_LEN,PF.vis]);if(TT.vis>0)for(const f of TT.list)_fsL.push([f,f.L,TT.vis]);
+    for(const e of _fsL)e[3]=Math.hypot(e[0].x-_cl.x,e[0].z-_cl.z);_fsL.sort((a,b)=>a[3]-b[3]);
+    for(const[f,len,vis]of _fsL){if(n>=12)break;const bed=lkY(f.x,f.z),hb=Math.max(f.y-bed,0),o=hb*tw,bx=f.x-L_.x/h*o,bz=f.z-L_.z/h*o;
+      if(pfDep(bx,bz)>.55)continue;FS[n].set(bx,bz,Math.cos(f.yaw),Math.sin(f.yaw));
+      FZ[n++].set(.17*len+.04*hb,.6*len+.05*hb,sc*.85*Math.exp(-hb*.55)*vis,.55+.35*ss(0,.8,hb))}}
+  U.uFN.value=n}
 /* Godot's rigged trout (trout_v3; 17 bones; swim, idle_hover, dart), 0.398 m long and scaled to each fish. Once it has loaded every fish is a
    skinned clone under the same underwater shading, used once a fish is over ~20 px long; smaller than that the instanced fish above
    stands in (one draw, no rigs to update). Turns bend the spine on top of the clip */
@@ -5045,6 +5077,19 @@ function crForage(c){for(let t=0;t<14;t++){const a=rr(0,TAU),d=rr(.15,1.2),x=c.b
 function crWater(c){const d=Math.hypot(POND.x-c.x,POND.z-c.z)||1,ux=(POND.x-c.x)/d,uz=(POND.z-c.z)/d;
   for(let s=.1;s<3;s+=.05){const x=c.x+ux*s,z=c.z+uz*s;if(pfDep(x,z)>.1)return[x+ux*.15,z+uz*.15]}return[POND.x,POND.z]}
 function crGo(c,x,z,v,mode,go){c.tx=x;c.tz=z;c.vt=v;c.mode=mode;c.go=go}
+/* how far up the bank the lapping water reaches at x,z at time t, over the still level (the pond and sand shaders' own edge) */
+function lapAt(x,z,t){const th=Math.atan2(z-POND.z,x-POND.x),A=(.006+.022*pondU.uWind.value)*(1-pondU.uIce.value);
+  return A*(Math.sin(lapP(th,t))*.6+Math.sin(t*.67+th*4+1.3)*.4)}
+/* the point straight up or down the bank from the crab where the sand stands h over the water, within 30 cm */
+function crBank(c,h){const d=Math.hypot(c.x-POND.x,c.z-POND.z)||1,ux=(c.x-POND.x)/d,uz=(c.z-POND.z)/d;let b=null,bd=1e9;
+  for(let s=-.3;s<=.3;s+=.005){const x=c.x+ux*s,z=c.z+uz*s,e=Math.abs(lkY(x,z)-POND.wy-h)+Math.abs(s)*.02;if(e<bd){bd=e;b=[x,z]}}return b}
+/* the lapping edge: a crab out on the bank skips up out of the way as the water comes in, and as it draws back follows it down
+   onto the sand it has just left (the dark, glossy retreat trail) and picks over what the wash brought */
+function crLap(c){if(c.mode!=="out"&&c.mode!=="dig"&&!(c.mode==="walk"&&(c.go==null||c.go==="trail")))return;
+  const t=pondU.uT.value,hh=c.y-POND.wy,l0=lapAt(c.x,c.z,t),l1=lapAt(c.x,c.z,t+.6),A=(.006+.022*pondU.uWind.value)*(1-pondU.uIce.value);
+  if(A<.003)return;
+  if(hh>l0+.001&&l1>l0&&l1>hh-.008){const p=crBank(c,A+.014);if(p&&Math.hypot(p[0]-c.x,p[1]-c.z)>.01){crGo(c,p[0],p[1],.3,"walk","dodge");c.lap=1}return}
+  if(c.mode==="out"&&c.lap&&l1<l0-.002&&hh>l0+.01){c.lap=0;if(rnd()<.75){const p=crBank(c,Math.max(l0,l1)+.006);if(p)crGo(c,p[0],p[1],rr(.1,.16),"walk","trail")}}}
 function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||WX.scold>0;
   for(const c of CR.list){
     let near=null,nd=1e9;for(const h of LKT){const d=Math.hypot(c.x-h.x,c.z-h.z)-h.r;if(d<nd){nd=d;near=h}}
@@ -5060,6 +5105,7 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
       const db=Math.hypot(c.bx-c.x,c.bz-c.z),bt=Math.hypot(c.bx-near.x,c.bz-near.z)>Math.hypot(c.x-near.x,c.z-near.z)-.3,[wx,wz]=crWater(c),dw=Math.hypot(wx-c.x,wz-c.z);
       if(c.mode==="emerge"||db<.25||(bt&&db<dw*1.4))crGo(c,c.bx,c.bz,.42,"run","home");else crGo(c,wx,wz,.42,"run","water")}
     else if(foul&&(c.mode==="out"||c.mode==="walk"||c.mode==="dig"))crGo(c,c.bx,c.bz,.2,"walk","home");
+    else crLap(c);
     const ox=c.bx-POND.x,oz=c.bz-POND.z;
     if(c.mode==="in"){c.sk=1;c.t-=dt;if(c.t<0&&!foul&&nd>2){c.mode="emerge";c.yaw=Math.atan2(POND.x-c.bx,POND.z-c.bz)+rr(-1,1);spPuff(c.bx,c.y,c.bz,3,ox,oz,.15,.25,.025)}else if(c.t<0)c.t=rr(2,5)}
     else if(c.mode==="emerge"){c.sk-=dt/1.4;if(c.sk<=0){c.sk=0;c.mode="out";c.t=rr(1.5,4)}}
@@ -6135,7 +6181,7 @@ UPD.push((dt,t)=>{
   if(ANIM.eagle)eagleUpdate(ANIM.eagle,d);
   if(ANIM.rs)rsUpdate(ANIM.rs,d);
   if(PF.list.length){pfVis();pfUpdate(d)}
-  lakeThreats();lakeVis();ttUpdate(d);crUpdate(d);
+  lakeThreats();lakeVis();ttUpdate(d);crUpdate(d);fishSh();
   if(AG.list.length){agVis();agUpdate(d)}
   paUpdate(d);
   blobEnd();spTick(d);
@@ -6170,7 +6216,7 @@ onDes(root);
 window.__desShow=show;window.__desU=update;
 /* test hooks only with ?debug=1 */
 if(X.dbg)window.__desQA=()=>QA;
-const QA={rq:()=>0,VEG,eatPts,nearTuft,camelMouth,grazeSpot,drinkSpot,mouthOk,skyTex:()=>SKYTEX,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,osOffTent,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
+const QA={rq:()=>0,lapAt,VEG,eatPts,nearTuft,camelMouth,grazeSpot,drinkSpot,mouthOk,skyTex:()=>SKYTEX,RACK,LL,edgeXZ,rockU,rock:()=>rockMesh,STM,camHold,HS,HD,HB,TR,TENTH,CHIT,HLU,roofAt,hailFocus,FOGD,mirP,mirM,RAIN,rainU,TWS,AG,agDecide,agGo,agClimb,agBask,agPalmBase,agMount,agViewAz,agRainT,osOffTent,st,W,S,YAW,hTop,toW,FIRE,TENT,PALMS,SAG,POND,LIT,WX,skyU,pN,sN,dZone,strike:f=>strike(f==null?.5:f),
   /* rattlesnake: rs() state; rsGo(x,z,gait) crawl there (gait locked, or null to choose by ground); rsScare(x,z,sec) */
   rs:()=>{const r=ANIM.rs;if(!r||!r.bd)return null;const P=r.bd.P;return{mode:r.mode,gait:r.gait==="side"?"side":r.rk>.5?"rect":"serp",a:r.a,w:r.w,spd:r.spd,
     head:[P[0],P[1]],tail:[P[2*RS_N-2],P[2*RS_N-1]],c:Array.from(r.bd.C),h:Array.from(r.bd.H),P:Array.from(P)}},

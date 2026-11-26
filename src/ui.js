@@ -9,7 +9,8 @@ const title=y=>(y==="def"?"":C.names[y]+" · ")+"天空之境 | Sky Haven";
 const built=new Set();
 /* Run the app only after the loading screen has been painted: its first frame
    (shader compilation) can block the main thread for a long time on phones. */
-requestAnimationFrame(()=>setTimeout(()=>{const s=document.createElement("script");s.src=C.root+C.app;document.head.appendChild(s)},0));
+requestAnimationFrame(()=>setTimeout(()=>{const s=document.createElement("script");s.src=C.root+C.app;
+  s.onerror=()=>fallback(C.names[cur],"场景文件未能载入，请检查网络后重试。",2);document.head.appendChild(s)},0));
 let cur=C.cur,busy=false,pending=null,idx=0,ready=false;try{const s=history.state;if(s&&typeof s.i=="number")idx=s.i}catch{}
 if(cur==="desert")desPre();
 /* the build tag in the panel: the desert bundle's hash, to tell which version a phone is really running */
@@ -127,6 +128,24 @@ window.__turnFrame=async(t,dir=1)=>{if(!G||!G.last)return;setTex(G.last[0],G.las
 /* ---------- yard switching ---------- */
 const tp=()=>$("#tp");
 function pill(on,y){const p=tp();if(!p)return;clearTimeout(desT);cancelAnimationFrame(desRaf);clearInterval(desI);p.classList.remove("pr");if(on)p.querySelector("span").textContent="前往 · "+C.names[y];p.classList.toggle("on",!!on)}
+/* ---------- when the scene cannot be shown ----------
+   app.js reports (cy-gl events) no WebGL, a lost context, its return, and frames that never reach the screen; a context
+   that is not given back, or none at all, leaves the yard's picture and a note instead of a black page */
+let glT=0;
+function fallback(t,m,retry){if($("#cyfb"))return;clearTimeout(glT);pill(0);const l=$("#ld");if(l)l.remove();
+  const d=document.createElement("div");d.id="cyfb";d.style.setProperty("--th","url("+C.root+C.th[cur]+")");
+  d.innerHTML='<div class="card" role="alert"><b></b><span></span>'+(retry?'<button type="button"></button>':"")+"</div>";
+  d.querySelector("b").textContent=t;d.querySelector("span").textContent=m;
+  /* retry 1: reload at the low tier (app.js reads cyQ), 2: a plain reload */
+  if(retry){const b=d.querySelector("button");b.textContent=retry===1?"以流畅画质重新载入":"重新载入";
+    b.addEventListener("click",()=>{if(retry===1)try{localStorage.setItem("cyQ","low")}catch{}location.reload()})}
+  document.body.appendChild(d)}
+document.addEventListener("cy-gl",e=>{const k=e.detail,p=tp();clearTimeout(glT);
+  if(k==="lost"){if(p){pill(0);p.querySelector("span").textContent="场景恢复中…";p.classList.add("on")}
+    glT=setTimeout(()=>fallback("场景暂时无法显示","设备图形内存不足，画面已暂停。",1),8000)}
+  else if(k==="restored"){if(cur==="desert"&&desBusy()){desWant=true;desLoad()}else pill(0)}
+  else if(k==="nogl")fallback(C.names[cur],"此浏览器未能启用 WebGL，暂时无法显示 3D 场景。",0)
+  else if(k==="black")fallback("场景未能显示","设备未能完成绘制。",1)});
 /* the desert's models stream in after the page turn (tens of MB on a cold visit), so keep the pill up with their real download progress */
 let desT=0,desWant=false;
 const desBusy=()=>!window.__desProg||!window.__desProg().done;
@@ -136,13 +155,18 @@ const desBusy=()=>!window.__desProg||!window.__desProg().done;
 function desPre(warm){if(window.__desPre)return;const ms=C.ms||{},mob=/Mobi|iPhone|Android/i.test(navigator.userAgent),P=window.__desPre={};
   if(warm){const u=[C.desert,...["des-gltf","three.module.min","GLTFLoader","SkeletonUtils","meshopt_decoder.module"].map(f=>"assets/vendor/"+f+".js")];
     for(const f of u)if(f)fetch(C.root+f).then(r=>r.arrayBuffer()).catch(()=>{})}
-  for(const k in ms){if(/_mobile$/.test(k)?!mob:mob&&ms[k+"_mobile"])continue;
+  /* on a phone the downloads go a few at a time, the landscape first, so the island fills in early and the
+     buffers waiting to be parsed never all sit in memory at once */
+  const lim=mob?4:1e9,q=[];let n=0;const run=()=>{while(n<lim&&q.length){n++;q.shift()().then(()=>{n--;run()})}};
+  const ks=Object.keys(ms).sort((a,b)=>/^(tent|saguaro|cholla|barrel)/.test(b)-/^(tent|saguaro|cholla|barrel)/.test(a));
+  for(const k of ks){if(/_mobile$/.test(k)?!mob:mob&&ms[k+"_mobile"])continue;
     const e=P[k]={l:0,t:ms[k]};
-    e.p=fetch(C.root+"assets/models/"+k+".glb").then(r=>{if(!r.ok)return null;if(!r.body)return r.arrayBuffer();
+    e.p=new Promise(res=>q.push(()=>{const p=fetch(C.root+"assets/models/"+k+".glb").then(r=>{if(!r.ok)return null;if(!r.body)return r.arrayBuffer();
       const rd=r.body.getReader(),ch=[];
       const pump=()=>rd.read().then(({done,value})=>{if(!done){ch.push(value);e.l+=value.length;return pump()}
         const b=new Uint8Array(e.l);let o=0;for(const c of ch){b.set(c,o);o+=c.length}return b.buffer});
-      return pump()}).catch(()=>null)}}
+      return pump()}).catch(()=>null);res(p);return p}))}
+  run()}
 const desPreProg=()=>{const P=window.__desPre;if(!P)return null;let l=0,t=0;for(const k in P){l+=Math.min(P[k].l,P[k].t);t+=P[k].t}return t?{p:.88*l/t,done:false}:null};
 /* the number and the bar are drawn from one eased value each frame, so they never disagree and a burst of bytes that
    arrived while the main thread was busy glides in rather than jumping */

@@ -118,8 +118,11 @@ def main():
     snd = rd("snd.html")
     tpl = rd("page.html")
 
-    # desert model sizes, so the loading indicator can show real progress
-    msz = {fn[:-4]: os.path.getsize(os.path.join(mdir, fn)) for fn in sorted(os.listdir(mdir)) if fn.endswith(".glb")} if os.path.isdir(mdir) else {}
+    # desert model sizes, so the loading indicator can show real progress. ui.js prefetches every model
+    # listed here, so only the ones desert.js names are listed; older versions stay on disk but are not downloaded.
+    des_js = rd("desert.js")
+    msz = {fn[:-4]: os.path.getsize(os.path.join(mdir, fn)) for fn in sorted(os.listdir(mdir))
+           if fn.endswith(".glb") and '"%s"' % fn[:-4] in des_js} if os.path.isdir(mdir) else {}
 
     for y in [None] + YARDS[1:]:
         p = "" if y is None else "../"

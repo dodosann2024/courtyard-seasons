@@ -165,12 +165,14 @@ html.ldn #cyfb{background:#1c2230}html.ldn #cyfb::before{filter:blur(3px) bright
  font-family:inherit;font-size:14px;font-weight:600;letter-spacing:.1em;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.16);transition:transform .12s ease,background .12s ease;-webkit-tap-highlight-color:transparent}
 #cyfb button:active{transform:scale(.97);background:#fff}
 
-/* page turn */
-/* phone WebKit: the desert's picture over the scene until app.js has confirmed a drawn desert frame */
-#cydc{position:fixed;inset:0;overflow:hidden;pointer-events:none;background:linear-gradient(#f2c8a2,#e4a581 58%,#9a7a92);transition:opacity .6s ease}
-#cydc::before{content:"";position:absolute;inset:-12px;background:var(--th) center/cover no-repeat;filter:blur(3px) saturate(1.05)}
-html.ldn #cydc{background:#1c2230}html.ldn #cydc::before{filter:blur(3px) brightness(.55) saturate(.8)}
+/* phone WebKit: the desert's picture over the scene until app.js has confirmed a drawn frame of the loaded desert.
+   One plain background, no filter: under the memory pressure of the models parsing, WebKit drops the backing of a
+   full-screen filtered layer and the scene shows through; the small picture scaled up is soft enough on its own */
+#cydc{position:fixed;inset:0;pointer-events:none;background:var(--th) center/cover no-repeat,linear-gradient(#f2c8a2,#e4a581 58%,#9a7a92);transition:opacity .6s ease}
+html.ldn #cydc{background:linear-gradient(rgba(20,25,38,.48),rgba(20,25,38,.48)),var(--th) center/cover no-repeat,#1c2230}
 #cydc.out{opacity:0}
+
+/* page turn */
 #turn{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;pointer-events:none;display:none}
 #turn.on{display:block}
 #tp{position:fixed;top:calc(max(14px,var(--sa-t)) + 150px);transform:translateX(-50%);z-index:8;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;padding:12px 22px 14px}

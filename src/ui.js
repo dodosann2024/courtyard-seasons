@@ -252,8 +252,10 @@ function panels(){
     const l=$("#ld");if(l){l.classList.add("gone");setTimeout(()=>l.remove(),900)}
     window.__firstFrame=performance.now();
     const idle=window.requestIdleCallback||(f=>setTimeout(f,1200));
-    /* the page-curl context is made while nothing else is happening, not inside the first scene switch */
-    setTimeout(()=>idle(()=>{if(!busy&&!G)try{initGL()}catch{}},{timeout:8000}),5000);
+    /* the page-curl context is made while nothing else is happening, not inside the first scene switch, and not while the
+       desert streams in: a second WebGL context made then can leave the scene canvas black on screen in WebKit */
+    const pre=()=>{if(busy||G)return;if(cur==="desert"&&desBusy()){setTimeout(()=>idle(pre,{timeout:8000}),3000);return}try{initGL()}catch{}};
+    setTimeout(()=>idle(pre,{timeout:8000}),5000);
     idle(()=>{
       if("serviceWorker" in navigator&&location.protocol==="https:")swReg();
       const cn=navigator.connection;if(cn&&(cn.saveData||/2g/.test(cn.effectiveType||"")))return;

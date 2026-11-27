@@ -225,7 +225,7 @@ async function go(y,dir,push){
     if(cold&&!toD)pill(1,y);
     await raf();await raf();
     window.__style(y);cur=y;built.add(y);
-    {const w=window.__styleWait&&window.__styleWait(y);if(w)await w}
+    {const w=window.__styleWait&&window.__styleWait(y);if(w){swPend=true;try{await w}finally{swPend=false}}}
     if(push){idx++;try{history.pushState({cy:y,i:idx},"",C.url(y))}catch{}}
     document.title=title(y);document.documentElement.dataset.yard=y;
     await raf();await raf();
@@ -262,15 +262,18 @@ function panels(){
   const wind=$("#wind"),wp=()=>wind&&wind.style.setProperty("--p",(wind.value*100)+"%");wind&&wind.addEventListener("input",wp);wp();
 }
 
-/* what is loading, for the watchdog in boot.js: null once nothing is */
-window.__cyLoad=()=>{if(!ready)return"boot";if(busy)return"go";if(cur!=="desert"||!desBusy())return null;
+/* what is loading, for the watchdog in boot.js: null once nothing is. "work" (the app starting up, a yard being built) is the
+   main thread busy, not a stall; what can stall is a script that never runs: the app's, a yard's (sea, desert), or the
+   desert's model parsing */
+let swPend=false;
+window.__cyLoad=()=>{if(swPend)return"sw";if(!ready)return sceneCanvas()?"work":"boot";if(busy)return"work";if(cur!=="desert"||!desBusy())return null;
   const f=window.__desProg;if(f){const s=f();return s.parsed?"parsed":"d"+Math.round(s.p*1e3)}
   const s=desPreProg();return"p"+(s?Math.round(s.p*1e3):0)};
 
 /* ---------- boot ---------- */
 (async function wait(){if(!window.__ready){setTimeout(wait,25);return}
   const on=document.querySelector("[data-y].on");if(on&&on.dataset.y!==cur&&window.__style)window.__style(cur);
-  {const w=window.__styleWait&&window.__styleWait(cur);if(w)await w}
+  {const w=window.__styleWait&&window.__styleWait(cur);if(w){swPend=true;try{await w}finally{swPend=false}}}
   ready=true;
   built.add(cur);document.title=title(cur);
   try{const s=history.state||{};history.replaceState({cy:cur,i:typeof s.i=="number"?s.i:0},"",C.canon&&cur===C.cur?C.canon:location.href)}catch{}

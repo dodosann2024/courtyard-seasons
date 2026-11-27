@@ -136,11 +136,12 @@ function fallback(t,m,retry){if($("#cyfb"))return;clearTimeout(glT);pill(0);cove
   const d=document.createElement("div");d.id="cyfb";d.style.setProperty("--th","url("+C.root+C.th[cur]+")");
   d.innerHTML='<div class="card" role="alert"><b></b><span></span>'+(retry?'<button type="button"></button>':"")+"</div>";
   d.querySelector("b").textContent=t;d.querySelector("span").textContent=m;
-  /* retry 1: reload at the low tier (app.js reads cyQ), 2: a plain reload */
-  if(retry){const b=d.querySelector("button");b.textContent=retry===1?"以流畅画质重新载入":"重新载入";
+  /* retry 1: reload at the low tier (app.js reads cyQ), 2: a plain reload, 3: the same after a stalled load */
+  if(retry){const b=d.querySelector("button");b.textContent=retry===1?"以流畅画质重新载入":retry===3?"点击重试":"重新载入";
     b.addEventListener("click",()=>{if(retry===1)try{localStorage.setItem("cyQ","low")}catch{}location.reload()})}
   /* under the panels, which close so the note shows; reopened, they still switch yards over it */
   const cv=sceneCanvas();cv?cv.after(d):document.body.prepend(d);document.body.classList.add("col","snc")}
+window.__cyStalled=()=>fallback("载入停滞","网络较慢，或页面没能运行完。",3);
 document.addEventListener("cy-gl",e=>{const k=e.detail,p=tp();
   if(k==="ok"||k==="dark"){cover(cur==="desert"&&(k==="dark"||desBusy()));return}
   clearTimeout(glT);
@@ -152,13 +153,22 @@ document.addEventListener("cy-gl",e=>{const k=e.detail,p=tp();
 /* ---------- desert cover (phone WebKit) ----------
    From the moment the desert is chosen until its models are all in and app.js has drawn and checked a frame of it ("ok"),
    and again whenever a check comes back dark, the desert's picture lies over the scene: while the models parse and upload,
-   WebKit can leave parts of the canvas unpainted, and a frame that does not reach the screen never shows as black */
+   WebKit can leave parts of the canvas unpainted, and a frame that does not reach the screen never shows as black.
+   Once the desert is in, the cover may come back at most 3 times and stay up 8 s in all; past that it stays away (logged
+   in window.__cyCover), so a device whose checks keep coming back dark sees the scene rather than a flickering picture */
 const wkM=/^Apple/.test(navigator.vendor||"")&&/iPhone|iPad|Mobi/.test(navigator.userAgent);
-let dc=null,dcT=0;
-function cover(on){if(!wkM)return;clearTimeout(dcT);
+let dc=null,dcT=0,cvN=0,cvMs=0,cvI=0,cvCap=false;
+function cvLog(why){cvCap=true;const r={why,reshows:cvN,coverMs:Math.round(cvMs),t:Math.round(performance.now())};
+  (window.__cyCover||(window.__cyCover=[])).push(r);console.warn("[cy] desert cover cap",r)}
+function cover(on){if(!wkM)return;
+  const vis=!!dc&&dc.isConnected&&!dc.classList.contains("out");
+  if(on&&!desBusy()&&(cvCap||!vis&&++cvN>3&&(cvLog("reshows"),1)))on=false;
+  clearTimeout(dcT);
   if(on){if(!dc||!dc.isConnected){dc=document.createElement("div");dc.id="cydc";dc.setAttribute("aria-hidden","true");dc.style.setProperty("--th","url("+C.root+C.th.desert+")");
-      const cv=sceneCanvas();cv?cv.after(dc):document.body.prepend(dc)}dc.classList.remove("out");return}
-  if(dc&&dc.isConnected&&!dc.classList.contains("out")){const d=dc;d.classList.add("out");dcT=setTimeout(()=>d.remove(),700)}}
+      const cv=sceneCanvas();cv?cv.after(dc):document.body.prepend(dc)}dc.classList.remove("out");
+    if(!cvI){let l=performance.now();cvI=setInterval(()=>{const n=performance.now();if(!desBusy())cvMs+=n-l;l=n;if(cvMs>=8e3&&!cvCap){cvLog("time");cover(0)}},250)}return}
+  clearInterval(cvI);cvI=0;
+  if(vis){const d=dc;d.classList.add("out");dcT=setTimeout(()=>d.remove(),700)}}
 /* the desert's models stream in after the page turn (tens of MB on a cold visit), so keep the pill up with their real download progress */
 let desT=0,desWant=false;
 const desBusy=()=>!window.__desProg||!window.__desProg().done;
@@ -251,6 +261,11 @@ function panels(){
   rows.forEach(r=>r.addEventListener("scroll",ov,{passive:true}));addEventListener("resize",ov);new MutationObserver(ov).observe($("#sub"),{childList:true});ov();
   const wind=$("#wind"),wp=()=>wind&&wind.style.setProperty("--p",(wind.value*100)+"%");wind&&wind.addEventListener("input",wp);wp();
 }
+
+/* what is loading, for the watchdog in boot.js: null once nothing is */
+window.__cyLoad=()=>{if(!ready)return"boot";if(busy)return"go";if(cur!=="desert"||!desBusy())return null;
+  const f=window.__desProg;if(f){const s=f();return s.parsed?"parsed":"d"+Math.round(s.p*1e3)}
+  const s=desPreProg();return"p"+(s?Math.round(s.p*1e3):0)};
 
 /* ---------- boot ---------- */
 (async function wait(){if(!window.__ready){setTimeout(wait,25);return}

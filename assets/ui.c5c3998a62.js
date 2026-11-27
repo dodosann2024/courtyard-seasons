@@ -142,7 +142,7 @@ function fallback(t,m,retry){if($("#cyfb"))return;clearTimeout(glT);pill(0);cove
   /* under the panels, which close so the note shows; reopened, they still switch yards over it */
   const cv=sceneCanvas();cv?cv.after(d):document.body.prepend(d);document.body.classList.add("col","snc")}
 document.addEventListener("cy-gl",e=>{const k=e.detail,p=tp();
-  if(k==="ok"||k==="dark"){cover(k==="dark"&&cur==="desert");return}
+  if(k==="ok"||k==="dark"){cover(cur==="desert"&&(k==="dark"||desBusy()));return}
   clearTimeout(glT);
   if(k==="lost"){if(p){pill(0);p.querySelector("span").textContent="场景恢复中…";p.classList.add("on")}
     glT=setTimeout(()=>fallback("场景暂时无法显示","设备图形内存不足，画面已暂停。",1),8000)}
@@ -150,8 +150,9 @@ document.addEventListener("cy-gl",e=>{const k=e.detail,p=tp();
   else if(k==="nogl")fallback(C.names[cur],"此浏览器未能启用 WebGL，暂时无法显示 3D 场景。",0)
   else if(k==="black")fallback("场景未能显示","设备未能完成绘制。",1)});
 /* ---------- desert cover (phone WebKit) ----------
-   From the moment the desert is chosen until app.js has drawn and checked a desert frame ("ok"), and again whenever a check
-   comes back dark, the desert's picture lies over the scene: a frame that does not reach the screen never shows as black */
+   From the moment the desert is chosen until its models are all in and app.js has drawn and checked a frame of it ("ok"),
+   and again whenever a check comes back dark, the desert's picture lies over the scene: while the models parse and upload,
+   WebKit can leave parts of the canvas unpainted, and a frame that does not reach the screen never shows as black */
 const wkM=/^Apple/.test(navigator.vendor||"")&&/iPhone|iPad|Mobi/.test(navigator.userAgent);
 let dc=null,dcT=0;
 function cover(on){if(!wkM)return;clearTimeout(dcT);

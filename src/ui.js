@@ -10,7 +10,10 @@ const built=new Set();
 /* Run the app only after the loading screen has been painted: its first frame
    (shader compilation) can block the main thread for a long time on phones. */
 requestAnimationFrame(()=>setTimeout(()=>{const s=document.createElement("script");s.src=C.root+C.app;
-  s.onerror=()=>fallback(C.names[cur],"场景文件未能载入，请检查网络后重试。",2);document.head.appendChild(s)},0));
+  /* a failed download is reloaded once, under the same sessionStorage mark as the loading watchdog in boot.js */
+  s.onerror=()=>{let w="x";try{w=sessionStorage.getItem("cyWd")}catch{}
+    if(!w){try{sessionStorage.setItem("cyWd","1")}catch{}console.warn("[cy] app script failed to load, reloading");location.reload();return}
+    fallback(C.names[cur],"场景文件未能载入，请检查网络后重试。",2)};document.head.appendChild(s)},0));
 let cur=C.cur,busy=false,pending=null,idx=0,ready=false;try{const s=history.state;if(s&&typeof s.i=="number")idx=s.i}catch{}
 if(cur==="desert")desPre();
 /* the build tag in the panel: the desert bundle's hash, to tell which version a phone is really running */

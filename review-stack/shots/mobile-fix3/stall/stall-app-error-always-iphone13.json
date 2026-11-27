@@ -1,0 +1,77 @@
+{
+ "scenario": "app-error-always",
+ "device": "iPhone 13",
+ "result": "retry-card",
+ "seconds": 3.5,
+ "navigations": 2,
+ "log": [
+  [
+   0.2,
+   "page load",
+   1
+  ],
+  [
+   0.5,
+   "served 404",
+   "/assets/app.e39f7116fb.js",
+   "page load 1"
+  ],
+  [
+   0.8,
+   "console",
+   "[cy] app script failed to load, reloading"
+  ],
+  [
+   1,
+   "page load",
+   2
+  ],
+  [
+   1.7,
+   "served 404",
+   "/assets/app.e39f7116fb.js",
+   "page load 2"
+  ]
+ ],
+ "series": [
+  {
+   "t": 0.6,
+   "ready": false,
+   "ld": true,
+   "L": "boot",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 1.1,
+   "ready": false,
+   "ld": true,
+   "L": "boot",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 2.1,
+   "ready": false,
+   "ld": false,
+   "L": "boot",
+   "tp": null,
+   "card": "默认小院",
+   "btn": "重新载入",
+   "wd": "1"
+  }
+ ],
+ "card": {
+  "ready": false,
+  "ld": false,
+  "L": "boot",
+  "tp": null,
+  "card": "默认小院",
+  "btn": "重新载入",
+  "wd": "1"
+ }
+}

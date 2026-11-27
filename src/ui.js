@@ -9,8 +9,13 @@ const title=y=>(y==="def"?"":C.names[y]+" · ")+"天空之境 | Sky Haven";
 const built=new Set();
 /* Run the app only after the loading screen has been painted: its first frame
    (shader compilation) can block the main thread for a long time on phones. */
-requestAnimationFrame(()=>setTimeout(()=>{const s=document.createElement("script");s.src=C.root+C.app;
-  s.onerror=()=>fallback(C.names[cur],"场景文件未能载入，请检查网络后重试。",2);document.head.appendChild(s)},0));
+requestAnimationFrame(()=>setTimeout(()=>{let w="x";try{w=sessionStorage.getItem("cyWd")}catch{}
+  /* after a reload for a failed or stalled load, past whatever WebKit kept of the failed response */
+  const s=document.createElement("script");s.src=C.root+C.app+(w==="1"?"?r="+Date.now():"");
+  /* a failed download is reloaded once, under the same sessionStorage mark as the loading watchdog in boot.js */
+  s.onerror=()=>{
+    if(!w){try{sessionStorage.setItem("cyWd","1")}catch{}console.warn("[cy] app script failed to load, reloading");location.reload();return}
+    fallback(C.names[cur],"场景文件未能载入，请检查网络后重试。",2)};document.head.appendChild(s)},0));
 let cur=C.cur,busy=false,pending=null,idx=0,ready=false;try{const s=history.state;if(s&&typeof s.i=="number")idx=s.i}catch{}
 if(cur==="desert")desPre();
 /* the build tag in the panel: the desert bundle's hash, to tell which version a phone is really running */
@@ -136,11 +141,12 @@ function fallback(t,m,retry){if($("#cyfb"))return;clearTimeout(glT);pill(0);cove
   const d=document.createElement("div");d.id="cyfb";d.style.setProperty("--th","url("+C.root+C.th[cur]+")");
   d.innerHTML='<div class="card" role="alert"><b></b><span></span>'+(retry?'<button type="button"></button>':"")+"</div>";
   d.querySelector("b").textContent=t;d.querySelector("span").textContent=m;
-  /* retry 1: reload at the low tier (app.js reads cyQ), 2: a plain reload */
-  if(retry){const b=d.querySelector("button");b.textContent=retry===1?"以流畅画质重新载入":"重新载入";
+  /* retry 1: reload at the low tier (app.js reads cyQ), 2: a plain reload, 3: the same after a stalled load */
+  if(retry){const b=d.querySelector("button");b.textContent=retry===1?"以流畅画质重新载入":retry===3?"点击重试":"重新载入";
     b.addEventListener("click",()=>{if(retry===1)try{localStorage.setItem("cyQ","low")}catch{}location.reload()})}
   /* under the panels, which close so the note shows; reopened, they still switch yards over it */
   const cv=sceneCanvas();cv?cv.after(d):document.body.prepend(d);document.body.classList.add("col","snc")}
+window.__cyStalled=()=>fallback("载入停滞","网络较慢，或页面没能运行完。",3);
 document.addEventListener("cy-gl",e=>{const k=e.detail,p=tp();
   if(k==="ok"||k==="dark"){cover(cur==="desert"&&(k==="dark"||desBusy()));return}
   clearTimeout(glT);
@@ -152,13 +158,22 @@ document.addEventListener("cy-gl",e=>{const k=e.detail,p=tp();
 /* ---------- desert cover (phone WebKit) ----------
    From the moment the desert is chosen until its models are all in and app.js has drawn and checked a frame of it ("ok"),
    and again whenever a check comes back dark, the desert's picture lies over the scene: while the models parse and upload,
-   WebKit can leave parts of the canvas unpainted, and a frame that does not reach the screen never shows as black */
+   WebKit can leave parts of the canvas unpainted, and a frame that does not reach the screen never shows as black.
+   Once the desert is in, the cover may come back at most 3 times and stay up 8 s in all; past that it stays away (logged
+   in window.__cyCover), so a device whose checks keep coming back dark sees the scene rather than a flickering picture */
 const wkM=/^Apple/.test(navigator.vendor||"")&&/iPhone|iPad|Mobi/.test(navigator.userAgent);
-let dc=null,dcT=0;
-function cover(on){if(!wkM)return;clearTimeout(dcT);
+let dc=null,dcT=0,cvN=0,cvMs=0,cvI=0,cvCap=false;
+function cvLog(why){cvCap=true;const r={why,reshows:cvN,coverMs:Math.round(cvMs),t:Math.round(performance.now())};
+  (window.__cyCover||(window.__cyCover=[])).push(r);console.warn("[cy] desert cover cap",r)}
+function cover(on){if(!wkM)return;
+  const vis=!!dc&&dc.isConnected&&!dc.classList.contains("out");
+  if(on&&!desBusy()&&(cvCap||!vis&&++cvN>3&&(cvLog("reshows"),1)))on=false;
+  clearTimeout(dcT);
   if(on){if(!dc||!dc.isConnected){dc=document.createElement("div");dc.id="cydc";dc.setAttribute("aria-hidden","true");dc.style.setProperty("--th","url("+C.root+C.th.desert+")");
-      const cv=sceneCanvas();cv?cv.after(dc):document.body.prepend(dc)}dc.classList.remove("out");return}
-  if(dc&&dc.isConnected&&!dc.classList.contains("out")){const d=dc;d.classList.add("out");dcT=setTimeout(()=>d.remove(),700)}}
+      const cv=sceneCanvas();cv?cv.after(dc):document.body.prepend(dc)}dc.classList.remove("out");
+    if(!cvI){let l=performance.now();cvI=setInterval(()=>{const n=performance.now();if(!desBusy())cvMs+=n-l;l=n;if(cvMs>=8e3&&!cvCap){cvLog("time");cover(0)}},250)}return}
+  clearInterval(cvI);cvI=0;
+  if(vis){const d=dc;d.classList.add("out");dcT=setTimeout(()=>d.remove(),700)}}
 /* the desert's models stream in after the page turn (tens of MB on a cold visit), so keep the pill up with their real download progress */
 let desT=0,desWant=false;
 const desBusy=()=>!window.__desProg||!window.__desProg().done;
@@ -215,7 +230,7 @@ async function go(y,dir,push){
     if(cold&&!toD)pill(1,y);
     await raf();await raf();
     window.__style(y);cur=y;built.add(y);
-    {const w=window.__styleWait&&window.__styleWait(y);if(w)await w}
+    {const w=window.__styleWait&&window.__styleWait(y);if(w){swPend=true;try{await w}finally{swPend=false}}}
     if(push){idx++;try{history.pushState({cy:y,i:idx},"",C.url(y))}catch{}}
     document.title=title(y);document.documentElement.dataset.yard=y;
     await raf();await raf();
@@ -252,10 +267,18 @@ function panels(){
   const wind=$("#wind"),wp=()=>wind&&wind.style.setProperty("--p",(wind.value*100)+"%");wind&&wind.addEventListener("input",wp);wp();
 }
 
+/* what is loading, for the watchdog in boot.js: null once nothing is. "work" (the app starting up, a yard being built) is the
+   main thread busy, not a stall; what can stall is a script that never runs: the app's, a yard's (sea, desert), or the
+   desert's model parsing */
+let swPend=false;
+window.__cyLoad=()=>{if(swPend)return"sw";if(!ready)return sceneCanvas()?"work":"boot";if(busy)return"work";if(cur!=="desert"||!desBusy())return null;
+  const f=window.__desProg;if(f){const s=f();return s.parsed?"parsed":"d"+Math.round(s.p*1e3)}
+  const s=desPreProg();return"p"+(s?Math.round(s.p*1e3):0)};
+
 /* ---------- boot ---------- */
 (async function wait(){if(!window.__ready){setTimeout(wait,25);return}
   const on=document.querySelector("[data-y].on");if(on&&on.dataset.y!==cur&&window.__style)window.__style(cur);
-  {const w=window.__styleWait&&window.__styleWait(cur);if(w)await w}
+  {const w=window.__styleWait&&window.__styleWait(cur);if(w){swPend=true;try{await w}finally{swPend=false}}}
   ready=true;
   built.add(cur);document.title=title(cur);
   try{const s=history.state||{};history.replaceState({cy:cur,i:typeof s.i=="number"?s.i:0},"",C.canon&&cur===C.cur?C.canon:location.href)}catch{}

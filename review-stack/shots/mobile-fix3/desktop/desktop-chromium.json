@@ -1,0 +1,170 @@
+{
+ "def": {
+  "before": {
+   "mean": [
+    157,
+    162,
+    156
+   ],
+   "black": 0.0019,
+   "loadS": 40.9,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    156,
+    162,
+    156
+   ],
+   "black": 0.0018,
+   "loadS": 33.9,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "jp": {
+  "before": {
+   "mean": [
+    144,
+    153,
+    144
+   ],
+   "black": 0.0003,
+   "loadS": 121.7,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    144,
+    153,
+    144
+   ],
+   "black": 0.0003,
+   "loadS": 102.9,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "cn": {
+  "before": {
+   "mean": [
+    146,
+    153,
+    152
+   ],
+   "black": 0.0003,
+   "loadS": 87.8,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    146,
+    153,
+    152
+   ],
+   "black": 0.0002,
+   "loadS": 103.7,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "kr": {
+  "before": {
+   "mean": [
+    150,
+    156,
+    155
+   ],
+   "black": 0.0001,
+   "loadS": 36.4,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    150,
+    156,
+    155
+   ],
+   "black": 0.0001,
+   "loadS": 31.6,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "eu": {
+  "before": {
+   "mean": [
+    150,
+    157,
+    148
+   ],
+   "black": 0.0012,
+   "loadS": 77.7,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    150,
+    157,
+    148
+   ],
+   "black": 0.0014,
+   "loadS": 80.8,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "sea": {
+  "before": {
+   "mean": [
+    129,
+    157,
+    168
+   ],
+   "black": 0.0001,
+   "loadS": 15.2,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    129,
+    157,
+    168
+   ],
+   "black": 0.0001,
+   "loadS": 15.4,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "desert": {
+  "before": {
+   "mean": [
+    176,
+    133,
+    102
+   ],
+   "black": 0.0002,
+   "loadS": 50.7,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    176,
+    133,
+    102
+   ],
+   "black": 0.0003,
+   "loadS": 48.9,
+   "wk": false,
+   "cover": 0
+  }
+ }
+}

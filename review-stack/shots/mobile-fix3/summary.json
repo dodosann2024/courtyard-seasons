@@ -1,0 +1,656 @@
+{
+ "cloudAgentModel": "claude-opus-5-5",
+ "base": "origin/main 5dc0d70 (#180 merged, app.e39f7116fb.js)",
+ "watchdog": {
+  "stallAfterS": 25,
+  "stallAfterWhileAScriptIsStillDownloadingS": 60,
+  "firstStall": "location.reload() once, marked in sessionStorage cyWd",
+  "secondStall": "retry card 「载入停滞 / 点击重试」",
+  "appScriptDownloadError": "reload once under the same mark (app script re-requested with ?r=), then the existing 「场景文件未能载入」 card",
+  "notCounted": "main-thread work (app start-up, yard builds, desert model placing), hidden tab, late timer ticks",
+  "markCleared": "once nothing is loading"
+ },
+ "stallScenarios": {
+  "app-error-always-iphone13": {
+   "device": "iPhone 13",
+   "result": "retry-card",
+   "seconds": 3.5,
+   "navigations": 2,
+   "log": [
+    [
+     0.2,
+     "page load",
+     1
+    ],
+    [
+     0.5,
+     "served 404",
+     "/assets/app.e39f7116fb.js",
+     "page load 1"
+    ],
+    [
+     0.8,
+     "console",
+     "[cy] app script failed to load, reloading"
+    ],
+    [
+     1,
+     "page load",
+     2
+    ],
+    [
+     1.7,
+     "served 404",
+     "/assets/app.e39f7116fb.js",
+     "page load 2"
+    ]
+   ]
+  },
+  "app-error-once-iphone13": {
+   "device": "iPhone 13",
+   "result": "recovered",
+   "seconds": 12.7,
+   "navigations": 2,
+   "log": [
+    [
+     0.2,
+     "page load",
+     1
+    ],
+    [
+     0.5,
+     "served 404",
+     "/assets/app.e39f7116fb.js",
+     "page load 1"
+    ],
+    [
+     0.8,
+     "console",
+     "[cy] app script failed to load, reloading"
+    ],
+    [
+     1,
+     "page load",
+     2
+    ]
+   ]
+  },
+  "desert-always-iphone13": {
+   "device": "iPhone 13",
+   "result": "retry-card",
+   "seconds": 113.7,
+   "navigations": 2,
+   "log": [
+    [
+     0.2,
+     "page load",
+     1
+    ],
+    [
+     8.2,
+     "served empty",
+     "/assets/desert.014e7ee6a9.js",
+     "page load 1"
+    ],
+    [
+     55.6,
+     "console",
+     "[cy] loading stalled {at: p880, ready: true, action: reload}"
+    ],
+    [
+     55.7,
+     "page load",
+     2
+    ],
+    [
+     64.6,
+     "served empty",
+     "/assets/desert.014e7ee6a9.js",
+     "page load 2"
+    ],
+    [
+     111.9,
+     "console",
+     "[cy] loading stalled {at: p880, ready: true, action: retry card}"
+    ]
+   ]
+  },
+  "desert-once-desktop-chromium": {
+   "device": "desktop Chromium 1280x800",
+   "result": "recovered",
+   "seconds": 105.5,
+   "navigations": 2,
+   "log": [
+    [
+     0.2,
+     "page load",
+     1
+    ],
+    [
+     12.8,
+     "served empty",
+     "/assets/desert.014e7ee6a9.js",
+     "page load 1"
+    ],
+    [
+     39.3,
+     "console",
+     "[cy] loading stalled {at: p880, ready: true, action: reload}"
+    ],
+    [
+     39.3,
+     "page load",
+     2
+    ]
+   ]
+  },
+  "desert-once-iphone13": {
+   "device": "iPhone 13",
+   "result": "recovered",
+   "seconds": 94.7,
+   "navigations": 2,
+   "log": [
+    [
+     0.2,
+     "page load",
+     1
+    ],
+    [
+     8.3,
+     "served empty",
+     "/assets/desert.014e7ee6a9.js",
+     "page load 1"
+    ],
+    [
+     55.6,
+     "console",
+     "[cy] loading stalled {at: p880, ready: true, action: reload}"
+    ],
+    [
+     55.6,
+     "page load",
+     2
+    ]
+   ]
+  },
+  "desert-once-iphone15pro": {
+   "device": "iPhone 15 Pro",
+   "result": "recovered",
+   "seconds": 95.6,
+   "navigations": 2,
+   "log": [
+    [
+     0.3,
+     "page load",
+     1
+    ],
+    [
+     8.6,
+     "served empty",
+     "/assets/desert.014e7ee6a9.js",
+     "page load 1"
+    ],
+    [
+     55.8,
+     "console",
+     "[cy] loading stalled {at: p880, ready: true, action: reload}"
+    ],
+    [
+     55.9,
+     "page load",
+     2
+    ]
+   ]
+  },
+  "ui-always-iphone13": {
+   "device": "iPhone 13",
+   "result": "retry-card",
+   "seconds": 81.8,
+   "navigations": 3,
+   "log": [
+    [
+     0.2,
+     "page load",
+     1
+    ],
+    [
+     0.5,
+     "served empty",
+     "/assets/ui.84212e1e83.js",
+     "page load 1"
+    ],
+    [
+     27.4,
+     "console",
+     "[cy] loading stalled {at: noui, ready: false, action: reload}"
+    ],
+    [
+     27.5,
+     "page load",
+     2
+    ],
+    [
+     27.8,
+     "served empty",
+     "/assets/ui.84212e1e83.js",
+     "page load 2"
+    ],
+    [
+     53.7,
+     "console",
+     "[cy] loading stalled {at: noui, ready: false, action: retry card}"
+    ],
+    [
+     55.3,
+     "click 点击重试"
+    ],
+    [
+     55.5,
+     "page load",
+     3
+    ],
+    [
+     55.8,
+     "served empty",
+     "/assets/ui.84212e1e83.js",
+     "page load 3"
+    ],
+    [
+     81.7,
+     "console",
+     "[cy] loading stalled {at: noui, ready: false, action: retry card}"
+    ],
+    [
+     81.8,
+     "after click",
+     {
+      "pageLoads": 1,
+      "cardAgain": "载入停滞"
+     }
+    ]
+   ]
+  },
+  "ui-once-iphone13": {
+   "device": "iPhone 13",
+   "result": "recovered",
+   "seconds": 39,
+   "navigations": 2,
+   "log": [
+    [
+     0.2,
+     "page load",
+     1
+    ],
+    [
+     0.5,
+     "served empty",
+     "/assets/ui.84212e1e83.js",
+     "page load 1"
+    ],
+    [
+     27.4,
+     "console",
+     "[cy] loading stalled {at: noui, ready: false, action: reload}"
+    ],
+    [
+     27.4,
+     "page load",
+     2
+    ]
+   ]
+  }
+ },
+ "stallScenarioNotes": "injected server-side (script served empty, or 404 for app.js) on the first page load ('once') or every load ('always'); iPhone 13 runs and the clicked retry are on the final build; desert-once desktop-chromium and iPhone 15 Pro are from commit ec68a51 (differs only in the app-script error path, not used there)",
+ "coverCap": {
+  "rule": "after the desert is in, at most 3 re-shows and 8 s total cover time; then it stays away, logged in window.__cyCover and console.warn '[cy] desert cover cap'",
+  "log": {
+   "reshows": {
+    "steps": [
+     {
+      "t": 15.6,
+      "step": "desert loaded, cover gone",
+      "cover": false
+     },
+     {
+      "t": 16.2,
+      "step": "dark #1",
+      "cover": true
+     },
+     {
+      "t": 17.2,
+      "step": "ok #1",
+      "cover": false
+     },
+     {
+      "t": 18.1,
+      "step": "dark #2",
+      "cover": true
+     },
+     {
+      "t": 19,
+      "step": "ok #2",
+      "cover": false
+     },
+     {
+      "t": 19.7,
+      "step": "dark #3",
+      "cover": true
+     },
+     {
+      "t": 20.8,
+      "step": "ok #3",
+      "cover": false
+     },
+     {
+      "t": 21.5,
+      "step": "dark #4",
+      "cover": false
+     },
+     {
+      "t": 22.4,
+      "step": "ok #4",
+      "cover": false
+     },
+     {
+      "t": 23.1,
+      "step": "dark #5",
+      "cover": false
+     },
+     {
+      "t": 24,
+      "step": "ok #5",
+      "cover": false
+     }
+    ],
+    "capLog": [
+     {
+      "why": "reshows",
+      "reshows": 4,
+      "coverMs": 2943,
+      "t": 20920
+     }
+    ],
+    "console": [
+     [
+      20.9,
+      "[cy] desert cover cap {why: reshows, reshows: 4, coverMs: 2943, t: 20920}"
+     ]
+    ]
+   },
+   "time": {
+    "steps": [
+     {
+      "t": 15.9,
+      "step": "desert loaded, cover gone",
+      "cover": false
+     },
+     {
+      "t": 16.9,
+      "step": "dark, no ok, 1 s",
+      "cover": true
+     },
+     {
+      "t": 18,
+      "step": "dark, no ok, 2 s",
+      "cover": true
+     },
+     {
+      "t": 19.1,
+      "step": "dark, no ok, 3 s",
+      "cover": true
+     },
+     {
+      "t": 20.1,
+      "step": "dark, no ok, 4 s",
+      "cover": true
+     },
+     {
+      "t": 21.2,
+      "step": "dark, no ok, 5 s",
+      "cover": true
+     },
+     {
+      "t": 22.2,
+      "step": "dark, no ok, 6 s",
+      "cover": true
+     },
+     {
+      "t": 23.2,
+      "step": "dark, no ok, 7 s",
+      "cover": false
+     },
+     {
+      "t": 24.3,
+      "step": "dark, no ok, 8 s",
+      "cover": false
+     },
+     {
+      "t": 25.3,
+      "step": "dark, no ok, 9 s",
+      "cover": false
+     },
+     {
+      "t": 26.3,
+      "step": "dark, no ok, 10 s",
+      "cover": false
+     },
+     {
+      "t": 27.4,
+      "step": "dark, no ok, 11 s",
+      "cover": false
+     },
+     {
+      "t": 28.6,
+      "step": "dark, no ok, 12 s",
+      "cover": false
+     }
+    ],
+    "capLog": [
+     {
+      "why": "time",
+      "reshows": 1,
+      "coverMs": 8141,
+      "t": 22867
+     }
+    ],
+    "console": [
+     [
+      22.9,
+      "[cy] desert cover cap {why: time, reshows: 1, coverMs: 8141, t: 22867}"
+     ]
+    ]
+   }
+  }
+ },
+ "coldLoads": {
+  "setup": "WebKit, cold cache, 1.1 MB/s, 150 ms latency, 8 loads per device, frames sampled from the recorded video",
+  "after": {},
+  "pr180": {},
+  "notes": "after-iphone13 run 5: the harness's script-never-runs flake hit ui.js; the watchdog reloaded at 27.2 s and the load finished at 63.5 s. pr180 runs that hit the same flake never finished (loadsDone 7/8 on both devices)."
+ },
+ "desktopChromium": {
+  "note": "7 yards, mean colour main vs branch; wk false (no WebKit paths), cover 0",
+  "yards": {
+   "def": {
+    "before": {
+     "mean": [
+      157,
+      162,
+      156
+     ],
+     "black": 0.0019,
+     "loadS": 40.9,
+     "wk": false,
+     "cover": 0
+    },
+    "after": {
+     "mean": [
+      156,
+      162,
+      156
+     ],
+     "black": 0.0018,
+     "loadS": 33.9,
+     "wk": false,
+     "cover": 0
+    }
+   },
+   "jp": {
+    "before": {
+     "mean": [
+      144,
+      153,
+      144
+     ],
+     "black": 0.0003,
+     "loadS": 121.7,
+     "wk": false,
+     "cover": 0
+    },
+    "after": {
+     "mean": [
+      144,
+      153,
+      144
+     ],
+     "black": 0.0003,
+     "loadS": 102.9,
+     "wk": false,
+     "cover": 0
+    }
+   },
+   "cn": {
+    "before": {
+     "mean": [
+      146,
+      153,
+      152
+     ],
+     "black": 0.0003,
+     "loadS": 87.8,
+     "wk": false,
+     "cover": 0
+    },
+    "after": {
+     "mean": [
+      146,
+      153,
+      152
+     ],
+     "black": 0.0002,
+     "loadS": 103.7,
+     "wk": false,
+     "cover": 0
+    }
+   },
+   "kr": {
+    "before": {
+     "mean": [
+      150,
+      156,
+      155
+     ],
+     "black": 0.0001,
+     "loadS": 36.4,
+     "wk": false,
+     "cover": 0
+    },
+    "after": {
+     "mean": [
+      150,
+      156,
+      155
+     ],
+     "black": 0.0001,
+     "loadS": 31.6,
+     "wk": false,
+     "cover": 0
+    }
+   },
+   "eu": {
+    "before": {
+     "mean": [
+      150,
+      157,
+      148
+     ],
+     "black": 0.0012,
+     "loadS": 77.7,
+     "wk": false,
+     "cover": 0
+    },
+    "after": {
+     "mean": [
+      150,
+      157,
+      148
+     ],
+     "black": 0.0014,
+     "loadS": 80.8,
+     "wk": false,
+     "cover": 0
+    }
+   },
+   "sea": {
+    "before": {
+     "mean": [
+      129,
+      157,
+      168
+     ],
+     "black": 0.0001,
+     "loadS": 15.2,
+     "wk": false,
+     "cover": 0
+    },
+    "after": {
+     "mean": [
+      129,
+      157,
+      168
+     ],
+     "black": 0.0001,
+     "loadS": 15.4,
+     "wk": false,
+     "cover": 0
+    }
+   },
+   "desert": {
+    "before": {
+     "mean": [
+      176,
+      133,
+      102
+     ],
+     "black": 0.0002,
+     "loadS": 50.7,
+     "wk": false,
+     "cover": 0
+    },
+    "after": {
+     "mean": [
+      176,
+      133,
+      102
+     ],
+     "black": 0.0003,
+     "loadS": 48.9,
+     "wk": false,
+     "cover": 0
+    }
+   }
+  }
+ },
+ "ciLocal": {
+  "scenes.mjs": "all scene switches ok",
+  "perf.mjs": {
+   "prMs": 14.3,
+   "mainMs": 15.1,
+   "limitMs": 17.4,
+   "over200": [
+    0,
+    0
+   ]
+  }
+ }
+}

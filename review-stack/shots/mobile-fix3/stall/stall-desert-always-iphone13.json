@@ -1,0 +1,972 @@
+{
+ "scenario": "desert-always",
+ "device": "iPhone 13",
+ "result": "retry-card",
+ "seconds": 113.7,
+ "navigations": 2,
+ "log": [
+  [
+   0.2,
+   "page load",
+   1
+  ],
+  [
+   8.2,
+   "served empty",
+   "/assets/desert.014e7ee6a9.js",
+   "page load 1"
+  ],
+  [
+   55.6,
+   "console",
+   "[cy] loading stalled {at: p880, ready: true, action: reload}"
+  ],
+  [
+   55.7,
+   "page load",
+   2
+  ],
+  [
+   64.6,
+   "served empty",
+   "/assets/desert.014e7ee6a9.js",
+   "page load 2"
+  ],
+  [
+   111.9,
+   "console",
+   "[cy] loading stalled {at: p880, ready: true, action: retry card}"
+  ]
+ ],
+ "series": [
+  {
+   "t": 0.6,
+   "ready": false,
+   "ld": true,
+   "L": "boot",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 6,
+   "ready": true,
+   "ld": true,
+   "L": "work",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 8.6,
+   "ready": true,
+   "ld": true,
+   "L": "p214",
+   "tp": "载入沙漠 · 12%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 9.1,
+   "ready": true,
+   "ld": true,
+   "L": "p230",
+   "tp": "载入沙漠 · 20%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 9.6,
+   "ready": true,
+   "ld": true,
+   "L": "p245",
+   "tp": "载入沙漠 · 22%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 10.1,
+   "ready": true,
+   "ld": false,
+   "L": "p260",
+   "tp": "载入沙漠 · 25%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 10.6,
+   "ready": true,
+   "ld": false,
+   "L": "p279",
+   "tp": "载入沙漠 · 27%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 11.1,
+   "ready": true,
+   "ld": false,
+   "L": "p295",
+   "tp": "载入沙漠 · 28%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 11.6,
+   "ready": true,
+   "ld": false,
+   "L": "p310",
+   "tp": "载入沙漠 · 30%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 12.2,
+   "ready": true,
+   "ld": false,
+   "L": "p326",
+   "tp": "载入沙漠 · 32%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 12.7,
+   "ready": true,
+   "ld": false,
+   "L": "p343",
+   "tp": "载入沙漠 · 33%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 13.2,
+   "ready": true,
+   "ld": false,
+   "L": "p357",
+   "tp": "载入沙漠 · 35%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 13.8,
+   "ready": true,
+   "ld": false,
+   "L": "p370",
+   "tp": "载入沙漠 · 36%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 14.3,
+   "ready": true,
+   "ld": false,
+   "L": "p382",
+   "tp": "载入沙漠 · 38%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 14.8,
+   "ready": true,
+   "ld": false,
+   "L": "p397",
+   "tp": "载入沙漠 · 39%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 15.4,
+   "ready": true,
+   "ld": false,
+   "L": "p414",
+   "tp": "载入沙漠 · 41%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 15.9,
+   "ready": true,
+   "ld": false,
+   "L": "p431",
+   "tp": "载入沙漠 · 42%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 16.4,
+   "ready": true,
+   "ld": false,
+   "L": "p447",
+   "tp": "载入沙漠 · 44%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 16.9,
+   "ready": true,
+   "ld": false,
+   "L": "p463",
+   "tp": "载入沙漠 · 46%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 17.5,
+   "ready": true,
+   "ld": false,
+   "L": "p480",
+   "tp": "载入沙漠 · 47%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 18,
+   "ready": true,
+   "ld": false,
+   "L": "p497",
+   "tp": "载入沙漠 · 49%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 18.5,
+   "ready": true,
+   "ld": false,
+   "L": "p513",
+   "tp": "载入沙漠 · 50%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 19.1,
+   "ready": true,
+   "ld": false,
+   "L": "p529",
+   "tp": "载入沙漠 · 52%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 19.6,
+   "ready": true,
+   "ld": false,
+   "L": "p547",
+   "tp": "载入沙漠 · 54%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 20.1,
+   "ready": true,
+   "ld": false,
+   "L": "p564",
+   "tp": "载入沙漠 · 55%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 20.6,
+   "ready": true,
+   "ld": false,
+   "L": "p579",
+   "tp": "载入沙漠 · 57%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 21.1,
+   "ready": true,
+   "ld": false,
+   "L": "p595",
+   "tp": "载入沙漠 · 59%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 21.6,
+   "ready": true,
+   "ld": false,
+   "L": "p610",
+   "tp": "载入沙漠 · 60%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 22.2,
+   "ready": true,
+   "ld": false,
+   "L": "p627",
+   "tp": "载入沙漠 · 62%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 22.7,
+   "ready": true,
+   "ld": false,
+   "L": "p643",
+   "tp": "载入沙漠 · 64%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 23.2,
+   "ready": true,
+   "ld": false,
+   "L": "p660",
+   "tp": "载入沙漠 · 65%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 23.8,
+   "ready": true,
+   "ld": false,
+   "L": "p677",
+   "tp": "载入沙漠 · 67%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 24.3,
+   "ready": true,
+   "ld": false,
+   "L": "p693",
+   "tp": "载入沙漠 · 68%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 24.8,
+   "ready": true,
+   "ld": false,
+   "L": "p709",
+   "tp": "载入沙漠 · 70%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 25.3,
+   "ready": true,
+   "ld": false,
+   "L": "p725",
+   "tp": "载入沙漠 · 71%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 25.8,
+   "ready": true,
+   "ld": false,
+   "L": "p741",
+   "tp": "载入沙漠 · 73%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 26.3,
+   "ready": true,
+   "ld": false,
+   "L": "p756",
+   "tp": "载入沙漠 · 75%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 26.8,
+   "ready": true,
+   "ld": false,
+   "L": "p772",
+   "tp": "载入沙漠 · 76%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 27.3,
+   "ready": true,
+   "ld": false,
+   "L": "p789",
+   "tp": "载入沙漠 · 78%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 27.9,
+   "ready": true,
+   "ld": false,
+   "L": "p806",
+   "tp": "载入沙漠 · 80%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 28.4,
+   "ready": true,
+   "ld": false,
+   "L": "p822",
+   "tp": "载入沙漠 · 81%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 28.9,
+   "ready": true,
+   "ld": false,
+   "L": "p839",
+   "tp": "载入沙漠 · 83%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 29.4,
+   "ready": true,
+   "ld": false,
+   "L": "p856",
+   "tp": "载入沙漠 · 84%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 29.9,
+   "ready": true,
+   "ld": false,
+   "L": "p871",
+   "tp": "载入沙漠 · 86%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 30.4,
+   "ready": true,
+   "ld": false,
+   "L": "p880",
+   "tp": "载入沙漠 · 87%",
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 55.9,
+   "ready": false,
+   "ld": true,
+   "L": "noui",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 56.4,
+   "ready": false,
+   "ld": true,
+   "L": "boot",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 62.7,
+   "ready": true,
+   "ld": true,
+   "L": "work",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 65,
+   "ready": true,
+   "ld": true,
+   "L": "p238",
+   "tp": "载入沙漠 · 6%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 65.5,
+   "ready": true,
+   "ld": true,
+   "L": "p253",
+   "tp": "载入沙漠 · 21%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 66,
+   "ready": true,
+   "ld": true,
+   "L": "p267",
+   "tp": "载入沙漠 · 26%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 66.5,
+   "ready": true,
+   "ld": false,
+   "L": "p286",
+   "tp": "载入沙漠 · 28%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 67.1,
+   "ready": true,
+   "ld": false,
+   "L": "p303",
+   "tp": "载入沙漠 · 29%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 67.6,
+   "ready": true,
+   "ld": false,
+   "L": "p320",
+   "tp": "载入沙漠 · 31%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 68.1,
+   "ready": true,
+   "ld": false,
+   "L": "p336",
+   "tp": "载入沙漠 · 32%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 68.6,
+   "ready": true,
+   "ld": false,
+   "L": "p351",
+   "tp": "载入沙漠 · 34%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 69.1,
+   "ready": true,
+   "ld": false,
+   "L": "p367",
+   "tp": "载入沙漠 · 36%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 69.6,
+   "ready": true,
+   "ld": false,
+   "L": "p379",
+   "tp": "载入沙漠 · 37%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 70.1,
+   "ready": true,
+   "ld": false,
+   "L": "p392",
+   "tp": "载入沙漠 · 38%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 70.7,
+   "ready": true,
+   "ld": false,
+   "L": "p405",
+   "tp": "载入沙漠 · 40%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 71.2,
+   "ready": true,
+   "ld": false,
+   "L": "p420",
+   "tp": "载入沙漠 · 41%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 71.7,
+   "ready": true,
+   "ld": false,
+   "L": "p435",
+   "tp": "载入沙漠 · 43%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 72.2,
+   "ready": true,
+   "ld": false,
+   "L": "p451",
+   "tp": "载入沙漠 · 44%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 72.7,
+   "ready": true,
+   "ld": false,
+   "L": "p468",
+   "tp": "载入沙漠 · 46%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 73.3,
+   "ready": true,
+   "ld": false,
+   "L": "p485",
+   "tp": "载入沙漠 · 48%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 73.8,
+   "ready": true,
+   "ld": false,
+   "L": "p502",
+   "tp": "载入沙漠 · 49%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 74.3,
+   "ready": true,
+   "ld": false,
+   "L": "p517",
+   "tp": "载入沙漠 · 51%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 74.8,
+   "ready": true,
+   "ld": false,
+   "L": "p532",
+   "tp": "载入沙漠 · 52%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 75.3,
+   "ready": true,
+   "ld": false,
+   "L": "p549",
+   "tp": "载入沙漠 · 54%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 75.8,
+   "ready": true,
+   "ld": false,
+   "L": "p566",
+   "tp": "载入沙漠 · 56%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 76.4,
+   "ready": true,
+   "ld": false,
+   "L": "p582",
+   "tp": "载入沙漠 · 57%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 76.9,
+   "ready": true,
+   "ld": false,
+   "L": "p599",
+   "tp": "载入沙漠 · 59%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 77.4,
+   "ready": true,
+   "ld": false,
+   "L": "p616",
+   "tp": "载入沙漠 · 60%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 77.9,
+   "ready": true,
+   "ld": false,
+   "L": "p632",
+   "tp": "载入沙漠 · 62%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 78.4,
+   "ready": true,
+   "ld": false,
+   "L": "p647",
+   "tp": "载入沙漠 · 64%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 79,
+   "ready": true,
+   "ld": false,
+   "L": "p664",
+   "tp": "载入沙漠 · 66%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 79.5,
+   "ready": true,
+   "ld": false,
+   "L": "p680",
+   "tp": "载入沙漠 · 67%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 80,
+   "ready": true,
+   "ld": false,
+   "L": "p697",
+   "tp": "载入沙漠 · 69%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 80.5,
+   "ready": true,
+   "ld": false,
+   "L": "p713",
+   "tp": "载入沙漠 · 70%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 81,
+   "ready": true,
+   "ld": false,
+   "L": "p729",
+   "tp": "载入沙漠 · 72%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 81.5,
+   "ready": true,
+   "ld": false,
+   "L": "p745",
+   "tp": "载入沙漠 · 74%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 82,
+   "ready": true,
+   "ld": false,
+   "L": "p760",
+   "tp": "载入沙漠 · 75%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 82.6,
+   "ready": true,
+   "ld": false,
+   "L": "p776",
+   "tp": "载入沙漠 · 77%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 83.1,
+   "ready": true,
+   "ld": false,
+   "L": "p792",
+   "tp": "载入沙漠 · 78%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 83.6,
+   "ready": true,
+   "ld": false,
+   "L": "p808",
+   "tp": "载入沙漠 · 80%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 84.1,
+   "ready": true,
+   "ld": false,
+   "L": "p825",
+   "tp": "载入沙漠 · 82%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 84.6,
+   "ready": true,
+   "ld": false,
+   "L": "p841",
+   "tp": "载入沙漠 · 83%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 85.1,
+   "ready": true,
+   "ld": false,
+   "L": "p857",
+   "tp": "载入沙漠 · 85%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 85.6,
+   "ready": true,
+   "ld": false,
+   "L": "p874",
+   "tp": "载入沙漠 · 86%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 86.2,
+   "ready": true,
+   "ld": false,
+   "L": "p880",
+   "tp": "载入沙漠 · 87%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 90.7,
+   "ready": true,
+   "ld": false,
+   "L": "p880",
+   "tp": "载入沙漠 · 88%",
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 112.2,
+   "ready": true,
+   "ld": false,
+   "L": "p880",
+   "tp": null,
+   "card": "载入停滞",
+   "btn": "点击重试",
+   "wd": "1"
+  }
+ ],
+ "card": {
+  "ready": true,
+  "ld": false,
+  "L": "p880",
+  "tp": null,
+  "card": "载入停滞",
+  "btn": "点击重试",
+  "wd": "1"
+ }
+}

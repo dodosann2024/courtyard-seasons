@@ -1,0 +1,110 @@
+{
+ "scenario": "ui-always",
+ "device": "iPhone 13",
+ "result": "retry-card",
+ "seconds": 81.8,
+ "navigations": 3,
+ "log": [
+  [
+   0.2,
+   "page load",
+   1
+  ],
+  [
+   0.5,
+   "served empty",
+   "/assets/ui.84212e1e83.js",
+   "page load 1"
+  ],
+  [
+   27.4,
+   "console",
+   "[cy] loading stalled {at: noui, ready: false, action: reload}"
+  ],
+  [
+   27.5,
+   "page load",
+   2
+  ],
+  [
+   27.8,
+   "served empty",
+   "/assets/ui.84212e1e83.js",
+   "page load 2"
+  ],
+  [
+   53.7,
+   "console",
+   "[cy] loading stalled {at: noui, ready: false, action: retry card}"
+  ],
+  [
+   55.3,
+   "click 点击重试"
+  ],
+  [
+   55.5,
+   "page load",
+   3
+  ],
+  [
+   55.8,
+   "served empty",
+   "/assets/ui.84212e1e83.js",
+   "page load 3"
+  ],
+  [
+   81.7,
+   "console",
+   "[cy] loading stalled {at: noui, ready: false, action: retry card}"
+  ],
+  [
+   81.8,
+   "after click",
+   {
+    "pageLoads": 1,
+    "cardAgain": "载入停滞"
+   }
+  ]
+ ],
+ "series": [
+  {
+   "t": 0.6,
+   "ready": false,
+   "ld": true,
+   "L": "noui",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 27.7,
+   "ready": false,
+   "ld": true,
+   "L": "noui",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 53.9,
+   "ready": false,
+   "ld": false,
+   "L": "noui",
+   "tp": null,
+   "card": "载入停滞",
+   "btn": "点击重试",
+   "wd": "1"
+  }
+ ],
+ "card": {
+  "ready": false,
+  "ld": false,
+  "L": "noui",
+  "tp": null,
+  "card": "载入停滞",
+  "btn": "点击重试",
+  "wd": "1"
+ }
+}

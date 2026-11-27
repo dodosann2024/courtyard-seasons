@@ -1,0 +1,158 @@
+{
+ "reshows": {
+  "steps": [
+   {
+    "t": 15.6,
+    "step": "desert loaded, cover gone",
+    "cover": false
+   },
+   {
+    "t": 16.2,
+    "step": "dark #1",
+    "cover": true
+   },
+   {
+    "t": 17.2,
+    "step": "ok #1",
+    "cover": false
+   },
+   {
+    "t": 18.1,
+    "step": "dark #2",
+    "cover": true
+   },
+   {
+    "t": 19,
+    "step": "ok #2",
+    "cover": false
+   },
+   {
+    "t": 19.7,
+    "step": "dark #3",
+    "cover": true
+   },
+   {
+    "t": 20.8,
+    "step": "ok #3",
+    "cover": false
+   },
+   {
+    "t": 21.5,
+    "step": "dark #4",
+    "cover": false
+   },
+   {
+    "t": 22.4,
+    "step": "ok #4",
+    "cover": false
+   },
+   {
+    "t": 23.1,
+    "step": "dark #5",
+    "cover": false
+   },
+   {
+    "t": 24,
+    "step": "ok #5",
+    "cover": false
+   }
+  ],
+  "capLog": [
+   {
+    "why": "reshows",
+    "reshows": 4,
+    "coverMs": 2943,
+    "t": 20920
+   }
+  ],
+  "console": [
+   [
+    20.9,
+    "[cy] desert cover cap {why: reshows, reshows: 4, coverMs: 2943, t: 20920}"
+   ]
+  ]
+ },
+ "time": {
+  "steps": [
+   {
+    "t": 15.9,
+    "step": "desert loaded, cover gone",
+    "cover": false
+   },
+   {
+    "t": 16.9,
+    "step": "dark, no ok, 1 s",
+    "cover": true
+   },
+   {
+    "t": 18,
+    "step": "dark, no ok, 2 s",
+    "cover": true
+   },
+   {
+    "t": 19.1,
+    "step": "dark, no ok, 3 s",
+    "cover": true
+   },
+   {
+    "t": 20.1,
+    "step": "dark, no ok, 4 s",
+    "cover": true
+   },
+   {
+    "t": 21.2,
+    "step": "dark, no ok, 5 s",
+    "cover": true
+   },
+   {
+    "t": 22.2,
+    "step": "dark, no ok, 6 s",
+    "cover": true
+   },
+   {
+    "t": 23.2,
+    "step": "dark, no ok, 7 s",
+    "cover": false
+   },
+   {
+    "t": 24.3,
+    "step": "dark, no ok, 8 s",
+    "cover": false
+   },
+   {
+    "t": 25.3,
+    "step": "dark, no ok, 9 s",
+    "cover": false
+   },
+   {
+    "t": 26.3,
+    "step": "dark, no ok, 10 s",
+    "cover": false
+   },
+   {
+    "t": 27.4,
+    "step": "dark, no ok, 11 s",
+    "cover": false
+   },
+   {
+    "t": 28.6,
+    "step": "dark, no ok, 12 s",
+    "cover": false
+   }
+  ],
+  "capLog": [
+   {
+    "why": "time",
+    "reshows": 1,
+    "coverMs": 8141,
+    "t": 22867
+   }
+  ],
+  "console": [
+   [
+    22.9,
+    "[cy] desert cover cap {why: time, reshows: 1, coverMs: 8141, t: 22867}"
+   ]
+  ]
+ }
+}

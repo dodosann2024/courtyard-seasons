@@ -1,0 +1,83 @@
+{
+ "scenario": "ui-once",
+ "device": "iPhone 13",
+ "result": "recovered",
+ "seconds": 39,
+ "navigations": 2,
+ "log": [
+  [
+   0.2,
+   "page load",
+   1
+  ],
+  [
+   0.5,
+   "served empty",
+   "/assets/ui.84212e1e83.js",
+   "page load 1"
+  ],
+  [
+   27.4,
+   "console",
+   "[cy] loading stalled {at: noui, ready: false, action: reload}"
+  ],
+  [
+   27.4,
+   "page load",
+   2
+  ]
+ ],
+ "series": [
+  {
+   "t": 0.5,
+   "ready": false,
+   "ld": true,
+   "L": "noui",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": null
+  },
+  {
+   "t": 27.7,
+   "ready": false,
+   "ld": true,
+   "L": "noui",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 28.2,
+   "ready": false,
+   "ld": true,
+   "L": "boot",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 30.4,
+   "ready": true,
+   "ld": true,
+   "L": "work",
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": "1"
+  },
+  {
+   "t": 33.2,
+   "ready": true,
+   "ld": true,
+   "L": null,
+   "tp": null,
+   "card": null,
+   "btn": null,
+   "wd": null
+  }
+ ],
+ "card": false
+}

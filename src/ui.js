@@ -9,9 +9,11 @@ const title=y=>(y==="def"?"":C.names[y]+" · ")+"天空之境 | Sky Haven";
 const built=new Set();
 /* Run the app only after the loading screen has been painted: its first frame
    (shader compilation) can block the main thread for a long time on phones. */
-requestAnimationFrame(()=>setTimeout(()=>{const s=document.createElement("script");s.src=C.root+C.app;
+requestAnimationFrame(()=>setTimeout(()=>{let w="x";try{w=sessionStorage.getItem("cyWd")}catch{}
+  /* after a reload for a failed or stalled load, past whatever WebKit kept of the failed response */
+  const s=document.createElement("script");s.src=C.root+C.app+(w==="1"?"?r="+Date.now():"");
   /* a failed download is reloaded once, under the same sessionStorage mark as the loading watchdog in boot.js */
-  s.onerror=()=>{let w="x";try{w=sessionStorage.getItem("cyWd")}catch{}
+  s.onerror=()=>{
     if(!w){try{sessionStorage.setItem("cyWd","1")}catch{}console.warn("[cy] app script failed to load, reloading");location.reload();return}
     fallback(C.names[cur],"场景文件未能载入，请检查网络后重试。",2)};document.head.appendChild(s)},0));
 let cur=C.cur,busy=false,pending=null,idx=0,ready=false;try{const s=history.state;if(s&&typeof s.i=="number")idx=s.i}catch{}

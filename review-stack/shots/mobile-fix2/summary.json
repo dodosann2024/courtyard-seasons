@@ -1,0 +1,1082 @@
+{
+ "generated": "2026-11-27T03:43:05.332Z",
+ "method": {
+  "network": "local server, one 1.1 MB/s budget shared by all responses (about 9 Mbit/s, 4G) + 150 ms before each response; cold cache (new browser per load)",
+  "engine": "Playwright 1.49.1 WebKit, device emulation",
+  "entry": "root URL with localStorage cyStyle=desert (cold boot straight into the desert)",
+  "frames": "2 frames/s sampled from the screencast video of each load (what the compositor shows), from navigation until 12 s after the desert reports done",
+  "black": "fraction of pixels with luminance < 16 between 10% and 90% of the height (the scene area behind the loader); a frame counts as black above 0.2"
+ },
+ "configs": {
+  "after-iphone13": {
+   "runs": 8,
+   "loadsDone": 7,
+   "meanLoadS": 35.1,
+   "runsWithBlack": 0,
+   "blackFrames": 0,
+   "framesTotal": 957,
+   "blackSeconds": 0,
+   "maxBlack": 0.0034,
+   "blackAfterDone": 0,
+   "heals": 0,
+   "runsDetail": [
+    {
+     "run": 0,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.094,
+     "frames": 94,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       9.12,
+       "on",
+       null
+      ],
+      [
+       36.17,
+       "out",
+       1
+      ],
+      [
+       36.97,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 1,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": null,
+     "frames": 300,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       8.83,
+       "on",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 2,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 34.944,
+     "frames": 94,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0034,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       9.02,
+       "on",
+       null
+      ],
+      [
+       35.69,
+       "out",
+       1
+      ],
+      [
+       36.39,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 3,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.23,
+     "frames": 94,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       8.89,
+       "on",
+       null
+      ],
+      [
+       36,
+       "out",
+       1
+      ],
+      [
+       36.78,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 4,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.189,
+     "frames": 94,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       9.05,
+       "on",
+       null
+      ],
+      [
+       36.02,
+       "out",
+       1
+      ],
+      [
+       36.82,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 5,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 34.981,
+     "frames": 93,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0034,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       8.72,
+       "on",
+       null
+      ],
+      [
+       35.76,
+       "out",
+       1
+      ],
+      [
+       36.55,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 6,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.113,
+     "frames": 94,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       8.94,
+       "on",
+       null
+      ],
+      [
+       36.19,
+       "out",
+       1
+      ],
+      [
+       37,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 7,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 34.9,
+     "frames": 94,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       8.67,
+       "on",
+       null
+      ],
+      [
+       35.72,
+       "out",
+       1
+      ],
+      [
+       36.49,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    }
+   ]
+  },
+  "after-iphone15pro": {
+   "runs": 8,
+   "loadsDone": 8,
+   "meanLoadS": 35.9,
+   "runsWithBlack": 0,
+   "blackFrames": 0,
+   "framesTotal": 767,
+   "blackSeconds": 0,
+   "maxBlack": 0.0034,
+   "blackAfterDone": 0,
+   "heals": 0,
+   "runsDetail": [
+    {
+     "run": 0,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 38.635,
+     "frames": 101,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       8.86,
+       "on",
+       null
+      ],
+      [
+       39.73,
+       "out",
+       1
+      ],
+      [
+       40.55,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 1,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.312,
+     "frames": 95,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       9.11,
+       "on",
+       null
+      ],
+      [
+       36.33,
+       "out",
+       1
+      ],
+      [
+       37.1,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 2,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.314,
+     "frames": 95,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0034,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       8.88,
+       "on",
+       null
+      ],
+      [
+       36.09,
+       "out",
+       1
+      ],
+      [
+       36.88,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 3,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.514,
+     "frames": 95,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       8.85,
+       "on",
+       null
+      ],
+      [
+       36.59,
+       "out",
+       1
+      ],
+      [
+       37.39,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 4,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.263,
+     "frames": 95,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.18,
+       "none",
+       null
+      ],
+      [
+       8.69,
+       "on",
+       null
+      ],
+      [
+       35.93,
+       "out",
+       1
+      ],
+      [
+       36.64,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 5,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 36.454,
+     "frames": 97,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0034,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       9.02,
+       "on",
+       null
+      ],
+      [
+       37.41,
+       "out",
+       1
+      ],
+      [
+       38.24,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 6,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.082,
+     "frames": 94,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       8.74,
+       "on",
+       null
+      ],
+      [
+       36.13,
+       "out",
+       1
+      ],
+      [
+       36.95,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 7,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.583,
+     "frames": 95,
+     "blackFrames": 0,
+     "blackSeconds": 0,
+     "maxBlack": 0.0033,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 0,
+      "ok": true,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ],
+      [
+       8.96,
+       "on",
+       null
+      ],
+      [
+       36.68,
+       "out",
+       1
+      ],
+      [
+       37.54,
+       "none",
+       1
+      ]
+     ],
+     "errors": []
+    }
+   ]
+  },
+  "before-iphone13": {
+   "runs": 8,
+   "loadsDone": 8,
+   "meanLoadS": 36.5,
+   "runsWithBlack": 8,
+   "blackFrames": 38,
+   "framesTotal": 776,
+   "blackSeconds": 19,
+   "maxBlack": 0.3827,
+   "blackAfterDone": 4,
+   "heals": 20,
+   "runsDetail": [
+    {
+     "run": 0,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 38.522,
+     "frames": 101,
+     "blackFrames": 6,
+     "blackSeconds": 3,
+     "maxBlack": 0.3751,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 2,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.18,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 1,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 34.976,
+     "frames": 94,
+     "blackFrames": 5,
+     "blackSeconds": 2.5,
+     "maxBlack": 0.3752,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 1,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 2,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.239,
+     "frames": 94,
+     "blackFrames": 6,
+     "blackSeconds": 3,
+     "maxBlack": 0.3827,
+     "blackAfterDone": 3,
+     "guard": {
+      "heal": 2,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 3,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 40.798,
+     "frames": 106,
+     "blackFrames": 4,
+     "blackSeconds": 2,
+     "maxBlack": 0.3751,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 4,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 4,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.33,
+     "frames": 95,
+     "blackFrames": 6,
+     "blackSeconds": 3,
+     "maxBlack": 0.3826,
+     "blackAfterDone": 1,
+     "guard": {
+      "heal": 4,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 5,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.015,
+     "frames": 94,
+     "blackFrames": 3,
+     "blackSeconds": 1.5,
+     "maxBlack": 0.3751,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 3,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 6,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.12,
+     "frames": 94,
+     "blackFrames": 5,
+     "blackSeconds": 2.5,
+     "maxBlack": 0.3751,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 2,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 7,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 37.111,
+     "frames": 98,
+     "blackFrames": 3,
+     "blackSeconds": 1.5,
+     "maxBlack": 0.3753,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 2,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    }
+   ]
+  },
+  "before-iphone15pro": {
+   "runs": 8,
+   "loadsDone": 8,
+   "meanLoadS": 35.5,
+   "runsWithBlack": 8,
+   "blackFrames": 22,
+   "framesTotal": 760,
+   "blackSeconds": 11,
+   "maxBlack": 0.382,
+   "blackAfterDone": 0,
+   "heals": 8,
+   "runsDetail": [
+    {
+     "run": 0,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.797,
+     "frames": 96,
+     "blackFrames": 3,
+     "blackSeconds": 1.5,
+     "maxBlack": 0.381,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 1,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.18,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 1,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.126,
+     "frames": 94,
+     "blackFrames": 5,
+     "blackSeconds": 2.5,
+     "maxBlack": 0.3811,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 1,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 2,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.289,
+     "frames": 95,
+     "blackFrames": 2,
+     "blackSeconds": 1,
+     "maxBlack": 0.3811,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 1,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 3,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 37.148,
+     "frames": 98,
+     "blackFrames": 4,
+     "blackSeconds": 2,
+     "maxBlack": 0.382,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 1,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.18,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 4,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.452,
+     "frames": 95,
+     "blackFrames": 2,
+     "blackSeconds": 1,
+     "maxBlack": 0.381,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 1,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 5,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.103,
+     "frames": 94,
+     "blackFrames": 2,
+     "blackSeconds": 1,
+     "maxBlack": 0.3812,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 1,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 6,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 34.997,
+     "frames": 94,
+     "blackFrames": 2,
+     "blackSeconds": 1,
+     "maxBlack": 0.3812,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 1,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    },
+    {
+     "run": 7,
+     "navTries": 1,
+     "videoSkipS": 0,
+     "loadDoneS": 35.199,
+     "frames": 94,
+     "blackFrames": 2,
+     "blackSeconds": 1,
+     "maxBlack": 0.3812,
+     "blackAfterDone": 0,
+     "guard": {
+      "heal": 1,
+      "direct": false,
+      "lost": 0
+     },
+     "cover": [
+      [
+       0.17,
+       "none",
+       null
+      ]
+     ],
+     "errors": []
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,6 @@
+{
+ "note": "Loads that never finished in the harness (Playwright 1.49.1 WebKit, throttled local server). In every case the script file was served in full (no request left in flight) but the browser never executed it; no page error. Seen on main as well, so it is not caused by this branch; the screen stays on the loading screen or the desert cover, never black.",
+ "main_fd0267c": {"loads": 16, "notFinished": 1, "kind": ["ui.js served, never executed (no app, loading screen stays)"]},
+ "branch_batch_video": {"loads": 16, "notFinished": 1, "kind": ["desert.js served, never executed (pill stays at 88%, cover stays up)"]},
+ "branch_hunt_novideo": {"loads": 26, "notFinished": 1, "kind": ["ui.js served, never executed (no app, loading screen stays)"]}
+}

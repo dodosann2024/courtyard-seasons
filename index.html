@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="zh-CN" data-yard=""><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:,">
 <title>天空之境 | Sky Haven</title><meta name="description" content="天空之境 | Sky Haven — 云端深处，听见四季的流转。"><meta name="application-name" content="天空之境"><meta name="apple-mobile-web-app-title" content="天空之境"><meta name="theme-color" content="#cfd6dc"><meta property="og:title" content="天空之境 | Sky Haven"><meta property="og:description" content="云端深处，听见四季的流转。"><meta property="og:type" content="website"><meta name="twitter:title" content="天空之境 | Sky Haven"><meta name="twitter:description" content="云端深处，听见四季的流转。">
-<script>window.CY={"p":"","yard":"","app":"assets/app.0fb0a62981.js","sea":"assets/sea.cfcecaefd4.js","desert":"assets/desert.014e7ee6a9.js","th":{"def":"assets/thumbs/def.81d03a6673.webp","jp":"assets/thumbs/jp.f47a498518.webp","cn":"assets/thumbs/cn.ee3d2450aa.webp","kr":"assets/thumbs/kr.f3a9e00359.webp","eu":"assets/thumbs/eu.5833743157.webp","sea":"assets/thumbs/sea.9ec97c1685.webp","desert":"assets/thumbs/desert.1382f4c8a1.webp"},"ms":{"bactrian_v1":2263600,"bald_eagle_v1":1746060,"barrel_cactus_v3":1228036,"camel_v4b":2231976,"cholla_v2":954648,"crab_v6c":709404,"gerbil_v5b":2194376,"ostrich_v2ag":2777816,"pupfish_female_v3b":412776,"pupfish_male_v3b":435032,"rattlesnake_v1i":7846300,"rattlesnake_v1i_mobile":4604208,"saguaro_v3":3041396,"scorpion_uv_v2c":1149584,"scorpion_v2c":1281356,"sinai_agama_v1c":1682172,"sinai_agama_v1c_blue":1692992,"tent":574668,"tortoise_v2h":816900,"trout_v3":1101176},"au":{"loop":"assets/audio/loop.3e59b4ad4b.mp3","pour":"assets/audio/pour.e6e23c4cbb.mp3","clack":"assets/audio/clack.ed21f72f61.mp3","fu":"assets/audio/fu.edf2ec5c8b.mp3"}};(()=>{const C=window.CY,Y=["def","jp","cn","kr","eu","sea","desert"],d=document.documentElement;
+<script>window.CY={"p":"","yard":"","app":"assets/app.e39f7116fb.js","sea":"assets/sea.cfcecaefd4.js","desert":"assets/desert.014e7ee6a9.js","th":{"def":"assets/thumbs/def.81d03a6673.webp","jp":"assets/thumbs/jp.f47a498518.webp","cn":"assets/thumbs/cn.ee3d2450aa.webp","kr":"assets/thumbs/kr.f3a9e00359.webp","eu":"assets/thumbs/eu.5833743157.webp","sea":"assets/thumbs/sea.9ec97c1685.webp","desert":"assets/thumbs/desert.1382f4c8a1.webp"},"ms":{"bactrian_v1":2263600,"bald_eagle_v1":1746060,"barrel_cactus_v3":1228036,"camel_v4b":2231976,"cholla_v2":954648,"crab_v6c":709404,"gerbil_v5b":2194376,"ostrich_v2ag":2777816,"pupfish_female_v3b":412776,"pupfish_male_v3b":435032,"rattlesnake_v1i":7846300,"rattlesnake_v1i_mobile":4604208,"saguaro_v3":3041396,"scorpion_uv_v2c":1149584,"scorpion_v2c":1281356,"sinai_agama_v1c":1682172,"sinai_agama_v1c_blue":1692992,"tent":574668,"tortoise_v2h":816900,"trout_v3":1101176},"au":{"loop":"assets/audio/loop.3e59b4ad4b.mp3","pour":"assets/audio/pour.e6e23c4cbb.mp3","clack":"assets/audio/clack.ed21f72f61.mp3","fu":"assets/audio/fu.edf2ec5c8b.mp3"}};(()=>{const C=window.CY,Y=["def","jp","cn","kr","eu","sea","desert"],d=document.documentElement;
 C.names={def:"默认小院",jp:"日式庭院",cn:"中式小院",kr:"韩式小院",eu:"欧式小院",sea:"空中海洋",desert:"沙漠绿洲"};
 C.root=new URL(C.p||"./",location.href).href;
 C.url=k=>C.root+(k==="def"?"":k+"/");
@@ -18,7 +18,7 @@ if(innerWidth<=600&&cl!=="1"&&sp!=="0"){sp="0";try{localStorage.setItem("cySound
 sp==="0"&&B.classList.add("snc");cl==="1"&&B.classList.add("col");
 const l=document.getElementById("ld");if(!l)return;l.querySelector(".bg").style.backgroundImage="url("+C.root+C.th[y]+")";l.querySelector(".nm").textContent=C.names[y]};
 })();</script>
-<link rel="preload" href="assets/app.0fb0a62981.js" as="script"><script defer src="assets/ui.7fe77bc98f.js"></script>
+<link rel="preload" href="assets/app.e39f7116fb.js" as="script"><script defer src="assets/ui.c5c3998a62.js"></script>
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#cfd6dc;font-family:"Songti SC","Noto Serif SC","STSong",serif;color:#2d2a26}
 canvas{display:block}
@@ -164,6 +164,13 @@ html.ldn #cyfb{background:#1c2230}html.ldn #cyfb::before{filter:blur(3px) bright
 #cyfb button{margin-top:8px;min-height:44px;padding:0 22px;border-radius:14px;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.92);color:#1f2329;
  font-family:inherit;font-size:14px;font-weight:600;letter-spacing:.1em;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.16);transition:transform .12s ease,background .12s ease;-webkit-tap-highlight-color:transparent}
 #cyfb button:active{transform:scale(.97);background:#fff}
+
+/* phone WebKit: the desert's picture over the scene until app.js has confirmed a drawn frame of the loaded desert.
+   One plain background, no filter: it stays up while the models parse and upload, when a full-screen filtered layer is
+   the last thing a phone needs; the small picture scaled up is soft enough on its own */
+#cydc{position:fixed;inset:0;pointer-events:none;background:var(--th) center/cover no-repeat,linear-gradient(#f2c8a2,#e4a581 58%,#9a7a92);transition:opacity .6s ease}
+html.ldn #cydc{background:linear-gradient(rgba(20,25,38,.48),rgba(20,25,38,.48)),var(--th) center/cover no-repeat,#1c2230}
+#cydc.out{opacity:0}
 
 /* page turn */
 #turn{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;pointer-events:none;display:none}

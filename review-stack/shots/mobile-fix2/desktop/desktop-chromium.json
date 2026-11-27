@@ -1,0 +1,170 @@
+{
+ "def": {
+  "before": {
+   "mean": [
+    157,
+    163,
+    156
+   ],
+   "black": 0.0018,
+   "loadS": 73.9,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    157,
+    162,
+    156
+   ],
+   "black": 0.0019,
+   "loadS": 34.3,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "jp": {
+  "before": {
+   "mean": [
+    144,
+    153,
+    144
+   ],
+   "black": 0.0003,
+   "loadS": 167.7,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    145,
+    154,
+    144
+   ],
+   "black": 0.0003,
+   "loadS": 119.6,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "cn": {
+  "before": {
+   "mean": [
+    146,
+    153,
+    152
+   ],
+   "black": 0.0002,
+   "loadS": 131,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    146,
+    153,
+    152
+   ],
+   "black": 0.0002,
+   "loadS": 114.5,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "kr": {
+  "before": {
+   "mean": [
+    150,
+    156,
+    155
+   ],
+   "black": 0.0001,
+   "loadS": 39,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    150,
+    156,
+    155
+   ],
+   "black": 0.0001,
+   "loadS": 34.7,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "eu": {
+  "before": {
+   "mean": [
+    150,
+    157,
+    148
+   ],
+   "black": 0.0012,
+   "loadS": 103.9,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    149,
+    157,
+    148
+   ],
+   "black": 0.0011,
+   "loadS": 118.5,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "sea": {
+  "before": {
+   "mean": [
+    129,
+    157,
+    168
+   ],
+   "black": 0.0001,
+   "loadS": 17.6,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    129,
+    157,
+    168
+   ],
+   "black": 0.0001,
+   "loadS": 14.9,
+   "wk": false,
+   "cover": 0
+  }
+ },
+ "desert": {
+  "before": {
+   "mean": [
+    176,
+    133,
+    102
+   ],
+   "black": 0.0003,
+   "loadS": 55.3,
+   "wk": false,
+   "cover": 0
+  },
+  "after": {
+   "mean": [
+    176,
+    133,
+    102
+   ],
+   "black": 0.0003,
+   "loadS": 56.9,
+   "wk": false,
+   "cover": 0
+  }
+ }
+}

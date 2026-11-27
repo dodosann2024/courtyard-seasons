@@ -1,0 +1,110 @@
+{
+ "def": {
+  "before": {
+   "nonBlack": 0.9998,
+   "meanLum": 156.5,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 5172
+  },
+  "after": {
+   "nonBlack": 0.9998,
+   "meanLum": 156.4,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 5071
+  }
+ },
+ "jp": {
+  "before": {
+   "nonBlack": 0.9996,
+   "meanLum": 145.5,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 7001
+  },
+  "after": {
+   "nonBlack": 0.9997,
+   "meanLum": 145.5,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 7713
+  }
+ },
+ "cn": {
+  "before": {
+   "nonBlack": 0.9997,
+   "meanLum": 145.2,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 8436
+  },
+  "after": {
+   "nonBlack": 0.9997,
+   "meanLum": 145.2,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 9405
+  }
+ },
+ "kr": {
+  "before": {
+   "nonBlack": 0.9997,
+   "meanLum": 148,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 5437
+  },
+  "after": {
+   "nonBlack": 0.9997,
+   "meanLum": 148,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 5726
+  }
+ },
+ "eu": {
+  "before": {
+   "nonBlack": 0.9996,
+   "meanLum": 147.4,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 8744
+  },
+  "after": {
+   "nonBlack": 0.9996,
+   "meanLum": 147.4,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 7863
+  }
+ },
+ "sea": {
+  "before": {
+   "nonBlack": 0.9997,
+   "meanLum": 145.2,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 3830
+  },
+  "after": {
+   "nonBlack": 0.9997,
+   "meanLum": 145.2,
+   "contextLost": 0,
+   "fallback": false,
+   "errors": [],
+   "loadMs": 4405
+  }
+ }
+}

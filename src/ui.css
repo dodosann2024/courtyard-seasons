@@ -92,8 +92,8 @@ html.ldn #cyfb{background:#1c2230}html.ldn #cyfb::before{filter:blur(3px) bright
 #cyfb button:active{transform:scale(.97);background:#fff}
 
 /* phone WebKit: the desert's picture over the scene until app.js has confirmed a drawn frame of the loaded desert.
-   One plain background, no filter: under the memory pressure of the models parsing, WebKit drops the backing of a
-   full-screen filtered layer and the scene shows through; the small picture scaled up is soft enough on its own */
+   One plain background, no filter: it stays up while the models parse and upload, when a full-screen filtered layer is
+   the last thing a phone needs; the small picture scaled up is soft enough on its own */
 #cydc{position:fixed;inset:0;pointer-events:none;background:var(--th) center/cover no-repeat,linear-gradient(#f2c8a2,#e4a581 58%,#9a7a92);transition:opacity .6s ease}
 html.ldn #cydc{background:linear-gradient(rgba(20,25,38,.48),rgba(20,25,38,.48)),var(--th) center/cover no-repeat,#1c2230}
 #cydc.out{opacity:0}

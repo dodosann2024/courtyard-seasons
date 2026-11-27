@@ -5327,10 +5327,10 @@ function CYgl(){try{return new qo({antialias:!0})}catch(e){document.dispatchEven
    target and five of its pixels are read back: every 250 ms until two good reads in a row confirm the picture after the
    yard is entered and again after its models are in, then every second, every 2 s once settled. Reading the screen itself
    is not done: in WebKit a read of the canvas (direct or through a pixel-pack buffer) can leave it black on screen while
-   its drawing buffer is fine. Five points all dark and alike read as black:
-   ui.js is told ("dark"/"ok") so its loading cover stays up, and a screen that stays black is healed in steps (rebuild the
-   pass shaders, draw without the composer) before ui.js shows the fallback card. WebKit is told by navigator.vendor, which
-   a Chromium with an iPhone user agent (the perf job) does not change. */
+   its drawing buffer is fine. ui.js hears "dark" for a read with five points all dark and alike, and "ok" once confirmed,
+   and keeps its loading cover up in between; a picture that stays black is healed in steps (rebuild the pass shaders,
+   draw without the composer) before ui.js shows the fallback card. WebKit is told by navigator.vendor, which a Chromium
+   with an iPhone user agent (the perf job) does not change. */
 var CYq=(()=>{const ua=navigator.userAgent,wk=/^Apple/.test(navigator.vendor||"")&&!/Android/.test(ua),
     Q=[{dpr:2,sh:0},{dpr:1.75,sh:1536},{dpr:1.25,sh:1024}],gl=Cn.getContext(),px=new Uint8Array(256),T8=new Ln(8,8),
     ev=k=>document.dispatchEvent(new CustomEvent("cy-gl",{detail:k})),
@@ -5357,6 +5357,7 @@ var CYq=(()=>{const ua=navigator.userAgent,wk=/^Apple/.test(navigator.vendor||""
   Cn.domElement.addEventListener("webglcontextrestored",()=>{lost++,lv=Math.min(2,lv+1),apply(),bad=0,direct=!1,gone=!1,wk&&des&&arm(15e3),ev("restored")});
   return{q:()=>({tier:["high","mobile","low"][des||lost?lv:0],dpr:Cn.getPixelRatio(),shadow:pi.shadow.mapSize.x,wk,ok,heal,direct,lost,log}),
     style(i){let d=i==="desert";d!==des&&(des=d,apply()),d&&wk&&arm(15e3)},
+    check(){wk&&des&&arm(15e3)},
     frame(){pw&&pw();direct&&des?(Cn.setRenderTarget(null),Cn.render(Jt,De)):Ta.render();
       if(!wk||!des||gl.isContextLost())return;let n=performance.now();
       if(!dd&&window.__desProg&&window.__desProg().done){dd=!0,t0=n,arm(3e4);return}
@@ -5364,7 +5365,7 @@ var CYq=(()=>{const ua=navigator.userAgent,wk=/^Apple/.test(navigator.vendor||""
       if(drawn()){bad=0,good++,!ok&&good>=2&&(ok=!0,ev("ok"));chk=n+(!ok||n-t0<5e3?250:n<end?1e3:2e3);return}
       bad++,heal++,good=0,ok=!1,chk=n+250,log.length<20&&log.push([bad,t0?+((n-t0)/1e3).toFixed(1):null]),ev("dark");
       bad===8&&rebuild(),bad===16&&(direct=!0),bad>=24&&!gone&&(gone=!0,ev("black"))}}})();
-CYq.style(Qc);window.__cyq=CYq.q;
+CYq.style(Qc);window.__cyq=CYq.q;window.__cyCheck=CYq.check;
 Cn.setAnimationLoop(()=>{let i=Zy.getDelta(),t=Math.min(i,.05),e=Math.min(i,.25);s0(t),xa-=e;let n=Ia&&xa<=0&&!Sn?1:0;if(Ce.__ar=(Ce.__ar||0)+(n-(Ce.__ar||0))*Math.min(1,e*.8),Ce.__ar>.003){let s=e*6.2832/75*Ce.__ar,r=De.position.clone().sub(Ce.target).applyAxisAngle(new P(0,1,0),s);De.position.copy(Ce.target).add(r)}if(Sn){Sn.u=Math.min(1,Sn.u+t/1.2);let s=Sn.u*Sn.u*(3-2*Sn.u);De.position.lerpVectors(Sn.p0,Sn.p1,s),Ce.target.lerpVectors(Sn.t0,Sn.t1,s),Sn.u>=1&&(Sn=null)}Ce.update(),window.__seaU&&window.__seaU(t),window.__desU&&window.__desU(t),SLx(),CYq.frame()});addEventListener("resize",()=>{Dd.uniforms.scale.value=qc.material.uniforms.scale.value=Gc.material.uniforms.scale.value=Hc.material.uniforms.scale.value=innerHeight*.5,De.aspect=innerWidth/innerHeight,De.updateProjectionMatrix(),Cn.setSize(innerWidth,innerHeight),Ta.setSize(innerWidth,innerHeight)});window.__set=i=>{i.season!==void 0&&Wc(i.season),Object.assign(Ct,{...i,season:Ct.season}),Ad=i.mode?1:0,Ui()};window.__cel=()=>({...Se,N:qt.night});window.__phase=ba;window.__warp=i=>{for(let t=0;t<i;t+=1/30)s0(1/30)};window.__ready=!0;
 })();
 /*! Bundled license information:

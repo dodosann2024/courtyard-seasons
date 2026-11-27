@@ -132,7 +132,7 @@ function pill(on,y){const p=tp();if(!p)return;clearTimeout(desT);cancelAnimation
    app.js reports (cy-gl events) no WebGL, a lost context, its return, and frames that never reach the screen; a context
    that is not given back, or none at all, leaves the yard's picture and a note instead of a black page */
 let glT=0;
-function fallback(t,m,retry){if($("#cyfb"))return;clearTimeout(glT);pill(0);const l=$("#ld");if(l)l.remove();
+function fallback(t,m,retry){if($("#cyfb"))return;clearTimeout(glT);pill(0);cover(0);const l=$("#ld");if(l)l.remove();
   const d=document.createElement("div");d.id="cyfb";d.style.setProperty("--th","url("+C.root+C.th[cur]+")");
   d.innerHTML='<div class="card" role="alert"><b></b><span></span>'+(retry?'<button type="button"></button>':"")+"</div>";
   d.querySelector("b").textContent=t;d.querySelector("span").textContent=m;
@@ -141,12 +141,23 @@ function fallback(t,m,retry){if($("#cyfb"))return;clearTimeout(glT);pill(0);cons
     b.addEventListener("click",()=>{if(retry===1)try{localStorage.setItem("cyQ","low")}catch{}location.reload()})}
   /* under the panels, which close so the note shows; reopened, they still switch yards over it */
   const cv=sceneCanvas();cv?cv.after(d):document.body.prepend(d);document.body.classList.add("col","snc")}
-document.addEventListener("cy-gl",e=>{const k=e.detail,p=tp();clearTimeout(glT);
+document.addEventListener("cy-gl",e=>{const k=e.detail,p=tp();
+  if(k==="ok"||k==="dark"){cover(k==="dark"&&cur==="desert");return}
+  clearTimeout(glT);
   if(k==="lost"){if(p){pill(0);p.querySelector("span").textContent="场景恢复中…";p.classList.add("on")}
     glT=setTimeout(()=>fallback("场景暂时无法显示","设备图形内存不足，画面已暂停。",1),8000)}
   else if(k==="restored"){if(cur==="desert"&&desBusy()){desWant=true;desLoad()}else pill(0)}
   else if(k==="nogl")fallback(C.names[cur],"此浏览器未能启用 WebGL，暂时无法显示 3D 场景。",0)
   else if(k==="black")fallback("场景未能显示","设备未能完成绘制。",1)});
+/* ---------- desert cover (phone WebKit) ----------
+   From the moment the desert is chosen until app.js has drawn and checked a desert frame ("ok"), and again whenever a check
+   comes back dark, the desert's picture lies over the scene: a frame that does not reach the screen never shows as black */
+const wkM=/^Apple/.test(navigator.vendor||"")&&/iPhone|iPad|Mobi/.test(navigator.userAgent);
+let dc=null,dcT=0;
+function cover(on){if(!wkM)return;clearTimeout(dcT);
+  if(on){if(!dc||!dc.isConnected){dc=document.createElement("div");dc.id="cydc";dc.setAttribute("aria-hidden","true");dc.style.setProperty("--th","url("+C.root+C.th.desert+")");
+      const cv=sceneCanvas();cv?cv.after(dc):document.body.prepend(dc)}dc.classList.remove("out");return}
+  if(dc&&dc.isConnected&&!dc.classList.contains("out")){const d=dc;d.classList.add("out");dcT=setTimeout(()=>d.remove(),700)}}
 /* the desert's models stream in after the page turn (tens of MB on a cold visit), so keep the pill up with their real download progress */
 let desT=0,desWant=false;
 const desBusy=()=>!window.__desProg||!window.__desProg().done;
@@ -198,6 +209,7 @@ async function go(y,dir,push){
   try{
     const oldS=await snap();
     const shown=oldS?showFlat(oldS):false;
+    cover(toD);
     const cold=!built.has(y);
     if(cold&&!toD)pill(1,y);
     await raf();await raf();
@@ -247,7 +259,7 @@ function panels(){
   built.add(cur);document.title=title(cur);
   try{const s=history.state||{};history.replaceState({cy:cur,i:typeof s.i=="number"?s.i:0},"",C.canon&&cur===C.cur?C.canon:location.href)}catch{}
   panels();
-  if(cur==="desert"&&desBusy()){desWant=true;desLoad()}
+  if(cur==="desert"){cover(1);window.__cyCheck&&window.__cyCheck();if(desBusy()){desWant=true;desLoad()}}
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     const l=$("#ld");if(l){l.classList.add("gone");setTimeout(()=>l.remove(),900)}
     window.__firstFrame=performance.now();

@@ -1,0 +1,22 @@
+{
+ "frozen_main_vs_branch": {
+  "meanAbs": 1.096,
+  "max": 211,
+  "shareOver8": 0.03031
+ },
+ "rain_main_vs_branch": {
+  "meanAbs": 5.611,
+  "max": 212,
+  "shareOver8": 0.12824
+ },
+ "night_main_vs_branch": {
+  "meanAbs": 2.699,
+  "max": 230,
+  "shareOver8": 0.06386
+ },
+ "frozen_main_vs_main_rerun": {
+  "meanAbs": 9.337,
+  "max": 205,
+  "shareOver8": 0.33388
+ }
+}

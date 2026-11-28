@@ -1,0 +1,144 @@
+{
+ "bundle": "assets/desert.014e7ee6a9.js",
+ "weather": {
+  "rain": {
+   "cam": [
+    -10.75,
+    1.37,
+    11.88
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -9.48,
+    9.84
+   ],
+   "rain": 0.62,
+   "wet": 1,
+   "ice": 0,
+   "snow": 0,
+   "night": 0,
+   "uT": 65.91,
+   "samples": {
+    "band": 65,
+    "dry": 849,
+    "water": 2226
+   },
+   "at": {
+    "trail": {
+     "lum": 81.3,
+     "warm": 1.132,
+     "n": 14
+    },
+    "band": {
+     "lum": 99.7,
+     "warm": 1.296,
+     "n": 65
+    },
+    "dry": {
+     "lum": 125.7,
+     "warm": 1.638,
+     "n": 849
+    },
+    "water": {
+     "lum": 123.1,
+     "warm": 0.703,
+     "n": 2226,
+     "glint": 0.0004
+    }
+   }
+  },
+  "night": {
+   "cam": [
+    -16.27,
+    1.34,
+    7.47
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -13.89,
+    7.14
+   ],
+   "rain": 0,
+   "wet": 0.907,
+   "ice": 0,
+   "snow": 0,
+   "night": 1,
+   "uT": 126.28,
+   "samples": {
+    "band": 169,
+    "dry": 4,
+    "water": 2293
+   },
+   "at": {
+    "trail": {
+     "lum": 126.5,
+     "warm": 0.726,
+     "n": 24
+    },
+    "band": {
+     "lum": 128.4,
+     "warm": 0.732,
+     "n": 169
+    },
+    "dry": {
+     "lum": 53.6,
+     "warm": 0.717,
+     "n": 4
+    },
+    "water": {
+     "lum": 45.1,
+     "warm": 0.522,
+     "n": 2293,
+     "glint": 0.0275
+    }
+   }
+  },
+  "frozen": {
+   "cam": [
+    -16.28,
+    1.34,
+    4.6
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -13.91,
+    5.02
+   ],
+   "rain": 0,
+   "wet": 0.198,
+   "ice": 0.792,
+   "snow": 0.985,
+   "night": 0,
+   "uT": 570.64,
+   "samples": {
+    "band": 165,
+    "dry": 24,
+    "water": 2246
+   },
+   "at": {
+    "trail": {
+     "lum": 164.5,
+     "warm": 1.544,
+     "n": 21
+    },
+    "band": {
+     "lum": 155.1,
+     "warm": 1.667,
+     "n": 165
+    },
+    "dry": {
+     "lum": 157.2,
+     "warm": 2.088,
+     "n": 24
+    },
+    "water": {
+     "lum": 148.5,
+     "warm": 1.027,
+     "n": 2246,
+     "glint": 0.0663
+    }
+   }
+  }
+ },
+ "fails": []
+}

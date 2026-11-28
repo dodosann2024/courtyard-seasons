@@ -313,7 +313,7 @@ function sandMat(){
           /* sand the water has just left stays saturated for several seconds: a film still on it, nearly as dark as the ocean's wet sand,
              drying from its upper edge down; capillary water keeps a fringe about a centimetre above the reach saturated too, fading out by 3 cm.
              In wind the film also breaks up as it dries: the hollows between grains go pale first, so an older trail is islands of dark */
-          float tD=4.5*(1.-.65*dw),tE=6.8*(1.-.62*dw),tn=dn2(vSP.xz*9.+1.7)*.65+dn2(vSP.xz*23.+4.)*.35;
+          float tD=4.5*(1.-.8*dw),tE=6.8*(1.-.62*dw),tn=dn2(vSP.xz*9.+1.7)*.65+dn2(vSP.xz*23.+4.)*.35;
           if(A>.0005)for(int i=0;i<12;i++){float ta=float(i)*.6,t=uPT-ta,lv=A*(sin(lapP(th,t))*.6+sin(t*.67+th*4.+1.3)*.4),ag=ta/tE*1.4;
             shG=max(shG,smoothstep(hh-.03,hh-.008,lv)*exp(-ta/tD)*smoothstep(tE,4.4*(1.-.62*dw),ta)*mix(1.,smoothstep(ag-.25,ag-.05,tn),dw));}
           shG=min(1.,shG*1.15)*(1.-smoothstep(0.,.3,uPI));

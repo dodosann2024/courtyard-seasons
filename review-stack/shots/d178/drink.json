@@ -1,0 +1,389 @@
+{
+ "bundle": "assets/desert.84f2b42026.js",
+ "drink": {
+  "rule": "valid when the lowest mouth over the 4 s window from the moment the drink clip runs at full weight is over the water (pN<1) and within 5 cm of its height, and the camera sits within 5 cm of where it was put",
+  "runs": [
+   {
+    "before": {
+     "phase": "day",
+     "wind": 0.4,
+     "rain": 0,
+     "snow": 0,
+     "ice": 0,
+     "shel": 0,
+     "ce": false,
+     "tries": 0,
+     "cur": "drink",
+     "staleDrinkW": 1,
+     "drinkRunning": true,
+     "t": 15
+    },
+    "stand": {
+     "x": -0.213,
+     "z": 6.453
+    },
+    "ok": true,
+    "dW": -0.033,
+    "overWater": true,
+    "mouth": {
+     "x": -1.329,
+     "y": -0.453,
+     "z": 6.444
+    },
+    "walkFrames": 129,
+    "dipStartFrame": 157,
+    "sampledFrames": 120,
+    "camOffM": 0,
+    "cam": [
+     -0.81,
+     0.1,
+     8.76
+    ],
+    "label": "fresh#1",
+    "oldProbe": {
+     "dW": -0.033,
+     "endFrame": 282,
+     "budget": 1800
+    }
+   },
+   {
+    "before": {
+     "phase": "day",
+     "wind": 0.35,
+     "rain": 0,
+     "snow": 0,
+     "ice": 0,
+     "shel": 0,
+     "ce": false,
+     "tries": 0,
+     "cur": "drink",
+     "staleDrinkW": 1,
+     "drinkRunning": true,
+     "t": 36
+    },
+    "stand": {
+     "x": -0.213,
+     "z": 6.453
+    },
+    "ok": true,
+    "dW": -0.033,
+    "overWater": true,
+    "mouth": {
+     "x": -1.329,
+     "y": -0.453,
+     "z": 6.444
+    },
+    "walkFrames": 129,
+    "dipStartFrame": 157,
+    "sampledFrames": 120,
+    "camOffM": 0,
+    "cam": [
+     -0.81,
+     0.1,
+     8.76
+    ],
+    "label": "fresh#2",
+    "oldProbe": {
+     "dW": -0.033,
+     "endFrame": 282,
+     "budget": 1800
+    }
+   },
+   {
+    "before": {
+     "phase": "day",
+     "wind": 0.35,
+     "rain": 0,
+     "snow": 0,
+     "ice": 0,
+     "shel": 0,
+     "ce": false,
+     "tries": 0,
+     "cur": "drink",
+     "staleDrinkW": 1,
+     "drinkRunning": true,
+     "t": 57
+    },
+    "stand": {
+     "x": -0.213,
+     "z": 6.453
+    },
+    "ok": true,
+    "dW": -0.033,
+    "overWater": true,
+    "mouth": {
+     "x": -1.329,
+     "y": -0.453,
+     "z": 6.444
+    },
+    "walkFrames": 129,
+    "dipStartFrame": 157,
+    "sampledFrames": 120,
+    "camOffM": 0,
+    "cam": [
+     -0.81,
+     0.1,
+     8.76
+    ],
+    "label": "fresh#3",
+    "oldProbe": {
+     "dW": -0.033,
+     "endFrame": 282,
+     "budget": 1800
+    }
+   },
+   {
+    "before": {
+     "phase": "day",
+     "wind": 0.35,
+     "rain": 0,
+     "snow": 0,
+     "ice": 0,
+     "shel": 0,
+     "ce": false,
+     "tries": 0,
+     "cur": "drink",
+     "staleDrinkW": 1,
+     "drinkRunning": true,
+     "t": 78
+    },
+    "stand": {
+     "x": -0.213,
+     "z": 6.453
+    },
+    "ok": true,
+    "dW": -0.033,
+    "overWater": true,
+    "mouth": {
+     "x": -1.329,
+     "y": -0.453,
+     "z": 6.444
+    },
+    "walkFrames": 129,
+    "dipStartFrame": 157,
+    "sampledFrames": 120,
+    "camOffM": 0,
+    "cam": [
+     -0.81,
+     0.1,
+     8.76
+    ],
+    "label": "again-at-once (stale weights from the run before)",
+    "oldProbe": {
+     "dW": -0.033,
+     "endFrame": 282,
+     "budget": 1800
+    }
+   },
+   {
+    "before": {
+     "phase": "day",
+     "wind": 0.35,
+     "rain": 0,
+     "snow": 0,
+     "ice": 0,
+     "shel": 0,
+     "ce": false,
+     "tries": 0,
+     "cur": "drink",
+     "staleDrinkW": 1,
+     "drinkRunning": true,
+     "t": 459
+    },
+    "stand": {
+     "x": -0.213,
+     "z": 6.453
+    },
+    "ok": true,
+    "dW": -0.033,
+    "overWater": true,
+    "mouth": {
+     "x": -1.329,
+     "y": -0.453,
+     "z": 6.444
+    },
+    "walkFrames": 129,
+    "dipStartFrame": 157,
+    "sampledFrames": 120,
+    "camOffM": 0,
+    "cam": [
+     -0.81,
+     0.1,
+     8.76
+    ],
+    "label": "after a 6 min day (everyone's own jobs)",
+    "oldProbe": {
+     "dW": -0.033,
+     "endFrame": 282,
+     "budget": 1800
+    }
+   },
+   {
+    "before": {
+     "phase": "day",
+     "wind": 0.35,
+     "rain": 0,
+     "snow": 0,
+     "ice": 0,
+     "shel": 0,
+     "ce": false,
+     "tries": 0,
+     "cur": "drink",
+     "staleDrinkW": 1,
+     "drinkRunning": true,
+     "t": 2280
+    },
+    "stand": {
+     "x": -0.213,
+     "z": 6.453
+    },
+    "ok": true,
+    "dW": -0.033,
+    "overWater": true,
+    "mouth": {
+     "x": -1.329,
+     "y": -0.453,
+     "z": 6.444
+    },
+    "walkFrames": 129,
+    "dipStartFrame": 157,
+    "sampledFrames": 120,
+    "camOffM": 0,
+    "cam": [
+     -0.81,
+     0.1,
+     8.76
+    ],
+    "label": "after 30 min of mixed weather (rain, dust wind 1, night, snow, hail)",
+    "oldProbe": {
+     "dW": -0.033,
+     "endFrame": 282,
+     "budget": 1800
+    }
+   },
+   {
+    "before": {
+     "phase": "day",
+     "wind": 1,
+     "rain": 0,
+     "snow": 0,
+     "ice": 0,
+     "shel": 0,
+     "ce": true,
+     "tries": 3,
+     "cur": "drink",
+     "staleDrinkW": 1,
+     "drinkRunning": true,
+     "t": 2302
+    },
+    "stand": {
+     "x": -0.213,
+     "z": 6.453
+    },
+    "ok": true,
+    "dW": -0.033,
+    "overWater": true,
+    "mouth": {
+     "x": -1.329,
+     "y": -0.453,
+     "z": 6.444
+    },
+    "walkFrames": 129,
+    "dipStartFrame": 157,
+    "sampledFrames": 120,
+    "camOffM": 0,
+    "cam": [
+     -0.81,
+     0.1,
+     8.76
+    ],
+    "label": "orbit controls on, camera elsewhere, wind 1, a.tries 3, drink stopped mid-dip",
+    "oldProbe": {
+     "dW": -0.033,
+     "endFrame": 282,
+     "budget": 1800
+    }
+   },
+   {
+    "before": {
+     "phase": "day",
+     "wind": 0.35,
+     "rain": 0,
+     "snow": 0,
+     "ice": 0,
+     "shel": 0,
+     "ce": true,
+     "tries": 0,
+     "cur": "drink",
+     "staleDrinkW": 1,
+     "drinkRunning": true,
+     "t": 2323
+    },
+    "stand": {
+     "x": -0.213,
+     "z": 6.453
+    },
+    "ok": true,
+    "dW": -0.033,
+    "overWater": true,
+    "mouth": {
+     "x": -1.329,
+     "y": -0.453,
+     "z": 6.444
+    },
+    "walkFrames": 129,
+    "dipStartFrame": 157,
+    "sampledFrames": 120,
+    "camOffM": 0,
+    "cam": [
+     -0.81,
+     0.1,
+     8.76
+    ],
+    "label": "orbit controls on at the end (after a ver-style panel view)",
+    "oldProbe": {
+     "dW": -0.033,
+     "endFrame": 282,
+     "budget": 1800
+    }
+   }
+  ],
+  "oldProbeCutAtFrame": [
+   {
+    "dW": 1.075,
+    "endFrame": 158,
+    "budget": 158
+   },
+   {
+    "dW": 0.997,
+    "endFrame": 165,
+    "budget": 165
+   },
+   {
+    "dW": 0.877,
+    "endFrame": 172,
+    "budget": 172
+   },
+   {
+    "dW": 0.844,
+    "endFrame": 173,
+    "budget": 173
+   }
+  ],
+  "summary": {
+   "runs": 8,
+   "ok": 8,
+   "dW": [
+    -0.033,
+    -0.033,
+    -0.033,
+    -0.033,
+    -0.033,
+    -0.033,
+    -0.033,
+    -0.033
+   ]
+  }
+ },
+ "fails": []
+}

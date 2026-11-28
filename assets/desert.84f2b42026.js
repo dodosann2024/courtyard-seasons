@@ -304,15 +304,18 @@ function sandMat(){
            with a ragged top; below it, sand the water has just drawn back from stays dark and glossy and dries off over a few seconds */
         float shW=0.,shG=0.,shR=max(uRainS,.6*uWetK)*(1.-uPI),shK=shR*(1.-smoothstep(0.,.3,uPI));
         {float hh=vSP.y-uWy;if(pn<1.15&&hh<.3&&hh>-.06){float th=atan(vSP.z-uPond.y,vSP.x-uPond.x),A=(.006+.022*uPW)*(1.-uPI);
-          /* a strong wind dries the bank faster: the soaked band above the reach is narrower and the retreat trail dries off sooner */
-          float dw=smoothstep(.5,1.,uPW)*(1.-shK)*(1.-smoothstep(0.,.3,uPI));
+          /* a strong wind dries the bank faster: the soaked band above the reach is narrower and the retreat trail dries off sooner.
+             Nothing at 0.5 and under; above it an ease-out ramp that does most of its work by 0.8 (half of it by 0.65), so the
+             band and the drying speed visibly track the wind through that range */
+          float dwr=clamp((uPW-.5)*2.,0.,1.),dw=(1.-(1.-dwr)*(1.-dwr))*(1.-shK)*(1.-smoothstep(0.,.3,uPI));
           /* rain soaks the bank higher up: the band widens and its edge softens */
-          float top=A+(.075+.04*uPW)*(1.-.45*dw)+.075*shR+.018*(dn2(vSP.xz*3.7)-.5)+.009*(dn2(vSP.xz*14.+2.)-.5);shW=smoothstep(top,top-.035-.025*shR,hh)*(1.-.5*uPI)*(1.-.3*dw);
+          float top=A+(.075+.04*uPW)*(1.-.5*dw)+.075*shR+.018*(dn2(vSP.xz*3.7)-.5)+.009*(dn2(vSP.xz*14.+2.)-.5);shW=smoothstep(top,top-.035-.025*shR,hh)*(1.-.5*uPI)*(1.-.35*dw);
           /* sand the water has just left stays saturated for several seconds: a film still on it, nearly as dark as the ocean's wet sand,
-             drying from its upper edge down; capillary water keeps a fringe about a centimetre above the reach saturated too, fading out by 3 cm */
-          float tD=4.5*(1.-.55*dw),tE=6.8*(1.-.5*dw);
-          if(A>.0005)for(int i=0;i<12;i++){float ta=float(i)*.6,t=uPT-ta,lv=A*(sin(lapP(th,t))*.6+sin(t*.67+th*4.+1.3)*.4);
-            shG=max(shG,smoothstep(hh-.03,hh-.008,lv)*exp(-ta/tD)*smoothstep(tE,4.4*(1.-.5*dw),ta));}
+             drying from its upper edge down; capillary water keeps a fringe about a centimetre above the reach saturated too, fading out by 3 cm.
+             In wind the film also breaks up as it dries: the hollows between grains go pale first, so an older trail is islands of dark */
+          float tD=4.5*(1.-.8*dw),tE=6.8*(1.-.62*dw),tn=dn2(vSP.xz*9.+1.7)*.65+dn2(vSP.xz*23.+4.)*.35;
+          if(A>.0005)for(int i=0;i<12;i++){float ta=float(i)*.6,t=uPT-ta,lv=A*(sin(lapP(th,t))*.6+sin(t*.67+th*4.+1.3)*.4),ag=ta/tE*1.4;
+            shG=max(shG,smoothstep(hh-.03,hh-.008,lv)*exp(-ta/tD)*smoothstep(tE,4.4*(1.-.62*dw),ta)*mix(1.,smoothstep(ag-.25,ag-.05,tn),dw));}
           shG=min(1.,shG*1.15)*(1.-smoothstep(0.,.3,uPI));
           /* in rain the band is soaked through: water fills the pores, so it goes much darker and a little cooler */
           sc*=mix(1.,.84,smoothstep(top+.07,top,hh)*(1.-.5*uPI));sc*=mix(vec3(1.),(.6-.2*shR)*mix(vec3(1.),vec3(.44,.44,.48),shK),shW);sc=mix(sc,sc*vec3(.42,.38,.35),shG*.95);}}
@@ -818,9 +821,9 @@ let pondMesh=null;
         if(uFN>.5&&vD<.6)for(int i=0;i<12;i++){if(float(i)>=uFN)break;vec4 a=uFS[i],b=uFZ[i];vec2 d=bp-a.xy;
           vec2 q=vec2(d.x*a.z-d.y*a.w,d.x*a.w+d.y*a.z)/b.xy;q.x/=mix(1.,.35,smoothstep(.1,-1.,q.y))*mix(1.,.8,smoothstep(.4,1.,q.y));
           fsh=max(fsh,b.z*smoothstep(1.,1.-b.w,length(q)));}
-        bed*=1.-.7*fsh;
-        bed*=1.+caus(bp)*(1.-fsh)*1.5*sunV*sunK*(.35+.65*smoothstep(.05,.4,uWind))*(1.-.8*uRainP)*(1.-uIce)*exp(-vD*1.4)*smoothstep(0.,.03,vD)*(.4+.6*lod);
-        body=mix(bed,body,smoothstep(.0,.45,vD))*mix(1.,.28,uNight)*(1.-.4*fsh*(1.-smoothstep(.3,.6,vD)));
+        bed*=1.-.86*fsh;
+        bed*=1.+caus(bp)*(1.-min(fsh*1.6,1.))*1.5*sunV*sunK*(.35+.65*smoothstep(.05,.4,uWind))*(1.-.8*uRainP)*(1.-uIce)*exp(-vD*1.4)*smoothstep(0.,.03,vD)*(.4+.6*lod);
+        body=mix(bed,body,smoothstep(.0,.45,vD))*mix(1.,.28,uNight)*(1.-.55*fsh*(1.-smoothstep(.3,.6,vD)));
         /* low sun behind the ripples: light comes through the thin crests green-gold */
         float bs=pow(clamp(dot(V,-uSunL)*.6+.4,0.,1.),3.)*smoothstep(.5,.8,h0+.2*paw)*sunV;
         body+=uShal*vec3(.9,1.25,.85)*bs*.35*smoothstep(.05,.4,vD);
@@ -4927,7 +4930,7 @@ function fishSh(){const U=pondU,FS=U.uFS.value,FZ=U.uFZ.value;let n=0;
     for(const e of _fsL)e[3]=Math.hypot(e[0].x-_cl.x,e[0].z-_cl.z);_fsL.sort((a,b)=>a[3]-b[3]);
     for(const[f,len,vis]of _fsL){if(n>=12)break;const bed=lkY(f.x,f.z),hb=Math.max(f.y-bed,0),o=hb*tw,bx=f.x-L_.x/h*o,bz=f.z-L_.z/h*o;
       if(pfDep(bx,bz)>.55)continue;FS[n].set(bx,bz,Math.cos(f.yaw),Math.sin(f.yaw));
-      FZ[n++].set(.17*len+.04*hb,.6*len+.05*hb,sc*.85*Math.exp(-hb*.55)*vis,.55+.35*ss(0,.8,hb))}}
+      FZ[n++].set(.11*len+.016*hb,.42*len+.022*hb,sc*.95*Math.exp(-hb*.4)*vis,.24+.26*ss(0,.8,hb))}}
   U.uFN.value=n}
 /* Godot's rigged trout (trout_v3; 17 bones; swim, idle_hover, dart), 0.398 m long and scaled to each fish. Once it has loaded every fish is a
    skinned clone under the same underwater shading, used once a fish is over ~20 px long; smaller than that the instanced fish above
@@ -5080,16 +5083,27 @@ function crGo(c,x,z,v,mode,go){c.tx=x;c.tz=z;c.vt=v;c.mode=mode;c.go=go}
 /* how far up the bank the lapping water reaches at x,z at time t, over the still level (the pond and sand shaders' own edge) */
 function lapAt(x,z,t){const th=Math.atan2(z-POND.z,x-POND.x),A=(.006+.022*pondU.uWind.value)*(1-pondU.uIce.value);
   return A*(Math.sin(lapP(th,t))*.6+Math.sin(t*.67+th*4+1.3)*.4)}
-/* the point straight up or down the bank from the crab where the sand stands h over the water, within 30 cm */
+/* the point straight up or down the bank from c (anything with x,z) where the sand stands h over the water, within 30 cm */
 function crBank(c,h){const d=Math.hypot(c.x-POND.x,c.z-POND.z)||1,ux=(c.x-POND.x)/d,uz=(c.z-POND.z)/d;let b=null,bd=1e9;
   for(let s=-.3;s<=.3;s+=.005){const x=c.x+ux*s,z=c.z+uz*s,e=Math.abs(lkY(x,z)-POND.wy-h)+Math.abs(s)*.02;if(e<bd){bd=e;b=[x,z]}}return b}
+/* a waiting spot along the shore from the crab, just over the lap's highest reach: where it sits out the next wash */
+function crShore(c,A){const d=Math.hypot(c.x-POND.x,c.z-POND.z)||1,a=rr(-.22,.22);
+  return crBank({x:c.x-(c.z-POND.z)/d*a,z:c.z+(c.x-POND.x)/d*a},A+rr(.008,.016))}
 /* the lapping edge: a crab out on the bank skips up out of the way as the water comes in, and as it draws back follows it down
-   onto the sand it has just left (the dark, glossy retreat trail) and picks over what the wash brought */
-function crLap(c){if(c.mode!=="out"&&c.mode!=="dig"&&!(c.mode==="walk"&&(c.go==null||c.go==="trail")))return;
+   onto the sand it has just left (the dark, glossy retreat trail), a few millimetres behind the edge, to a spot part way down
+   (c.hs, between where the wash turned and how low it will draw back), and picks over what the wash brought there until the next
+   one is nearly on it. Once at the water it stays on that strip for several washes (c.sh), waiting just above the reach between them. */
+function crLap(c,dt){if(c.mode!=="out"&&c.mode!=="dig"&&!(c.mode==="walk"&&(c.go==null||c.go==="trail"||c.go==="shore")))return;
   const t=pondU.uT.value,hh=c.y-POND.wy,l0=lapAt(c.x,c.z,t),l1=lapAt(c.x,c.z,t+.6),A=(.006+.022*pondU.uWind.value)*(1-pondU.uIce.value);
   if(A<.003)return;
-  if(hh>l0+.001&&l1>l0&&l1>hh-.008){const p=crBank(c,A+.014);if(p&&Math.hypot(p[0]-c.x,p[1]-c.z)>.01){crGo(c,p[0],p[1],.3,"walk","dodge");c.lap=1}return}
-  if(c.mode==="out"&&c.lap&&l1<l0-.002&&hh>l0+.01){c.lap=0;if(rnd()<.75){const p=crBank(c,Math.max(l0,l1)+.006);if(p)crGo(c,p[0],p[1],rr(.1,.16),"walk","trail")}}}
+  if(l1>l0)c.rq=0;
+  if(hh>l0+.001&&l1>l0&&l1>hh-(c.go==="trail"?.003:.008)){const p=crBank(c,A+.014);if(p&&Math.hypot(p[0]-c.x,p[1]-c.z)>.01){crGo(c,p[0],p[1],.3,"walk","dodge");if(!c.sh)c.sh=3+(rnd()*4|0)}return}
+  if(c.go==="trail"&&(c.mode==="walk"||c.mode==="out")){c.rt=(c.rt||0)-dt;if(c.rt<0&&l1<l0){c.rt=.15;const p=crBank(c,Math.max(l0+.004,c.hs));
+      if(p&&Math.hypot(p[0]-c.x,p[1]-c.z)>.008){if(c.mode==="out")crGo(c,p[0],p[1],rr(.14,.2),"walk","trail");else{c.tx=p[0];c.tz=p[1]}}}
+    if(c.mode==="walk"||l1<l0)return}
+  if(c.mode==="dig"||c.rq||!(l1<l0-.002&&hh>l0+.004&&hh<A+.04))return;
+  c.rq=1;if(rnd()<.92){let lo=l0;for(let ta=.1;ta<3.5;ta+=.1)lo=Math.min(lo,lapAt(c.x,c.z,t+ta));c.hs=lo+(l0-lo)*rr(.3,.55);
+    const p=crBank(c,Math.max(l1+.004,c.hs));if(p){crGo(c,p[0],p[1],rr(.14,.2),"walk","trail");c.rt=.15;if(!c.sh)c.sh=3+(rnd()*4|0)}}}
 function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||WX.scold>0;
   for(const c of CR.list){
     let near=null,nd=1e9;for(const h of LKT){const d=Math.hypot(c.x-h.x,c.z-h.z)-h.r;if(d<nd){nd=d;near=h}}
@@ -5105,20 +5119,22 @@ function crUpdate(dt){const foul=WX.rain>.12||WX.hf>.02||WX.hcold>0||WX.sf>.02||
       const db=Math.hypot(c.bx-c.x,c.bz-c.z),bt=Math.hypot(c.bx-near.x,c.bz-near.z)>Math.hypot(c.x-near.x,c.z-near.z)-.3,[wx,wz]=crWater(c),dw=Math.hypot(wx-c.x,wz-c.z);
       if(c.mode==="emerge"||db<.25||(bt&&db<dw*1.4))crGo(c,c.bx,c.bz,.42,"run","home");else crGo(c,wx,wz,.42,"run","water")}
     else if(foul&&(c.mode==="out"||c.mode==="walk"||c.mode==="dig"))crGo(c,c.bx,c.bz,.2,"walk","home");
-    else crLap(c);
+    else crLap(c,dt);
     const ox=c.bx-POND.x,oz=c.bz-POND.z;
     if(c.mode==="in"){c.sk=1;c.t-=dt;if(c.t<0&&!foul&&nd>2){c.mode="emerge";c.yaw=Math.atan2(POND.x-c.bx,POND.z-c.bz)+rr(-1,1);spPuff(c.bx,c.y,c.bz,3,ox,oz,.15,.25,.025)}else if(c.t<0)c.t=rr(2,5)}
     else if(c.mode==="emerge"){c.sk-=dt/1.4;if(c.sk<=0){c.sk=0;c.mode="out";c.t=rr(1.5,4)}}
-    else if(c.mode==="down"){c.sk+=dt/.55;if(c.sk>=1){c.mode="in";c.t=rr(10,25)}}
+    else if(c.mode==="down"){c.sk+=dt/.55;if(c.sk>=1){c.mode="in";c.t=rr(10,25);c.sh=0}}
     else if(c.mode==="sub"){c.t-=dt;if(c.t<0&&nd>2.5&&!foul){const[x,z]=crForage(c);crGo(c,x,z,.09,"walk",null)}else if(c.t<0)c.t=rr(4,8)}
     /* keeping the burrow open: at its mouth, facing out, it scoops wet sand up in its claws and flicks it away in little puffs */
     else if(c.mode==="dig"){c.t-=dt;c.pT=(c.pT||0)-dt;if(c.pT<0){c.pT=rr(.35,.7);const fx=Math.sin(c.yaw),fz=Math.cos(c.yaw);
         spPuff(c.x+fx*.04*c.s,c.y+.01,c.z+fz*.04*c.s,2+(rnd()*3|0),fx+rr(-.5,.5),fz+rr(-.5,.5),.3,.35,.022)}
       if(c.t<0){c.mode="out";c.t=rr(1,3)}}
-    else if(c.mode==="out"){c.t-=dt;if(c.t<0){if(Math.hypot(c.x-c.bx,c.z-c.bz)<.3&&rnd()<.3){c.mode="dig";c.t=rr(2.5,4.5);c.yaw=Math.atan2(ox,oz)+rr(-.6,.6)}
+    else if(c.mode==="out"){c.t-=dt;if(c.t<0){const lA=(.006+.022*pondU.uWind.value)*(1-pondU.uIce.value),sp=lA>.003&&(c.sh>0&&c.y-POND.wy<lA+.06||rnd()<.4)?crShore(c,lA):null;
+      if(sp){if(c.sh>0)c.sh--;else c.sh=2+(rnd()*3|0);crGo(c,sp[0],sp[1],rr(.06,.1),"walk","shore")}
+      else if(Math.hypot(c.x-c.bx,c.z-c.bz)<.3&&rnd()<.3){c.mode="dig";c.t=rr(2.5,4.5);c.yaw=Math.atan2(ox,oz)+rr(-.6,.6)}
       else{const[x,z]=crForage(c);crGo(c,x,z,rr(.06,.14),"walk",null)}}}
     if(c.mode==="walk"||c.mode==="run"){const dx=c.tx-c.x,dz=c.tz-c.z,d=Math.hypot(dx,dz);
-      if(d<.02){c.v=0;if(c.go==="home"){c.x=c.bx;c.z=c.bz;c.mode="down";spPuff(c.bx,c.y,c.bz,5,c.bx-POND.x,c.bz-POND.z,.3,.35,.03)}else if(c.go==="water"){c.mode="sub";c.t=rr(12,30)}else{c.mode="out";c.t=rr(1,5)}}
+      if(d<(c.go==="trail"||c.go==="dodge"?.008:.02)){c.v=0;if(c.go==="home"){c.x=c.bx;c.z=c.bz;c.mode="down";spPuff(c.bx,c.y,c.bz,5,c.bx-POND.x,c.bz-POND.z,.3,.35,.03)}else if(c.go==="water"){c.mode="sub";c.t=rr(12,30)}else{const sh=c.go==="trail"||c.go==="dodge"||c.go==="shore";c.mode="out";c.t=sh?rr(3,6):rr(1,5)}}
       else{const dir=Math.atan2(dx,dz),y1=dir-Math.PI/2,y2=dir+Math.PI/2,ty=Math.abs(wrapA(y1-c.yaw))<Math.abs(wrapA(y2-c.yaw))?y1:y2,dy=wrapA(ty-c.yaw);
         c.yaw=wrapA(c.yaw+cl(dy,-6*dt,6*dt));const vt=Math.abs(dy)<.5?c.vt:0;c.v+=(vt-c.v)*ease(c.mode==="run"?14:7,dt);
         /* it only ever moves along its own x, the way the gait clip steps, by the share of the way that lies along it; turning

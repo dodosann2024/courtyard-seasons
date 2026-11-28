@@ -1,0 +1,256 @@
+{
+ "bundle": "assets/desert.014e7ee6a9.js",
+ "fish": {
+  "knot": [
+   -9.02,
+   9.24
+  ],
+  "inKnot": 8,
+  "uT": 9.36,
+  "shadows": 12,
+  "list": [
+   {
+    "x": -9.062,
+    "z": 9.037,
+    "lenCm": 3.7,
+    "halfWidthCm": 1.4,
+    "strength": 0.789,
+    "soft": 0.577
+   },
+   {
+    "x": -9.025,
+    "z": 9.095,
+    "lenCm": 3.2,
+    "halfWidthCm": 1,
+    "strength": 0.83,
+    "soft": 0.553
+   },
+   {
+    "x": -8.866,
+    "z": 9.201,
+    "lenCm": 3.2,
+    "halfWidthCm": 1,
+    "strength": 0.834,
+    "soft": 0.552
+   },
+   {
+    "x": -8.898,
+    "z": 8.706,
+    "lenCm": 3.3,
+    "halfWidthCm": 1.1,
+    "strength": 0.821,
+    "soft": 0.556
+   },
+   {
+    "x": -9.123,
+    "z": 9.114,
+    "lenCm": 3.4,
+    "halfWidthCm": 1.2,
+    "strength": 0.814,
+    "soft": 0.56
+   },
+   {
+    "x": -8.465,
+    "z": 9.1,
+    "lenCm": 3.3,
+    "halfWidthCm": 1.1,
+    "strength": 0.822,
+    "soft": 0.556
+   },
+   {
+    "x": -9,
+    "z": 9.361,
+    "lenCm": 3.3,
+    "halfWidthCm": 1.1,
+    "strength": 0.82,
+    "soft": 0.557
+   },
+   {
+    "x": -9.132,
+    "z": 9.296,
+    "lenCm": 3.2,
+    "halfWidthCm": 1,
+    "strength": 0.83,
+    "soft": 0.553
+   },
+   {
+    "x": -9.158,
+    "z": 9.367,
+    "lenCm": 3.5,
+    "halfWidthCm": 1.3,
+    "strength": 0.803,
+    "soft": 0.566
+   },
+   {
+    "x": -8.766,
+    "z": 9.445,
+    "lenCm": 3.2,
+    "halfWidthCm": 1,
+    "strength": 0.827,
+    "soft": 0.554
+   },
+   {
+    "x": -9.258,
+    "z": 9.321,
+    "lenCm": 3.7,
+    "halfWidthCm": 1.4,
+    "strength": 0.79,
+    "soft": 0.576
+   },
+   {
+    "x": -8.086,
+    "z": 9.406,
+    "lenCm": 3.4,
+    "halfWidthCm": 1.1,
+    "strength": 0.817,
+    "soft": 0.558
+   }
+  ],
+  "hiddenForMeasure": 10,
+  "measured": {
+   "inView": 9,
+   "shadowPx": 389.9,
+   "lumUnder": 69.8,
+   "lumBeside": 89.5,
+   "lumUnderShadowOff": 89.3,
+   "contrast": 0.218,
+   "darkVsOff": 0.212,
+   "deepestDarkening": 27.2,
+   "causticSdUnder": 7.3,
+   "causticSdUnderShadowOff": 6.9,
+   "causticSdBeside": 9.4,
+   "causticLeftUnder": 4.434,
+   "shadowLenCm": 3.4,
+   "shadowHalfWidthCm": 1.2,
+   "rows": [
+    {
+     "px": 125,
+     "lumUnder": 76.8,
+     "lumBeside": 88,
+     "lumUnderShadowOff": 88,
+     "contrast": 0.127,
+     "darkVsOff": 0.127,
+     "deepest": 15.9,
+     "causticSdUnder": 4.2,
+     "causticSdUnderShadowOff": 0.4,
+     "causticSdBeside": 0.6,
+     "shadowLenCm": 3.7,
+     "shadowHalfWidthCm": 1.4
+    },
+    {
+     "px": 932,
+     "lumUnder": 69.9,
+     "lumBeside": 86.8,
+     "lumUnderShadowOff": 84.5,
+     "contrast": 0.194,
+     "darkVsOff": 0.173,
+     "deepest": 17.7,
+     "causticSdUnder": 6.7,
+     "causticSdUnderShadowOff": 8.7,
+     "causticSdBeside": 4.8,
+     "shadowLenCm": 3.2,
+     "shadowHalfWidthCm": 1
+    },
+    {
+     "px": 260,
+     "lumUnder": 58.7,
+     "lumBeside": 85,
+     "lumUnderShadowOff": 67.2,
+     "contrast": 0.31,
+     "darkVsOff": 0.126,
+     "deepest": 19.9,
+     "causticSdUnder": 12.8,
+     "causticSdUnderShadowOff": 13,
+     "causticSdBeside": 11.5,
+     "shadowLenCm": 3.2,
+     "shadowHalfWidthCm": 1
+    },
+    {
+     "px": 195,
+     "lumUnder": 75.2,
+     "lumBeside": 89,
+     "lumUnderShadowOff": 89,
+     "contrast": 0.156,
+     "darkVsOff": 0.155,
+     "deepest": 18.4,
+     "causticSdUnder": 4.1,
+     "causticSdUnderShadowOff": 0.2,
+     "causticSdBeside": 0.3,
+     "shadowLenCm": 3.4,
+     "shadowHalfWidthCm": 1.2
+    },
+    {
+     "px": 333,
+     "lumUnder": 70.9,
+     "lumBeside": 90,
+     "lumUnderShadowOff": 102,
+     "contrast": 0.212,
+     "darkVsOff": 0.305,
+     "deepest": 42.2,
+     "causticSdUnder": 6.2,
+     "causticSdUnderShadowOff": 7.5,
+     "causticSdBeside": 17,
+     "shadowLenCm": 3.3,
+     "shadowHalfWidthCm": 1.1
+    },
+    {
+     "px": 160,
+     "lumUnder": 65.1,
+     "lumBeside": 92.1,
+     "lumUnderShadowOff": 86.3,
+     "contrast": 0.293,
+     "darkVsOff": 0.245,
+     "deepest": 31,
+     "causticSdUnder": 9.5,
+     "causticSdUnderShadowOff": 16.2,
+     "causticSdBeside": 19.2,
+     "shadowLenCm": 3.2,
+     "shadowHalfWidthCm": 1
+    },
+    {
+     "px": 485,
+     "lumUnder": 70.7,
+     "lumBeside": 81.7,
+     "lumUnderShadowOff": 89.6,
+     "contrast": 0.135,
+     "darkVsOff": 0.211,
+     "deepest": 25.6,
+     "causticSdUnder": 8.8,
+     "causticSdUnderShadowOff": 10.9,
+     "causticSdBeside": 20.5,
+     "shadowLenCm": 3.5,
+     "shadowHalfWidthCm": 1.3
+    },
+    {
+     "px": 472,
+     "lumUnder": 69.7,
+     "lumBeside": 99.6,
+     "lumUnderShadowOff": 104,
+     "contrast": 0.301,
+     "darkVsOff": 0.33,
+     "deepest": 43.4,
+     "causticSdUnder": 9,
+     "causticSdUnderShadowOff": 3.4,
+     "causticSdBeside": 8.8,
+     "shadowLenCm": 3.2,
+     "shadowHalfWidthCm": 1
+    },
+    {
+     "px": 547,
+     "lumUnder": 71.5,
+     "lumBeside": 93.1,
+     "lumUnderShadowOff": 93.3,
+     "contrast": 0.232,
+     "darkVsOff": 0.233,
+     "deepest": 30.3,
+     "causticSdUnder": 4.8,
+     "causticSdUnderShadowOff": 2.1,
+     "causticSdBeside": 2,
+     "shadowLenCm": 3.7,
+     "shadowHalfWidthCm": 1.4
+    }
+   ]
+  }
+ },
+ "fails": []
+}

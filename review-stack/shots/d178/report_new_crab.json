@@ -1,0 +1,526 @@
+{
+ "bundle": "assets/desert.84f2b42026.js",
+ "crab": {
+  "freshWindowS": 3,
+  "census": {
+   "minutes": 6,
+   "crabs": 8,
+   "crabSecondsOnBank": 1643.5,
+   "freshSeconds": 606.8,
+   "freshShareOfBank": 0.3692,
+   "nearShoreSeconds": 1643.5,
+   "nearShareOfBank": 1,
+   "nearShoreStays": 20,
+   "meanNearShoreStayS": 82.17,
+   "secondsUnderLap": 0,
+   "dodges": 268,
+   "trailFollows": 280
+  },
+  "trials": {
+   "secondsEach": 12,
+   "calm": {
+    "n": 20,
+    "freshShare": 0.337,
+    "nearShare": 0.915,
+    "underShare": 0.054,
+    "dodges": 2,
+    "trailFollows": 2.1,
+    "withAFollow": 20,
+    "stillNearAt12s": 19
+   },
+   "all": {
+    "n": 24,
+    "freshShare": 0.281,
+    "nearShare": 0.762,
+    "underShare": 0.056,
+    "dodges": 1.667,
+    "trailFollows": 1.75,
+    "withAFollow": 20,
+    "stillNearAt12s": 19
+   },
+   "rows": [
+    {
+     "crab": 0,
+     "scared": false,
+     "at": [
+      -4.025,
+      2.584
+     ],
+     "cam": [
+      -5.14,
+      0.03,
+      3.59
+     ],
+     "frames": 60,
+     "freshShare": 0.467,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 2,
+     "trailFollows": 3,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 1,
+     "scared": false,
+     "at": [
+      -1.128,
+      4.723
+     ],
+     "cam": [
+      -2.63,
+      0.03,
+      4.81
+     ],
+     "frames": 60,
+     "freshShare": 0.283,
+     "nearShare": 0.8,
+     "underShare": 0.2,
+     "dodges": 2,
+     "trailFollows": 2,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 2,
+     "scared": false,
+     "at": [
+      -0.304,
+      6.963
+     ],
+     "cam": [
+      -1.68,
+      0.03,
+      6.35
+     ],
+     "frames": 60,
+     "freshShare": 0.317,
+     "nearShare": 0.883,
+     "underShare": 0.117,
+     "dodges": 2,
+     "trailFollows": 2,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 3,
+     "scared": true,
+     "at": [
+      -1.677,
+      9.278
+     ],
+     "cam": [
+      -2.58,
+      0.03,
+      8.08
+     ],
+     "frames": 60,
+     "freshShare": 0,
+     "nearShare": 0,
+     "underShare": 0.067,
+     "dodges": 0,
+     "trailFollows": 0,
+     "leftShoreAtS": 0.8
+    },
+    {
+     "crab": 4,
+     "scared": false,
+     "at": [
+      -6.181,
+      10.331
+     ],
+     "cam": [
+      -6.04,
+      0.03,
+      8.83
+     ],
+     "frames": 60,
+     "freshShare": 0.367,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 2,
+     "trailFollows": 2,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 5,
+     "scared": false,
+     "at": [
+      -11.229,
+      9.699
+     ],
+     "cam": [
+      -9.99,
+      0.03,
+      8.84
+     ],
+     "frames": 60,
+     "freshShare": 0.417,
+     "nearShare": 0.8,
+     "underShare": 0.2,
+     "dodges": 2,
+     "trailFollows": 2,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 6,
+     "scared": false,
+     "at": [
+      -13.846,
+      7.298
+     ],
+     "cam": [
+      -12.34,
+      0.03,
+      7.37
+     ],
+     "frames": 60,
+     "freshShare": 0.367,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 2,
+     "trailFollows": 3,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 7,
+     "scared": false,
+     "at": [
+      -13.877,
+      4.904
+     ],
+     "cam": [
+      -12.58,
+      0.03,
+      5.67
+     ],
+     "frames": 60,
+     "freshShare": 0.017,
+     "nearShare": 0.383,
+     "underShare": 0,
+     "dodges": 1,
+     "trailFollows": 1,
+     "leftShoreAtS": 4.6
+    },
+    {
+     "crab": 0,
+     "scared": false,
+     "at": [
+      -4.025,
+      2.584
+     ],
+     "cam": [
+      -5.14,
+      0.03,
+      3.59
+     ],
+     "frames": 60,
+     "freshShare": 0.283,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 2,
+     "trailFollows": 2,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 1,
+     "scared": false,
+     "at": [
+      -1.128,
+      4.723
+     ],
+     "cam": [
+      -2.63,
+      0.03,
+      4.81
+     ],
+     "frames": 60,
+     "freshShare": 0.283,
+     "nearShare": 0.767,
+     "underShare": 0.233,
+     "dodges": 2,
+     "trailFollows": 3,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 2,
+     "scared": false,
+     "at": [
+      -0.304,
+      6.963
+     ],
+     "cam": [
+      -1.68,
+      0.03,
+      6.35
+     ],
+     "frames": 60,
+     "freshShare": 0.45,
+     "nearShare": 0.967,
+     "underShare": 0.033,
+     "dodges": 2,
+     "trailFollows": 3,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 3,
+     "scared": true,
+     "at": [
+      -1.677,
+      9.278
+     ],
+     "cam": [
+      -2.58,
+      0.03,
+      8.08
+     ],
+     "frames": 60,
+     "freshShare": 0,
+     "nearShare": 0,
+     "underShare": 0.067,
+     "dodges": 0,
+     "trailFollows": 0,
+     "leftShoreAtS": 0.8
+    },
+    {
+     "crab": 4,
+     "scared": false,
+     "at": [
+      -6.181,
+      10.331
+     ],
+     "cam": [
+      -6.04,
+      0.03,
+      8.83
+     ],
+     "frames": 60,
+     "freshShare": 0.417,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 2,
+     "trailFollows": 1,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 5,
+     "scared": false,
+     "at": [
+      -11.229,
+      9.699
+     ],
+     "cam": [
+      -9.99,
+      0.03,
+      8.84
+     ],
+     "frames": 60,
+     "freshShare": 0.25,
+     "nearShare": 0.767,
+     "underShare": 0.233,
+     "dodges": 2,
+     "trailFollows": 3,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 6,
+     "scared": false,
+     "at": [
+      -13.846,
+      7.298
+     ],
+     "cam": [
+      -12.34,
+      0.03,
+      7.37
+     ],
+     "frames": 60,
+     "freshShare": 0.45,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 2,
+     "trailFollows": 3,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 7,
+     "scared": false,
+     "at": [
+      -13.877,
+      4.904
+     ],
+     "cam": [
+      -12.58,
+      0.03,
+      5.67
+     ],
+     "frames": 60,
+     "freshShare": 0.217,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 2,
+     "trailFollows": 1,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 0,
+     "scared": false,
+     "at": [
+      -4.025,
+      2.584
+     ],
+     "cam": [
+      -5.14,
+      0.03,
+      3.59
+     ],
+     "frames": 60,
+     "freshShare": 0.383,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 2,
+     "trailFollows": 2,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 1,
+     "scared": false,
+     "at": [
+      -1.128,
+      4.723
+     ],
+     "cam": [
+      -2.63,
+      0.03,
+      4.81
+     ],
+     "frames": 60,
+     "freshShare": 0.417,
+     "nearShare": 0.933,
+     "underShare": 0.067,
+     "dodges": 2,
+     "trailFollows": 3,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 2,
+     "scared": false,
+     "at": [
+      -0.304,
+      6.963
+     ],
+     "cam": [
+      -1.68,
+      0.03,
+      6.35
+     ],
+     "frames": 60,
+     "freshShare": 0.367,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 2,
+     "trailFollows": 1,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 3,
+     "scared": true,
+     "at": [
+      -1.677,
+      9.278
+     ],
+     "cam": [
+      -2.58,
+      0.03,
+      8.08
+     ],
+     "frames": 60,
+     "freshShare": 0,
+     "nearShare": 0,
+     "underShare": 0.067,
+     "dodges": 0,
+     "trailFollows": 0,
+     "leftShoreAtS": 0.8
+    },
+    {
+     "crab": 4,
+     "scared": false,
+     "at": [
+      -6.181,
+      10.331
+     ],
+     "cam": [
+      -6.04,
+      0.03,
+      8.83
+     ],
+     "frames": 60,
+     "freshShare": 0.367,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 3,
+     "trailFollows": 2,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 5,
+     "scared": true,
+     "at": [
+      -11.229,
+      9.699
+     ],
+     "cam": [
+      -9.99,
+      0.03,
+      8.84
+     ],
+     "frames": 60,
+     "freshShare": 0,
+     "nearShare": 0,
+     "underShare": 0.067,
+     "dodges": 0,
+     "trailFollows": 0,
+     "leftShoreAtS": 0.8
+    },
+    {
+     "crab": 6,
+     "scared": false,
+     "at": [
+      -13.846,
+      7.298
+     ],
+     "cam": [
+      -12.34,
+      0.03,
+      7.37
+     ],
+     "frames": 60,
+     "freshShare": 0.383,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 2,
+     "trailFollows": 2,
+     "leftShoreAtS": null
+    },
+    {
+     "crab": 7,
+     "scared": false,
+     "at": [
+      -13.877,
+      4.904
+     ],
+     "cam": [
+      -12.58,
+      0.03,
+      5.67
+     ],
+     "frames": 60,
+     "freshShare": 0.233,
+     "nearShare": 1,
+     "underShare": 0,
+     "dodges": 2,
+     "trailFollows": 1,
+     "leftShoreAtS": null
+    }
+   ]
+  }
+ },
+ "fails": []
+}

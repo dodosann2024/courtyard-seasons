@@ -1,0 +1,52 @@
+{
+ "bundle": "assets/desert.014e7ee6a9.js",
+ "weather": {
+  "frozen": {
+   "cam": [
+    -16.28,
+    1.34,
+    4.6
+   ],
+   "eyeAboveSand": 1.6,
+   "waterline": [
+    -13.91,
+    5.02
+   ],
+   "rain": 0,
+   "wet": 0,
+   "ice": 0.792,
+   "snow": 0.985,
+   "night": 0,
+   "uT": 449.73,
+   "samples": {
+    "band": 165,
+    "dry": 24,
+    "water": 2246
+   },
+   "at": {
+    "trail": {
+     "lum": 156.4,
+     "warm": 1.665,
+     "n": 21
+    },
+    "band": {
+     "lum": 153.4,
+     "warm": 1.715,
+     "n": 165
+    },
+    "dry": {
+     "lum": 164.5,
+     "warm": 2.025,
+     "n": 24
+    },
+    "water": {
+     "lum": 147.6,
+     "warm": 1.027,
+     "n": 2246,
+     "glint": 0.0797
+    }
+   }
+  }
+ },
+ "fails": []
+}

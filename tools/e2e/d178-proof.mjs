@@ -6,9 +6,9 @@
 //   fish   the shallow margin seen steeply from the sun's side, close in: per fish shadow the bed's luminance under it, beside it (either
 //          side, clear of the shadow) and with the shadows switched off in the same frame. FISHOUT writes the fish's places, FISHIN puts
 //          them back, so both builds show the same shoal in the same light
-//   wind   the east beach from 1.6 m (d176/d177's trail view) at WINDS (default 0,.5,.65,.8,1): a still and a real-time 8 s clip each; the
+//   wind   the east beach from 1.6 m (d176/d177's trail view) at WINDS (default 0,.5,.65,.8,1): a still and a real-time clip each; the
 //          wet band's top over the still water (from the brightness profile up the bank) and the retreat trail's drying curve (brightness
-//          of bank points by the time since the water left them)
+//          of bank points by the time since the water left them). WF frames each (default 45), WF1 for wind 1 (default 90)
 //   pair   (no browser) OUT/main_<n>.png | OUT/new_<n>.png -> <n>_before_after.jpg; .mp4 likewise
 // Usage: node tools/e2e/d178-proof.mjs <mode[,mode]>   (OUT=/tmp/d178/out DIR=<checkout> TAG=<prefix>)
 import fs from "node:fs";
@@ -42,12 +42,42 @@ if (WHICH === "pair") {
 const pixels = file => new Promise((res, rej) => execFile("ffmpeg", ["-loglevel", "error", "-i", file, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
   {encoding: "buffer", maxBuffer: 1e8}, (e, o) => e ? rej(e) : res(o)));
 const W = 1280, H = 720;
+
 const lum = (buf, x, y, r = 2) => { let s = 0, n = 0; for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { const X = Math.round(x) + dx, Y = Math.round(y) + dy;
   if (X < 0 || Y < 0 || X >= W || Y >= H) continue; const i = (Y * W + X) * 3; s += .2126 * buf[i] + .7152 * buf[i + 1] + .0722 * buf[i + 2]; n++; } return n ? s / n : null; };
 const stat = (buf, x, y, r = 4) => { const v = []; for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { const X = Math.round(x) + dx, Y = Math.round(y) + dy;
   if (X < 0 || Y < 0 || X >= W || Y >= H) return null; const i = (Y * W + X) * 3; v.push(.2126 * buf[i] + .7152 * buf[i + 1] + .0722 * buf[i + 2]); }
   const m = v.reduce((a, x) => a + x, 0) / v.length; return {m, sd: Math.sqrt(v.reduce((a, x) => a + (x - m) ** 2, 0) / v.length)}; };
 const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null, r1 = x => x == null ? null : +x.toFixed(1), r3 = x => x == null ? null : +x.toFixed(3);
+
+/* windstat (no browser): from a wind run's saved frames and OUT/<tag>wind_<k>_data.json (bank points, lap height at each per frame), for each tag
+   and wind: the dark band's width (heights 1 cm over the reach and up whose clip-mean luminance is under 90% of the dry sand at the top of the view),
+   and the retreat trail by the time since the water left: the trail clock starting when the lap drops 8 mm under the point, as the sand shader does; its wetness (dry - lum) over the wetness just as the water left, and the share of those
+   points already dry-looking (within 12% of the dry sand) */
+if (WHICH === "windstat") {
+  const res = {};
+  for (const tag of (process.env.TAGS || "main_,new_").split(",")) for (const f of fs.readdirSync(OUT).filter(f => f.startsWith(`${tag}wind_`) && f.endsWith("_data.json")).sort()) {
+    const k = f.slice(tag.length + 5, -10), D = JSON.parse(fs.readFileSync(path.join(OUT, f), "utf8")), dir = path.join(OUT, `${tag}wind_${k}_frames`), NF = D.laps.length;
+    const L = D.pts.map(() => new Float64Array(NF));
+    for (let i = 0; i < NF; i++) { const buf = await pixels(path.join(dir, `f${String(i).padStart(3, "0")}.png`)); D.pts.forEach((p, j) => { let s = 0, n = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = Math.round(p.p[0]) + dx, Y = Math.round(p.p[1]) + dy, o = (Y * W + X) * 3; s += .2126 * buf[o] + .7152 * buf[o + 1] + .0722 * buf[o + 2]; n++; } L[j][i] = s / n; }); }
+    const A = D.laps.flat().reduce((m, x) => Math.max(m, Math.abs(x)), 0) || .006, bins = [];
+    D.pts.forEach((p, j) => { const b = Math.floor(p.hh / .005); (bins[b] = bins[b] || []).push(L[j].reduce((a, x) => a + x, 0) / NF); });
+    const prof = bins.map((v, i) => v && {hCm: i * .5 + .25, lum: v.reduce((a, x) => a + x, 0) / v.length}).filter(Boolean), top = prof[prof.length - 1].hCm;
+    const dry = mean(prof.filter(b => b.hCm > top - 1.5).map(b => b.lum)), darkBins = prof.filter(b => b.hCm > A * 100 + 1 && b.lum < dry * .9);
+    const ages = new Map();
+    D.pts.forEach((p, j) => { let left = null, wet = false; for (let i = 0; i < NF; i++) { if (D.laps[i][j] > p.hh - .008) { wet = true; left = null; continue; }
+      if (wet) { wet = false; left = i; } if (left == null) continue; const a = +((i - left) * 2 / 30).toFixed(2); if (!ages.has(a)) ages.set(a, []); ages.get(a).push(L[j][i]); } });
+    const curve = [...ages.entries()].filter(([, v]) => v.length >= 20).sort((a, b) => a[0] - b[0]).map(([s, v]) => ({s, lum: mean(v), dryShare: v.filter(x => x > dry * .88).length / v.length, n: v.length}));
+    const near = s => { const c = curve.filter(x => Math.abs(x.s - s) <= .14); return c.length ? {lum: mean(c.map(x => x.lum)), dryShare: mean(c.map(x => x.dryShare))} : null; };
+    const w0 = curve.length ? dry - curve[0].lum : null, row = {lapReachCm: r1(A * 100), dryLum: r1(dry), darkBandCm: r1(darkBins.length * .5), darkBandTopCm: darkBins.length ? r1(darkBins[darkBins.length - 1].hCm + .25) : null,
+      bandLum: Object.fromEntries([4, 6, 8, 10, 12].map(h => [`${h}cm`, r1(mean(prof.filter(b => Math.abs(b.hCm - h) < .6).map(b => b.lum)))])), trail: {}};
+    for (const s of [0, .5, 1, 1.5, 2, 2.5, 3, 4, 5]) { const c = near(s); if (c) row.trail[`${s}s`] = {lum: r1(c.lum), wetLeft: r3((dry - c.lum) / w0), dryShare: r3(c.dryShare)}; }
+    (res[tag.replace(/_$/, "")] = res[tag.replace(/_$/, "")] || {})[k] = row; console.log(tag, k, JSON.stringify(row));
+  }
+  fs.writeFileSync(path.join(OUT, "windstat.json"), JSON.stringify(res, null, 1));
+  process.exit(0);
+}
 
 const S = await openScene(ROOT);
 const {E, shot, cap} = S;
@@ -126,7 +156,7 @@ try {
       report.crab.clip = await place(+(process.env.CRABI || 0));
       await cap("螃蟹在水边：水涌上来时让开，退下去时跟着走到刚露出的湿沙上（12 秒，实时）");
       const d = frameDir("crab_shore");
-      for (let i = 0; i < 180; i++) { await tick(2); await S.frames(2); await S.page.screenshot({path: fpath(d, i)}); }
+      for (let i = 0; i < 180; i++) { await tick(2); await S.frames(1); await S.page.screenshot({path: fpath(d, i)}); }
       await cap(""); await encode(d, "crab_shore", 15);
       const T = report.crab.clip.track = await E(() => window.__track); Object.assign(report.crab.clip, sumTrack(T));
       const fi = T.findIndex((s, i) => s.go === "trail" && i > 10), di = T.findIndex(s => s.go === "dodge");
@@ -190,9 +220,9 @@ try {
 
   if (want("wind")) {
     report.wind = {};
-    const NF = +(process.env.WF || 120);
     for (const wv of (process.env.WINDS || "0,.5,.65,.8,1").split(",").map(Number)) {
-      const k = "w" + String(wv).replace(".", "");
+      /* the strong-wind clip runs longer (WF1, default 90 frames = 6 s), for the trail's whole drying curve; the rest of the sweep WF (45 = 3 s) */
+      const k = "w" + String(wv).replace(".", ""), NF = wv >= 1 ? +(process.env.WF1 || 90) : +(process.env.WF || 45);
       await E(w => { const q = window.__desQA(); window.__set({weather: "sun", ct: "clear", wind: w}); q.tod("day"); q.sim(20, .25); window.__restAll();
         for (const c of q.CR.list) Object.assign(c, {x: c.bx, z: c.bz, mode: "in", t: 1e9, sk: 1}); q.step(10, 1 / 30); }, wv);
       const r = report.wind[k] = await E(() => { const q = window.__desQA(), v = window.__trailView(); return {...window.__look(v), wind: +q.pondU.uWind.value.toFixed(2), dust: +q.WX.dust.toFixed(2), lapAmpCm: +(window.__A() * 100).toFixed(2)}; });
@@ -201,12 +231,18 @@ try {
         const [wx, wz] = window.__edge(-.35); for (let a = -.6; a <= .6; a += .1) for (let d = -1.2; d < 2.4; d += .004) { const x = wx - ux * d + sx * a, z = wz - uz * d + sz * a, hh = q.hTop(x, z) - P.wy;
           if (hh < 0 || hh > .2) continue; const p = window.__px(x, q.hTop(x, z), z); if (p && p[0] > 3 && p[1] > 3 && p[0] < innerWidth - 3 && p[1] < innerHeight - 3) o.push({x, z, hh, p}); } return o; });
       r.points = pts.length;
+      /* start each clip a third of a second before the wash at the middle of the view turns back, so every clip holds a retreat and the drying after it */
+      r.waitedS = await E(() => { const q = window.__desQA(), [wx, wz] = window.__edge(-.35); let k = 0;
+        for (; k < 600; k++) { const t = q.pondU.uT.value, a = q.lapAt(wx, wz, t + .3), b = q.lapAt(wx, wz, t + .3 + 1 / 30), c0 = q.lapAt(wx, wz, t + .3 - 1 / 30);
+          if (k > 3 && a >= b && a >= c0 && a > window.__A() * .3) break; q.step(1, 1 / 30); } return +(k / 30).toFixed(2); });
       await cap(`风 ${wv}：湿沙带和退水湿痕，眼高 1.6 米（实时）`);
-      const d = frameDir(`wind_${k}`), laps = [];
-      for (let i = 0; i < NF; i++) { laps.push(await E(pts => { const q = window.__desQA(); q.step(2, 1 / 30); const t = q.pondU.uT.value; return pts.map(p => q.lapAt(p.x, p.z, t)); }, pts.map(p => ({x: p.x, z: p.z}))));
-        await S.frames(2); await S.page.screenshot({path: fpath(d, i)}); }
+      const d = frameDir(`wind_${k}`), laps = [], uTs = [];
+      for (let i = 0; i < NF; i++) { laps.push(await E(pts => { const q = window.__desQA(); q.step(2, 1 / 30); const t = q.pondU.uT.value; window.__uT = t; return pts.map(p => +q.lapAt(p.x, p.z, t).toFixed(5)); }, pts.map(p => ({x: p.x, z: p.z}))));
+        uTs.push(await E(() => +window.__uT.toFixed(4)));
+        await S.frames(1); await S.page.screenshot({path: fpath(d, i)}); }
       await cap(""); await encode(d, `wind_${k}`, 15);
       fs.copyFileSync(fpath(d, NF >> 1), path.join(OUT, `${TAG}wind_${k}.png`));
+      fs.writeFileSync(path.join(OUT, `${TAG}wind_${k}_data.json`), JSON.stringify({pts: pts.map(p => ({x: +p.x.toFixed(4), z: +p.z.toFixed(4), hh: +p.hh.toFixed(4), p: p.p.map(v => +v.toFixed(1))})), uT: uTs, laps}));
       /* brightness profile up the bank (mean over the clip, 5 mm bins) and the trail's drying curve (points the water has left, by the time since) */
       const bins = new Array(40).fill(0).map(() => [0, 0]), age = new Map(), left = pts.map(() => null), A = r.lapAmpCm / 100;
       for (let i = 0; i < NF; i++) { const buf = await pixels(fpath(d, i));
@@ -214,9 +250,9 @@ try {
           const b = Math.min(39, Math.floor(p.hh / .005)); bins[b][0] += L; bins[b][1]++;
           if (wetNow) left[j] = "w"; else { if (left[j] === "w") left[j] = i; if (typeof left[j] === "number") { const a = i - left[j]; if (!age.has(a)) age.set(a, []); age.get(a).push(L); } } }); }
       const prof = bins.map(([s, n], i) => ({hCm: +(i * .5 + .25).toFixed(2), lum: n ? r1(s / n) : null}));
-      /* dry reference: the highest 1.5 cm of bank in view. The band's top: where the bank brightens fastest (3-bin slope) above the lap's reach + 1 cm */
+      /* dry reference: the highest 1.5 cm of bank in view. The band's top: where the bank brightens fastest (3-bin slope) above the lap's reach + 3 cm (below that the lap's own edge and trail dominate) */
       const seen = prof.filter(b => b.lum != null), hiTop = seen[seen.length - 1].hCm, dryRef = mean(seen.filter(b => b.hCm > hiTop - 1.5).map(b => b.lum));
-      let top = null, best = -1; for (let i = 1; i < prof.length - 1; i++) { const a0 = prof[i - 1].lum, a1 = prof[i + 1].lum; if (a0 == null || a1 == null || prof[i].hCm < A * 100 + 1) continue;
+      let top = null, best = -1; for (let i = 1; i < prof.length - 1; i++) { const a0 = prof[i - 1].lum, a1 = prof[i + 1].lum; if (a0 == null || a1 == null || prof[i].hCm < A * 100 + 3) continue;
         if (a1 - a0 > best) { best = a1 - a0; top = prof[i].hCm; } }
       const lumAtH = h => r1(mean(prof.filter(b => b.lum != null && Math.abs(b.hCm - h) < .6).map(b => b.lum)));
       const curve = [...age.entries()].sort((a, b) => a[0] - b[0]).filter(([, v]) => v.length >= 8).map(([a, v]) => ({s: +(a * 2 / 30).toFixed(2), lum: r1(mean(v)), n: v.length}));
